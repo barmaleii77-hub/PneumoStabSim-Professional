@@ -36,6 +36,7 @@ from src.physics.integrator import (
     step_dynamics,
     create_default_rigid_body,
 )
+from src.physics.forces import project_forces_to_vertical_and_moments
 from src.pneumo.enums import (
     Wheel,
     Line,
@@ -134,6 +135,8 @@ class PhysicsWorker(QObject):
         self._prev_piston_positions: dict[Wheel, float] = {
             wheel: 0.0 for wheel in Wheel
         }
+        self._latest_frame_forces: tuple[float, float, float] = (0.0, 0.0, 0.0)
+        self._latest_vertical_forces = np.zeros(len(Wheel))
         self._last_road_inputs: dict[str, float] = {
             k: 0.0 for k in ("LF", "RF", "LR", "RR")
         }
@@ -1022,13 +1025,46 @@ class PhysicsWorker(QObject):
                 "Pneumatic runtime update failed: %s", pneumo_exc, exc_info=True
             )
         else:
+            suspension_states: dict[
+                str, dict[str, float | tuple[float, float, float]]
+            ] = {}
             for wheel, volumes in pneumo_update.chamber_volumes.items():
+                wheel_state = self._latest_wheel_states[wheel]
+                wheel_state.vol_head = volumes[0]
+                wheel_state.vol_rod = volumes[1]
+                wheel_state.piston_position = pneumo_update.piston_positions.get(
+                    wheel, wheel_state.piston_position
+                )
+                wheel_state.force_pneumatic = pneumo_update.wheel_forces.get(
+                    wheel, wheel_state.force_pneumatic
+                )
+
+                axis = pneumo_update.axis_directions.get(wheel)
+                if axis is not None:
+                    suspension_states[wheel.value] = {
+                        "F_total_axis": pneumo_update.wheel_forces.get(wheel, 0.0),
+                        "axis_unit_world": axis,
+                    }
+
+            if self.rigid_body is not None and suspension_states:
                 try:
-                    wheel_state = self._latest_wheel_states[wheel]
-                    wheel_state.vol_head = volumes[0]
-                    wheel_state.vol_rod = volumes[1]
-                except Exception:
-                    continue
+                    vertical_forces, tau_x, tau_z = (
+                        project_forces_to_vertical_and_moments(
+                            suspension_states, self.rigid_body.attachment_points
+                        )
+                    )
+                except Exception as exc:
+                    self.logger.debug(
+                        "Failed to project pneumatic forces: %s", exc, exc_info=True
+                    )
+                else:
+                    self._latest_vertical_forces = vertical_forces
+                    total_force = float(np.sum(vertical_forces))
+                    self._latest_frame_forces = (
+                        total_force,
+                        float(tau_x),
+                        float(tau_z),
+                    )
             self.logger.debug(
                 "Pneumatic frame forces",
                 extra={
@@ -1076,6 +1112,9 @@ class PhysicsWorker(QObject):
                     heave_accel=float(self._latest_frame_accel[0]),
                     roll_accel=float(self._latest_frame_accel[1]),
                     pitch_accel=float(self._latest_frame_accel[2]),
+                    total_force_z=float(self._latest_frame_forces[0]),
+                    total_moment_x=float(self._latest_frame_forces[1]),
+                    total_moment_z=float(self._latest_frame_forces[2]),
                 )
 
             # Road excitations
