@@ -35,14 +35,26 @@ $env:QT_AUTO_SCREEN_SCALE_FACTOR = "1"
 $env:QT_SCALE_FACTOR_ROUNDING_POLICY = "PassThrough"
 $env:QT_ENABLE_HIGHDPI_SCALING = "1"
 
+$backendLabel = "OpenGL RHI (forced for advanced effects)"
+
 if ($SafeMode) {
     if (Test-Path Env:\QSG_RHI_BACKEND) {
         Remove-Item Env:\QSG_RHI_BACKEND -ErrorAction SilentlyContinue
     }
+    if (Test-Path Env:\QSG_OPENGL_VERSION) {
+        Remove-Item Env:\QSG_OPENGL_VERSION -ErrorAction SilentlyContinue
+    }
+    if (Test-Path Env:\QT_OPENGL) {
+        Remove-Item Env:\QT_OPENGL -ErrorAction SilentlyContinue
+    }
+    $backendLabel = "auto (Qt runtime default)"
     Write-Host "ℹ️ Safe mode detected — Qt will auto-select the scene graph backend." -ForegroundColor Yellow
 } else {
     $env:QSG_RHI_BACKEND = "opengl"
+    Write-Host "ℹ️ Standard mode active — forcing OpenGL scene graph backend for full feature support." -ForegroundColor Cyan
 }
+
+Write-Host "ℹ️ Scene graph backend configuration: $backendLabel" -ForegroundColor Cyan
 
 if ($Debug) {
     $env:QSG_INFO = "1"

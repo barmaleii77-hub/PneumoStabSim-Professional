@@ -118,9 +118,14 @@ def configure_qt_environment(
     # Уважаем .env, но задаём дефолты при отсутствии значений
     backend_default = "opengl"
     removed_backend: str | None = None
+    removed_safe_mode_keys: list[str] = []
 
     if safe_mode:
         removed_backend = os.environ.pop("QSG_RHI_BACKEND", None)
+        if os.environ.pop("QT_OPENGL", None) is not None:
+            removed_safe_mode_keys.append("QT_OPENGL")
+        if os.environ.pop("QSG_OPENGL_VERSION", None) is not None:
+            removed_safe_mode_keys.append("QSG_OPENGL_VERSION")
         backend = os.environ.get("QSG_RHI_BACKEND")
     else:
         backend = os.environ.setdefault("QSG_RHI_BACKEND", backend_default)
@@ -162,12 +167,19 @@ def configure_qt_environment(
     backend_value = os.environ.get("QSG_RHI_BACKEND")
     backend_label = backend_value or "auto (Qt default)"
     if safe_mode:
+        if removed_safe_mode_keys:
+            removal_note = ", removed " + ", ".join(sorted(removed_safe_mode_keys))
+        else:
+            removal_note = ""
         if removed_backend:
             emitter(
                 "Qt Quick Scene Graph backend: "
-                f"{backend_label} [safe mode; removed '{removed_backend}']"
+                f"{backend_label} [safe mode; removed '{removed_backend}'{removal_note}]"
             )
         else:
-            emitter(f"Qt Quick Scene Graph backend: {backend_label} [safe mode]")
+            emitter(
+                "Qt Quick Scene Graph backend: "
+                f"{backend_label} [safe mode{removal_note}]"
+            )
     else:
         emitter(f"Qt Quick Scene Graph backend: {backend_label} [standard mode]")

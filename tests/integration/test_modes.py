@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import builtins
 import os
+import sys
 from types import SimpleNamespace
 from typing import Callable
 
@@ -10,42 +13,53 @@ from src.bootstrap.environment import configure_qt_environment
 
 
 @pytest.fixture
-def fake_os(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
-    """Return a fake os.environ mapping isolated per test."""
+def fake_environment(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """Provide an isolated environment mapping for configure_qt_environment tests."""
 
     env: dict[str, str] = {}
-    fake_os_module = SimpleNamespace(environ=env, pathsep=os.pathsep)
-    monkeypatch.setattr("src.bootstrap.environment.os", fake_os_module)
+    fake_os = SimpleNamespace(environ=env, pathsep=os.pathsep)
+    monkeypatch.setattr("src.bootstrap.environment.os", fake_os)
     return env
 
 
-def test_safe_mode_does_not_force_backend(fake_os: dict[str, str]) -> None:
-    fake_os["QSG_RHI_BACKEND"] = "opengl"
+def test_safe_mode_does_not_force_backend(fake_environment: dict[str, str]) -> None:
+    fake_environment["QSG_RHI_BACKEND"] = "opengl"
     messages: list[str] = []
 
     configure_qt_environment(safe_mode=True, log=messages.append)
 
-    assert "QSG_RHI_BACKEND" not in fake_os
+    assert "QSG_RHI_BACKEND" not in fake_environment
     assert any("safe mode" in message.lower() for message in messages)
 
 
-def test_standard_mode_sets_backend(fake_os: dict[str, str]) -> None:
+def test_standard_mode_sets_backend(fake_environment: dict[str, str]) -> None:
     messages: list[str] = []
 
     configure_qt_environment(safe_mode=False, log=messages.append)
 
-    assert fake_os["QSG_RHI_BACKEND"] == "opengl"
+    assert fake_environment["QSG_RHI_BACKEND"] == "opengl"
     assert any("standard mode" in message.lower() for message in messages)
 
 
 def test_surface_format_skipped_when_safe_mode(monkeypatch: pytest.MonkeyPatch) -> None:
-    runner = ApplicationRunner(lambda *args, **kwargs: None, lambda *a, **k: None, SimpleNamespace(), object())
+    runner = ApplicationRunner(
+        lambda *args, **kwargs: None,
+        lambda *args, **kwargs: None,
+        SimpleNamespace(),
+        object(),
+    )
     runner.safe_mode_requested = True
 
     original_import: Callable[..., object] = builtins.__import__
     attempted: dict[str, bool] = {"pyside": False}
 
-    def guard(name: str, globals: dict | None = None, locals: dict | None = None, fromlist: tuple | None = None, level: int = 0) -> object:  # type: ignore[override]
+    def guard(
+        name: str,
+        globals: dict | None = None,
+        locals: dict | None = None,
+        fromlist: tuple | None = None,
+        level: int = 0,
+    ) -> object:
         if name.startswith("PySide6"):
             attempted["pyside"] = True
             raise AssertionError("PySide6 import attempted despite safe mode")
@@ -60,7 +74,12 @@ def test_surface_format_skipped_when_safe_mode(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_legacy_mode_uses_widgets(monkeypatch: pytest.MonkeyPatch) -> None:
-    runner = ApplicationRunner(lambda *args, **kwargs: None, lambda *a, **k: None, SimpleNamespace(), object())
+    runner = ApplicationRunner(
+        lambda *args, **kwargs: None,
+        lambda *args, **kwargs: None,
+        SimpleNamespace(),
+        object(),
+    )
     runner.use_legacy_ui = True
 
     created: dict[str, object] = {}
@@ -78,7 +97,8 @@ def test_legacy_mode_uses_widgets(monkeypatch: pytest.MonkeyPatch) -> None:
         def activateWindow(self) -> None:
             created["activate"] = True
 
-    monkeypatch.setattr("src.ui.main_window_legacy.MainWindow", DummyLegacyWindow)
+    legacy_module = SimpleNamespace(MainWindow=DummyLegacyWindow)
+    monkeypatch.setitem(sys.modules, "src.ui.main_window_legacy", legacy_module)
 
     qml_called = False
 
