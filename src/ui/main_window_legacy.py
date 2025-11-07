@@ -167,11 +167,22 @@ class MainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Orientation.Vertical)
         self.main_splitter.setObjectName("SceneChartsSplitter")
 
-        # Always use QML3D for now
-        self._setup_qml_3d_view()
+        if self.use_qml_3d:
+            self._setup_qml_3d_view()
 
-        if self._qquick_widget:
-            self.main_splitter.addWidget(self._qquick_widget)
+            if self._qquick_widget:
+                self.main_splitter.addWidget(self._qquick_widget)
+        else:
+            placeholder = QLabel(
+                "Legacy режим активирован — QML сцена отключена для диагностики"
+            )
+            placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            placeholder.setWordWrap(True)
+            placeholder.setStyleSheet(
+                "background-color: #202020; color: #f0f0f0; font-size: 14px; padding: 24px;"
+            )
+            self.main_splitter.addWidget(placeholder)
+            self.logger.info("[Legacy UI] QML сцена отключена по требованию CLI")
 
         self.chart_widget = ChartWidget(self)
         self.chart_widget.setMinimumHeight(200)
@@ -184,6 +195,11 @@ class MainWindow(QMainWindow):
 
     def _setup_qml_3d_view(self) -> None:
         """Setup Qt Quick3D full suspension scene - единый main.qml"""
+        if not self.use_qml_3d:
+            self.logger.info("[Legacy UI] Пропуск инициализации QML сцены")
+            self._qquick_widget = None
+            return
+
         self.logger.info("[QML] Загрузка QML: assets/qml/main.qml")
         try:
             self._qquick_widget = QQuickWidget(self)

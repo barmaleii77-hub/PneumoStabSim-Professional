@@ -54,6 +54,8 @@ class ApplicationRunner:
         self.error_hook_manager: Optional[ErrorHookManager] = None
 
         self.use_qml_3d_schema: bool = True
+        self.use_legacy_ui: bool = False
+        self.safe_mode_requested: bool = False
         self._is_headless: bool = False
         self._headless_reason: Optional[str] = None
         self._surface_format_configured: bool = False
@@ -397,12 +399,23 @@ class ApplicationRunner:
             return
 
         try:
-            from src.ui.main_window import MainWindow as MW  # type: ignore
+            if self.use_legacy_ui:
+                from src.ui.main_window_legacy import MainWindow as MW  # type: ignore
 
-            register_qml_types()
+                window = MW(use_qml_3d=False)
+                if self.app_logger:
+                    self.app_logger.info(
+                        "Legacy UI mode enabled — QML scene initialisation skipped"
+                    )
+                else:
+                    print("ℹ️ Legacy UI mode enabled — QML scene initialisation skipped")
+            else:
+                from src.ui.main_window import MainWindow as MW  # type: ignore
 
-            window = MW(use_qml_3d=self.use_qml_3d_schema)
-            self._check_qml_initialization(window)
+                register_qml_types()
+
+                window = MW(use_qml_3d=self.use_qml_3d_schema)
+                self._check_qml_initialization(window)
         except Exception as exc:
             # Переводим причину в пост-диагностику
             self._append_post_diag_trace(f"qml-create-window-failed:{exc}")
@@ -670,10 +683,23 @@ class ApplicationRunner:
             # ✅ Инициализация
             self.app_logger = self.setup_logging(verbose_console=args.verbose)
 
+            self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
+            self.use_legacy_ui = bool(getattr(args, "legacy", False))
+            if self.use_legacy_ui:
+                self.use_qml_3d_schema = False
+
             if self.app_logger:
                 self.app_logger.info("Logging initialized successfully")
                 if args.verbose:
                     self.app_logger.info("Verbose mode enabled")
+                if self.safe_mode_requested:
+                    self.app_logger.info(
+                        "Safe mode enabled — Qt backend auto-selection active"
+                    )
+                if self.use_legacy_ui:
+                    self.app_logger.info("Legacy UI mode requested from CLI")
+            elif self.use_legacy_ui:
+                print("ℹ️ Legacy UI mode requested (QML will be skipped)")
 
             self.setup_high_dpi()
             self.create_application()
