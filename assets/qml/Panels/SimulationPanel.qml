@@ -158,6 +158,21 @@ Pane {
         return Number.isFinite(numeric) ? numeric : undefined
     }
 
+    function _asScaledInt(value, scale) {
+        var numeric = Number(value)
+        var factor = Number(scale)
+        if (!Number.isFinite(numeric) || !Number.isFinite(factor))
+            return 0
+        return Math.round(numeric * factor) | 0
+    }
+
+    function _asInt(value) {
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            return 0
+        return Math.round(numeric) | 0
+    }
+
     function _assignSpinValue(spin, rawValue, options) {
         if (!spin)
             return
@@ -171,15 +186,17 @@ Pane {
         var scale = Number(spin.valueScale !== undefined ? spin.valueScale : 1)
         if (!Number.isFinite(scale) || scale <= 0)
             scale = 1
-        var finalValue = opts.forceInt ? Math.round(numeric) : numeric
+        var finalValue = opts.forceInt ? _asInt(numeric) : numeric
         if (scale !== 1)
-            finalValue = Math.round(numeric * scale)
+            finalValue = _asScaledInt(numeric, scale)
+        else if (!opts.forceInt)
+            finalValue = _asInt(finalValue)
         try {
             spin.value = finalValue
         } catch (error) {
             console.warn("⚠️ SimulationPanel: spin assignment failed for", logKey, "→", finalValue, error)
             if (scale !== 1) {
-                var scaledFallback = Math.round(Math.round(numeric) * scale)
+                var scaledFallback = _asScaledInt(Math.round(numeric), scale)
                 if (scaledFallback !== finalValue) {
                     try {
                         spin.value = scaledFallback
@@ -190,7 +207,7 @@ Pane {
                     }
                 }
             } else if (!opts.forceInt) {
-                var fallback = Math.round(numeric)
+                var fallback = _asInt(numeric)
                 if (fallback !== finalValue) {
                     try {
                         spin.value = fallback
@@ -945,7 +962,7 @@ Pane {
                         }
                         SpinBox {
                             Layout.preferredWidth: 110
-                            readonly property int valueScale: root._floatScale
+                            readonly property int valueScale: root._floatScale | 0
                             from: Math.round(receiverVolumeSlider.from * valueScale)
                             to: Math.round(receiverVolumeSlider.to * valueScale)
                             stepSize: Math.max(1, Math.round(receiverVolumeSlider.stepSize * valueScale))
@@ -997,11 +1014,11 @@ Pane {
                         }
                         SpinBox {
                             id: cvAtmoDiaSpin
-                            readonly property int valueScale: root._floatScale
+                            readonly property int valueScale: root._floatScale | 0
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.003 * valueScale)
+                            value: _asScaledInt(0.003, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1016,11 +1033,11 @@ Pane {
                         }
                         SpinBox {
                             id: cvTankDiaSpin
-                            readonly property int valueScale: root._floatScale
+                            readonly property int valueScale: root._floatScale | 0
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.003 * valueScale)
+                            value: _asScaledInt(0.003, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1074,11 +1091,11 @@ Pane {
                         }
                         SpinBox {
                             id: throttleMinSpin
-                            readonly property int valueScale: root._floatScale
+                            readonly property int valueScale: root._floatScale | 0
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.001 * valueScale)
+                            value: _asScaledInt(0.001, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1093,11 +1110,11 @@ Pane {
                         }
                         SpinBox {
                             id: throttleStiffSpin
-                            readonly property int valueScale: root._floatScale
+                            readonly property int valueScale: root._floatScale | 0
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.0015 * valueScale)
+                            value: _asScaledInt(0.0015, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1112,11 +1129,11 @@ Pane {
                         }
                         SpinBox {
                             id: diagonalCouplingSpin
-                            readonly property int valueScale: root._floatScale
+                            readonly property int valueScale: root._floatScale | 0
                             from: 0
                             to: 200
                             stepSize: 1
-                            value: Math.round(0.0008 * valueScale)
+                            value: _asScaledInt(0.0008, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
@@ -1167,11 +1184,11 @@ Pane {
                     }
                     SpinBox {
                         id: physicsDtSpin
-                        readonly property int valueScale: root._floatScale
+                        readonly property int valueScale: root._floatScale | 0
                         from: 1
                         to: 200
                         stepSize: 1
-                        value: Math.round(0.001 * valueScale)
+                        value: _asScaledInt(0.001, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                         valueFromText: function(text, locale) {
@@ -1216,7 +1233,7 @@ Pane {
                         from: 1
                         to: 200
                         stepSize: 1
-                        value: Math.round(0.05 * valueScale)
+                        value: _asScaledInt(0.05, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 3) }
                         valueFromText: function(text, locale) {
@@ -1243,11 +1260,11 @@ Pane {
                     }
                     SpinBox {
                         id: deadZoneHeadSpin
-                        readonly property int valueScale: root._floatScale
+                        readonly property int valueScale: root._floatScale | 0
                         from: 0
                         to: 100
                         stepSize: 1
-                        value: Math.round(0.001 * valueScale)
+                        value: _asScaledInt(0.001, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                         valueFromText: function(text, locale) {
@@ -1262,11 +1279,11 @@ Pane {
                     }
                     SpinBox {
                         id: deadZoneRodSpin
-                        readonly property int valueScale: root._floatScale
+                        readonly property int valueScale: root._floatScale | 0
                         from: 0
                         to: 100
                         stepSize: 1
-                        value: Math.round(0.001 * valueScale)
+                        value: _asScaledInt(0.001, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                         valueFromText: function(text, locale) {
