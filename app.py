@@ -25,12 +25,11 @@ from src.ui.startup import bootstrap_graphics_environment
 bootstrap_parser = create_bootstrap_parser()
 _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
+_program_name = sys.argv[0]
 
 SAFE_GRAPHICS_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
-SAFE_RUNTIME_MODE_REQUESTED = bool(
-    getattr(bootstrap_args, "safe", False)
-    or getattr(bootstrap_args, "test_mode", False)
-)
+SAFE_RUNTIME_MODE_REQUESTED = bool(getattr(bootstrap_args, "test_mode", False))
+SAFE_ALIAS_REQUESTED = "--safe" in _initial_argv
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
 
 _BOOTSTRAP_LOGGER = get_logger("bootstrap.graphics").bind(stage="pre-qt")
@@ -60,7 +59,14 @@ if bootstrap_args.env_check or bootstrap_args.env_report:
 
     sys.exit(0 if report.is_successful else 1)
 
-sys.argv = [sys.argv[0], *remaining_argv]
+_adjusted_remaining = list(remaining_argv)
+if SAFE_RUNTIME_MODE_REQUESTED:
+    _safe_token = "--safe" if SAFE_ALIAS_REQUESTED else "--test-mode"
+    if _safe_token not in _adjusted_remaining:
+        _adjusted_remaining.insert(0, _safe_token)
+remaining_argv = _adjusted_remaining
+
+sys.argv = [_program_name, *remaining_argv]
 
 # =============================================================================
 # Bootstrap Phase0: .env
@@ -138,7 +144,10 @@ configure_qt_environment(
 if LEGACY_MODE_REQUESTED:
     print("ℹ️ Legacy UI mode requested — QML loading will be skipped after bootstrap.")
 if SAFE_RUNTIME_MODE_REQUESTED:
-    print("ℹ️ Safe runtime mode requested — Qt Quick 3D will remain disabled.")
+    if SAFE_ALIAS_REQUESTED:
+        print("ℹ️ Safe runtime mode requested via --safe — Qt Quick 3D disabled.")
+    else:
+        print("ℹ️ Safe runtime mode requested — Qt Quick 3D will remain disabled.")
 
 # =============================================================================
 # Bootstrap Phase2: Qt Import

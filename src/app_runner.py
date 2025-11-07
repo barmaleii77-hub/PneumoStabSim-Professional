@@ -856,7 +856,17 @@ class ApplicationRunner:
                 self.app_logger.info(
                     "Safe shutdown timer triggered", extra={"reason": reason}
                 )
-            app_instance.exit(0)
+            core_app = getattr(self.Qt, "QCoreApplication", None)
+            target = None
+            if core_app is not None:
+                try:
+                    target = core_app.instance()
+                except Exception:  # pragma: no cover - defensive guard
+                    target = None
+            if target is None:
+                target = app_instance
+            if target is not None:
+                target.exit(0)
 
         timer.timeout.connect(_quit_app)
         timer.start(timer_ms)
