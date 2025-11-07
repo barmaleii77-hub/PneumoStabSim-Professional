@@ -309,6 +309,8 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: dict[str, float]) -
         rod_pressure_gauge = to_gauge_pressure(rod_pressure)
         area_head = geom.area_head(cylinder.spec.is_front)
         area_rod = geom.area_rod(cylinder.spec.is_front)
+        wheel_state.pressure_head = head_pressure
+        wheel_state.pressure_rod = rod_pressure
         wheel_state.force_pneumatic = (
             head_pressure_gauge * area_head - rod_pressure_gauge * area_rod
         )

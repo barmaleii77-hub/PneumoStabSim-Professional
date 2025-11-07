@@ -34,6 +34,8 @@ class WheelState:
     vol_head_max: float = 0.0
     vol_rod_min: float = 0.0
     vol_rod_max: float = 0.0
+    pressure_head: float = 0.0  # Head side pressure (Pa)
+    pressure_rod: float = 0.0  # Rod side pressure (Pa)
     lever_angle_min: float | None = None
     lever_angle_max: float | None = None
 

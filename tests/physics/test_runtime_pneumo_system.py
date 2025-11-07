@@ -206,6 +206,19 @@ def test_update_returns_expected_forces(runtime_system) -> None:
             abs_tol=1e-12,
         )
 
+        if wheel is Wheel.LP:
+            expected_head_line, expected_rod_line = Line.B1, Line.A1
+        elif wheel is Wheel.PP:
+            expected_head_line, expected_rod_line = Line.B2, Line.A2
+        elif wheel is Wheel.LZ:
+            expected_head_line, expected_rod_line = Line.A2, Line.B2
+        else:
+            expected_head_line, expected_rod_line = Line.A1, Line.B1
+
+        head_pressure, rod_pressure = update.pressures[wheel]
+        assert head_pressure == pytest.approx(gas.lines[expected_head_line].p, rel=1e-6)
+        assert rod_pressure == pytest.approx(gas.lines[expected_rod_line].p, rel=1e-6)
+
     left_sum = update.wheel_forces[Wheel.LP] + update.wheel_forces[Wheel.LZ]
     right_sum = update.wheel_forces[Wheel.PP] + update.wheel_forces[Wheel.PZ]
     assert update.left_force == pytest.approx(left_sum, rel=1e-6)
