@@ -1,7 +1,7 @@
 # ✅ УНИФИКАЦИЯ HDR PATHS
 
 **Дата**: 2025-01-19  
-**Версия**: PneumoStabSim Professional v4.9.6  
+**Версия**: PneumoStabSim Professional v4.9.7
 **Статус**: ✅ **COMPLETE**
 
 ---
@@ -376,5 +376,5 @@ WARN | IblProbeLoader | HDR probe failed to load (no fallback): file:///wrong/pa
 
 **Автор**: GitHub Copilot  
 **Дата**: 2025-01-19  
-**Версия**: v4.9.6  
+**Версия**: v4.9.7
 **Статус**: ✅ **PRODUCTION READY**

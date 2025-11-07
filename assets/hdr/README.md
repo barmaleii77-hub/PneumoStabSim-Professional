@@ -14,7 +14,7 @@ and packaged builds.
 _Store additional HDRIs in this directory using the same table format so that the
 renovation plan can track coverage at a glance._
 
-## ✅ Path Unification (v4.9.6)
+## ✅ Path Unification (v4.9.7)
 
 **All HDR paths are now normalized to `file://` URLs through centralized processing.**
 
