@@ -1298,10 +1298,25 @@ class SignalsRouter:
         if not isinstance(payload, Mapping):
             return
 
-        physics_updates: Dict[str, bool] = {}
-        for key in DEFAULT_PHYSICS_OPTIONS.keys():
-            if key in payload:
-                physics_updates[key] = bool(payload[key])
+        physics_updates: Dict[str, Any] = {}
+        for key, default_value in DEFAULT_PHYSICS_OPTIONS.items():
+            if key not in payload:
+                continue
+
+            raw_value = payload[key]
+            if isinstance(default_value, bool):
+                physics_updates[key] = bool(raw_value)
+                continue
+
+            if isinstance(raw_value, bool):
+                numeric_value = float(default_value)
+            else:
+                try:
+                    numeric_value = float(raw_value)
+                except (TypeError, ValueError):
+                    numeric_value = float(default_value)
+
+            physics_updates[key] = numeric_value
 
         if not physics_updates:
             return
