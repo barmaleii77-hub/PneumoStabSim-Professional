@@ -304,9 +304,10 @@ Effect {
         return !preferDesktopShaderProfile
     }
 
-    readonly property string shaderResourceDirectory: "../../shaders/effects/"
-    readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
-    readonly property string glesShaderResourceDirectory: "../../shaders/effects/"
+    readonly property url shaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
+    readonly property url legacyShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
+    readonly property url glesShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
+    readonly property url shaderRootUrl: Qt.resolvedUrl("../../shaders/")
     // qmllint disable unqualified
     readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
             ? effectShaderManifest
@@ -419,7 +420,7 @@ Effect {
         }
 
         if (manifestHasEntry && manifestEnabled) {
-            var shaderRootHint = "/assets/shaders/"
+            var shaderRootHint = shaderRootUrl
 
             function manifestPathMatches(manifestPathEntry) {
                 if (!manifestPathEntry)

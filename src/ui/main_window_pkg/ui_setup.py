@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+QML_RELATIVE_ROOT = Path("assets") / "qml"
+QML_ABSOLUTE_ROOT = PROJECT_ROOT / QML_RELATIVE_ROOT
 SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
 EFFECT_SHADER_DIR = SHADER_ROOT / "effects"
 EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR,)
@@ -58,9 +60,9 @@ class UISetup:
     logger = logging.getLogger(__name__)
 
     _SUPPORTED_SCENES: dict[str, Path] = {
-        "main": Path("assets/qml/main.qml"),
-        "realism": Path("assets/qml/main_v2_realism.qml"),
-        "fallback": Path("assets/qml/main_fallback.qml"),
+        "main": QML_ABSOLUTE_ROOT / "main.qml",
+        "realism": QML_ABSOLUTE_ROOT / "main_v2_realism.qml",
+        "fallback": QML_ABSOLUTE_ROOT / "main_fallback.qml",
     }
     _SCENE_LOAD_ORDER: tuple[str, ...] = ("main", "realism", "fallback")
     _SCENE_ENV_VAR = "PSS_QML_SCENE"
@@ -693,11 +695,11 @@ class UISetup:
             engine.addImportPath(str(qml_import_path))
 
             # Ensure the relative path is registered for qmlimportscanner parity
-            engine.addImportPath("assets/qml")
+            engine.addImportPath(QML_RELATIVE_ROOT.as_posix())
 
-            local_qml_path = Path("assets/qml")
+            local_qml_path = QML_ABSOLUTE_ROOT
             if local_qml_path.exists():
-                engine.addImportPath(str(local_qml_path.absolute()))
+                engine.addImportPath(str(local_qml_path.resolve()))
 
             # Load QML file
             qml_file = UISetup._resolve_supported_qml_scene()
