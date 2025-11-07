@@ -1,10 +1,10 @@
 SHELL := /bin/bash
-PYTHON ?= python3
 UV ?= uv
 UV_PROJECT_DIR ?= .
 UV_LOCKFILE ?= uv.lock
 UV_SYNC_ARGS ?= --frozen --extra dev
 UV_RUN_ARGS ?= --locked
+PYTHON ?= $(UV) run $(UV_RUN_ARGS) -- python
 QML_LINT_PATHS ?= src assets
 QML_LINT_TARGETS_FILE ?= qmllint_targets.txt
 PYTHON_LINT_PATHS ?= src tests tools

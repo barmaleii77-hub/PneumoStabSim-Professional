@@ -35,7 +35,12 @@ def _extract_message(output: str) -> str:
     ],
 )
 def test_startup_environment_message_contains_required_keys(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys, qt_qpa, qsg_backend, plugin_path
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys,
+    qt_qpa,
+    qsg_backend,
+    plugin_path,
 ) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("QT_QPA_PLATFORM", qt_qpa)
@@ -63,12 +68,12 @@ def test_startup_environment_message_contains_required_keys(
     ]
 
     for key in expected_keys:
-        assert any(
-            part.startswith(f"{key}=") for part in message.split(" | ")
-        ), f"stdout message missing key {key}"
-        assert any(
-            part.startswith(f"{key}=") for part in log_message.split(" | ")
-        ), f"log message missing key {key}"
+        assert any(part.startswith(f"{key}=") for part in message.split(" | ")), (
+            f"stdout message missing key {key}"
+        )
+        assert any(part.startswith(f"{key}=") for part in log_message.split(" | ")), (
+            f"log message missing key {key}"
+        )
 
 
 def test_format_startup_environment_message_has_all_required_keys() -> None:
@@ -86,4 +91,6 @@ def test_format_startup_environment_message_has_all_required_keys() -> None:
 
     assert formatted.startswith("STARTUP_ENVIRONMENT"), formatted
     for key, value in snapshot.items():
-        assert f"{key}={value}" in formatted, f"Formatted output missing {key}={value}: {formatted}"
+        assert f"{key}={value}" in formatted, (
+            f"Formatted output missing {key}={value}: {formatted}"
+        )
