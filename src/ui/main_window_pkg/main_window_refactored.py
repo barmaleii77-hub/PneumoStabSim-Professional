@@ -542,33 +542,64 @@ class MainWindow(QMainWindow):
             sanitized.get("pressureScaleMax"), _float(prev.get("pressureScaleMax"))
         )
 
+        input_track = _float(params.get("trackWidth"))
+        input_frame = _float(params.get("frameToPivot"))
+        input_lever = _float(params.get("leverLength"))
+        input_max_travel = _float(params.get("maxSuspTravel"))
+
+        prev_track = _float(prev.get("trackWidth"))
+        prev_frame = _float(prev.get("frameToPivot"))
+        prev_lever = _float(prev.get("leverLength"))
+        prev_max_travel = _float(prev.get("maxSuspTravel"))
+
         tolerance = 1e-6
-        if track_width is not None and track_width > 0.0:
+
+        track_half = None
+        if track_width is not None:
+            corrected_track = abs(track_width)
+            if corrected_track <= tolerance:
+                fallback_track = (
+                    prev_track
+                    if prev_track is not None and prev_track > tolerance
+                    else None
+                )
+                corrected_track = (
+                    fallback_track if fallback_track is not None else tolerance
+                )
+            if (
+                input_track is not None
+                and abs(corrected_track - input_track) > tolerance
+            ):
+                adjustments.append(
+                    f"WARNING: trackWidth clamped to {corrected_track:.3f} m"
+                )
+            track_width = corrected_track
+            if track_width > tolerance:
+                track_half = track_width / 2.0
+        elif prev_track is not None and prev_track > tolerance:
+            track_width = prev_track
             track_half = track_width / 2.0
-            prev_track = _float(prev.get("trackWidth"), track_width)
-            prev_frame = _float(prev.get("frameToPivot"), frame_to_pivot)
-            prev_lever = _float(prev.get("leverLength"), lever_length)
 
-            changed_track = (
-                prev_track is not None and abs(track_width - prev_track) > tolerance
-            )
-            changed_frame = (
-                frame_to_pivot is not None
-                and prev_frame is not None
-                and abs(frame_to_pivot - prev_frame) > tolerance
-            )
-            changed_lever = (
-                lever_length is not None
-                and prev_lever is not None
-                and abs(lever_length - prev_lever) > tolerance
-            )
+        if track_width is not None:
+            sanitized["trackWidth"] = track_width
 
+        if track_half is not None:
             if frame_to_pivot is None:
                 base_frame = prev_frame if prev_frame is not None else track_half / 2.0
                 frame_to_pivot = max(0.0, min(track_half, base_frame))
             if lever_length is None:
                 base_lever = prev_lever if prev_lever is not None else track_half / 2.0
                 lever_length = max(0.0, min(track_half, base_lever))
+
+            changed_track = input_track is not None and (
+                prev_track is None or abs(input_track - prev_track) > tolerance
+            )
+            changed_frame = input_frame is not None and (
+                prev_frame is None or abs(input_frame - prev_frame) > tolerance
+            )
+            changed_lever = input_lever is not None and (
+                prev_lever is None or abs(input_lever - prev_lever) > tolerance
+            )
 
             if changed_track and not changed_frame and not changed_lever:
                 base_frame = prev_frame if prev_frame is not None else frame_to_pivot
@@ -578,7 +609,6 @@ class MainWindow(QMainWindow):
                     base_frame = base_lever = track_half / 2.0
                     total = base_frame + base_lever
                 frame_ratio = max(0.0, min(1.0, (base_frame or 0.0) / total))
-                lever_ratio = 1.0 - frame_ratio
                 new_frame = max(0.0, min(track_half * frame_ratio, track_half))
                 new_lever = max(0.0, track_half - new_frame)
                 if abs(new_frame - frame_to_pivot) > tolerance:
@@ -598,7 +628,13 @@ class MainWindow(QMainWindow):
                     adjustments.append(
                         f"WARNING: frameToPivot clamped to {frame_to_pivot:.3f} m"
                     )
-                lever_length = max(track_half - frame_to_pivot, 0.0)
+                previous_lever = lever_length if lever_length is not None else 0.0
+                new_lever = max(track_half - frame_to_pivot, 0.0)
+                if abs(new_lever - previous_lever) > tolerance:
+                    adjustments.append(
+                        f"WARNING: leverLength rescaled to {new_lever:.3f} m to match frame"
+                    )
+                lever_length = new_lever
             elif changed_lever:
                 original = lever_length
                 lever_length = max(0.0, min(lever_length, track_half))
@@ -606,7 +642,15 @@ class MainWindow(QMainWindow):
                     adjustments.append(
                         f"WARNING: leverLength clamped to {lever_length:.3f} m"
                     )
-                frame_to_pivot = max(track_half - lever_length, 0.0)
+                updated_frame = max(track_half - lever_length, 0.0)
+                if (
+                    frame_to_pivot is None
+                    or abs(updated_frame - frame_to_pivot) > tolerance
+                ):
+                    adjustments.append(
+                        f"WARNING: frameToPivot rescaled to {updated_frame:.3f} m to match lever"
+                    )
+                frame_to_pivot = updated_frame
             else:
                 if (
                     frame_to_pivot is not None
@@ -638,10 +682,34 @@ class MainWindow(QMainWindow):
                     )
                 lever_length = clamped_lever
 
-            sanitized["trackWidth"] = track_width
+        if frame_to_pivot is not None:
             sanitized["frameToPivot"] = frame_to_pivot
+        if lever_length is not None:
             sanitized["leverLength"] = lever_length
-            sanitized["maxSuspTravel"] = 2.0 * lever_length
+
+        max_susp_travel = None
+        if lever_length is not None:
+            max_susp_travel = max(0.0, 2.0 * lever_length)
+        else:
+            max_susp_travel = _float(sanitized.get("maxSuspTravel"), prev_max_travel)
+            if max_susp_travel is not None and max_susp_travel < 0.0:
+                corrected_travel = 0.0
+                adjustments.append(
+                    f"WARNING: maxSuspTravel clamped to {corrected_travel:.3f} m"
+                )
+                max_susp_travel = corrected_travel
+
+        if (
+            input_max_travel is not None
+            and max_susp_travel is not None
+            and abs(max_susp_travel - input_max_travel) > tolerance
+        ):
+            adjustments.append(
+                f"WARNING: maxSuspTravel clamped to {max_susp_travel:.3f} m"
+            )
+
+        if max_susp_travel is not None:
+            sanitized["maxSuspTravel"] = max_susp_travel
 
         if rod_position is not None:
             clamped = min(max(rod_position, 0.1), 0.9)
@@ -651,13 +719,15 @@ class MainWindow(QMainWindow):
                 )
             sanitized["rodPosition"] = clamped
 
-        if stroke is not None and lever_length is not None:
-            min_stroke = 2.0 * lever_length
-            if stroke + tolerance < min_stroke:
-                sanitized["strokeM"] = min_stroke
+        if max_susp_travel is not None:
+            if stroke is None:
+                stroke = max_susp_travel
+            elif stroke + tolerance < max_susp_travel:
+                stroke = max_susp_travel
                 adjustments.append(
-                    f"WARNING: stroke increased to {min_stroke:.3f} m to match lever travel"
+                    f"WARNING: stroke increased to {stroke:.3f} m to match lever travel"
                 )
+            sanitized["strokeM"] = stroke
 
         if cyl_body is not None and rod_length is not None:
             min_rod = 1.1 * cyl_body
@@ -775,7 +845,10 @@ class MainWindow(QMainWindow):
                     "Failed to persist geometry settings: %s", exc, exc_info=exc
                 )
 
-        if not QMLBridge.invoke_qml_function(self, "applyGeometryUpdates", params):
+        push_success = QMLBridge.invoke_qml_function(
+            self, "applyGeometryUpdates", params
+        )
+        if adjustments or not push_success:
             QMLBridge.queue_update(self, "geometry", params)
 
         if hasattr(self, "status_bar") and self.status_bar:
