@@ -1,7 +1,7 @@
 # 📖 SETTINGS ARCHITECTURE - ПОЛНАЯ ДОКУМЕНТАЦИЯ
 
 **Дата:**2025-01-18
-**Версия:** PneumoStabSim Professional v4.9.7
+**Версия:** PneumoStabSim Professional v4.9.8
 **Статус:** ✅ **PRODUCTION READY**
 
 ---
@@ -269,7 +269,7 @@ settings_manager.save_settings(state)
 
 ```json
 {
-  "version": "4.9.7",
+  "version": "4.9.8",
   "last_modified": "2025-12-02T12:00:00Z",
   "description": "Unified settings - single source of truth",
 
@@ -308,7 +308,7 @@ settings_manager.save_settings(state)
  // METADATA
  // ============================================================
 "metadata": {
-  "version": "4.9.7",
+  "version": "4.9.8",
   "last_modified": "2025-01-18T12:00:00Z",
   "total_parameters": 293,
   "description": "Unified settings file"

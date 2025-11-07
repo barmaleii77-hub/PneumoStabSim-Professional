@@ -14,6 +14,8 @@ best practices for scientific visualisation software.
 > backlogs – mark items complete in the phase-specific plans located in the
 > `docs/RENOVATION_PHASE_*.md` files and keep this master plan synchronised with
 > reality after every milestone.
+>
+> **Target release**: PneumoStabSim Professional v4.9.8
 
 ---
 
