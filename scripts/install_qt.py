@@ -9,7 +9,6 @@ import re
 import shutil
 import subprocess
 import sys
-from typing import List, Set, Tuple
 from collections.abc import Iterable, Sequence
 
 QT_ROOT = pathlib.Path(os.environ.get("QT_ROOT", "/opt/Qt")).resolve()

@@ -18,7 +18,7 @@ import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 from collections.abc import Iterable, Sequence
 
 

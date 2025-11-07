@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Callable, Dict, Tuple
+from typing import Callable
 
 import numpy as np
 
@@ -29,7 +29,7 @@ class LeverIntegrationResult:
     clamped: bool
 
 
-_WHEEL_KEY_MAP: Dict[Wheel, str] = {
+_WHEEL_KEY_MAP: dict[Wheel, str] = {
     Wheel.LP: "LF",
     Wheel.PP: "RF",
     Wheel.LZ: "LR",
@@ -229,13 +229,13 @@ def integrate_lever_state(
     )
 
 
-def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -> None:
+def compute_kinematics(state: PhysicsStepState, road_inputs: dict[str, float]) -> None:
     """Update pneumatic system and wheel states from road excitation."""
 
     dt = float(state.dt)
     lever_config = state.lever_config
-    results: Dict[Wheel, LeverIntegrationResult] = {}
-    lever_angles: Dict[Wheel, float] = {}
+    results: dict[Wheel, LeverIntegrationResult] = {}
+    lever_angles: dict[Wheel, float] = {}
 
     for wheel, key in _WHEEL_KEY_MAP.items():
         road_disp = float(road_inputs.get(key, 0.0))

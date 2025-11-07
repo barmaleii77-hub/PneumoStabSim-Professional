@@ -6,7 +6,6 @@ from __future__ import annotations
 import pathlib
 import re
 import sys
-from typing import List
 from collections.abc import Iterable
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]

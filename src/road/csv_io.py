@@ -7,7 +7,7 @@ Handles formats: time,z and time,LF,RF,LR,RR
 import csv
 import numpy as np
 from pathlib import Path
-from typing import Tuple, Dict, Optional, Any
+from typing import Optional, Any
 import warnings
 from scipy.interpolate import interp1d
 

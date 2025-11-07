@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 
@@ -195,7 +195,7 @@ def test_handle_modes_physics_changed_normalises_numeric_options(
     """Physics options from QML must preserve numeric tuning parameters."""
 
     window = _DummyWindow()
-    dispatched: List[str] = []
+    dispatched: list[str] = []
 
     monkeypatch.setattr(
         SignalsRouter,

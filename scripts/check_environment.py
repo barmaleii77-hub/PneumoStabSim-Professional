@@ -24,7 +24,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any 
 
 
 MIN_PYTHON_VERSION = (3, 10)

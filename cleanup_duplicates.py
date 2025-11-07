@@ -20,7 +20,6 @@ import sys
 from pathlib import Path
 import json
 import subprocess
-from typing import List
 
 
 class DuplicatesCleanup:

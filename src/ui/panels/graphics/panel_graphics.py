@@ -19,7 +19,7 @@ import json
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from collections.abc import Mapping
 
 from PySide6.QtCore import QTimer, Signal, Slot

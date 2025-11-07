@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 from collections.abc import Mapping
 
 from PySide6.QtCore import Qt, QTimer, Signal

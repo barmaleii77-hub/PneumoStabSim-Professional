@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Tuple
 
 from src.pneumo.cylinder import CylinderSpec, CylinderState
 from src.pneumo.geometry import LeverGeom, CylinderGeom

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 PA_PER_BAR = 100_000.0
 MM_PER_M = 1000.0

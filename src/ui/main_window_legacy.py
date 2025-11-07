@@ -24,7 +24,7 @@ import logging
 import time
 import json
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 
 from src.ui.charts import ChartWidget
 from src.ui.panels import (

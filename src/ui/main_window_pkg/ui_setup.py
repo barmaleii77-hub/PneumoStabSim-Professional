@@ -12,7 +12,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt, QSettings, QUrl
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface

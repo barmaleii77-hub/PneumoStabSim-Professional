@@ -3,7 +3,7 @@ ModesPanel defaults and presets
 Значения по умолчанию и предустановки панели режимов симуляции
 """
 
-from typing import Dict, Any
+from typing import Any
 
 # ===============================================================
 # DEFAULT VALUES

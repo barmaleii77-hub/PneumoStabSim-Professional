@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 import math
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any
 from collections.abc import Iterable, Mapping, Sequence
 
 from .metadata import TrainingPresetMetadata

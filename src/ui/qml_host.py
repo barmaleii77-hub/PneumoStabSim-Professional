@@ -7,7 +7,7 @@ Uses geometry_bridge.py for correct coordinate calculation
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 from PySide6.QtCore import QUrl, Signal
 from PySide6.QtQuickWidgets import QQuickWidget

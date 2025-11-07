@@ -10,7 +10,7 @@ import logging
 import traceback
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from enum import Enum, auto
 
 

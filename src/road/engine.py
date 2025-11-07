@@ -4,7 +4,7 @@ Provides RoadInput class with get_wheel_excitation(t) method
 """
 
 import numpy as np
-from typing import Dict, Optional, Any, Tuple
+from typing import Optional, Any
 from scipy.interpolate import interp1d
 import warnings
 

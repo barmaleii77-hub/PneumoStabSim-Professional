@@ -8,7 +8,7 @@ import math
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import numpy as np
 from scipy.integrate import solve_ivp

@@ -11,7 +11,7 @@ from __future__ import annotations
 import copy
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from collections.abc import Mapping
 
 from importlib import import_module, util
@@ -1299,7 +1299,7 @@ class SignalsRouter:
         if not isinstance(payload, Mapping):
             return
 
-        physics_updates: Dict[str, Any] = {}
+        physics_updates: dict[str, Any] = {}
         for key, default_value in DEFAULT_PHYSICS_OPTIONS.items():
             if key not in payload:
                 continue
@@ -1378,7 +1378,7 @@ class SignalsRouter:
             ).upper()
 
         manager = getattr(window, "settings_manager", None)
-        current_pneumo: Dict[str, Any] = {}
+        current_pneumo: dict[str, Any] = {}
         if manager is not None and hasattr(manager, "get_category"):
             try:
                 current = manager.get_category("pneumatic")

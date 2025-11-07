@@ -6,7 +6,6 @@ Combines QDial with QDoubleSpinBox for precise value control
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from PySide6.QtWidgets import (
     QWidget,

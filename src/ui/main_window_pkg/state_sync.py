@@ -9,7 +9,7 @@ Russian comments / English code.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QByteArray, QSettings
 

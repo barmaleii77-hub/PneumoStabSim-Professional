@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict
-
 from src.common.units import PA_ATM
 from src.pneumo.enums import Line, Port
 from src.pneumo.gas_state import apply_instant_volume_change

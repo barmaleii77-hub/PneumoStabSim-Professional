@@ -1,7 +1,7 @@
 """Tests for ``MainWindow._push_batched_updates`` fallback behaviour."""
 
 from types import SimpleNamespace
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import Mock
 
 import pytest

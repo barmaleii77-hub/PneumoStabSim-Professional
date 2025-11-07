@@ -2,7 +2,7 @@
 Type definitions and protocols for pneumatic domain
 """
 
-from typing import TypedDict, Protocol, Tuple
+from typing import TypedDict, Protocol
 from .enums import Wheel, Port, Line
 
 

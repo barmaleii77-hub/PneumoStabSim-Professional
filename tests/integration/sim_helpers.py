@@ -9,7 +9,6 @@ from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 from collections.abc import Iterator, Mapping
 
 from config.constants import get_pneumo_gas_constants

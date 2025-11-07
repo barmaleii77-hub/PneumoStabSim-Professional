@@ -9,7 +9,6 @@ import pathlib
 import subprocess
 import sys
 import tomllib
-from typing import List
 from collections.abc import Iterable
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]

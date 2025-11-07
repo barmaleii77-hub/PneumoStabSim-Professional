@@ -3,7 +3,6 @@ GeometryState: Centralized geometry management with kinematic constraints
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
 import math
 
 # Try to import kinematics modules

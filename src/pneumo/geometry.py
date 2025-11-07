@@ -5,7 +5,6 @@ All calculations in SI units (meters)
 
 import math
 from dataclasses import dataclass
-from typing import Tuple
 from src.common.units import MIN_VOLUME_FRACTION
 from src.common.errors import GeometryError
 from .types import ValidationResult

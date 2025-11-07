@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Dict
+from typing import Any
 from collections.abc import Iterable
 
 from src.core.interfaces import SettingsOrchestrator as SettingsOrchestratorProtocol

@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 QT_ENV_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",

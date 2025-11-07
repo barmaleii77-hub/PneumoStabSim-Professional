@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -25,7 +25,7 @@ class MaterialsTab(QWidget):
     """Вкладка настроек материалов: 8 компонентов с полным PBR набором
 
     Signals:
-        material_changed: Dict[str, Any] - параметры материалов изменились
+        material_changed: dict[str, Any] - параметры материалов изменились
     """
 
     material_changed = Signal(dict)
