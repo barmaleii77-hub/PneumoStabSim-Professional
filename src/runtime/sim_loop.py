@@ -832,42 +832,73 @@ class PhysicsWorker(QObject):
 
         # Store volume and mode for gas network updates
         self.receiver_volume = volume
-        self.receiver_volume_mode = mode
+        mode_token = str(mode).upper()
+        self.receiver_volume_mode = mode_token
 
-        mode_enum = self._resolve_receiver_mode(mode)
+        mode_enum = self._resolve_receiver_mode(mode_token)
 
+        receiver_pressure: Optional[float] = None
+        receiver_temperature: Optional[float] = None
         if self.pneumatic_system is not None:
             try:
-                self.pneumatic_system.receiver.mode = mode_enum
-                self.pneumatic_system.receiver.apply_instant_volume_change(volume)
+                receiver_state = getattr(self.pneumatic_system, "receiver", None)
+                if receiver_state is None:
+                    raise AttributeError("Pneumatic system missing receiver state")
+                receiver_state.mode = mode_enum
+                receiver_state.apply_instant_volume_change(volume)
+                receiver_pressure = getattr(receiver_state, "p", None)
+                receiver_temperature = getattr(receiver_state, "T", None)
             except Exception as exc:
-                self.logger.warning(f"Failed to update receiver state: {exc}")
+                self.logger.warning(
+                    "Failed to update receiver state: %s", exc, exc_info=exc
+                )
 
+        tank_pressure: Optional[float] = None
+        tank_mass: Optional[float] = None
+        tank_temperature: Optional[float] = None
         if self.gas_network is not None:
             try:
-                self.gas_network.tank.mode = mode_enum
+                tank_state = getattr(self.gas_network, "tank", None)
+                if tank_state is None:
+                    raise AttributeError("Gas network missing tank state")
+                tank_state.mode = mode_enum
                 apply_instant_volume_change(
-                    self.gas_network.tank,
+                    tank_state,
                     volume,
-                    gamma=self.gas_network.tank.gamma,
+                    gamma=getattr(tank_state, "gamma", 1.4),
                 )
-                self._latest_tank_state.volume = self.gas_network.tank.V
-                self._latest_tank_state.pressure = self.gas_network.tank.p
-                self._latest_tank_state.mass = self.gas_network.tank.m
+                tank_pressure = getattr(tank_state, "p", None)
+                tank_mass = getattr(tank_state, "m", None)
+                tank_temperature = getattr(tank_state, "T", None)
+                latest_state = getattr(self, "_latest_tank_state", None)
+                if latest_state is not None:
+                    latest_state.volume = tank_state.V
+                    if tank_pressure is not None:
+                        latest_state.pressure = float(tank_pressure)
+                    if tank_mass is not None:
+                        latest_state.mass = float(tank_mass)
+                    if (
+                        hasattr(latest_state, "temperature")
+                        and tank_temperature is not None
+                    ):
+                        latest_state.temperature = float(tank_temperature)
             except Exception as exc:
-                self.logger.warning(f"Failed to update gas network tank volume: {exc}")
+                self.logger.warning(
+                    "Failed to update gas network tank volume: %s",
+                    exc,
+                    exc_info=exc,
+                )
 
         self.logger.info(
             "Receiver volume updated",
             extra={
                 "volume_m3": float(volume),
-                "mode": mode,
-                "tank_pressure_pa": getattr(self.gas_network.tank, "p", float("nan"))
-                if self.gas_network
-                else None,
-                "tank_mass_kg": getattr(self.gas_network.tank, "m", float("nan"))
-                if self.gas_network
-                else None,
+                "mode": mode_token,
+                "tank_pressure_pa": tank_pressure,
+                "tank_mass_kg": tank_mass,
+                "tank_temperature_k": tank_temperature,
+                "receiver_pressure_pa": receiver_pressure,
+                "receiver_temperature_k": receiver_temperature,
             },
         )
 
