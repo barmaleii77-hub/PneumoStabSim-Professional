@@ -24,7 +24,7 @@ import logging
 from functools import lru_cache
 from pathlib import Path
 import time
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 from collections.abc import Iterable, Mapping, MutableMapping
 
 import yaml

@@ -30,13 +30,13 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Iterable
 
 from src.core.settings_manager import (
     ProfileSettingsManager as _CoreProfileSettingsManager,
 )
-from src.security.access_control import AccessDeniedError, get_access_control
+from src.security.access_control import get_access_control
 
 
 logger = logging.getLogger(__name__)

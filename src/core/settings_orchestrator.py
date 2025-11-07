@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 from src.common import settings_manager as sm
 

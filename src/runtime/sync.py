@@ -8,7 +8,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Iterable
 
 _TIMESTEP_EPSILON = 1e-9
@@ -62,7 +62,7 @@ class LatestOnlyQueue:
                 self._dropped_count += 1
                 return False
 
-    def get_nowait(self) -> Optional[Any]:
+    def get_nowait(self) -> Any | None:
         """Get item without blocking
 
         Returns:
@@ -338,7 +338,7 @@ class StateSnapshotBuffer:
         with self._lock:
             return list(self._buffer)
 
-    def latest(self) -> Optional[Any]:
+    def latest(self) -> Any | None:
         """Return the most recent snapshot or ``None`` if empty."""
 
         with self._lock:

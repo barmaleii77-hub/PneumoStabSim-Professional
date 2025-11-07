@@ -6,7 +6,6 @@ Manages interconnections between lines, receiver, and atmosphere
 import logging
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Optional
 from collections.abc import Mapping, Sequence
 from .enums import Line, ThermoMode
 from .gas_state import (
@@ -95,7 +94,7 @@ class GasNetwork:
     relief_stiff_orifice_diameter: float = field(
         default_factory=_default_relief_stiff_orifice
     )
-    polytropic_params: Optional[PolytropicParameters] = None
+    polytropic_params: PolytropicParameters | None = None
     leak_coefficient: float = 0.0
     leak_reference_area: float = 0.0
     master_equalization_diameter: float = 0.0
@@ -172,7 +171,7 @@ class GasNetwork:
         self.update_pressures_with_explicit_volumes(volumes, thermo_mode)
 
     def apply_valves_and_flows(
-        self, dt: float, log: Optional[logging.Logger] = None
+        self, dt: float, log: logging.Logger | None = None
     ) -> dict[str, dict[str, float]]:
         """Apply valve flows for one time step
 
@@ -328,7 +327,7 @@ class GasNetwork:
             self._add_mass_to_line(state, increment, inlet_temperature)
 
     def _apply_master_equalisation(
-        self, dt: float, log: Optional[logging.Logger] = None
+        self, dt: float, log: logging.Logger | None = None
     ) -> tuple[str, float, float]:
         diameter = float(self.master_equalization_diameter)
         if diameter <= 0.0 or dt <= 0.0:
@@ -389,7 +388,7 @@ class GasNetwork:
 
         return (direction, transferred_mass, mass_flow)
 
-    def _equalise_instantaneously(self, log: Optional[logging.Logger] = None) -> None:
+    def _equalise_instantaneously(self, log: logging.Logger | None = None) -> None:
         total_mass = sum(line.m for line in self.lines.values())
 
         volumes = self.compute_line_volumes()
@@ -520,7 +519,7 @@ class GasNetwork:
         return actual_transfer
 
     def _apply_receiver_relief_valves(
-        self, dt: float, log: Optional[logging.Logger] = None
+        self, dt: float, log: logging.Logger | None = None
     ) -> dict[str, float]:
         """Apply receiver relief valve flows
 
@@ -603,8 +602,8 @@ class GasNetwork:
 
     def enforce_master_isolation(
         self,
-        log: Optional[logging.Logger] = None,
-        dt: Optional[float] = None,
+        log: logging.Logger | None = None,
+        dt: float | None = None,
     ):
         """Enforce master isolation when enabled - equalize all line pressures
 

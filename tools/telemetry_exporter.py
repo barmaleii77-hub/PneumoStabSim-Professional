@@ -10,7 +10,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 from collections.abc import Iterable, MutableMapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

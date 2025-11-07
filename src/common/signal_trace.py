@@ -12,13 +12,12 @@ from threading import Lock
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
-    Optional,
     Protocol,
     TypeVar,
     cast,
 )
+from collections.abc import Callable
 
 from .qt_compat import Property, QObject, Signal, Slot
 

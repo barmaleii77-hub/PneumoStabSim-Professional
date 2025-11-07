@@ -11,7 +11,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from PIL import Image, ImageChops, ImageStat
 

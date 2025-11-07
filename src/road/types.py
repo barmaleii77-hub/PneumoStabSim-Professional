@@ -5,7 +5,7 @@ Defines source types, ISO 8608 classes, correlation specs, and configuration str
 
 from enum import Enum, auto
 from dataclasses import dataclass
-from typing import Optional, Any, Union
+from typing import Any
 import numpy as np
 
 
@@ -40,7 +40,7 @@ class CorrelationSpec:
 
     rho_LR: float = 0.8  # Correlation coefficient (0..1)
     method: str = "coherence"  # 'coherence' or 'mixing'
-    seed: Optional[int] = None  # Random seed for reproducibility
+    seed: int | None = None  # Random seed for reproducibility
 
     def __post_init__(self):
         if not 0.0 <= self.rho_LR <= 1.0:
@@ -66,7 +66,7 @@ class Preset:
     phase: float = 0.0  # Base phase (rad)
 
     # ISO 8608 parameters
-    iso_class: Optional[Iso8608Class] = None  # ISO roughness class
+    iso_class: Iso8608Class | None = None  # ISO roughness class
 
     # Geometric parameters for features
     feature_length: float = 3.7  # Length of speed bumps/potholes (m)
@@ -93,25 +93,25 @@ class RoadConfig:
     """Complete road input configuration"""
 
     source: SourceKind  # Input source type
-    preset: Optional[Preset] = None  # Predefined preset
+    preset: Preset | None = None  # Predefined preset
 
     # Manual parameters (override preset if specified)
-    velocity: Optional[float] = None  # Vehicle velocity (m/s)
-    duration: Optional[float] = None  # Duration (s)
-    amplitude: Optional[float] = None  # Amplitude (m)
-    frequency: Optional[float] = None  # Frequency (Hz)
-    phase: Optional[float] = None  # Phase (rad)
+    velocity: float | None = None  # Vehicle velocity (m/s)
+    duration: float | None = None  # Duration (s)
+    amplitude: float | None = None  # Amplitude (m)
+    frequency: float | None = None  # Frequency (Hz)
+    phase: float | None = None  # Phase (rad)
 
     # Vehicle geometry
     wheelbase: float = 3.2  # Wheelbase (m)
     track: float = 1.6  # Track width (m)
 
     # Correlation and sampling
-    correlation: Optional[CorrelationSpec] = None
+    correlation: CorrelationSpec | None = None
     resample_hz: float = 1000.0  # Sampling frequency (Hz)
 
     # CSV-specific
-    csv_path: Optional[str] = None  # Path to CSV file
+    csv_path: str | None = None  # Path to CSV file
     csv_format: str = "auto"  # 'auto', 'time_z', 'time_wheels'
 
     def get_effective_params(self) -> dict[str, Any]:
@@ -183,7 +183,7 @@ ISO8608_PARAMETERS = {
 
 
 # Wheel position mapping
-WheelPosition = dict[str, Union[str, float]]
+WheelPosition = dict[str, str | float]
 WHEEL_POSITIONS = {
     "LF": {"name": "Left Front", "x": -0.8, "z": -1.6},  # Left front
     "RF": {"name": "Right Front", "x": +0.8, "z": -1.6},  # Right front

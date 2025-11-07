@@ -7,7 +7,7 @@ Handles formats: time,z and time,LF,RF,LR,RR
 import csv
 import numpy as np
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 import warnings
 from scipy.interpolate import interp1d
 
@@ -121,7 +121,7 @@ def load_csv_profile(
     format_type: str = "auto",
     wheelbase: float = 3.2,
     velocity: float = 25.0,
-    correlation: Optional[CorrelationSpec] = None,
+    correlation: CorrelationSpec | None = None,
     resample_hz: float = 1000.0,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Load road profile from CSV file

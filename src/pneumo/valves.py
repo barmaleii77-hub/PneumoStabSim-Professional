@@ -11,7 +11,6 @@ pressures so ``is_open()`` can be called with or without explicit arguments.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Optional
 from collections.abc import Mapping
 
 from .enums import CheckValveKind, ReliefValveKind

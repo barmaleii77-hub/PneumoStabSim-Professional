@@ -2,12 +2,12 @@
 
 import argparse, datetime as dt, json, os, sys, sqlite3, glob
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Iterable
 
 # ---------- утилиты ----------
 
-def human_ts(ts: Optional[dt.datetime], fallback_epoch: Optional[float] = None) -> str:
+def human_ts(ts: dt.datetime | None, fallback_epoch: float | None = None) -> str:
     if ts:
         try: return ts.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
         except Exception: return ts.strftime("%Y-%m-%d %H:%M:%S")
@@ -15,7 +15,7 @@ def human_ts(ts: Optional[dt.datetime], fallback_epoch: Optional[float] = None) 
         return dt.datetime.fromtimestamp(fallback_epoch).astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
     return ""
 
-def parse_iso(ts: Any) -> Optional[dt.datetime]:
+def parse_iso(ts: Any) -> dt.datetime | None:
     if isinstance(ts, (int, float)):
         # эвристика: миллисекунды?
         return dt.datetime.fromtimestamp(ts/1000.0) if ts > 10_000_000_000 else dt.datetime.fromtimestamp(float(ts))
@@ -54,13 +54,13 @@ def write_msgs(md, title, source_path, conv_ts, msgs, fallback_epoch=None):
 
 # ---------- парсеры ----------
 
-def load_json_safe(p: Path) -> Optional[dict[str, Any]]:
+def load_json_safe(p: Path) -> dict[str, Any] | None:
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return None
 
-def extract_from_vscode_chatSessions(root: Path) -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
+def extract_from_vscode_chatSessions(root: Path) -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
     """
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/chatSessions/*.json
     """
@@ -86,7 +86,7 @@ def extract_from_vscode_chatSessions(root: Path) -> list[tuple[str, Optional[dt.
             out.append((f"{jf}", conv_ts, msgs, jf.stat().st_mtime))
     return out
 
-def extract_from_vscode_state_db(db_path: Path) -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
+def extract_from_vscode_state_db(db_path: Path) -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
     """
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/state.vscdb -> keys:
       - 'interactive.sessions' (array)
@@ -152,7 +152,7 @@ def extract_from_vscode_state_db(db_path: Path) -> list[tuple[str, Optional[dt.d
         pass
     return out
 
-def extract_vscode_all() -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
+def extract_vscode_all() -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
     out = []
     # корни VS Code (Windows/macOS/Linux)
     roots: list[Path] = []
@@ -188,7 +188,7 @@ def extract_vscode_all() -> list[tuple[str, Optional[dt.datetime], list[dict[str
                 out += extract_from_vscode_state_db(db)
     return out
 
-def extract_visualstudio_logs() -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
+def extract_visualstudio_logs() -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
     """
     Visual Studio: логи Copilot Chat в %LOCALAPPDATA%\\Temp\\**\\*VSGitHubCopilot*.chat*.log
     """
@@ -237,14 +237,14 @@ def main():
     ap.add_argument("--since", type=str, default=None, help="Фильтр по дате YYYY-MM-DD")
     args = ap.parse_args()
 
-    since_dt: Optional[dt.datetime] = None
+    since_dt: dt.datetime | None = None
     if args.since:
         try: since_dt = dt.datetime.fromisoformat(args.since)
         except Exception:
             print("Неверный формат --since. Используйте YYYY-MM-DD.")
             sys.exit(2)
 
-    collected: list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]] = []
+    collected: list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]] = []
     collected += extract_vscode_all()
     collected += extract_visualstudio_logs()
 

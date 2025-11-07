@@ -2,7 +2,7 @@
 
 import sys
 import os
-from typing import Callable
+from collections.abc import Callable
 
 _MIN_VERSION = (3, 10)
 _RECOMMENDED_VERSION = (3, 13)

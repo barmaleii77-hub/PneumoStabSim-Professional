@@ -17,7 +17,6 @@ References:
 """
 
 from dataclasses import dataclass
-from typing import Optional
 import numpy as np
 
 from ..core.geometry import (
@@ -228,7 +227,7 @@ class CylinderKinematics:
     def solve_from_lever_state(
         self,
         lever_state: LeverState,
-        lever_state_prev: Optional[LeverState] = None,
+        lever_state_prev: LeverState | None = None,
         dt: float = 0.001,
     ) -> CylinderState:
         """Solve cylinder state from lever attachment point

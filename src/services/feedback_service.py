@@ -13,7 +13,7 @@ import json
 import threading
 import uuid
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from collections.abc import MutableMapping
 
 _DEFAULT_STORAGE_DIR = Path(__file__).resolve().parents[2] / "reports" / "feedback"

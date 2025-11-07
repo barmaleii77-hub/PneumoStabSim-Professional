@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
 

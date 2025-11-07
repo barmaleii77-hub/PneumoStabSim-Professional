@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 from dataclasses import dataclass, asdict
 from collections import deque
 
@@ -22,9 +22,9 @@ class GraphicsChangeEvent:
     new_value: Any
     category: str  # lighting, material, environment, quality, camera, effects
     panel_state: dict[str, Any]
-    qml_state: Optional[dict[str, Any]] = None
+    qml_state: dict[str, Any] | None = None
     applied_to_qml: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class GraphicsLogger:
@@ -77,9 +77,9 @@ class GraphicsLogger:
         new_value: Any,
         category: str,
         panel_state: dict[str, Any],
-        qml_state: Optional[dict[str, Any]] = None,
+        qml_state: dict[str, Any] | None = None,
         applied_to_qml: bool = False,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> GraphicsChangeEvent:
         """
         Записать изменение параметра на панели
@@ -136,9 +136,9 @@ class GraphicsLogger:
     def log_qml_update(
         self,
         event: GraphicsChangeEvent,
-        qml_state: Optional[dict[str, Any]] = None,
+        qml_state: dict[str, Any] | None = None,
         success: bool = True,
-        error: Optional[str] = None,
+        error: str | None = None,
     ):
         """
         Записать результат применения изменения в QML
@@ -241,7 +241,7 @@ class GraphicsLogger:
             "stats": self.stats,
         }
 
-    def export_analysis_report(self, output_file: Optional[Path] = None) -> Path:
+    def export_analysis_report(self, output_file: Path | None = None) -> Path:
         """
         Экспортировать отчет анализа в JSON
 
@@ -345,7 +345,7 @@ class GraphicsLogger:
     # Помощники для массовой отметки применённых изменений
     # ------------------------------------------------------------------
     def mark_category_changes_applied(
-        self, category: str, since_timestamp: Optional[Union[str, int, float]] = None
+        self, category: str, since_timestamp: str | int | float | None = None
     ) -> int:
         """Отметить все события типа parameter_change в указанной категории как применённые (успешные).
 
@@ -383,9 +383,7 @@ class GraphicsLogger:
                 continue
         return marked
 
-    def _coerce_timestamp(
-        self, value: Optional[Union[str, int, float]]
-    ) -> Optional[float]:
+    def _coerce_timestamp(self, value: str | int | float | None) -> float | None:
         """Преобразовать различные форматы временных отметок к секундам."""
 
         if value is None:
@@ -421,7 +419,7 @@ class GraphicsLogger:
 
 
 # Глобальный экземпляр логгера
-_graphics_logger: Optional[GraphicsLogger] = None
+_graphics_logger: GraphicsLogger | None = None
 
 
 def get_graphics_logger() -> GraphicsLogger:

@@ -12,7 +12,6 @@ References:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 import numpy as np
 
 
@@ -59,7 +58,7 @@ class GeometricBounds:
 class ConstraintValidator:
     """Validator for geometric constraints and invariants"""
 
-    def __init__(self, bounds: Optional[GeometricBounds] = None):
+    def __init__(self, bounds: GeometricBounds | None = None):
         self.bounds = bounds or GeometricBounds()
 
     def validate_track_invariant(

@@ -11,7 +11,7 @@ import subprocess
 import time
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 import logging
 
 
@@ -47,7 +47,7 @@ class ProjectTester:
         self.logger.info(f"Test session started - Log file: {log_file}")
 
     def run_command(
-        self, command: list[str], cwd: Optional[Path] = None, timeout: int = 60
+        self, command: list[str], cwd: Path | None = None, timeout: int = 60
     ) -> dict[str, Any]:
         """Run a command and capture output"""
         cwd = cwd or self.project_root

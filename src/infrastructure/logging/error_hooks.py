@@ -6,10 +6,11 @@ import asyncio
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 QtMessageHandler = Callable[[Any, Any, str], None]
-QtInstaller = Callable[[QtMessageHandler], Optional[QtMessageHandler]]
+QtInstaller = Callable[[QtMessageHandler], QtMessageHandler | None]
 
 
 @dataclass

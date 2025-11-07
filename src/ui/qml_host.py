@@ -7,7 +7,6 @@ Uses geometry_bridge.py for correct coordinate calculation
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import QUrl, Signal
 from PySide6.QtQuickWidgets import QQuickWidget
@@ -31,9 +30,7 @@ class SuspensionSceneHost(QQuickWidget):
     # Signals for user interaction
     view_reset_requested = Signal()
 
-    def __init__(
-        self, parent=None, geometry_overrides: Optional[dict[str, float]] = None
-    ):
+    def __init__(self, parent=None, geometry_overrides: dict[str, float] | None = None):
         super().__init__(parent)
 
         self._geometry_params = self._build_geometry_params(geometry_overrides or {})

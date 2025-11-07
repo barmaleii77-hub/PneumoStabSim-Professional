@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Iterable
 
 from PySide6.QtCore import QObject, Property, Signal

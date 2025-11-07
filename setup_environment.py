@@ -11,13 +11,11 @@ import sys
 import hashlib
 import shutil
 import argparse
-import glob
 import textwrap
 from contextlib import contextmanager
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 QT_ENV_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
@@ -69,7 +67,7 @@ class Logger:
         print(f"{timestamp} {self.prefix}{message}")
 
 
-def _runtime_version_blocker(version: tuple[int, int]) -> Optional[str]:
+def _runtime_version_blocker(version: tuple[int, int]) -> str | None:
     """Return a human readable error if the runtime Python is unsupported.
 
     The setup utilities intentionally target Python 3.11–3.13 because Qt 6.10 /
@@ -99,7 +97,7 @@ def _runtime_version_blocker(version: tuple[int, int]) -> Optional[str]:
 class EnvironmentSetup:
     """Класс для настройки окружения разработки"""
 
-    def __init__(self, qt_sdk_version: Optional[str] = None):
+    def __init__(self, qt_sdk_version: str | None = None):
         self.project_root = Path(__file__).parent
         self.logger = Logger("[Setup] ")
         self.python_executable = self._find_python()
@@ -108,7 +106,7 @@ class EnvironmentSetup:
         self.python_version = self._detect_python_version()
         self.qt_sdk_version = qt_sdk_version
         self.venv_path = self.project_root / ".venv"
-        self._venv_python_cmd: Optional[list[str]] = None
+        self._venv_python_cmd: list[str] | None = None
         self._venv_python_announced = False
         self._root_warning_shown = False
 

@@ -24,7 +24,7 @@ import logging
 import time
 import json
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from src.ui.charts import ChartWidget
 from src.ui.panels import (
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         self.event_logger = get_event_logger()
 
         # State tracking
-        self.current_snapshot: Optional[StateSnapshot] = None
+        self.current_snapshot: StateSnapshot | None = None
         self.is_simulation_running = False
         self._sim_started = False
 
@@ -106,22 +106,22 @@ class MainWindow(QMainWindow):
         self.logger.info("✅ GeometryBridge создан для интеграции Python↔QML")
 
         # Panels references
-        self.geometry_panel: Optional[GeometryPanel] = None
-        self.pneumo_panel: Optional[PneumoPanel] = None
-        self.modes_panel: Optional[ModesPanel] = None
-        self.road_panel: Optional[RoadPanel] = None
-        self.graphics_panel: Optional[GraphicsPanel] = None
-        self.chart_widget: Optional[ChartWidget] = None
+        self.geometry_panel: GeometryPanel | None = None
+        self.pneumo_panel: PneumoPanel | None = None
+        self.modes_panel: ModesPanel | None = None
+        self.road_panel: RoadPanel | None = None
+        self.graphics_panel: GraphicsPanel | None = None
+        self.chart_widget: ChartWidget | None = None
 
         # Tab widget and splitters
-        self.tab_widget: Optional[QTabWidget] = None
-        self.main_splitter: Optional[QSplitter] = None
-        self.main_horizontal_splitter: Optional[QSplitter] = None
+        self.tab_widget: QTabWidget | None = None
+        self.main_splitter: QSplitter | None = None
+        self.main_horizontal_splitter: QSplitter | None = None
 
         # Qt Quick3D view reference
-        self._qquick_widget: Optional[QQuickWidget] = None
+        self._qquick_widget: QQuickWidget | None = None
         self._qml_root_object = None
-        self._qml_base_dir: Optional[Path] = None
+        self._qml_base_dir: Path | None = None
 
         # Simulation manager
         try:
@@ -137,8 +137,8 @@ class MainWindow(QMainWindow):
         self._qml_flush_timer = QTimer()
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
-        self._qml_pending_property_supported: Optional[bool] = None
-        self._last_batched_updates: Optional[dict[str, Any]] = None
+        self._qml_pending_property_supported: bool | None = None
+        self._last_batched_updates: dict[str, Any] | None = None
 
         # UI
         self._setup_central()
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
             return False
 
     def _invoke_qml_function(
-        self, method_name: str, payload: Optional[dict[str, Any]] = None
+        self, method_name: str, payload: dict[str, Any] | None = None
     ) -> bool:
         if not self._qml_root_object:
             return False

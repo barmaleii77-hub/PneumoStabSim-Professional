@@ -4,7 +4,7 @@ Geometry panel state manager
 """
 
 import logging
-from typing import Optional, Any
+from typing import Any
 
 from src.common.settings_manager import SettingsManager
 
@@ -28,7 +28,7 @@ class GeometryStateManager:
 
     def __init__(
         self,
-        settings_manager: Optional[SettingsManager] = None,
+        settings_manager: SettingsManager | None = None,
         *,
         settings_path: str = "current.geometry",
     ):
@@ -50,7 +50,7 @@ class GeometryStateManager:
 
         # Current state (mutable)
         self.state: dict[str, Any] = DEFAULT_GEOMETRY.copy()
-        self._rod_link_snapshot: Optional[tuple[float, float]] = None
+        self._rod_link_snapshot: tuple[float, float] | None = None
 
         # Load saved state if available
         if self.settings_manager:
@@ -323,7 +323,7 @@ class GeometryStateManager:
 
     def check_dependencies(
         self, param_name: str, new_value: Any, old_value: Any
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Check parameter dependencies
 
         Args:
@@ -350,7 +350,7 @@ class GeometryStateManager:
 
     def _check_hydraulic_dependency(
         self, param_name: str, new_value: float
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Check hydraulic parameter dependencies
 
         Args:
@@ -404,7 +404,7 @@ class GeometryStateManager:
 
     def _check_geometric_dependency(
         self, param_name: str, new_value: float
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Check geometric parameter dependencies
 
         Args:

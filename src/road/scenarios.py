@@ -3,7 +3,6 @@ Predefined road scenarios and presets
 Highway, urban, offroad, and maneuver scenarios with typical parameters
 """
 
-from typing import Optional
 from .types import SourceKind, Iso8608Class, CorrelationSpec, Preset
 
 
@@ -242,7 +241,7 @@ def get_all_presets() -> dict[str, Preset]:
     return presets
 
 
-def get_preset_by_name(name: str) -> Optional[Preset]:
+def get_preset_by_name(name: str) -> Preset | None:
     """Get preset by name
 
     Args:

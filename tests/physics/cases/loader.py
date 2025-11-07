@@ -5,7 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 
 import jsonschema

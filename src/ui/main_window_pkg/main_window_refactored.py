@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Optional, Any
+from typing import Any
 
 from PySide6.QtWidgets import QMainWindow, QLabel
 from PySide6.QtCore import Qt, QTimer, Slot, QUrl

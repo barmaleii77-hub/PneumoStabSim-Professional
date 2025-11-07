@@ -12,21 +12,21 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Mapping
 from datetime import UTC, datetime
 import traceback
 
 
 # Global queue listener for cleanup
-_queue_listener: Optional[logging.handlers.QueueListener] = None
+_queue_listener: logging.handlers.QueueListener | None = None
 _logger_registry: dict[str, logging.Logger] = {}
 
 
 class ContextualFilter(logging.Filter):
     """Добавляет контекстную информацию к логам"""
 
-    def __init__(self, context: Optional[Mapping[str, Any]] = None) -> None:
+    def __init__(self, context: Mapping[str, Any] | None = None) -> None:
         super().__init__()
         self.context: dict[str, Any] = dict(context or {})
 
@@ -129,7 +129,7 @@ def init_logging(
         """Форматтер с микросекундами"""
 
         def formatTime(
-            self, record: logging.LogRecord, datefmt: Optional[str] = None
+            self, record: logging.LogRecord, datefmt: str | None = None
         ) -> str:
             timestamp = datetime.fromtimestamp(record.created)
             if datefmt:
@@ -258,7 +258,7 @@ def _cleanup_logging(app_name: str) -> None:
 
 
 def get_category_logger(
-    category: str, context: Optional[Mapping[str, Any]] = None
+    category: str, context: Mapping[str, Any] | None = None
 ) -> logging.Logger:
     """Get logger for specific category with optional context
 
@@ -354,7 +354,7 @@ def log_pressure_update(
 
 
 def log_ode_step(
-    time: float, step_num: int, dt: float, error: Optional[float] = None
+    time: float, step_num: int, dt: float, error: float | None = None
 ) -> None:
     """Log ODE integration step
 

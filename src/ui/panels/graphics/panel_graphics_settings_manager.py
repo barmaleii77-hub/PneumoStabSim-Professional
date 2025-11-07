@@ -28,7 +28,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
 

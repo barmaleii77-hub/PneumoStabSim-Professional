@@ -6,7 +6,8 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable, Deque, Optional
+from typing import Any
+from collections.abc import Callable
 from collections.abc import Iterable, Iterator
 
 from .logger_factory import LoggerProtocol, get_logger
@@ -63,7 +64,7 @@ class SignalTracer:
         max_records: int = 500,
         log: LoggerProtocol | None = None,
     ) -> None:
-        self._records: Deque[SignalTraceRecord] = deque(maxlen=max_records)
+        self._records: deque[SignalTraceRecord] = deque(maxlen=max_records)
         self._log = log or logger
         self._lock = RLock()
         self._sinks: list[Callable[[SignalTraceRecord], None]] = []

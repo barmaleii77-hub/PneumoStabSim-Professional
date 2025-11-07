@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 from collections.abc import Sequence
 
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
