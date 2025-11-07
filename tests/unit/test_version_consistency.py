@@ -60,6 +60,9 @@ def test_release_version_is_in_sync_with_documentation() -> None:
         ROOT / "docs" / "CHANGELOG_MODULAR.md": [
             r"Модуляризация v(?P<ver>\d+\.\d+\.\d+)",
         ],
+        ROOT / "docs" / "RENOVATION_MASTER_PLAN.md": [
+            r"Target release: PneumoStabSim Professional v(?P<ver>\d+\.\d+\.\d+)",
+        ],
         ROOT / "assets" / "hdr" / "README.md": [
             r"Path Unification \(v(?P<ver>\d+\.\d+\.\d+)\)",
         ],
