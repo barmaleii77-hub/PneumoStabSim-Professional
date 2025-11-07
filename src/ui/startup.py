@@ -87,7 +87,7 @@ def bootstrap_graphics_environment(
     use_qml_3d = not headless
 
     if headless:
-        env["QT_QPA_PLATFORM"] = "offscreen"
+        env.setdefault("QT_QPA_PLATFORM", "offscreen")
         env["PSS_FORCE_NO_QML_3D"] = "1"
     else:
         env.pop("PSS_FORCE_NO_QML_3D", None)
