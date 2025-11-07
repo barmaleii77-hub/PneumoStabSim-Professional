@@ -15,6 +15,12 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-22.04]
         python-version: ['3.12', '3.13']
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_QUICK_BACKEND: software
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "4.1"
+      MESA_GLSL_VERSION_OVERRIDE: "410"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -7,6 +7,7 @@ Qt Quick 3D, включая пути к QML-модулям и плагинам.
 
 import os
 import sys
+from ctypes.util import find_library
 from pathlib import Path
 from collections.abc import Callable
 from collections.abc import Iterable
@@ -34,6 +35,22 @@ def _ensure_paths(env_var: str, candidates: Iterable[str]) -> None:
 
     if updated:
         os.environ[env_var] = os.pathsep.join(updated)
+
+
+def _detect_missing_gl_runtime() -> str | None:
+    """Return a descriptive warning if no OpenGL runtime libraries are available."""
+
+    if not sys.platform.startswith("linux"):
+        return None
+
+    for candidate in ("GL", "OpenGL", "EGL"):
+        if find_library(candidate):
+            return None
+
+    return (
+        "OpenGL runtime libraries (libGL.so / libEGL.so) were not detected. "
+        "Install mesa-libGL packages or enable a driver that provides them to avoid Qt startup failures."
+    )
 
 
 def setup_qtquick3d_environment(
@@ -154,6 +171,10 @@ def configure_qt_environment(
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
+
+    missing_gl = _detect_missing_gl_runtime()
+    if missing_gl:
+        emitter(f"⚠️ {missing_gl}")
 
     # Если заданы стартовые параметры окружения для IBL/skybox через .env — передадим в QML через context props
     # Сохранение в окружении, а чтение/установка произойдёт в MainWindow при создании QML Engine
