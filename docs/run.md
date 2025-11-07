@@ -11,7 +11,9 @@
 ## Переменные окружения Qt
 
 `app.py` вызывает `src/bootstrap/environment.configure_qt_environment`, поэтому
-следующие значения задаются автоматически (если отсутствуют в `.env`):
+следующие значения задаются автоматически (если отсутствуют в `.env`). Эти же
+значения прописаны в `env.sample`, чтобы ручной запуск и автоконфигурация были
+идентичными:
 
 - `QSG_RHI_BACKEND=opengl` — единый RHI backend для Windows, Linux и macOS.
 - `QT_QUICK_CONTROLS_STYLE=Fusion` — согласованный стиль контролов во всех ОС.
@@ -24,11 +26,13 @@
 
 ### Windows vs Linux
 
-- **Windows / macOS**: используются нативные Qt-плагины (`windows`, `cocoa`),
-  поэтому дополнительные переменные платформы не задаются.
+- **Windows / macOS**: используются нативные Qt-плагины (`windows`, `cocoa`).
+  Платформа не переопределяется, а OpenGL по умолчанию работает через
+  `QT_OPENGL=desktop` (ANGLE включается вручную при необходимости).
 - **Linux (desktop)**: значения выше работают без изменений при наличии `DISPLAY`.
 - **Linux (CI/headless)**: при отсутствии `DISPLAY` автоматически
-  активируется `QT_QPA_PLATFORM=offscreen` и `QT_QUICK_BACKEND=software`.
+  активируется `QT_QPA_PLATFORM=offscreen` и `QT_QUICK_BACKEND=software`, так что
+  в `.env` их можно оставлять пустыми.
 
 ### Переключение режимов
 
