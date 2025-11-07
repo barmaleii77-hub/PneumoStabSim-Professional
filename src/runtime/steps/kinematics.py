@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import math
-from typing import Dict, Tuple
+from dataclasses import dataclass
+from typing import Callable, Dict, Tuple
 
 import numpy as np
 
@@ -11,6 +12,21 @@ from src.common.units import to_gauge_pressure
 from src.pneumo.enums import Port, Wheel
 
 from .context import LeverDynamicsConfig, PhysicsStepState
+
+
+@dataclass
+class LeverIntegrationResult:
+    """Result of a single lever integration step."""
+
+    angle: float
+    angular_velocity: float
+    displacement: float
+    piston_velocity: float
+    spring_force: float
+    damper_force: float
+    pneumatic_force: float
+    torque: float
+    clamped: bool
 
 
 _WHEEL_KEY_MAP: Dict[Wheel, str] = {
@@ -89,14 +105,125 @@ def _force_components(
     )
 
 
+def integrate_lever_state(
+    *,
+    wheel: Wheel,
+    theta0: float,
+    omega0: float,
+    dt: float,
+    lever_config: LeverDynamicsConfig,
+    lever_geom,
+    cylinder,
+    road_displacement: float,
+    road_velocity: float,
+    get_line_pressure: Callable[[Wheel, Port], float],
+) -> LeverIntegrationResult:
+    """Integrate lever angle/velocity for one timestep using RK4."""
+
+    inertia = max(lever_config.lever_inertia, 1e-6)
+
+    def _acc(theta: float, omega: float) -> float:
+        torque, *_ = _force_components(
+            wheel,
+            theta,
+            omega,
+            lever_config,
+            lever_geom,
+            cylinder.spec.geometry,
+            cylinder,
+            road_displacement,
+            road_velocity,
+            get_line_pressure,
+        )
+        return torque / inertia
+
+    theta_new = float(theta0)
+    omega_new = float(omega0)
+
+    if dt > 0.0:
+        k1_theta = omega_new
+        k1_omega = _acc(theta_new, omega_new)
+
+        k2_theta = omega_new + 0.5 * dt * k1_omega
+        k2_omega = _acc(
+            theta_new + 0.5 * dt * k1_theta, omega_new + 0.5 * dt * k1_omega
+        )
+
+        k3_theta = omega_new + 0.5 * dt * k2_omega
+        k3_omega = _acc(
+            theta_new + 0.5 * dt * k2_theta, omega_new + 0.5 * dt * k2_omega
+        )
+
+        k4_theta = omega_new + dt * k3_omega
+        k4_omega = _acc(theta_new + dt * k3_theta, omega_new + dt * k3_omega)
+
+        theta_new = theta_new + (dt / 6.0) * (
+            k1_theta + 2.0 * k2_theta + 2.0 * k3_theta + k4_theta
+        )
+        omega_new = omega_new + (dt / 6.0) * (
+            k1_omega + 2.0 * k2_omega + 2.0 * k3_omega + k4_omega
+        )
+
+    geom = cylinder.spec.geometry
+    max_displacement = geom.L_travel_max / 2.0
+    displacement = lever_geom.angle_to_displacement(theta_new)
+    clamped = False
+
+    if displacement > max_displacement:
+        theta_new = _solve_angle_for_displacement(
+            lever_geom, max_displacement, theta_new
+        )
+        omega_new = 0.0
+        clamped = True
+    elif displacement < -max_displacement:
+        theta_new = _solve_angle_for_displacement(
+            lever_geom, -max_displacement, theta_new
+        )
+        omega_new = 0.0
+        clamped = True
+
+    (
+        torque,
+        spring_force,
+        damper_force,
+        pneumatic_force,
+        displacement,
+        piston_velocity,
+    ) = _force_components(
+        wheel,
+        theta_new,
+        omega_new,
+        lever_config,
+        lever_geom,
+        geom,
+        cylinder,
+        road_displacement,
+        road_velocity,
+        get_line_pressure,
+    )
+
+    if clamped:
+        piston_velocity = 0.0
+
+    return LeverIntegrationResult(
+        angle=theta_new,
+        angular_velocity=omega_new,
+        displacement=displacement,
+        piston_velocity=piston_velocity,
+        spring_force=spring_force,
+        damper_force=damper_force,
+        pneumatic_force=pneumatic_force,
+        torque=torque,
+        clamped=clamped,
+    )
+
+
 def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -> None:
     """Update pneumatic system and wheel states from road excitation."""
 
     dt = float(state.dt)
     lever_config = state.lever_config
-    inertia = max(lever_config.lever_inertia, 1e-6)
-
-    results: Dict[Wheel, Dict[str, float]] = {}
+    results: Dict[Wheel, LeverIntegrationResult] = {}
     lever_angles: Dict[Wheel, float] = {}
 
     for wheel, key in _WHEEL_KEY_MAP.items():
@@ -119,96 +246,22 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -
         theta0 = float(wheel_state.lever_angle)
         omega0 = float(getattr(wheel_state, "lever_angular_velocity", 0.0))
 
-        if dt > 0.0:
-
-            def _acc(theta: float, omega: float) -> float:
-                torque, *_ = _force_components(
-                    wheel,
-                    theta,
-                    omega,
-                    lever_config,
-                    lever_geom,
-                    cylinder.spec.geometry,
-                    cylinder,
-                    x_road,
-                    road_velocity,
-                    state.get_line_pressure,
-                )
-                return torque / inertia
-
-            k1_theta = omega0
-            k1_omega = _acc(theta0, omega0)
-
-            k2_theta = omega0 + 0.5 * dt * k1_omega
-            k2_omega = _acc(theta0 + 0.5 * dt * k1_theta, omega0 + 0.5 * dt * k1_omega)
-
-            k3_theta = omega0 + 0.5 * dt * k2_omega
-            k3_omega = _acc(theta0 + 0.5 * dt * k2_theta, omega0 + 0.5 * dt * k2_omega)
-
-            k4_theta = omega0 + dt * k3_omega
-            k4_omega = _acc(theta0 + dt * k3_theta, omega0 + dt * k3_omega)
-
-            theta_new = theta0 + (dt / 6.0) * (
-                k1_theta + 2.0 * k2_theta + 2.0 * k3_theta + k4_theta
-            )
-            omega_new = omega0 + (dt / 6.0) * (
-                k1_omega + 2.0 * k2_omega + 2.0 * k3_omega + k4_omega
-            )
-        else:  # pragma: no cover - zero dt guard
-            theta_new = theta0
-            omega_new = omega0
-
-        geom = cylinder.spec.geometry
-        max_displacement = geom.L_travel_max / 2.0
-        displacement = lever_geom.angle_to_displacement(theta_new)
-        clamped = False
-        if displacement > max_displacement:
-            theta_new = _solve_angle_for_displacement(
-                lever_geom, max_displacement, theta_new
-            )
-            omega_new = 0.0
-            clamped = True
-        elif displacement < -max_displacement:
-            theta_new = _solve_angle_for_displacement(
-                lever_geom, -max_displacement, theta_new
-            )
-            omega_new = 0.0
-            clamped = True
-
-        (
-            _torque,
-            spring_force,
-            damper_force,
-            pneumatic_force,
-            displacement,
-            piston_velocity,
-        ) = _force_components(
-            wheel,
-            theta_new,
-            omega_new,
-            lever_config,
-            lever_geom,
-            geom,
-            cylinder,
-            x_road,
-            road_velocity,
-            state.get_line_pressure,
+        integration = integrate_lever_state(
+            wheel=wheel,
+            theta0=theta0,
+            omega0=omega0,
+            dt=dt,
+            lever_config=lever_config,
+            lever_geom=lever_geom,
+            cylinder=cylinder,
+            road_displacement=x_road,
+            road_velocity=road_velocity,
+            get_line_pressure=state.get_line_pressure,
         )
 
-        if clamped:
-            piston_velocity = 0.0
-
-        lever_angles[wheel] = theta_new
+        lever_angles[wheel] = integration.angle
         state.last_road_inputs[key] = road_disp
-        results[wheel] = {
-            "angle": theta_new,
-            "angular_velocity": omega_new,
-            "spring_force": spring_force,
-            "damper_force": damper_force,
-            "pneumatic_force": pneumatic_force,
-            "piston_velocity": piston_velocity,
-            "road_displacement": road_disp,
-        }
+        results[wheel] = integration
 
     state.pneumatic_system.update_system_from_lever_angles(lever_angles)
 
@@ -220,10 +273,10 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -
         state.prev_piston_positions[wheel] = piston_pos
 
         geom = cylinder.spec.geometry
-        rod_x, rod_y = cylinder.spec.lever_geom.rod_joint_pos(metrics["angle"])
+        rod_x, rod_y = cylinder.spec.lever_geom.rod_joint_pos(metrics.angle)
         wheel_state = state.wheel_states[wheel]
-        wheel_state.lever_angle = metrics["angle"]
-        wheel_state.lever_angular_velocity = metrics["angular_velocity"]
+        wheel_state.lever_angle = metrics.angle
+        wheel_state.lever_angular_velocity = metrics.angular_velocity
         wheel_state.piston_position = piston_pos
         wheel_state.piston_velocity = piston_vel
         wheel_state.vol_head = cylinder.vol_head()
@@ -231,7 +284,7 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -
         wheel_state.joint_x = 0.0
         wheel_state.joint_y = rod_x
         wheel_state.joint_z = geom.Z_axle + rod_y
-        wheel_state.road_excitation = metrics["road_displacement"]
+        wheel_state.road_excitation = road_inputs.get(_WHEEL_KEY_MAP[wheel], 0.0)
 
         wheel_state.stop_head_penetration = cylinder.penetration_head
         wheel_state.stop_rod_penetration = cylinder.penetration_rod
@@ -247,5 +300,5 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -
         wheel_state.force_pneumatic = (
             head_pressure_gauge * area_head - rod_pressure_gauge * area_rod
         )
-        wheel_state.force_spring = metrics["spring_force"]
-        wheel_state.force_damper = metrics["damper_force"]
+        wheel_state.force_spring = metrics.spring_force
+        wheel_state.force_damper = metrics.damper_force
