@@ -807,7 +807,10 @@ class ApplicationRunner:
 
             self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
             self.use_legacy_ui = bool(getattr(args, "legacy", False))
-            if self.use_legacy_ui:
+            force_disable_qml_3d = bool(getattr(args, "force_disable_qml_3d", False))
+            disable_reasons = tuple(getattr(args, "force_disable_qml_3d_reasons", ()))
+
+            if self.use_legacy_ui or force_disable_qml_3d:
                 self.use_qml_3d_schema = False
 
             if self.app_logger:
@@ -820,8 +823,16 @@ class ApplicationRunner:
                     )
                 if self.use_legacy_ui:
                     self.app_logger.info("Legacy UI mode requested from CLI")
+                if force_disable_qml_3d and not self.use_legacy_ui:
+                    self.app_logger.warning(
+                        "Qt Quick 3D disabled by bootstrap",
+                        extra={"reasons": list(disable_reasons) or None},
+                    )
             elif self.use_legacy_ui:
                 print("ℹ️ Legacy UI mode requested (QML will be skipped)")
+            elif force_disable_qml_3d:
+                reason_label = ", ".join(disable_reasons) or "bootstrap"
+                print(f"⚠️ Qt Quick 3D disabled ({reason_label})")
 
             self._log_startup_environment()
 
