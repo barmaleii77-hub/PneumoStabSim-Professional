@@ -30,7 +30,10 @@ def test_choose_scenegraph_backend(platform: str, expected: str) -> None:
             {"CI": "true", "QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"},
             ("ci-flag",),
         ),
-        ({"QT_QPA_PLATFORM": "", "DISPLAY": ""}, ("qt-qpa-platform-missing",)),
+        (
+            {"QT_QPA_PLATFORM": "", "DISPLAY": ""},
+            ("no-display-server", "qt-qpa-platform-missing"),
+        ),
         ({"QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"}, ()),
     ],
 )
