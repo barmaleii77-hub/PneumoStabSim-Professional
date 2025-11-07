@@ -10,6 +10,8 @@ export MESA_GL_VERSION_OVERRIDE="${MESA_GL_VERSION_OVERRIDE:-4.1}"
 export MESA_GLSL_VERSION_OVERRIDE="${MESA_GLSL_VERSION_OVERRIDE:-410}"
 
 mkdir -p reports
+warnings_log="reports/warnings.log"
+: > "${warnings_log}"
 
 echo "== Lint =="
 ruff check .
@@ -39,17 +41,35 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+
+def _append_block(destination: Path, header: str, lines: list[str]) -> int:
+    """Append ``lines`` to ``destination`` with a header if content exists."""
+
+    if not lines:
+        return 0
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.touch(exist_ok=True)
+
+    prefix = "" if destination.stat().st_size == 0 else "\n"
+    with destination.open("a", encoding="utf-8") as handle:
+        handle.write(f"{prefix}# {header}\n")
+        for entry in lines:
+            handle.write(f"{entry}\n")
+
+    return len(lines)
+
+
 summary_path = Path("reports/tests/shader_logs_summary.json")
 warnings_log = Path("reports/warnings.log")
-warnings_log.parent.mkdir(parents=True, exist_ok=True)
 
 entries: list[str] = []
 if summary_path.exists():
     try:
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:  # pragma: no cover - defensive guard
-        warnings_log.write_text(
-            f"Failed to parse {summary_path}: {exc}\n", encoding="utf-8"
+        entries.append(
+            f"{summary_path} - Failed to parse shader logs summary: {exc}"
         )
     else:
         for item in summary:
@@ -58,18 +78,17 @@ if summary_path.exists():
                 line = warning.get("line")
                 message = warning.get("message", "")
                 location = f"{source}:{line}" if line not in (None, 0) else source
-                entries.append(f"{location} - {message}".strip())
+                entries.append(f"{location} - {message}".rstrip())
 
-        if entries:
-            warnings_log.write_text("\n".join(entries) + "\n", encoding="utf-8")
-        else:
-            warnings_log.write_text("", encoding="utf-8")
-else:
-    warnings_log.write_text("", encoding="utf-8")
+count = _append_block(warnings_log, "Shader warnings", entries)
+if count == 0:
+    warnings_log.parent.mkdir(parents=True, exist_ok=True)
+    warnings_log.touch(exist_ok=True)
 
 print(
     "[run_all] Shader warnings captured: {count} -> {destination}".format(
-        count=len(entries), destination=warnings_log
+        count=count,
+        destination=warnings_log,
     )
 )
 PY

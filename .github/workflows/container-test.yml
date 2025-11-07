@@ -11,6 +11,46 @@ jobs:
         run: docker build -t pneumo-dev:qt610 .
       - name: Run all checks
         run: docker run --rm -t -v ${{ github.workspace }}:/workdir -w /workdir pneumo-dev:qt610 /usr/local/bin/run_all.sh
+      - name: Annotate collected warnings
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const core = require('@actions/core');
+            const fs = require('fs');
+            const path = 'reports/warnings.log';
+            if (!fs.existsSync(path)) {
+              core.info('warnings.log not found, skipping annotations.');
+              return;
+            }
+
+            const raw = fs.readFileSync(path, 'utf8');
+            const lines = raw
+              .split(/\r?\n/)
+              .map((line) => line.trim())
+              .filter((line) => line.length > 0 && !line.startsWith('#'));
+
+            if (lines.length === 0) {
+              core.info('warnings.log is empty.');
+              return;
+            }
+
+            for (const entry of lines) {
+              const match = entry.match(/^(.*?)(?::(\d+))?\s*-\s*(.*)$/);
+              if (match) {
+                const file = match[1].trim();
+                const line = match[2] ? Number(match[2]) : undefined;
+                const message = match[3].trim() || 'Warning detected';
+                const options = { file };
+                if (Number.isFinite(line)) {
+                  options.startLine = line;
+                  options.endLine = line;
+                }
+                core.warning(message, options);
+              } else {
+                core.warning(entry);
+              }
+            }
       - name: Upload reports
         uses: actions/upload-artifact@v4
         with:

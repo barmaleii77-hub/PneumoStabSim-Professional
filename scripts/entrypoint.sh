@@ -8,7 +8,7 @@ export PYTHONUNBUFFERED=1
 
 mkdir -p reports reports/quality
 warnings_log="reports/warnings.log"
-touch "${warnings_log}"
+: > "${warnings_log}"
 ln -sf "../warnings.log" "reports/quality/warnings.log"
 
 echo "== Qt == "
