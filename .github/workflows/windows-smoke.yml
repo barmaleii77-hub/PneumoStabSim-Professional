@@ -45,7 +45,7 @@ jobs:
           python -m pip install uv aqtinstall
 
       - name: Install project dependencies
-        run: python -m pip install -r requirements-dev.txt
+        run: uv pip install -r requirements-dev.txt
 
       - name: Provision Qt ${{ env.QT_VERSION }}
         run: python tools/setup_qt.py --qt-version ${{ env.QT_VERSION }} --force --prune-archives
@@ -79,13 +79,15 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path logs -Force | Out-Null
 
-      - name: Run headless smoke test
+      - name: Run headless smoke test (safe mode)
         shell: pwsh
         env:
           QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
           QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
           QT_OPENGL: ${{ env.QT_OPENGL }}
         run: |
+          Set-StrictMode -Version Latest
+          Write-Host "Launching PneumoStabSim in safe mode to validate DirectX fallback."
           $logPath = Join-Path (Get-Location) "logs/windows-smoke.log"
           $ErrorActionPreference = "Stop"
           & python app.py --test-mode --safe-mode *> $logPath
