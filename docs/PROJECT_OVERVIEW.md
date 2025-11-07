@@ -84,22 +84,29 @@ PneumoStabSim/
 │   Qt Quick 3D Scene Graph    │
 │ QML components + frame graph │
 └──────────────┬───────────────┘
-               │ RHI selection (configure_qt_environment)
+               │ configure_qt_environment
                ▼
-┌──────────────┬───────────────┐
-│ OpenGL (desktop) │ Vulkan ICD │
-│  QSG_RHI_BACKEND │ VK_ICD_*   │
-└──────────────┴───────────────┘
-               │          │
-       ┌───────▼───┐  ┌───▼────────┐
-       │ GPU driver │  │ Software GL│
-       │  (native)  │  │ Mesa/ANGLE │
-       └───────┬────┘  └────┬──────┘
-               │            │
-     ┌─────────▼────────┐ ┌─▼────────────┐
-     │ Framebuffer / D3D│ │ Offscreen FBO │
-     │ Windows/Linux UI │ │ CI/headless   │
-     └──────────────────┘ └──────────────┘
+┌──────────────┴───────────────┐
+│     RHI backend selector     │
+│ QSG_RHI_BACKEND / safe_mode  │
+└──────────────┬───────────────┘
+               │
+   ┌───────────┼──────────────┬────────────────────┐
+   ▼           ▼              ▼                    ▼
+┌──────┐   ┌────────┐   ┌────────┐        ┌────────────────┐
+│OpenGL│   │ Vulkan │   │  ANGLE │        │ Software Mesa GL│
+│desktop│ │VK_ICD_*│   │QT_OPENGL│        │LIBGL_ALWAYS_*  │
+└──┬───┘   └────┬───┘   └────┬───┘        └───────┬────────┘
+   │            │            │                     │
+┌──▼────────┐ ┌─▼────────┐ ┌─▼────────┐   ┌───────▼────────┐
+│GPU driver │ │Vulkan ICD│ │D3D driver│   │Headless surface│
+│Windows/Linux││(Lavapipe)││ (Windows)│   │ Offscreen / CI │
+└────┬──────┘ └────┬─────┘ └────┬────┘   └────────┬────────┘
+     │             │             │                  │
+┌────▼─────────────▼─────────────▼──────────────────▼┐
+│            Framebuffer / swapchain / FBO           │
+│   Windowed UI, offscreen rendering, screenshots    │
+└────────────────────────────────────────────────────┘
 ```
 
 ---
