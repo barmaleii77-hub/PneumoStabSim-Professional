@@ -142,9 +142,10 @@ def _suspension_defaults() -> dict[str, float]:
     return values
 
 
-_VERTICAL_AXIS: np.ndarray
-_RIGID_BODY_DEFAULTS: dict[str, Any]
-_SUSPENSION_SETTINGS: dict[str, float]
+# Placeholders are replaced during module import by ``_refresh_cached_defaults``.
+_VERTICAL_AXIS: np.ndarray = np.array([0.0, 1.0, 0.0], dtype=float)
+_RIGID_BODY_DEFAULTS: dict[str, Any] = {}
+_SUSPENSION_SETTINGS: dict[str, float] = {}
 
 
 def _refresh_cached_defaults() -> None:

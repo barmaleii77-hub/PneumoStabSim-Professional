@@ -160,8 +160,6 @@ def test_scene_bridge_refresh_orbit_presets_emits_updates(monkeypatch) -> None:
     manager = SettingsManager()
     bridge = SceneBridge(settings_manager=manager)
 
-    from PySide6 import QtTest  # type: ignore
-
     spy = QtTest.QSignalSpy(bridge.cameraChanged)
 
     manifest = manager.get_orbit_presets()

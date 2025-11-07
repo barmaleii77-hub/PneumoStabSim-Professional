@@ -1,24 +1,18 @@
-"""
-CSV export utilities for simulation data
-Supports timeseries and snapshot export with optional gzip compression
-"""
+"""CSV export utilities for simulation data"""
 
 import csv
 import gzip
-from importlib import util
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 from collections.abc import Iterable, Mapping, Sequence
 
-_NUMPY_AVAILABLE = util.find_spec("numpy") is not None
-
-if TYPE_CHECKING:
+try:
     import numpy as np
-
-if _NUMPY_AVAILABLE:  # pragma: no branch - executed only when numpy is installed
-    import numpy as np
-else:  # pragma: no cover - behaviour depends on optional dependency
+except ImportError:  # pragma: no cover - optional dependency
     np = cast(Any, None)
+    _NUMPY_AVAILABLE = False
+else:  # pragma: no branch - executed only when numpy is installed
+    _NUMPY_AVAILABLE = True
 
 
 def export_timeseries_csv(

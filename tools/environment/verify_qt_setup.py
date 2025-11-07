@@ -113,10 +113,6 @@ def _format_dependency_message(
     return f"PySide6 cannot load required system library '{library}'. {normalized_hint}"
 
 
-class ProbeError(RuntimeError):
-    """Base exception raised when a probe fails."""
-
-
 @dataclass
 class ProbeResult:
     """Container describing the outcome of a probe."""

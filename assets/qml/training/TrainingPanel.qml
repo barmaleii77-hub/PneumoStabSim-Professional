@@ -76,7 +76,7 @@ Pane {
             return
         presetModel = bridge.listPresets()
         activePresetId = bridge.activePresetId
-        setSelected(bridge.selectedPreset())
+        setSelected(bridge.selectedPresetSnapshot())
     }
 
     ColumnLayout {
@@ -318,7 +318,7 @@ Pane {
             activePresetId = bridge.activePresetId
         }
         function onSelectedPresetChanged() {
-            setSelected(bridge.selectedPreset())
+            setSelected(bridge.selectedPresetSnapshot())
         }
     }
 }

@@ -343,7 +343,6 @@ class UnifiedLogAnalyzer:
 
             state = "idle"
             current = None
-            _fallback = None
             saw_loading = False
             switched = False
             saw_ready = False
@@ -413,7 +412,7 @@ class UnifiedLogAnalyzer:
                 m = re_switch.search(ln)
                 if m:
                     switched = True
-                    _fallback = m.group(1).strip()
+                    last_source = m.group(1).strip()
                     state = "changed"  # ожидаем загрузку нового (fallback)
                     continue
 

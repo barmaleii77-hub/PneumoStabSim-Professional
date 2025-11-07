@@ -245,14 +245,12 @@ def _ensure_stdlib_bridge(level: int) -> None:
         _configure_fallback_logging(level)
         return
 
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processor=structlog.processors.JSONRenderer(),
-        foreign_pre_chain=_shared_processors(),
-    )
-
     handler = logging.StreamHandler()
     handler.setFormatter(
-        logging.Formatter("%(asctime)s %(name)s [%(levelname)s] %(message)s")
+        structlog.stdlib.ProcessorFormatter(
+            processor=structlog.processors.JSONRenderer(),
+            foreign_pre_chain=_shared_processors(),
+        )
     )
 
     root_logger = logging.getLogger()

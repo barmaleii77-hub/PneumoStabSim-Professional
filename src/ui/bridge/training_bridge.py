@@ -149,7 +149,7 @@ class TrainingPresetBridge(QObject):
         return str(self._presets_payload[0].get("id", ""))
 
     @Slot(result="QVariantMap")
-    def selectedPreset(self) -> dict[str, Any]:
+    def selectedPresetSnapshot(self) -> dict[str, Any]:
         return dict(self._selected_payload)
 
     @Slot(result="QVariantList")

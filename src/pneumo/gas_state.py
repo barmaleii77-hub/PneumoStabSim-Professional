@@ -295,7 +295,6 @@ def polytropic_update(
         raise ValueError(f"Adiabatic gamma must be >1.0, got {gamma}")
 
     prev_volume = state.V_curr
-    prev_pressure = state.p
     prev_temperature = state.T
 
     state.set_volume(new_volume)
@@ -308,7 +307,6 @@ def polytropic_update(
         raise ValueError(f"Polytropic exponent must be positive, got {n_eff}")
 
     compression = prev_volume / state.V_curr
-    base_pressure = prev_pressure * (compression**n_eff)
     base_temperature = prev_temperature * (compression ** (n_eff - 1.0))
 
     relaxation = params.relaxation_factor(state.m, gamma=gamma)

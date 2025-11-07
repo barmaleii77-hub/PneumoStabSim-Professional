@@ -29,4 +29,3 @@ __all__ = [
     "get_bridge_metadata",
     "register_qml_signals",
 ]
-

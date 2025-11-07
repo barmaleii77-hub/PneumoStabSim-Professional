@@ -40,7 +40,10 @@ def test_training_preset_service_contract():
 
     service = TrainingPresetService(orchestrator=orchestrator, library=library)
 
-    unsubscribe = lambda: None
+    def noop_unsubscribe() -> None:
+        """Placeholder used until the service registers an observer."""
+
+    unsubscribe = noop_unsubscribe
     try:
         payload = service.list_presets()
         assert payload, "Preset catalogue should not be empty"

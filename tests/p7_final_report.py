@@ -126,7 +126,7 @@ def report_p7_status():
             print(f"   Latest commit: {result.stdout.strip()}")
         else:
             print("   Git status unavailable")
-    except:
+    except Exception:
         print("   Git status unavailable")
 
     print("\n" + "=" * 60)

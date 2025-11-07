@@ -9,6 +9,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
+
 def test_p7_implementation():
     """Test P7 runtime system implementation"""
     print("="*50)
@@ -106,16 +107,16 @@ def test_p7_implementation():
     print("="*50)
     print("")
     print("Key features implemented:")
-    print("• LatestOnlyQueue - drop-old/keep-latest semantics")
-    print("• TimingAccumulator - fixed timestep physics")
-    print("• StateSnapshot - thread-safe state sharing")
-    print("• PerformanceMetrics - timing and FPS monitoring")
-    print("• StateBus - Qt signal-based communication")
+    print("â€¢ LatestOnlyQueue - drop-old/keep-latest semantics")
+    print("â€¢ TimingAccumulator - fixed timestep physics")
+    print("â€¢ StateSnapshot - thread-safe state sharing")
+    print("â€¢ PerformanceMetrics - timing and FPS monitoring")
+    print("â€¢ StateBus - Qt signal-based communication")
     print("")
     print("Ready for:")
-    print("• Physics thread integration")
-    print("• UI render loop connection")
-    print("• OpenGL visualization updates")
+    print("â€¢ Physics thread integration")
+    print("â€¢ UI render loop connection")
+    print("â€¢ OpenGL visualization updates")
     print("="*50)
 
     return True
