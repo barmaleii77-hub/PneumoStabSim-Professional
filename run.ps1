@@ -64,6 +64,10 @@ if ($Legacy) {
     Write-Host "ℹ️ Legacy UI mode requested — QML loading will be skipped." -ForegroundColor Yellow
 }
 
+if (-not $SafeMode -and -not $Legacy) {
+    Write-Host "ℹ️ Tips: add --safe-mode to let Qt choose DirectX or --legacy for the classic UI." -ForegroundColor Cyan
+}
+
 # Запуск
 Write-Host "▶️  Запуск PneumoStabSim Professional..." -ForegroundColor Green
 Write-Host ""

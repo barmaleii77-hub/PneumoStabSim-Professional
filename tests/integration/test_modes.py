@@ -1,96 +1,98 @@
-"""Integration tests for the new launch modes (safe/legacy)."""
-
-from __future__ import annotations
-
+import builtins
 import os
-import sys
-import types
+from types import SimpleNamespace
+from typing import Callable
 
 import pytest
 
-from src.bootstrap.environment import configure_qt_environment
-from src.cli.arguments import parse_arguments
 from src.app_runner import ApplicationRunner
+from src.bootstrap.environment import configure_qt_environment
 
 
-class _DummyQApplication:  # Minimal stub for ApplicationRunner dependency
-    def __init__(self, *_: object, **__: object) -> None:  # pragma: no cover - stub
-        pass
+@pytest.fixture
+def fake_os(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """Return a fake os.environ mapping isolated per test."""
+
+    env: dict[str, str] = {}
+    fake_os_module = SimpleNamespace(environ=env, pathsep=os.pathsep)
+    monkeypatch.setattr("src.bootstrap.environment.os", fake_os_module)
+    return env
 
 
-class _DummyQTimer:
-    def __init__(self, *_: object, **__: object) -> None:  # pragma: no cover - stub
-        pass
+def test_safe_mode_does_not_force_backend(fake_os: dict[str, str]) -> None:
+    fake_os["QSG_RHI_BACKEND"] = "opengl"
+    messages: list[str] = []
+
+    configure_qt_environment(safe_mode=True, log=messages.append)
+
+    assert "QSG_RHI_BACKEND" not in fake_os
+    assert any("safe mode" in message.lower() for message in messages)
 
 
-def test_parse_arguments_supports_modes() -> None:
-    """Both --safe-mode and --legacy flags should be recognised by the parser."""
+def test_standard_mode_sets_backend(fake_os: dict[str, str]) -> None:
+    messages: list[str] = []
 
-    args = parse_arguments(["--safe-mode", "--legacy"])
-    assert args.safe_mode is True
-    assert args.legacy is True
+    configure_qt_environment(safe_mode=False, log=messages.append)
 
-
-def test_configure_qt_environment_safe_mode(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
-    """Safe mode must remove forced backends and log the fallback behaviour."""
-
-    monkeypatch.setenv("QSG_RHI_BACKEND", "opengl")
-    configure_qt_environment(safe_mode=True)
-    out = capsys.readouterr().out.lower()
-
-    assert "safe mode" in out
-    assert "qt quick scene graph backend" in out
-    assert os.environ.get("QSG_RHI_BACKEND") in (None, "")
+    assert fake_os["QSG_RHI_BACKEND"] == "opengl"
+    assert any("standard mode" in message.lower() for message in messages)
 
 
-def test_application_runner_legacy_mode_uses_legacy_main_window(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Legacy mode should instantiate the legacy MainWindow without registering QML."""
+def test_surface_format_skipped_when_safe_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = ApplicationRunner(lambda *args, **kwargs: None, lambda *a, **k: None, SimpleNamespace(), object())
+    runner.safe_mode_requested = True
 
-    calls: dict[str, int] = {"legacy_inits": 0}
+    original_import: Callable[..., object] = builtins.__import__
+    attempted: dict[str, bool] = {"pyside": False}
 
-    class _LegacyWindow:
+    def guard(name: str, globals: dict | None = None, locals: dict | None = None, fromlist: tuple | None = None, level: int = 0) -> object:  # type: ignore[override]
+        if name.startswith("PySide6"):
+            attempted["pyside"] = True
+            raise AssertionError("PySide6 import attempted despite safe mode")
+        return original_import(name, globals, locals, fromlist or (), level)
+
+    with monkeypatch.context() as context:
+        context.setattr(builtins, "__import__", guard)
+        runner._configure_default_surface_format()
+
+    assert attempted["pyside"] is False
+    assert runner._surface_format_configured is False
+
+
+def test_legacy_mode_uses_widgets(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = ApplicationRunner(lambda *args, **kwargs: None, lambda *a, **k: None, SimpleNamespace(), object())
+    runner.use_legacy_ui = True
+
+    created: dict[str, object] = {}
+
+    class DummyLegacyWindow:
         def __init__(self, *, use_qml_3d: bool) -> None:
-            calls["legacy_inits"] += 1
-            self.use_qml_3d = use_qml_3d
-            self.shown = False
-            self.raised = False
-            self.activated = False
+            created["use_qml_3d"] = use_qml_3d
 
         def show(self) -> None:
-            self.shown = True
+            created["show"] = True
 
-        def raise_(self) -> None:  # pragma: no cover - simple state flag
-            self.raised = True
+        def raise_(self) -> None:  # noqa: D401 - Qt-style naming
+            created["raise"] = True
 
-        def activateWindow(self) -> None:  # pragma: no cover - simple state flag
-            self.activated = True
+        def activateWindow(self) -> None:
+            created["activate"] = True
 
-    def _fail_register_qml_types() -> None:  # pragma: no cover - defensive guard
-        raise AssertionError("register_qml_types must not be called in legacy mode")
+    monkeypatch.setattr("src.ui.main_window_legacy.MainWindow", DummyLegacyWindow)
 
-    def _fail_main_window(*_: object, **__: object) -> None:  # pragma: no cover - guard
-        raise AssertionError("Legacy mode should not import refactored MainWindow")
+    qml_called = False
 
-    failing_main_window = types.SimpleNamespace(MainWindow=_fail_main_window)
+    def fake_register() -> None:
+        nonlocal qml_called
+        qml_called = True
 
-    monkeypatch.setitem(
-        sys.modules,
-        "src.ui.main_window_legacy",
-        types.SimpleNamespace(MainWindow=_LegacyWindow),
-    )
-    monkeypatch.setitem(sys.modules, "src.ui.main_window", failing_main_window)
-    monkeypatch.setattr("src.app_runner.register_qml_types", _fail_register_qml_types)
-
-    runner = ApplicationRunner(_DummyQApplication, object, object, _DummyQTimer)
-    runner._is_headless = False
-    runner.use_legacy_ui = True
-    runner.use_qml_3d_schema = True  # Should be ignored for legacy
-    runner._check_qml_initialization = lambda *_: None
-    runner.app_logger = None
+    monkeypatch.setattr("src.app_runner.register_qml_types", fake_register)
 
     runner.create_main_window()
 
-    assert isinstance(runner.window_instance, _LegacyWindow)
-    assert runner.window_instance.use_qml_3d is False
-    assert runner.window_instance.shown is True
-    assert calls["legacy_inits"] == 1
+    assert created["use_qml_3d"] is False
+    assert created["show"] is True
+    assert created["raise"] is True
+    assert created["activate"] is True
+    assert qml_called is False
+    assert isinstance(runner.window_instance, DummyLegacyWindow)

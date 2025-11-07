@@ -39,6 +39,10 @@ if "%PSS_LEGACY_MODE%"=="1" (
     echo [i] Legacy UI mode requested — QML loading will be skipped.
 )
 
+if "%PSS_SAFE_MODE%"=="0" if "%PSS_LEGACY_MODE%"=="0" (
+    echo [i] Launch tips: use "--safe-mode" to let Qt auto-select DirectX or "--legacy" for the classic UI.
+)
+
 rem Check if venv exists and works
 if not exist "venv\Scripts\python.exe" (
     echo Virtual environment not found. Setting up automatically...

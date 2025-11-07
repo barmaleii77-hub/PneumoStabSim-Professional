@@ -137,6 +137,17 @@ class ApplicationRunner:
         if self._surface_format_configured:
             return
 
+        if self.safe_mode_requested:
+            if self.app_logger:
+                self.app_logger.info(
+                    "Safe mode active — skipping forced OpenGL surface format"
+                )
+            else:
+                print(
+                    "ℹ️ Safe mode active — relying on Qt runtime to choose the scene graph backend"
+                )
+            return
+
         try:
             from PySide6.QtGui import QSurfaceFormat
             from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -537,6 +548,54 @@ class ApplicationRunner:
 
         if self.app_logger:
             self.app_logger.info("MainWindow created and shown")
+
+        self._log_runtime_scenegraph_backend()
+
+    def _log_runtime_scenegraph_backend(self) -> None:
+        """Report the runtime Qt Quick Scene Graph backend selection."""
+
+        if self._is_headless:
+            return
+
+        if self.use_legacy_ui:
+            if self.app_logger:
+                self.app_logger.info(
+                    "Legacy UI mode active — no Qt Quick scene graph backend in use"
+                )
+            else:
+                print(
+                    "ℹ️ Legacy UI mode active — no Qt Quick scene graph backend in use"
+                )
+            return
+
+        try:
+            from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+        except Exception as exc:  # pragma: no cover - optional diagnostic
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Runtime backend log skipped (Qt Quick unavailable): %s", exc
+                )
+            return
+
+        try:
+            backend_value = QQuickWindow.graphicsApi()
+            backend_enum = QSGRendererInterface.GraphicsApi(backend_value)
+            backend_label = getattr(backend_enum, "name", str(backend_enum))
+        except Exception as exc:  # pragma: no cover - defensive guard
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Runtime backend log failed: %s", exc, exc_info=True
+                )
+            return
+
+        message = f"Qt Quick runtime backend: {backend_label}"
+        if self.safe_mode_requested:
+            message += " [safe mode]"
+
+        if self.app_logger:
+            self.app_logger.info(message)
+        else:
+            print(f"ℹ️ {message}")
 
     def _resolve_schema_path(self) -> Path:
         return (
