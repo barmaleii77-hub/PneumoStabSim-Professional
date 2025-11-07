@@ -166,13 +166,9 @@ Pane {
         return Math.round(numeric * factor)
     }
 
-    function _asInt(value) {
-        var numeric = Number(value)
-        if (!Number.isFinite(numeric))
-            return 0
-        return Math.round(numeric)
-    }
-
+    // Assign values coming from Python to SpinBox controls. We rely on the step size and
+    // range metadata exposed by the control to decide whether the value should be coerced
+    // to an integer, keeping the logic declarative instead of using the old forceInt helper.
     function _assignSpinValue(spin, rawValue, options) {
         if (!spin)
             return
@@ -187,12 +183,23 @@ Pane {
         if (!Number.isFinite(scale) || scale <= 0)
             scale = 1
         var finalValue
-        if (scale !== 1)
+        var requiresInteger = false
+        if (scale !== 1) {
             finalValue = _asScaledInt(numeric, scale)
-        else if (opts.forceInt)
-            finalValue = _asInt(numeric)
-        else
-            finalValue = numeric
+        } else {
+            var step = Number(spin.stepSize)
+            var fromValue = Number(spin.from)
+            var toValue = Number(spin.to)
+            if (Number.isFinite(step) && Number.isFinite(fromValue) && Number.isFinite(toValue)
+                    && Math.round(step) === step
+                    && Math.round(fromValue) === fromValue
+                    && Math.round(toValue) === toValue) {
+                finalValue = Math.round(numeric)
+                requiresInteger = true
+            } else {
+                finalValue = numeric
+            }
+        }
         try {
             spin.value = finalValue
         } catch (error) {
@@ -208,12 +215,12 @@ Pane {
                         console.warn("⚠️ SimulationPanel: scaled fallback failed for", logKey, scaledError)
                     }
                 }
-            } else if (opts.forceInt) {
-                var fallback = _asInt(numeric)
+            } else if (requiresInteger) {
+                var fallback = Math.round(numeric)
                 if (fallback !== finalValue) {
                     try {
                         spin.value = fallback
-                        console.warn("ℹ️ SimulationPanel: coerced", logKey, "to integer", fallback)
+                        console.warn("ℹ️ SimulationPanel: coerced", logKey, "to rounded integer", fallback)
                         return
                     } catch (fallbackError) {
                         console.warn("⚠️ SimulationPanel: integer fallback failed for", logKey, fallbackError)
