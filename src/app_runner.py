@@ -58,6 +58,69 @@ class ApplicationRunner:
         self._headless_reason: Optional[str] = None
         self._surface_format_configured: bool = False
 
+    @staticmethod
+    def _gather_startup_environment_snapshot() -> dict[str, str]:
+        """Collect key environment details for diagnostics."""
+
+        qt_qpa = os.environ.get("QT_QPA_PLATFORM", "<unset>")
+        qsg_backend = os.environ.get("QSG_RHI_BACKEND", "<unset>")
+        qt_plugin_path = os.environ.get("QT_PLUGIN_PATH", "<unset>")
+
+        try:
+            import PySide6
+
+            pyside_version = getattr(PySide6, "__version__", "unknown")
+        except Exception:  # pragma: no cover - PySide6 may be unavailable in CI
+            pyside_version = "unavailable"
+
+        return {
+            "platform": sys.platform,
+            "QT_QPA_PLATFORM": qt_qpa or "<empty>",
+            "QSG_RHI_BACKEND": qsg_backend or "<empty>",
+            "QT_PLUGIN_PATH": qt_plugin_path or "<empty>",
+            "PySide6": pyside_version,
+        }
+
+    @staticmethod
+    def _format_startup_environment_message(snapshot: dict[str, str]) -> str:
+        """Create a single-line startup diagnostics message."""
+
+        ordered_keys = [
+            "platform",
+            "QT_QPA_PLATFORM",
+            "QSG_RHI_BACKEND",
+            "QT_PLUGIN_PATH",
+            "PySide6",
+        ]
+        parts = ["STARTUP_ENVIRONMENT"]
+        for key in ordered_keys:
+            value = snapshot.get(key, "<missing>")
+            parts.append(f"{key}={value}")
+        return " | ".join(parts)
+
+    def _log_startup_environment(self) -> None:
+        """Emit startup environment diagnostics to file, logger, and stdout."""
+
+        snapshot = self._gather_startup_environment_snapshot()
+        message = self._format_startup_environment_message(snapshot)
+
+        print(message)
+
+        try:
+            logs_dir = Path("logs")
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            startup_log = logs_dir / "startup.log"
+            with startup_log.open("a", encoding="utf-8") as handle:
+                handle.write(message + "\n")
+        except Exception as exc:  # pragma: no cover - log persistence is best effort
+            if self.app_logger:
+                self.app_logger.warning(
+                    "Failed to write startup environment log: %s", exc
+                )
+
+        if self.app_logger:
+            self.app_logger.info(message)
+
     def _configure_default_surface_format(self) -> None:
         """Force the OpenGL RHI backend with depth/stencil buffers before QApplication.
 
@@ -674,6 +737,8 @@ class ApplicationRunner:
                 self.app_logger.info("Logging initialized successfully")
                 if args.verbose:
                     self.app_logger.info("Verbose mode enabled")
+
+            self._log_startup_environment()
 
             self.setup_high_dpi()
             self.create_application()
