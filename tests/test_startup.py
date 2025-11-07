@@ -69,3 +69,14 @@ def test_bootstrap_graphics_environment_respects_safe_mode() -> None:
     assert "PSS_FORCE_NO_QML_3D" not in env
     assert state.backend == "metal"
     assert state.safe_mode is True
+
+
+def test_bootstrap_graphics_environment_headless_safe_mode_sets_flags() -> None:
+    env: dict[str, str] = {}
+    state = bootstrap_graphics_environment(env, platform="linux", safe_mode=True)
+
+    assert env["QT_QPA_PLATFORM"] == "offscreen"
+    assert env["PSS_FORCE_NO_QML_3D"] == "1"
+    assert "QSG_RHI_BACKEND" not in env
+    assert state.headless is True
+    assert state.safe_mode is True

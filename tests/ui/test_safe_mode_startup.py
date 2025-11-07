@@ -9,6 +9,7 @@ import pytest
 from pytestqt.qtbot import QtBot
 
 from PySide6.QtCore import QTimer, Qt, qInstallMessageHandler
+from PySide6.QtWidgets import QApplication
 
 from src.app_runner import ApplicationRunner
 from src.cli.arguments import parse_arguments
@@ -21,16 +22,27 @@ def test_parse_safe_alias_sets_test_mode() -> None:
 
     assert namespace.test_mode is True
     assert namespace.safe_cli_mode is True
+    assert namespace.safe is True
+
+
+def test_parse_test_mode_does_not_mark_safe_alias() -> None:
+    """``--test-mode`` should not masquerade as the ``--safe`` alias."""
+
+    namespace = parse_arguments(["--test-mode"])
+
+    assert namespace.test_mode is True
+    assert namespace.safe_cli_mode is True
+    assert namespace.safe is False
 
 
 @pytest.mark.qt_no_exception_capture
 def test_safe_mode_exits_without_loading_main_window(
-    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch
+    qtbot: QtBot, qapp: QApplication, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Safe mode must skip QML loading and exit the Qt event loop."""
 
     runner = ApplicationRunner(
-        lambda _argv: qtbot.qapp,  # type: ignore[arg-type]
+        lambda _argv: qapp,  # type: ignore[arg-type]
         qInstallMessageHandler,
         Qt,
         QTimer,
@@ -50,18 +62,32 @@ def test_safe_mode_exits_without_loading_main_window(
     monkeypatch.setattr(runner, "setup_signals", lambda: None)
     monkeypatch.setattr(runner, "setup_test_mode", lambda _enabled: None)
 
-    def _fake_setup_logging(verbose: bool) -> logging.Logger:
+    def _fake_setup_logging(*, verbose_console: bool = False) -> logging.Logger:
         logger = logging.getLogger("safe-mode-test")
         logger.setLevel(logging.INFO)
+        if verbose_console:
+            logger.info("Verbose console logging enabled in test stub")
         return logger
 
     monkeypatch.setattr(runner, "setup_logging", _fake_setup_logging)
+
+    exit_calls: dict[str, int | None] = {"code": None}
+
+    original_exit = qapp.exit
+
+    def _record_exit(
+        code: int = 0,
+    ) -> None:  # pragma: no cover - exercised in Qt event loop
+        exit_calls["code"] = code
+        original_exit(code)
+
+    monkeypatch.setattr(qapp, "exit", _record_exit)
 
     args = argparse.Namespace(
         diag=False,
         verbose=False,
         safe_mode=False,
-        safe=False,
+        safe=True,
         safe_runtime=True,
         legacy=False,
         force_disable_qml_3d=True,
@@ -77,3 +103,4 @@ def test_safe_mode_exits_without_loading_main_window(
     assert runner.window_instance is None
     assert runner._safe_exit_timer is not None
     assert runner._surface_format_configured is False
+    assert exit_calls["code"] == 0

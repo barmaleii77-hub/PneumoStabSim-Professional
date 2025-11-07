@@ -1,11 +1,11 @@
-"""
-Модуль обработки аргументов командной строки.
+"""Модуль обработки аргументов командной строки.
 
 Определяет CLI интерфейс приложения с поддержкой
 test-mode, verbose logging и диагностики.
 """
 
 import argparse
+import sys
 from collections.abc import Iterable
 
 
@@ -22,11 +22,6 @@ def _add_mode_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Launch the legacy Qt Widgets interface without loading QML",
     )
-    parser.add_argument(
-        "--safe",
-        action="store_true",
-        help="Headless-safe startup that avoids creating a Qt Quick 3D scene",
-    )
 
 
 def _add_test_mode_argument(parser: argparse.ArgumentParser) -> None:
@@ -34,6 +29,7 @@ def _add_test_mode_argument(parser: argparse.ArgumentParser) -> None:
 
     parser.add_argument(
         "--test-mode",
+        "--safe",
         action="store_true",
         help="Test mode (auto-close 5s; safe bootstrap alias: --safe)",
     )
@@ -122,19 +118,19 @@ def parse_arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments passed to the application."""
 
     parser = _create_argument_parser(include_bootstrap=True)
-    namespace = parser.parse_args(None if argv is None else list(argv))
+    if argv is None:
+        argv_list = list(sys.argv[1:])
+    else:
+        argv_list = list(argv)
 
-    safe_requested = bool(getattr(namespace, "safe", False))
-    if safe_requested:
+    namespace = parser.parse_args(argv_list)
+
+    safe_alias_used = "--safe" in argv_list
+    setattr(namespace, "safe", safe_alias_used)
+    if safe_alias_used:
         setattr(namespace, "test_mode", True)
 
-    setattr(
-        namespace,
-        "safe_cli_mode",
-        bool(
-            getattr(namespace, "safe", False) or getattr(namespace, "test_mode", False)
-        ),
-    )
+    setattr(namespace, "safe_cli_mode", bool(getattr(namespace, "test_mode", False)))
 
     return namespace
 

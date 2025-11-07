@@ -59,6 +59,10 @@ python app.py --env-report report.md  # Диагностика и сохране
   QML-главное окно, а цикл завершается через `QCoreApplication.exit(0)` сразу
   после инициализации. Режим используется в smoke-тестах и CI, где требуется
   гарантированно чистый выход без создания окон.
+- При запуске в headless-окружении bootstrap автоматически проставляет
+  `QT_QPA_PLATFORM=offscreen` и `PSS_FORCE_NO_QML_3D=1`. В безопасном режиме
+  (`--safe`) принудительная установка `QSG_RHI_BACKEND` пропускается, чтобы Qt
+  смог сам подобрать совместимый рендерер.
 - `--legacy` принудительно включает старый OpenGL-бэкенд Qt Quick (без RHI),
   что полезно на устаревших драйверах и в контейнерах с программным Mesa.
 - Комбинируйте `--legacy` + `--safe`, чтобы проверить рендер-конфигурацию в
@@ -71,11 +75,19 @@ python app.py --env-report report.md  # Диагностика и сохране
 ```sh
 export QT_QPA_PLATFORM=offscreen         # Отключает необходимость X11/Wayland
 export QT_QUICK_BACKEND=software         # Программный рендеринг Qt Quick
-export QSG_RHI_BACKEND=opengl            # Фиксированный backend для устойчивости
 export LIBGL_ALWAYS_SOFTWARE=1           # Гарантирует использование Mesa llvmpipe
+
+# Дополнительно можно закрепить backend вручную, но безопасный режим сам
+# пропускает форсирование QSG_RHI_BACKEND и доверяет выбор Qt
+# export QSG_RHI_BACKEND=opengl
 
 python app.py --safe                     # Идентичный сценарий smoke-тестов CI
 ```
+
+> Примечание: при отсутствии переменных окружения bootstrap сам активирует
+> `QT_QPA_PLATFORM=offscreen` и `PSS_FORCE_NO_QML_3D=1`, поэтому достаточно
+> выставить только специфичные для вашего CI настройки (например,
+> `LIBGL_ALWAYS_SOFTWARE`).
 
 На macOS допускается `QT_QPA_PLATFORM=minimal` в сочетании с `QT_MAC_WANTS_LAYER=1`,
 если требуется инициализировать Metal без полноценного окна. Полный рецепт
