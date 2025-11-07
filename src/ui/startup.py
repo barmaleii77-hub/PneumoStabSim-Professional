@@ -31,6 +31,8 @@ def choose_scenegraph_backend(platform: str) -> str:
         return "d3d11"
     if normalised.startswith("darwin") or normalised.startswith("mac"):
         return "metal"
+    if normalised.startswith("linux"):
+        return "opengl"
     return "opengl"
 
 
@@ -49,9 +51,11 @@ def detect_headless_environment(env: Mapping[str, str]) -> Tuple[bool, Tuple[str
     if _is_truthy(env.get("CI")):
         reasons.append("ci-flag")
 
-    qt_qpa = env.get("QT_QPA_PLATFORM")
+    qt_qpa = (env.get("QT_QPA_PLATFORM") or "").strip().lower()
     has_display = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
-    if not qt_qpa and not has_display:
+    if qt_qpa in {"offscreen", "minimal", "minimalgl", "vkkhrdisplay"}:
+        reasons.append(f"qt-qpa-platform:{qt_qpa}")
+    elif not qt_qpa and not has_display:
         reasons.append("qt-qpa-platform-missing")
 
     return bool(reasons), tuple(reasons)
@@ -82,7 +86,7 @@ def bootstrap_graphics_environment(
         env.pop("PSS_FORCE_NO_QML_3D", None)
 
     if not safe_mode:
-        env.setdefault("QSG_RHI_BACKEND", backend)
+        env["QSG_RHI_BACKEND"] = backend
 
     return GraphicsEnvironmentDecision(
         backend=backend,

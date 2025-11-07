@@ -115,6 +115,9 @@ class MainWindow(QMainWindow):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.logger.info(f"MainWindow init: {backend_name}")
 
+        # Geometry payload cache for dependency corrections
+        self._last_geometry_payload: Dict[str, float] = {}
+
         # Settings manager
         self.settings_manager = get_settings_manager()
         self.logger.info("SettingsManager initialized")
@@ -497,6 +500,137 @@ class MainWindow(QMainWindow):
         """Queue QML update → QMLBridge"""
         QMLBridge.queue_update(self, key, params)
 
+    def _sanitize_geometry_payload(
+        self, params: Dict[str, Any]
+    ) -> tuple[Dict[str, Any], list[str]]:
+        """Clamp geometry payload to maintain internal dependencies."""
+
+        sanitized: Dict[str, Any] = dict(params)
+        adjustments: list[str] = []
+
+        def _float(value: Any, fallback: float | None = None) -> float | None:
+            try:
+                if value is None:
+                    return fallback
+                return float(value)
+            except (TypeError, ValueError):
+                return fallback
+
+        prev = self._last_geometry_payload
+
+        track_width = _float(
+            sanitized.get("trackWidth"), _float(prev.get("trackWidth"))
+        )
+        frame_to_pivot = _float(
+            sanitized.get("frameToPivot"), _float(prev.get("frameToPivot"))
+        )
+        lever_length = _float(
+            sanitized.get("leverLength"), _float(prev.get("leverLength"))
+        )
+        rod_position = _float(
+            sanitized.get("rodPosition"), _float(prev.get("rodPosition"))
+        )
+        stroke = _float(sanitized.get("strokeM"), _float(prev.get("strokeM")))
+        cyl_body = _float(
+            sanitized.get("cylinderBodyLength"), _float(prev.get("cylinderBodyLength"))
+        )
+        rod_length = _float(
+            sanitized.get("pistonRodLengthM"), _float(prev.get("pistonRodLengthM"))
+        )
+
+        tolerance = 1e-6
+        if track_width and track_width > 0.0:
+            track_half = track_width / 2.0
+            prev_frame = _float(prev.get("frameToPivot"), frame_to_pivot)
+            prev_lever = _float(prev.get("leverLength"), lever_length)
+
+            changed_frame = (
+                frame_to_pivot is not None
+                and prev_frame is not None
+                and abs(frame_to_pivot - prev_frame) > tolerance
+            )
+            changed_lever = (
+                lever_length is not None
+                and prev_lever is not None
+                and abs(lever_length - prev_lever) > tolerance
+            )
+
+            if frame_to_pivot is None:
+                frame_to_pivot = max(
+                    0.0, min(track_half, prev_frame or track_half / 2.0)
+                )
+            if lever_length is None:
+                lever_length = max(0.0, min(track_half, prev_lever or track_half / 2.0))
+
+            if changed_frame:
+                original = frame_to_pivot
+                frame_to_pivot = max(0.0, min(frame_to_pivot, track_half))
+                if abs(original - frame_to_pivot) > tolerance:
+                    adjustments.append(
+                        f"WARNING: frameToPivot clamped to {frame_to_pivot:.3f} m"
+                    )
+                lever_length = max(track_half - frame_to_pivot, 0.0)
+            elif changed_lever:
+                original = lever_length
+                lever_length = max(0.0, min(lever_length, track_half))
+                if abs(original - lever_length) > tolerance:
+                    adjustments.append(
+                        f"WARNING: leverLength clamped to {lever_length:.3f} m"
+                    )
+                frame_to_pivot = max(track_half - lever_length, 0.0)
+            else:
+                if (
+                    frame_to_pivot is not None
+                    and lever_length is not None
+                    and abs(frame_to_pivot + lever_length - track_half) > tolerance
+                ):
+                    lever_length = max(track_half - frame_to_pivot, 0.0)
+
+            sanitized["trackWidth"] = track_width
+            sanitized["frameToPivot"] = frame_to_pivot
+            sanitized["leverLength"] = lever_length
+            sanitized["maxSuspTravel"] = 2.0 * lever_length
+
+        if rod_position is not None:
+            clamped = min(max(rod_position, 0.1), 0.9)
+            if abs(clamped - rod_position) > tolerance:
+                adjustments.append(
+                    f"WARNING: rodPosition clamped to {clamped:.3f} (0.1..0.9)"
+                )
+            sanitized["rodPosition"] = clamped
+
+        if stroke is not None and lever_length is not None:
+            min_stroke = 2.0 * lever_length
+            if stroke + tolerance < min_stroke:
+                sanitized["strokeM"] = min_stroke
+                adjustments.append(
+                    f"WARNING: stroke increased to {min_stroke:.3f} m to match lever travel"
+                )
+
+        if cyl_body is not None and rod_length is not None:
+            min_rod = 1.1 * cyl_body
+            if rod_length + tolerance < min_rod:
+                sanitized["pistonRodLengthM"] = min_rod
+                adjustments.append(
+                    f"WARNING: pistonRodLength raised to {min_rod:.3f} m (>=110% cylinder body)"
+                )
+
+        tracked_keys = {
+            "trackWidth",
+            "frameToPivot",
+            "leverLength",
+            "rodPosition",
+            "strokeM",
+            "cylinderBodyLength",
+            "pistonRodLengthM",
+        }
+        for key in tracked_keys:
+            value = sanitized.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                self._last_geometry_payload[key] = float(value)
+
+        return sanitized, adjustments
+
     # ------------------------------------------------------------------
     # Signal Handlers (delegation to SignalsRouter)
     # ------------------------------------------------------------------
@@ -505,6 +639,12 @@ class MainWindow(QMainWindow):
         """Geometry changed → direct QML call"""
         if not isinstance(params, dict):
             return
+
+        sanitized, adjustments = self._sanitize_geometry_payload(params)
+        if adjustments:
+            for note in adjustments:
+                self.logger.warning(note)
+        params = sanitized
 
         self.logger.info(f"Geometry update: {len(params)} keys")
 
