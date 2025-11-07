@@ -255,20 +255,28 @@ def render_shell_exports(env_vars: Mapping[str, str], shell: str = "posix") -> s
             "# Qt/PySide6 environment for Copilot GPT",
             "# Source this file before launching assistants or tooling",
         ]
-        formatter = lambda key, value: f"export {key}={shlex.quote(value)}"
+
+        def formatter(key: str, value: str) -> str:
+            return f"export {key}={shlex.quote(value)}"
+
     elif shell_key == "powershell":
         lines = [
             "# Qt/PySide6 environment for Copilot GPT",
             "# Dot-source this script in PowerShell to update the current session",
         ]
-        formatter = lambda key, value: f"$Env:{key} = {_quote_powershell(value)}"
+
+        def formatter(key: str, value: str) -> str:
+            return f"$Env:{key} = {_quote_powershell(value)}"
+
     else:  # cmd
         lines = [
             "@echo off",
             "REM Qt/PySide6 environment for Copilot GPT",
             "REM Run using 'call' to persist changes in the caller session",
         ]
-        formatter = lambda key, value: f'set "{key}={_quote_cmd(value)}"'
+
+        def formatter(key: str, value: str) -> str:
+            return f'set "{key}={_quote_cmd(value)}"'
 
     for key in ORDERED_KEYS:
         if key in env_vars:

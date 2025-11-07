@@ -8,7 +8,7 @@ import pytest
 
 try:  # pragma: no cover - executed during test collection
     from src.ui.main_window_legacy import MainWindow
-except ImportError as exc:  # pragma: no cover - environment guard
+except ImportError:  # pragma: no cover - environment guard
     pytest.skip(
         "PySide6 dependency missing for main window batch update tests",
         allow_module_level=True,

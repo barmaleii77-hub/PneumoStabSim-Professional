@@ -37,10 +37,15 @@ else:  # pragma: no cover - executed only on headless environments
     QCoreApplication = None
 
 from ...pneumo.enums import Wheel
+from ..environment_schema import (
+    EnvironmentValidationError,
+    validate_scene_settings,
+)
 from ..panels.modes.defaults import (
     DEFAULT_PHYSICS_OPTIONS,
     MODE_PRESETS,
 )
+from ..qml_bridge import register_qml_signals
 from .qml_bridge import QMLBridge
 
 
@@ -61,12 +66,6 @@ for _preset_index, _preset_payload in MODE_PRESETS.items():
     preset_id = _make_preset_id(preset_name, preset_index)
     _PRESET_LOOKUP[preset_id] = (preset_index, dict(_preset_payload))
     _PRESET_LOOKUP[str(preset_index)] = (preset_index, dict(_preset_payload))
-from ..environment_schema import (
-    EnvironmentValidationError,
-    validate_scene_settings,
-)
-from ..qml_bridge import register_qml_signals
-
 if TYPE_CHECKING:
     from .main_window_refactored import MainWindow
     from ...runtime import StateSnapshot

@@ -42,7 +42,7 @@ def test_training_bridge_emits_signals_on_apply(qtbot, training_preset_bridge):
     qtbot.waitUntil(lambda: selected_spy.count() >= 1, timeout=1000)
 
     assert training_preset_bridge.activePresetId == target_id
-    selected = training_preset_bridge.selectedPreset()
+    selected = training_preset_bridge.selectedPresetSnapshot()
     scenario_id = selected.get("metadata", {}).get("scenarioId", "")
     assert scenario_id in SCENARIO_INDEX
     descriptor = SCENARIO_INDEX[scenario_id]
@@ -70,7 +70,7 @@ def test_training_bridge_detects_settings_drift(
     qtbot.waitUntil(lambda: selected_spy.count() >= 1, timeout=1000)
 
     assert training_preset_bridge.activePresetId == ""
-    assert training_preset_bridge.selectedPreset() == {}
+    assert training_preset_bridge.selectedPresetSnapshot() == {}
 
 
 @pytest.mark.gui
@@ -83,7 +83,7 @@ def test_training_bridge_updates_settings_service(
     preset_id = training_preset_bridge.defaultPresetId()
     assert training_preset_bridge.applyPreset(preset_id)
 
-    selected = training_preset_bridge.selectedPreset()
+    selected = training_preset_bridge.selectedPresetSnapshot()
     snapshot = settings_service.reload()
 
     for key, value in selected.get("simulation", {}).items():

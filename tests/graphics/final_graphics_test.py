@@ -130,7 +130,7 @@ def generate_final_report():
         for corner in range(4):  # 4 угла подвески
             base_phase = time_val * frequency * 2 * math.pi
             phase_offset = corner * 90 * math.pi / 180
-            angle_val = amplitude * math.sin(base_phase + phase_offset)
+            math.sin(base_phase + phase_offset) * amplitude
 
     uncached_time = time.perf_counter() - start_time
 
@@ -148,7 +148,7 @@ def generate_final_report():
 
         # Кэшированный расчет - одно вычисление base_phase, 4 sin()
         for phase_offset in phase_offsets:
-            angle_val = 8.0 * math.sin(base_phase + phase_offset)
+            math.sin(base_phase + phase_offset)
 
     cached_time = time.perf_counter() - start_time
 

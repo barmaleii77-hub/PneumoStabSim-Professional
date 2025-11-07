@@ -105,10 +105,6 @@ class ShaderValidationUnavailableError(RuntimeError):
     """Raised when qsb cannot run due to a missing runtime dependency."""
 
 
-class ShaderValidationEnvironmentError(RuntimeError):
-    """Raised when qsb aborts because the Qt runtime is misconfigured."""
-
-
 class QsbEnvironmentError(RuntimeError):
     """Raised when qsb fails because the Qt runtime is misconfigured."""
 
@@ -186,79 +182,6 @@ def _relative(path: Path, root: Path) -> str:
         return str(path)
 
 
-def _summarize_environment_failure(
-    exit_code: int,
-    stdout: str,
-    stderr: str,
-    command: Sequence[str],
-) -> str | None:
-    """Return a human-friendly summary for environment-level qsb failures."""
-
-    combined = "\n".join(part for part in (stdout, stderr) if part).lower()
-    for library, package in RUNTIME_DEPENDENCY_HINTS:
-        if library.lower() in combined:
-            return (
-                "Qt Shader Baker failed to load required shared library "
-                f"'{library}'. Install the system package '{package}' and retry."
-            )
-
-    if "qt.qpa.plugin" in combined and "xcb" in combined:
-        return (
-            "Qt Shader Baker could not load the 'xcb' Qt platform plugin. "
-            "Install the Qt X11 runtime dependencies (for example 'libxcb-xinerama0')."
-        )
-
-    if exit_code == 127:
-        quoted = shlex.join(command)
-        return (
-            "Qt Shader Baker exited with status 127. Ensure the 'qsb' executable is "
-            "installed (Qt Shader Tools) or set QSB_COMMAND to its absolute path. "
-            f"Command attempted: {quoted or '<unknown>'}."
-        )
-
-    return None
-
-
-def _interpret_qsb_startup_failure(
-    exit_code: int,
-    stderr: str,
-    stdout: str,
-    *,
-    allow_generic: bool = True,
-) -> str | None:
-    """Return a descriptive message for qsb bootstrap failures."""
-
-    message = _summarize_environment_failure(exit_code, stdout, stderr, ())
-    if message is not None:
-        return message
-
-    combined = "\n".join(filter(None, (stdout, stderr))).strip()
-    if not combined:
-        if allow_generic and exit_code != 0:
-            return (
-                "Qt Shader Baker exited unexpectedly without output. "
-                "Activate the project environment (source activate_environment.sh) "
-                "and ensure Qt Shader Tools are installed."
-            )
-        return None
-
-    lower = combined.lower()
-    if "permission denied" in lower:
-        return (
-            "Qt Shader Baker could not be executed because the binary is not marked executable. "
-            "Run 'chmod +x' on the qsb binary or reinstall Qt Shader Tools."
-        )
-
-    if allow_generic:
-        first_line = combined.splitlines()[0].strip()
-        return (
-            "Qt Shader Baker failed to start. Activate the project environment "
-            "(source activate_environment.sh) or reinstall Qt Shader Tools. "
-            f"First line of output: {first_line}"
-        )
-    return None
-
-
 def _validate_versions(
     files: Iterable[ShaderFile], root: Path, errors: ValidationErrors
 ) -> None:
@@ -328,38 +251,6 @@ def _resolve_qsb_command() -> list[str]:
 
 def _ensure_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
-
-
-def _probe_qsb(command: Sequence[str]) -> None:
-    """Ensure qsb can start in the current environment."""
-
-    probe = subprocess.run([*command, "--version"], capture_output=True, text=True)
-    stdout = probe.stdout or ""
-    stderr = probe.stderr or ""
-
-    if probe.returncode == 0:
-        return
-
-    missing_library = _extract_missing_shared_library(stderr)
-    if probe.returncode == 127 and missing_library:
-        raise ShaderValidationUnavailableError(
-            "Qt Shader Baker could not start because the shared library "
-            f"'{missing_library}' is not available in the current environment."
-        )
-
-    message = _interpret_qsb_startup_failure(
-        probe.returncode, stderr, stdout, allow_generic=True
-    )
-    if message is not None:
-        raise ShaderValidationEnvironmentError(message)
-
-    first_line = (
-        stderr.strip() or stdout.strip() or "qsb produced no output"
-    ).splitlines()[0]
-    raise ShaderValidationEnvironmentError(
-        "Qt Shader Baker failed to start (exit code "
-        f"{probe.returncode}). Details: {first_line}"
-    )
 
 
 def _shader_reports_paths(

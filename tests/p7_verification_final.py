@@ -93,11 +93,11 @@ def test_p7_components():
         snapshot.frame = frame
 
         # Should be valid
-        assert snapshot.validate() == True, "Valid snapshot should validate"
+        assert snapshot.validate(), "Valid snapshot should validate"
 
         # Test invalid case
         frame.roll = 10.0  # Excessive angle
-        assert snapshot.validate() == False, "Invalid snapshot should not validate"
+        assert not snapshot.validate(), "Invalid snapshot should not validate"
 
         print("   ? StateSnapshot: Validation working correctly")
         results["StateSnapshot"] = True
