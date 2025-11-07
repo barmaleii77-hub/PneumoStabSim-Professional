@@ -27,7 +27,7 @@ Paste the following block into the assistant's system message to brief CODEX:
 • Qt CLI-утилиты в контейнере: qmllint, qsb (через aqtinstall Qt 6.10.0).
 • Headless рендер: Xvfb + Mesa (llvmpipe OpenGL), Lavapipe (Vulkan).
 • Проверка шейдеров: нет BOM, #version первой строкой, профили GLSL валидные.
-• Параметры запуска Qt: тесты в OpenGL и Vulkan (QSG_RHI_BACKEND=opengl / QSG_RHI_BACKEND=vulkan) и VK_ICD_FILENAMES для Lavapipe.
+• Параметры запуска Qt: тесты в OpenGL и Vulkan (QSG_RHI_BACKEND=opengl / QSG_RHI_BACKEND=vulkan), QT_QUICK_CONTROLS_STYLE=Fusion, headless-профиль Qt (QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software) при отсутствии DISPLAY и VK_ICD_FILENAMES для Lavapipe.
 • Логи из logs/ и reports/ собрать в /workdir/reports (единый архив/папка артефактов).
 • Не хардкодить рабочие параметры симулятора — читать из config/app_settings.json, тесты запускаются без HDR-ассетов.
 
@@ -51,8 +51,8 @@ Paste the following block into the assistant's system message to brief CODEX:
 ## Visual Studio & VS Code launch guidance
 - **VS Code**: open the repository inside the provided devcontainer; launch the
   `PneumoStabSim (OpenGL, test-mode)` or `PneumoStabSim (Vulkan, test-mode)`
-  configurations from `.vscode/launch.json`. Both set `QSG_RHI_BACKEND` and
-  default to the XCB platform plugin for GUI debugging.
+  configurations from `.vscode/launch.json`. Both set `QSG_RHI_BACKEND`,
+  inherit `QT_QUICK_CONTROLS_STYLE=Fusion` и используют XCB-плагин для GUI.
 - **Visual Studio (Windows)**: configure your Python debug profile to use
   Python 3.13, set `QSG_RHI_BACKEND=opengl` (or `vulkan` when the Lavapipe ICD
   is installed), add `QT_QPA_PLATFORM=windows`, and point the startup script to
