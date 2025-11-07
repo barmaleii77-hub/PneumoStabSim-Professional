@@ -938,7 +938,7 @@ Pane {
                             var entry = model[index]
                             if (!entry)
                                 return
-                            _emitPneumaticChange("volume_mode", entry.value)
+                            root._emitPneumaticChange("volume_mode", entry.value)
                         }
                     }
 
@@ -950,14 +950,14 @@ Pane {
                         }
                         Slider {
                             id: receiverVolumeSlider
-                            from: (initialPneumatic && initialPneumatic.receiver_volume_limits && initialPneumatic.receiver_volume_limits.min_m3 !== undefined) ? Number(initialPneumatic.receiver_volume_limits.min_m3) : 0.001
-                            to: (initialPneumatic && initialPneumatic.receiver_volume_limits && initialPneumatic.receiver_volume_limits.max_m3 !== undefined) ? Number(initialPneumatic.receiver_volume_limits.max_m3) : 1.0
+                            from: (root.initialPneumatic && root.initialPneumatic.receiver_volume_limits && root.initialPneumatic.receiver_volume_limits.min_m3 !== undefined) ? Number(root.initialPneumatic.receiver_volume_limits.min_m3) : 0.001
+                            to: (root.initialPneumatic && root.initialPneumatic.receiver_volume_limits && root.initialPneumatic.receiver_volume_limits.max_m3 !== undefined) ? Number(root.initialPneumatic.receiver_volume_limits.max_m3) : 1.0
                             stepSize: 0.0005
                             Layout.fillWidth: true
                             onValueChanged: {
                                 if (root._updatingFromPython)
                                     return
-                                _emitPneumaticChange("receiver_volume", value)
+                                root._emitPneumaticChange("receiver_volume", value)
                             }
                         }
                         SpinBox {
@@ -973,7 +973,7 @@ Pane {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: receiverVolumeSlider.value = _applyVolumeLimits(value / valueScale)
+                            onValueModified: receiverVolumeSlider.value = root._applyVolumeLimits(value / valueScale)
                         }
                     }
 
@@ -993,7 +993,7 @@ Pane {
                             stepSize: 100
                             value: 1000
                             editable: true
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_atmo_dp", value)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("cv_atmo_dp", value)
                         }
 
                         Label {
@@ -1006,7 +1006,7 @@ Pane {
                             stepSize: 100
                             value: 1000
                             editable: true
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_tank_dp", value)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("cv_tank_dp", value)
                         }
 
                         Label {
@@ -1018,14 +1018,14 @@ Pane {
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: _asScaledInt(0.003, valueScale)
+                            value: root._asScaledInt(0.003, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_atmo_dia", value / valueScale)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("cv_atmo_dia", value / valueScale)
                         }
 
                         Label {
@@ -1037,14 +1037,14 @@ Pane {
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: _asScaledInt(0.003, valueScale)
+                            value: root._asScaledInt(0.003, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("cv_tank_dia", value / valueScale)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("cv_tank_dia", value / valueScale)
                         }
 
                         Label {
@@ -1057,7 +1057,7 @@ Pane {
                             stepSize: 1000
                             value: 250000
                             editable: true
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("relief_min_pressure", value)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("relief_min_pressure", value)
                         }
 
                         Label {
@@ -1070,7 +1070,7 @@ Pane {
                             stepSize: 1000
                             value: 1500000
                             editable: true
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("relief_stiff_pressure", value)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("relief_stiff_pressure", value)
                         }
 
                         Label {
@@ -1083,7 +1083,7 @@ Pane {
                             stepSize: 1000
                             value: 5000000
                             editable: true
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("relief_safety_pressure", value)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("relief_safety_pressure", value)
                         }
 
                         Label {
@@ -1095,14 +1095,14 @@ Pane {
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: _asScaledInt(0.001, valueScale)
+                            value: root._asScaledInt(0.001, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_min_dia", value / valueScale)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("throttle_min_dia", value / valueScale)
                         }
 
                         Label {
@@ -1114,14 +1114,14 @@ Pane {
                             from: 1
                             to: 200
                             stepSize: 1
-                            value: _asScaledInt(0.0015, valueScale)
+                            value: root._asScaledInt(0.0015, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("throttle_stiff_dia", value / valueScale)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("throttle_stiff_dia", value / valueScale)
                         }
 
                         Label {
@@ -1133,14 +1133,14 @@ Pane {
                             from: 0
                             to: 200
                             stepSize: 1
-                            value: _asScaledInt(0.0008, valueScale)
+                            value: root._asScaledInt(0.0008, valueScale)
                             editable: true
                             textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                             valueFromText: function(text, locale) {
                                 var numeric = Number(text)
                                 return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                             }
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("diagonal_coupling_dia", value / valueScale)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("diagonal_coupling_dia", value / valueScale)
                         }
 
                         Label {
@@ -1153,7 +1153,7 @@ Pane {
                             stepSize: 1
                             value: 20
                             editable: true
-                            onValueModified: if (!root._updatingFromPython) _emitPneumaticChange("atmo_temp", value)
+                            onValueModified: if (!root._updatingFromPython) root._emitPneumaticChange("atmo_temp", value)
                         }
                     }
 
@@ -1163,7 +1163,7 @@ Pane {
                         onToggled: {
                             if (root._updatingFromPython)
                                 return
-                            _emitPneumaticChange("master_isolation_open", masterIsolationCheck.checked)
+                            root._emitPneumaticChange("master_isolation_open", masterIsolationCheck.checked)
                         }
                     }
                 }
@@ -1188,14 +1188,14 @@ Pane {
                         from: 1
                         to: 200
                         stepSize: 1
-                        value: _asScaledInt(0.001, valueScale)
+                        value: root._asScaledInt(0.001, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                         valueFromText: function(text, locale) {
                             var numeric = Number(text)
                             return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                         }
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("physics_dt", value / valueScale)
+                        onValueModified: if (!root._updatingFromPython) root._emitSimulationChange("physics_dt", value / valueScale)
                     }
 
                     Label {
@@ -1208,7 +1208,7 @@ Pane {
                         stepSize: 1
                         value: 60
                         editable: true
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("render_vsync_hz", value)
+                        onValueModified: if (!root._updatingFromPython) root._emitSimulationChange("render_vsync_hz", value)
                     }
 
                     Label {
@@ -1221,7 +1221,7 @@ Pane {
                         stepSize: 1
                         value: 10
                         editable: true
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_steps_per_frame", value)
+                        onValueModified: if (!root._updatingFromPython) root._emitSimulationChange("max_steps_per_frame", value)
                     }
 
                     Label {
@@ -1233,14 +1233,14 @@ Pane {
                         from: 1
                         to: 200
                         stepSize: 1
-                        value: _asScaledInt(0.05, valueScale)
+                        value: root._asScaledInt(0.05, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 3) }
                         valueFromText: function(text, locale) {
                             var numeric = Number(text)
                             return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                         }
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_frame_time", value / valueScale)
+                        onValueModified: if (!root._updatingFromPython) root._emitSimulationChange("max_frame_time", value / valueScale)
                     }
                 }
             }
@@ -1264,14 +1264,14 @@ Pane {
                         from: 0
                         to: 100
                         stepSize: 1
-                        value: _asScaledInt(0.001, valueScale)
+                        value: root._asScaledInt(0.001, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                         valueFromText: function(text, locale) {
                             var numeric = Number(text)
                             return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                         }
-                        onValueModified: if (!root._updatingFromPython) _emitCylinderChange("dead_zone_head_m3", value / valueScale)
+                        onValueModified: if (!root._updatingFromPython) root._emitCylinderChange("dead_zone_head_m3", value / valueScale)
                     }
 
                     Label {
@@ -1283,14 +1283,14 @@ Pane {
                         from: 0
                         to: 100
                         stepSize: 1
-                        value: _asScaledInt(0.001, valueScale)
+                        value: root._asScaledInt(0.001, valueScale)
                         editable: true
                         textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
                         valueFromText: function(text, locale) {
                             var numeric = Number(text)
                             return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
                         }
-                        onValueModified: if (!root._updatingFromPython) _emitCylinderChange("dead_zone_rod_m3", value / valueScale)
+                        onValueModified: if (!root._updatingFromPython) root._emitCylinderChange("dead_zone_rod_m3", value / valueScale)
                     }
                 }
             }
