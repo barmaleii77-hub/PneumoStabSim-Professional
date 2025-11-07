@@ -106,7 +106,7 @@ class ApplicationRunner:
         snapshot = self._gather_startup_environment_snapshot()
         message = self._format_startup_environment_message(snapshot)
 
-        print(message)
+        print(message, flush=True)
 
         try:
             logs_dir = Path("logs")
@@ -121,7 +121,7 @@ class ApplicationRunner:
                 )
 
         if self.app_logger:
-            self.app_logger.info(message)
+            self.app_logger.info(message, extra={"startup_environment": snapshot})
 
     def _configure_default_surface_format(self) -> None:
         """Force the OpenGL RHI backend with depth/stencil buffers before QApplication.
