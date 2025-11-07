@@ -452,6 +452,13 @@ class UISetup:
         Args:
             window: MainWindow instance
         """
+        if not window.use_qml_3d:
+            UISetup.logger.info(
+                "    [QML] use_qml_3d disabled — skipping QML scene initialisation"
+            )
+            UISetup._setup_legacy_opengl_view(window)
+            return
+
         UISetup.logger.info("    [QML] Загрузка main.qml...")
 
         try:
@@ -759,8 +766,23 @@ class UISetup:
     @staticmethod
     def _setup_legacy_opengl_view(window: MainWindow) -> None:
         """Setup legacy OpenGL widget (stub)"""
-        UISetup.logger.debug("_setup_legacy_opengl_view: Fallback to QML")
-        UISetup._setup_qml_3d_view(window)
+        UISetup.logger.debug("_setup_legacy_opengl_view: Using QWidget placeholder")
+
+        placeholder = QLabel(
+            "Legacy diagnostics mode — Qt Quick 3D scene disabled.\n"
+            "Use --legacy or headless mode to re-enable this fallback view."
+        )
+        placeholder.setObjectName("LegacyScenePlaceholder")
+        placeholder.setWordWrap(True)
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        placeholder.setMinimumSize(640, 360)
+        placeholder.setStyleSheet(
+            "background-color: #1f1f1f; color: #f0f0f0; font-size: 14px; padding: 24px;"
+        )
+
+        window._scene_bridge = None
+        window._qml_root_object = None  # type: ignore[attr-defined]
+        window._qquick_widget = placeholder
 
     @staticmethod
     def _normalize_scene_key(value: str) -> str:

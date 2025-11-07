@@ -116,3 +116,61 @@ def test_legacy_mode_uses_widgets(monkeypatch: pytest.MonkeyPatch) -> None:
     assert created["activate"] is True
     assert qml_called is False
     assert isinstance(runner.window_instance, DummyLegacyWindow)
+
+
+def test_run_disables_qml_when_force_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = ApplicationRunner(
+        lambda *args, **kwargs: None,
+        lambda *args, **kwargs: None,
+        SimpleNamespace(),
+        object(),
+    )
+
+    stub_logger = SimpleNamespace(
+        info=lambda *args, **kwargs: None,
+        warning=lambda *args, **kwargs: None,
+        debug=lambda *args, **kwargs: None,
+        error=lambda *args, **kwargs: None,
+        critical=lambda *args, **kwargs: None,
+        exception=lambda *args, **kwargs: None,
+    )
+
+    monkeypatch.setattr(runner, "_print_header", lambda: None)
+    monkeypatch.setattr(runner, "_log_startup_environment", lambda: None)
+    monkeypatch.setattr(runner, "setup_high_dpi", lambda: None)
+    monkeypatch.setattr(runner, "_validate_settings_file", lambda: None)
+    monkeypatch.setattr(runner, "setup_signals", lambda: None)
+    monkeypatch.setattr(runner, "setup_test_mode", lambda *_: None)
+    monkeypatch.setattr("src.diagnostics.warnings.print_warnings_errors", lambda: None)
+    monkeypatch.setattr("src.diagnostics.logs.run_log_diagnostics", lambda: None)
+
+    monkeypatch.setattr(runner, "setup_logging", lambda verbose: stub_logger)
+
+    monkeypatch.setattr(
+        runner,
+        "create_application",
+        lambda: setattr(runner, "app_instance", SimpleNamespace(exec=lambda: 0)),
+    )
+
+    recorded: dict[str, bool] = {}
+
+    def fake_create_main_window() -> None:
+        recorded["use_qml_3d_schema"] = runner.use_qml_3d_schema
+        runner.window_instance = object()
+
+    monkeypatch.setattr(runner, "create_main_window", fake_create_main_window)
+
+    args = SimpleNamespace(
+        diag=False,
+        test_mode=False,
+        verbose=False,
+        safe_mode=False,
+        legacy=False,
+        force_disable_qml_3d=True,
+        force_disable_qml_3d_reasons=("headless",),
+    )
+
+    result = runner.run(args)
+
+    assert result == 0
+    assert recorded["use_qml_3d_schema"] is False

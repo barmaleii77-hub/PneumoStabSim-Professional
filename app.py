@@ -4,6 +4,7 @@ PneumoStabSim - Pneumatic Stabilizer Simulator
 Main application entry point - MODULAR VERSION v4.9.5
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -18,6 +19,8 @@ for candidate in _PATH_CANDIDATES:
 
 
 from src.cli.arguments import create_bootstrap_parser
+from src.diagnostics.logger_factory import get_logger
+from src.ui.startup import bootstrap_graphics_environment
 
 
 bootstrap_parser = create_bootstrap_parser()
@@ -26,6 +29,8 @@ bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv
 
 SAFE_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
+
+_BOOTSTRAP_LOGGER = get_logger("bootstrap.graphics").bind(stage="pre-qt")
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
     from src.bootstrap.environment_check import (
@@ -94,6 +99,21 @@ if not qtquick3d_setup_ok:
 configure_terminal_encoding(log_warning)
 check_python_compatibility(log_warning, log_error)
 
+GRAPHICS_BOOTSTRAP_STATE = bootstrap_graphics_environment(
+    os.environ, platform=sys.platform, safe_mode=SAFE_MODE_REQUESTED
+)
+
+_BOOTSTRAP_LOGGER.info(
+    "graphics-backend-prepared",
+    platform=sys.platform,
+    backend=GRAPHICS_BOOTSTRAP_STATE.backend,
+    safe_mode=GRAPHICS_BOOTSTRAP_STATE.safe_mode,
+    headless=GRAPHICS_BOOTSTRAP_STATE.headless,
+    headless_reasons=list(GRAPHICS_BOOTSTRAP_STATE.headless_reasons),
+    qt_qpa_platform=os.environ.get("QT_QPA_PLATFORM"),
+    legacy_requested=LEGACY_MODE_REQUESTED,
+)
+
 
 def _log_scenegraph_backend(message: str) -> None:
     """Emit Qt scene graph backend selection during bootstrap."""
@@ -130,6 +150,16 @@ from src.app_runner import ApplicationRunner  # noqa: E402
 def main() -> int:
     """Main application entry point - MODULAR VERSION"""
     args = parse_arguments()
+
+    force_disable_reasons: list[str] = []
+    if getattr(args, "legacy", False):
+        force_disable_reasons.append("legacy-cli")
+    if GRAPHICS_BOOTSTRAP_STATE.headless:
+        force_disable_reasons.append("headless")
+
+    setattr(args, "bootstrap_headless", GRAPHICS_BOOTSTRAP_STATE.headless)
+    setattr(args, "force_disable_qml_3d", bool(force_disable_reasons))
+    setattr(args, "force_disable_qml_3d_reasons", tuple(force_disable_reasons))
 
     runner = ApplicationRunner(QApplication, qInstallMessageHandler, Qt, QTimer)
     return runner.run(args)
