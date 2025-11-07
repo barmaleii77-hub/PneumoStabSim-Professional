@@ -20,6 +20,17 @@ class _DummySignal:
         self.emitted.append(tuple(args))
 
 
+class _StubPneumoTank:
+    def __init__(self, volume: float) -> None:
+        self.V = volume
+        self.mode = ReceiverVolumeMode.NO_RECALC
+        self.history: list[tuple[float, ReceiverVolumeMode]] = []
+
+    def apply_instant_volume_change(self, new_volume: float) -> None:
+        self.history.append((new_volume, self.mode))
+        self.V = new_volume
+
+
 def _make_worker() -> PhysicsWorker:
     worker = PhysicsWorker.__new__(PhysicsWorker)
     worker.logger = logging.getLogger("test.physics_worker")
@@ -51,7 +62,12 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
         T=293.15,
         mode=ReceiverVolumeMode.NO_RECALC,
     )
-    worker.pneumatic_system = SimpleNamespace(receiver=receiver_state)
+    pneumo_tank = _StubPneumoTank(0.02)
+    worker.pneumatic_system = SimpleNamespace(
+        receiver=receiver_state,
+        tank=pneumo_tank,
+    )
+    worker._test_pneumo_tank = pneumo_tank  # type: ignore[attr-defined]
 
     tank_mass = (101325.0 * 0.02) / (R_AIR * 293.15)
     tank_state = TankGasState(
@@ -66,10 +82,17 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     new_volume = 0.03
     worker.set_receiver_volume(new_volume, "geometric")
 
+    pneumo_tank = worker._test_pneumo_tank  # type: ignore[attr-defined]
+
     assert worker.receiver_volume == pytest.approx(new_volume)
     assert worker.receiver_volume_mode == "GEOMETRIC"
     assert worker.pneumatic_system.receiver.mode is ReceiverVolumeMode.ADIABATIC_RECALC
     assert worker.pneumatic_system.receiver.V == pytest.approx(new_volume)
+    assert pneumo_tank.V == pytest.approx(new_volume)
+    assert pneumo_tank.history, "Pneumatic tank should record volume updates"
+    recorded_volume, recorded_mode = pneumo_tank.history[-1]
+    assert recorded_volume == pytest.approx(new_volume)
+    assert recorded_mode is ReceiverVolumeMode.ADIABATIC_RECALC
 
     assert worker.gas_network.tank.V == pytest.approx(new_volume)
     assert worker._latest_tank_state.volume == pytest.approx(new_volume)

@@ -719,6 +719,11 @@ class SignalsRouter:
                     f"🔧 Pneumo param: {name} = {value}"
                 )
             )
+            window.pneumo_panel.receiver_volume_changed.connect(
+                lambda volume, mode: SignalsRouter.handle_receiver_volume_changed(
+                    window, volume, mode
+                )
+            )
             SignalsRouter.logger.info("✅ PneumoPanel signals connected")
 
         # Modes panel
@@ -749,6 +754,26 @@ class SignalsRouter:
                 window.graphics_panel.scene_changed.connect(window._on_scene_changed)
             window.graphics_panel.preset_applied.connect(window._on_preset_applied)
             SignalsRouter.logger.info("✅ GraphicsPanel signals connected")
+
+    @staticmethod
+    def handle_receiver_volume_changed(
+        window: MainWindow, volume: Any, mode: str
+    ) -> None:
+        """Bridge panel receiver volume edits into the pneumatic pipeline."""
+
+        try:
+            numeric_volume = float(volume)
+        except (TypeError, ValueError):
+            SignalsRouter.logger.debug(
+                "Skipping invalid receiver volume update: %r", volume
+            )
+            return
+
+        payload: dict[str, Any] = {"receiver_volume": numeric_volume}
+        if isinstance(mode, str) and mode:
+            payload["volume_mode"] = str(mode)
+
+        SignalsRouter.handle_pneumatic_settings_changed(window, payload)
 
     @staticmethod
     def _connect_simulation_signals(window: MainWindow) -> None:
