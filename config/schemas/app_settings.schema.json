@@ -2628,6 +2628,16 @@
         "step": {
           "type": "number",
           "title": "Step"
+        },
+        "decimals": {
+          "type": "integer",
+          "minimum": 0,
+          "title": "Decimals"
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1,
+          "title": "Units"
         }
       },
       "required": [
