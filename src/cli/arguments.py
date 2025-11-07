@@ -29,6 +29,16 @@ def _add_mode_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_test_mode_argument(parser: argparse.ArgumentParser) -> None:
+    """Register the shared test-mode flag used by bootstrap and main parsing."""
+
+    parser.add_argument(
+        "--test-mode",
+        action="store_true",
+        help="Test mode (auto-close 5s; safe bootstrap alias: --safe)",
+    )
+
+
 def _add_bootstrap_arguments(parser: argparse.ArgumentParser) -> None:
     """Register arguments that must be parsed before Qt is imported."""
 
@@ -44,19 +54,20 @@ def _add_bootstrap_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="PATH",
         help="Write environment diagnostics to PATH and exit before Qt starts",
     )
+    _add_test_mode_argument(parser)
     _add_mode_arguments(parser)
 
 
 def _add_main_arguments(
-    parser: argparse.ArgumentParser, *, include_mode_flags: bool
+    parser: argparse.ArgumentParser,
+    *,
+    include_mode_flags: bool,
+    include_test_mode: bool,
 ) -> None:
     """Register the main CLI arguments for the application."""
 
-    parser.add_argument(
-        "--test-mode",
-        action="store_true",
-        help="Test mode (auto-close 5s; safe bootstrap alias: --safe)",
-    )
+    if include_test_mode:
+        _add_test_mode_argument(parser)
     parser.add_argument("--verbose", action="store_true", help="Enable console logging")
     parser.add_argument(
         "--diag", action="store_true", help="Run post-run diagnostics to console"
@@ -94,10 +105,16 @@ Examples:
     if include_bootstrap:
         _add_bootstrap_arguments(parser)
         include_mode_flags = False
+        include_test_mode = False
     else:
         include_mode_flags = True
+        include_test_mode = True
 
-    _add_main_arguments(parser, include_mode_flags=include_mode_flags)
+    _add_main_arguments(
+        parser,
+        include_mode_flags=include_mode_flags,
+        include_test_mode=include_test_mode,
+    )
     return parser
 
 
@@ -114,7 +131,9 @@ def parse_arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
     setattr(
         namespace,
         "safe_cli_mode",
-        bool(getattr(namespace, "safe", False) or getattr(namespace, "test_mode", False)),
+        bool(
+            getattr(namespace, "safe", False) or getattr(namespace, "test_mode", False)
+        ),
     )
 
     return namespace
