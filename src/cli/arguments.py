@@ -10,6 +10,21 @@ import argparse
 from typing import Iterable
 
 
+def _add_mode_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add launch-mode flags shared between bootstrap and main parsing."""
+
+    parser.add_argument(
+        "--safe-mode",
+        action="store_true",
+        help="Allow Qt to auto-select the graphics backend (no forced OpenGL)",
+    )
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Launch the legacy Qt Widgets interface without loading QML",
+    )
+
+
 def _add_bootstrap_arguments(parser: argparse.ArgumentParser) -> None:
     """Register arguments that must be parsed before Qt is imported."""
 
@@ -25,9 +40,12 @@ def _add_bootstrap_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="PATH",
         help="Write environment diagnostics to PATH and exit before Qt starts",
     )
+    _add_mode_arguments(parser)
 
 
-def _add_main_arguments(parser: argparse.ArgumentParser) -> None:
+def _add_main_arguments(
+    parser: argparse.ArgumentParser, *, include_mode_flags: bool
+) -> None:
     """Register the main CLI arguments for the application."""
 
     parser.add_argument(
@@ -37,16 +55,8 @@ def _add_main_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--diag", action="store_true", help="Run post-run diagnostics to console"
     )
-    parser.add_argument(
-        "--safe-mode",
-        action="store_true",
-        help="Allow Qt to auto-select the graphics backend (no forced OpenGL)",
-    )
-    parser.add_argument(
-        "--legacy",
-        action="store_true",
-        help="Launch the legacy Qt Widgets interface without loading QML",
-    )
+    if include_mode_flags:
+        _add_mode_arguments(parser)
 
 
 def create_bootstrap_parser() -> argparse.ArgumentParser:
@@ -76,7 +86,11 @@ Examples:
 
     if include_bootstrap:
         _add_bootstrap_arguments(parser)
-    _add_main_arguments(parser)
+        include_mode_flags = False
+    else:
+        include_mode_flags = True
+
+    _add_main_arguments(parser, include_mode_flags=include_mode_flags)
     return parser
 
 

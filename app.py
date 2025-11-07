@@ -24,7 +24,7 @@ bootstrap_parser = create_bootstrap_parser()
 _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 
-SAFE_MODE_REQUESTED = "--safe-mode" in _initial_argv
+SAFE_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
     from src.bootstrap.environment_check import (
