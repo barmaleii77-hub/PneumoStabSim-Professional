@@ -1326,6 +1326,8 @@ class SignalsRouter:
 
         numeric_keys = {
             "receiver_volume",
+            "receiver_diameter",
+            "receiver_length",
             "cv_atmo_dp",
             "cv_tank_dp",
             "cv_atmo_dia",
