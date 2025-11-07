@@ -301,9 +301,10 @@ Item {
     // qmllint enable unqualified
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
-    readonly property string shaderResourceDirectory: "../../shaders/effects/"
-    readonly property string legacyShaderResourceDirectory: "../../shaders/effects/"
-    readonly property string glesShaderResourceDirectory: "../../shaders/effects/"
+    readonly property url shaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
+    readonly property url legacyShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
+    readonly property url glesShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
+    readonly property url shaderRootUrl: Qt.resolvedUrl("../../shaders/")
     readonly property var shaderResourceDirectories: {
         var directories = []
         function appendDirectory(path) {
@@ -459,7 +460,7 @@ Item {
         }
 
         if (manifestHasEntry && manifestEnabled) {
-            var shaderRootHint = "/assets/shaders/"
+            var shaderRootHint = shaderRootUrl
 
             function manifestPathMatches(manifestPathEntry) {
                 if (!manifestPathEntry)
