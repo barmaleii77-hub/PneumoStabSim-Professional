@@ -51,16 +51,15 @@ def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str
     if _is_truthy(env.get("CI")):
         reasons.append("ci-flag")
 
-    qt_qpa_raw = env.get("QT_QPA_PLATFORM")
-    qt_qpa = (qt_qpa_raw or "").strip().lower()
+    qt_qpa = (env.get("QT_QPA_PLATFORM") or "").strip().lower()
     has_display = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
 
-    if qt_qpa in {"offscreen", "minimal", "minimalgl", "vkkhrdisplay"}:
+    if not qt_qpa:
+        reasons.append("qt-qpa-platform-missing")
+    elif qt_qpa in {"offscreen", "minimal", "minimalgl", "vkkhrdisplay"}:
         reasons.append(f"qt-qpa-platform:{qt_qpa}")
-    if not has_display:
+    elif not has_display:
         reasons.append("no-display-server")
-        if qt_qpa_raw is None or not qt_qpa_raw.strip():
-            reasons.append("qt-qpa-platform-missing")
 
     return bool(reasons), tuple(reasons)
 
