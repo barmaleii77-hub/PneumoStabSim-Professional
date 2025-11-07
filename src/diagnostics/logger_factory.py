@@ -143,9 +143,15 @@ class _FallbackBoundLogger(LoggerProtocol):
         return f"{event} | {formatted}"
 
     def _log(self, level: int, event: str, **kwargs: Any) -> None:
-        payload = self._with_context(**kwargs)
+        payload_kwargs = dict(kwargs)
+        log_kwargs: dict[str, Any] = {}
+        for key in ("exc_info", "stack_info", "extra"):
+            if key in payload_kwargs:
+                log_kwargs[key] = payload_kwargs.pop(key)
+
+        payload = self._with_context(**payload_kwargs)
         message = self._format(event, payload)
-        self._logger.log(level, message)
+        self._logger.log(level, message, **log_kwargs)
 
     # -------------------------------------------------------------- api
     def bind(self, **kwargs: Any) -> _FallbackBoundLogger:
@@ -167,9 +173,15 @@ class _FallbackBoundLogger(LoggerProtocol):
 
     def exception(self, event: str, **kwargs: Any) -> None:
         # logging.Logger.exception always records ``exc_info=True``
-        payload = self._with_context(**kwargs)
+        payload_kwargs = dict(kwargs)
+        log_kwargs: dict[str, Any] = {}
+        for key in ("exc_info", "stack_info", "extra"):
+            if key in payload_kwargs:
+                log_kwargs[key] = payload_kwargs.pop(key)
+
+        payload = self._with_context(**payload_kwargs)
         message = self._format(event, payload)
-        self._logger.exception(message)
+        self._logger.exception(message, **log_kwargs)
 
     def setLevel(self, level: int) -> None:
         self._logger.setLevel(level)

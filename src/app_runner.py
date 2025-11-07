@@ -405,7 +405,11 @@ class ApplicationRunner:
 
             return logger
         except Exception as e:
-            print(f"WARNING: Logging setup failed: {e}")
+            logging.getLogger("app.runner").warning(
+                "WARNING: Logging setup failed: %s",
+                e,
+                exc_info=True,
+            )
             return None
 
     def _ensure_asyncio_loop(self) -> asyncio.AbstractEventLoop:
