@@ -41,6 +41,8 @@
 
 ## Linux headless / Windows fallback
 
+Раздел ориентирован на две крайние ситуации: отсутствие графического сервера на Linux и необходимость принудительного отката до ANGLE на Windows. Ключевые переменные `QT_QPA_PLATFORM`, `LIBGL_ALWAYS_SOFTWARE` и `VK_ICD_FILENAMES` контролируются `configure_qt_environment`, но их можно задать вручную согласно таблице ниже.
+
 | Профиль | Переменные | Назначение |
 |---------|------------|------------|
 | Linux headless | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Работает в контейнерах и CI без `DISPLAY`, задействует софтварный рендерер Mesa. |
