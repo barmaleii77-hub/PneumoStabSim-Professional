@@ -26,6 +26,14 @@ Pane {
     readonly property int _floatScale: 10000
     readonly property var _defaultRanges: (modesMetadata && modesMetadata.parameterRanges) ? modesMetadata.parameterRanges : {}
 
+    function _tr(id, fallback) {
+        const resolved = qsTrId(id)
+        if (resolved && resolved.length > 0) {
+            return resolved
+        }
+        return fallback !== undefined ? fallback : ""
+    }
+
     signal simulationControlRequested(string command)
     signal modesPresetSelected(string presetId)
     signal modesModeChanged(string modeType, string newMode)
@@ -885,7 +893,7 @@ Pane {
             }
 
             GroupBox {
-                title: qsTrId("simulation.panel.section.pneumatics") || qsTr("Пневматика")
+                title: root._tr("simulation.panel.section.pneumatics", qsTr("Пневматика"))
                 Layout.fillWidth: true
 
                 ColumnLayout {
@@ -897,13 +905,11 @@ Pane {
                         Layout.fillWidth: true
                         model: [
                             {
-                                text: qsTrId("simulation.panel.volumeMode.manual")
-                                    || qsTr("Ручной объём"),
+                                text: root._tr("simulation.panel.volumeMode.manual", qsTr("Ручной объём")),
                                 value: "MANUAL"
                             },
                             {
-                                text: qsTrId("simulation.panel.volumeMode.geometric")
-                                    || qsTr("Геометрический расчёт"),
+                                text: root._tr("simulation.panel.volumeMode.geometric", qsTr("Геометрический расчёт")),
                                 value: "GEOMETRIC"
                             }
                         ]
@@ -922,8 +928,7 @@ Pane {
                     RowLayout {
                         Layout.fillWidth: true
                         Label {
-                            text: qsTrId("simulation.panel.receiverVolume")
-                                || qsTr("Объём ресивера (м³)")
+                            text: root._tr("simulation.panel.receiverVolume", qsTr("Объём ресивера (м³)"))
                             Layout.preferredWidth: 200
                         }
                         Slider {
@@ -962,8 +967,7 @@ Pane {
                         Layout.fillWidth: true
 
                         Label {
-                            text: qsTrId("simulation.panel.cvAtmoDp")
-                                || qsTr("ΔP атмосферного клапана (Па)")
+                            text: root._tr("simulation.panel.cvAtmoDp", qsTr("ΔP атмосферного клапана (Па)"))
                         }
                         SpinBox {
                             id: cvAtmoDpSpin
@@ -976,8 +980,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.cvTankDp")
-                                || qsTr("ΔP клапана ресивера (Па)")
+                            text: root._tr("simulation.panel.cvTankDp", qsTr("ΔP клапана ресивера (Па)"))
                         }
                         SpinBox {
                             id: cvTankDpSpin
@@ -990,8 +993,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.cvAtmoDia")
-                                || qsTr("Диаметр атмосферного клапана (м)")
+                            text: root._tr("simulation.panel.cvAtmoDia", qsTr("Диаметр атмосферного клапана (м)"))
                         }
                         SpinBox {
                             id: cvAtmoDiaSpin
@@ -1010,8 +1012,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.cvTankDia")
-                                || qsTr("Диаметр клапана ресивера (м)")
+                            text: root._tr("simulation.panel.cvTankDia", qsTr("Диаметр клапана ресивера (м)"))
                         }
                         SpinBox {
                             id: cvTankDiaSpin
@@ -1030,8 +1031,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.reliefMin")
-                                || qsTr("Порог открытия сброса (Па)")
+                            text: root._tr("simulation.panel.reliefMin", qsTr("Порог открытия сброса (Па)"))
                         }
                         SpinBox {
                             id: reliefMinSpin
@@ -1044,8 +1044,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.reliefStiff")
-                                || qsTr("Жёсткий сброс (Па)")
+                            text: root._tr("simulation.panel.reliefStiff", qsTr("Жёсткий сброс (Па)"))
                         }
                         SpinBox {
                             id: reliefStiffSpin
@@ -1058,8 +1057,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.reliefSafety")
-                                || qsTr("Аварийный сброс (Па)")
+                            text: root._tr("simulation.panel.reliefSafety", qsTr("Аварийный сброс (Па)"))
                         }
                         SpinBox {
                             id: reliefSafetySpin
@@ -1072,8 +1070,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.throttleMin")
-                                || qsTr("Диаметр дросселя min (м)")
+                            text: root._tr("simulation.panel.throttleMin", qsTr("Диаметр дросселя min (м)"))
                         }
                         SpinBox {
                             id: throttleMinSpin
@@ -1092,8 +1089,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.throttleStiff")
-                                || qsTr("Диаметр дросселя жёстк. (м)")
+                            text: root._tr("simulation.panel.throttleStiff", qsTr("Диаметр дросселя жёстк. (м)"))
                         }
                         SpinBox {
                             id: throttleStiffSpin
@@ -1112,8 +1108,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.diagonalThrottle")
-                                || qsTr("Диаметр дросселя диагоналей (м)")
+                            text: root._tr("simulation.panel.diagonalThrottle", qsTr("Диаметр дросселя диагоналей (м)"))
                         }
                         SpinBox {
                             id: diagonalCouplingSpin
@@ -1132,8 +1127,7 @@ Pane {
                         }
 
                         Label {
-                            text: qsTrId("simulation.panel.airTemperature")
-                                || qsTr("Температура воздуха (°C)")
+                            text: root._tr("simulation.panel.airTemperature", qsTr("Температура воздуха (°C)"))
                         }
                         SpinBox {
                             id: atmoTempSpin
@@ -1148,8 +1142,7 @@ Pane {
 
                     CheckBox {
                         id: masterIsolationCheck
-                        text: qsTrId("simulation.panel.masterIsolation")
-                            || qsTr("Главный отсечной клапан открыт")
+                        text: root._tr("simulation.panel.masterIsolation", qsTr("Главный отсечной клапан открыт"))
                         onToggled: {
                             if (root._updatingFromPython)
                                 return
@@ -1160,8 +1153,7 @@ Pane {
             }
 
             GroupBox {
-                title: qsTrId("simulation.panel.section.simulation")
-                    || qsTr("Настройки симуляции")
+                title: root._tr("simulation.panel.section.simulation", qsTr("Настройки симуляции"))
                 Layout.fillWidth: true
 
                 GridLayout {
@@ -1171,8 +1163,7 @@ Pane {
                     Layout.fillWidth: true
 
                     Label {
-                        text: qsTrId("simulation.panel.physicsDt")
-                            || qsTr("Шаг физики dt (с)")
+                        text: root._tr("simulation.panel.physicsDt", qsTr("Шаг физики dt (с)"))
                     }
                     SpinBox {
                         id: physicsDtSpin
@@ -1191,8 +1182,7 @@ Pane {
                     }
 
                     Label {
-                        text: qsTrId("simulation.panel.vsync")
-                            || qsTr("Ограничение FPS (Гц)")
+                        text: root._tr("simulation.panel.vsync", qsTr("Ограничение FPS (Гц)"))
                     }
                     SpinBox {
                         id: vsyncSpin
@@ -1205,8 +1195,7 @@ Pane {
                     }
 
                     Label {
-                        text: qsTrId("simulation.panel.stepsPerFrame")
-                            || qsTr("Шагов на кадр (шт)")
+                        text: root._tr("simulation.panel.stepsPerFrame", qsTr("Шагов на кадр (шт)"))
                     }
                     SpinBox {
                         id: maxStepsSpin
@@ -1219,8 +1208,7 @@ Pane {
                     }
 
                     Label {
-                        text: qsTrId("simulation.panel.maxFrameTime")
-                            || qsTr("Макс. время кадра (с)")
+                        text: root._tr("simulation.panel.maxFrameTime", qsTr("Макс. время кадра (с)"))
                     }
                     SpinBox {
                         id: maxFrameTimeSpin
@@ -1241,8 +1229,7 @@ Pane {
             }
 
             GroupBox {
-                title: qsTrId("simulation.panel.section.cylinder")
-                    || qsTr("Мёртвые зоны цилиндров")
+                title: root._tr("simulation.panel.section.cylinder", qsTr("Мёртвые зоны цилиндров"))
                 Layout.fillWidth: true
 
                 GridLayout {
@@ -1252,8 +1239,7 @@ Pane {
                     Layout.fillWidth: true
 
                     Label {
-                        text: qsTrId("simulation.panel.deadZoneHead")
-                            || qsTr("Головная камера (м³)")
+                        text: root._tr("simulation.panel.deadZoneHead", qsTr("Головная камера (м³)"))
                     }
                     SpinBox {
                         id: deadZoneHeadSpin
@@ -1272,8 +1258,7 @@ Pane {
                     }
 
                     Label {
-                        text: qsTrId("simulation.panel.deadZoneRod")
-                            || qsTr("Штоковая камера (м³)")
+                        text: root._tr("simulation.panel.deadZoneRod", qsTr("Штоковая камера (м³)"))
                     }
                     SpinBox {
                         id: deadZoneRodSpin
