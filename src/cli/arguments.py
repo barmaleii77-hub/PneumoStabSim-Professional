@@ -111,7 +111,11 @@ def parse_arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
     if safe_requested:
         setattr(namespace, "test_mode", True)
 
-    setattr(namespace, "safe_cli_mode", bool(getattr(namespace, "test_mode", False)))
+    setattr(
+        namespace,
+        "safe_cli_mode",
+        bool(getattr(namespace, "safe", False) or getattr(namespace, "test_mode", False)),
+    )
 
     return namespace
 
