@@ -203,9 +203,18 @@ Item {
     // Готовность проба: считаем готовым только когда source валиден и статус Ready
     readonly property bool ready: (
         hdrProbe
-        && hdrProbe.source
-        && String(hdrProbe.source) !== ""
         && hdrProbe.status === Texture.Ready
+        && (
+            (
+                !controller.fallbackActive
+                && hdrProbe.source
+                && String(hdrProbe.source) !== ""
+            )
+            || (
+                controller.fallbackActive
+                && hdrProbe.sourceItem === fallbackCanvas
+            )
+        )
     )
 
     Component.onCompleted: {
