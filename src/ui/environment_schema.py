@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass
+import math
 import re
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, Dict, Mapping, Sequence, Tuple
 
 
 class EnvironmentValidationError(ValueError):
@@ -22,6 +23,17 @@ class EnvironmentParameterDefinition:
     allowed_values: Sequence[Any] | None = None
     allow_empty_string: bool = False
     pattern: Any | None = None
+
+
+@dataclass(frozen=True)
+class EnvironmentSliderRange:
+    key: str
+    minimum: float
+    maximum: float
+    step: float
+
+    def as_tuple(self) -> Tuple[float, float, float]:
+        return (self.minimum, self.maximum, self.step)
 
 
 def _validate_range(defn: EnvironmentParameterDefinition, value: float | int) -> None:
@@ -189,6 +201,37 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
+ENVIRONMENT_SLIDER_RANGE_DEFAULTS: Dict[str, EnvironmentSliderRange] = {
+    "ibl_intensity": EnvironmentSliderRange("ibl_intensity", 0.0, 8.0, 0.05),
+    "skybox_brightness": EnvironmentSliderRange("skybox_brightness", 0.0, 8.0, 0.05),
+    "probe_horizon": EnvironmentSliderRange("probe_horizon", -1.0, 1.0, 0.01),
+    "skybox_blur": EnvironmentSliderRange("skybox_blur", 0.0, 1.0, 0.01),
+    "ibl_rotation": EnvironmentSliderRange("ibl_rotation", -1080.0, 1080.0, 1.0),
+    "ibl_offset_x": EnvironmentSliderRange("ibl_offset_x", -180.0, 180.0, 1.0),
+    "ibl_offset_y": EnvironmentSliderRange("ibl_offset_y", -180.0, 180.0, 1.0),
+    "reflection_padding_m": EnvironmentSliderRange(
+        "reflection_padding_m", 0.0, 1.0, 0.01
+    ),
+    "fog_density": EnvironmentSliderRange("fog_density", 0.0, 1.0, 0.01),
+    "fog_near": EnvironmentSliderRange("fog_near", 0.0, 50.0, 0.1),
+    "fog_far": EnvironmentSliderRange("fog_far", 0.0, 150.0, 0.1),
+    "fog_least_intense_y": EnvironmentSliderRange(
+        "fog_least_intense_y", -100.0, 100.0, 0.1
+    ),
+    "fog_most_intense_y": EnvironmentSliderRange(
+        "fog_most_intense_y", -100.0, 100.0, 0.1
+    ),
+    "fog_height_curve": EnvironmentSliderRange("fog_height_curve", 0.0, 4.0, 0.05),
+    "fog_transmit_curve": EnvironmentSliderRange("fog_transmit_curve", 0.0, 4.0, 0.05),
+    "ao_strength": EnvironmentSliderRange("ao_strength", 0.0, 100.0, 1.0),
+    "ao_radius": EnvironmentSliderRange("ao_radius", 0.001, 0.05, 0.001),
+    "ao_softness": EnvironmentSliderRange("ao_softness", 0.0, 50.0, 1.0),
+}
+
+ENVIRONMENT_SLIDER_RANGE_KEYS: Tuple[str, ...] = tuple(
+    ENVIRONMENT_SLIDER_RANGE_DEFAULTS.keys()
+)
+
 SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "scale_factor", "float", min_value=0.01, max_value=1000.0
@@ -291,6 +334,78 @@ def _normalise_environment_key(key: str) -> str:
     if snake in ENVIRONMENT_REQUIRED_KEYS:
         return snake
     return snake
+
+
+def _parse_slider_range(key: str, payload: Mapping[str, Any]) -> EnvironmentSliderRange:
+    if key not in ENVIRONMENT_SLIDER_RANGE_DEFAULTS:
+        raise EnvironmentValidationError(
+            f"Unsupported environment slider range key: {key}"
+        )
+    if not isinstance(payload, Mapping):
+        raise EnvironmentValidationError(
+            f"Slider range '{key}' must be a mapping with 'min', 'max' and 'step'"
+        )
+
+    try:
+        minimum = _coerce_float(payload["min"], f"{key}.min")
+        maximum = _coerce_float(payload["max"], f"{key}.max")
+        step = _coerce_float(payload["step"], f"{key}.step")
+    except KeyError as exc:
+        missing = exc.args[0]
+        raise EnvironmentValidationError(
+            f"Slider range '{key}' is missing required field '{missing}'"
+        ) from exc
+
+    for field_name, value in (("min", minimum), ("max", maximum), ("step", step)):
+        if not math.isfinite(value):
+            raise EnvironmentValidationError(
+                f"Slider range '{key}.{field_name}' must be finite"
+            )
+
+    if step <= 0:
+        raise EnvironmentValidationError(
+            f"Slider range '{key}.step' must be greater than zero"
+        )
+    if maximum <= minimum:
+        raise EnvironmentValidationError(
+            f"Slider range '{key}.max' must be greater than '{key}.min'"
+        )
+
+    return EnvironmentSliderRange(key=key, minimum=minimum, maximum=maximum, step=step)
+
+
+def validate_environment_slider_ranges(
+    ranges: Mapping[str, Any],
+    *,
+    required_keys: Sequence[str] | None = None,
+    raise_on_missing: bool = True,
+) -> Tuple[Dict[str, EnvironmentSliderRange], Tuple[str, ...]]:
+    if not isinstance(ranges, Mapping):
+        raise EnvironmentValidationError("environment slider ranges must be a mapping")
+
+    unexpected = sorted(set(ranges.keys()) - set(ENVIRONMENT_SLIDER_RANGE_KEYS))
+    if unexpected:
+        raise EnvironmentValidationError(
+            "Unexpected environment slider range keys: " + ", ".join(unexpected)
+        )
+
+    validated: Dict[str, EnvironmentSliderRange] = {}
+    for key, payload in ranges.items():
+        validated[key] = _parse_slider_range(key, payload)
+
+    required: Tuple[str, ...]
+    if required_keys is None:
+        required = ENVIRONMENT_SLIDER_RANGE_KEYS
+    else:
+        required = tuple(required_keys)
+
+    missing = tuple(sorted(key for key in required if key not in ranges))
+    if missing and raise_on_missing:
+        raise EnvironmentValidationError(
+            "Missing environment slider ranges: " + ", ".join(missing)
+        )
+
+    return validated, missing
 
 
 def _validate_section(
@@ -450,11 +565,15 @@ __all__ = [
     "EnvironmentValidationError",
     "EnvironmentParameterDefinition",
     "ENVIRONMENT_PARAMETERS",
+    "EnvironmentSliderRange",
+    "ENVIRONMENT_SLIDER_RANGE_DEFAULTS",
+    "ENVIRONMENT_SLIDER_RANGE_KEYS",
     "ENVIRONMENT_REQUIRED_KEYS",
     "ENVIRONMENT_CONTEXT_PROPERTIES",
     "SCENE_PARAMETERS",
     "ANIMATION_PARAMETERS",
     "validate_environment_settings",
+    "validate_environment_slider_ranges",
     "validate_scene_settings",
     "validate_animation_settings",
 ]

@@ -9,6 +9,8 @@ Part of modular GraphicsPanel restructuring
 - _build_ao_group() → Ambient Occlusion (SSAO) расширенный
 """
 
+import logging
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -18,6 +20,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QGridLayout,
+    QMessageBox,
 )
 from PySide6.QtCore import Signal, Qt
 from pathlib import Path
@@ -26,7 +29,17 @@ from typing import Dict, Any, List, Tuple
 from .widgets import ColorButton, LabeledSlider, FileCyclerWidget
 from .hdr_discovery import discover_hdr_files
 from src.common.logging_widgets import LoggingCheckBox
-from src.ui.environment_schema import validate_environment_settings
+from src.common.settings_manager import get_settings_manager
+from src.ui.environment_schema import (
+    EnvironmentSliderRange,
+    EnvironmentValidationError,
+    ENVIRONMENT_SLIDER_RANGE_DEFAULTS,
+    validate_environment_settings,
+    validate_environment_slider_ranges,
+)
+
+
+logger = logging.getLogger(__name__)
 
 
 class EnvironmentTab(QWidget):
@@ -46,6 +59,9 @@ class EnvironmentTab(QWidget):
         self._updating_ui = False
         self._qml_root = Path(__file__).resolve().parents[4] / "assets" / "qml"
         self._hdr_items: List[Tuple[str, str]] = self._discover_hdr_files()
+        self._slider_ranges: Dict[str, EnvironmentSliderRange] = (
+            self._load_slider_ranges()
+        )
 
         # Setup UI
         self._setup_ui()
@@ -68,6 +84,96 @@ class EnvironmentTab(QWidget):
 
         layout.addStretch(1)
         self._update_ibl_dependency_states()
+
+    def _load_slider_ranges(self) -> Dict[str, EnvironmentSliderRange]:
+        settings_manager = get_settings_manager()
+        raw_ranges = settings_manager.get("graphics.environment_ranges", {})
+
+        validated: Dict[str, EnvironmentSliderRange] = {}
+        missing_keys: List[str] = []
+        section_message: str | None = None
+        invalid_messages: List[str] = []
+
+        if not isinstance(raw_ranges, dict):
+            section_message = "Секция graphics.environment_ranges отсутствует или имеет неверный формат."
+            raw_ranges = {}
+
+        unexpected = sorted(
+            set(raw_ranges.keys()) - set(ENVIRONMENT_SLIDER_RANGE_DEFAULTS.keys())
+        )
+        if unexpected:
+            invalid_messages.append(
+                "Неизвестные ключи диапазонов: " + ", ".join(unexpected)
+            )
+
+        for key in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.keys():
+            if key not in raw_ranges:
+                missing_keys.append(key)
+                continue
+            try:
+                parsed, _ = validate_environment_slider_ranges(
+                    {key: raw_ranges[key]},
+                    required_keys=(key,),
+                    raise_on_missing=True,
+                )
+            except EnvironmentValidationError as exc:
+                invalid_messages.append(f"{key}: {exc}")
+            else:
+                validated[key] = parsed[key]
+
+        final_ranges = {
+            key: validated.get(key, default)
+            for key, default in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
+        }
+
+        notifications: List[str] = []
+        if section_message:
+            notifications.append(section_message)
+        if missing_keys:
+            notifications.append(
+                "Используются значения по умолчанию для диапазонов: "
+                + ", ".join(sorted(set(missing_keys)))
+            )
+        for msg in invalid_messages:
+            notifications.append(
+                f"Диапазон {msg}. Применены безопасные значения по умолчанию."
+            )
+
+        self._notify_range_warning(notifications)
+
+        return final_ranges
+
+    def _create_slider(
+        self,
+        key: str,
+        title: str,
+        *,
+        decimals: int = 2,
+        unit: str | None = None,
+    ) -> LabeledSlider:
+        slider_range = self._slider_ranges.get(
+            key, ENVIRONMENT_SLIDER_RANGE_DEFAULTS[key]
+        )
+        return LabeledSlider(
+            title,
+            slider_range.minimum,
+            slider_range.maximum,
+            slider_range.step,
+            decimals=decimals,
+            unit=unit,
+        )
+
+    def _notify_range_warning(self, messages: List[str]) -> None:
+        unique_messages = [msg for msg in messages if msg]
+        if not unique_messages:
+            return
+
+        text = "\n".join(dict.fromkeys(unique_messages))
+        logger.warning("Environment slider range fallback: %s", text)
+        try:
+            QMessageBox.warning(self, "Диапазоны окружения", text)
+        except Exception:  # pragma: no cover - UI fallback
+            logger.exception("Failed to show environment slider warning dialog")
 
     def _build_background_group(self) -> QGroupBox:
         """Создать группу Фон и IBL - расширенная"""
@@ -123,7 +229,9 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL intensity (освещение)
-        intensity = LabeledSlider("Яркость освещения IBL", 0.0, 8.0, 0.05, decimals=2)
+        intensity = self._create_slider(
+            "ibl_intensity", "Яркость освещения IBL", decimals=2
+        )
         intensity.valueChanged.connect(
             lambda v: self._on_control_changed("ibl_intensity", v)
         )
@@ -132,8 +240,8 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # Skybox brightness (фон)
-        skybox_brightness = LabeledSlider(
-            "Яркость фона (Skybox)", 0.0, 8.0, 0.05, decimals=2
+        skybox_brightness = self._create_slider(
+            "skybox_brightness", "Яркость фона (Skybox)", decimals=2
         )
         skybox_brightness.valueChanged.connect(
             lambda v: self._on_control_changed("skybox_brightness", v)
@@ -143,8 +251,8 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL extra: probe horizon cutoff (-1..1)
-        probe_horizon = LabeledSlider(
-            "Горизонт пробы (probeHorizon)", -1.0, 1.0, 0.01, decimals=2
+        probe_horizon = self._create_slider(
+            "probe_horizon", "Горизонт пробы (probeHorizon)", decimals=2
         )
         probe_horizon.valueChanged.connect(
             lambda v: self._on_control_changed("probe_horizon", v)
@@ -154,7 +262,7 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # Skybox blur
-        blur = LabeledSlider("Размытие skybox", 0.0, 1.0, 0.01, decimals=2)
+        blur = self._create_slider("skybox_blur", "Размытие skybox", decimals=2)
         blur.valueChanged.connect(lambda v: self._on_control_changed("skybox_blur", v))
         self._controls["skybox.blur"] = blur
         grid.addWidget(blur, row, 0, 1, 2)
@@ -183,8 +291,8 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL rotation
-        ibl_rot = LabeledSlider(
-            "Поворот IBL", -1080.0, 1080.0, 1.0, decimals=0, unit="°"
+        ibl_rot = self._create_slider(
+            "ibl_rotation", "Поворот IBL", decimals=0, unit="°"
         )
         ibl_rot.valueChanged.connect(
             lambda v: self._on_control_changed("ibl_rotation", v)
@@ -194,8 +302,8 @@ class EnvironmentTab(QWidget):
         row += 1
 
         # IBL offsets
-        env_off_x = LabeledSlider(
-            "Смещение окружения X", -180.0, 180.0, 1.0, decimals=0, unit="°"
+        env_off_x = self._create_slider(
+            "ibl_offset_x", "Смещение окружения X", decimals=0, unit="°"
         )
         env_off_x.valueChanged.connect(
             lambda v: self._on_control_changed("ibl_offset_x", v)
@@ -203,8 +311,8 @@ class EnvironmentTab(QWidget):
         self._controls["ibl.offset_x"] = env_off_x
         grid.addWidget(env_off_x, row, 0, 1, 2)
         row += 1
-        env_off_y = LabeledSlider(
-            "Смещение окружения Y", -180.0, 180.0, 1.0, decimals=0, unit="°"
+        env_off_y = self._create_slider(
+            "ibl_offset_y", "Смещение окружения Y", decimals=0, unit="°"
         )
         env_off_y.valueChanged.connect(
             lambda v: self._on_control_changed("ibl_offset_y", v)
@@ -249,8 +357,8 @@ class EnvironmentTab(QWidget):
         grid.addWidget(enabled, row, 0, 1, 2)
         row += 1
 
-        padding = LabeledSlider(
-            "Отступ от геометрии", 0.0, 1.0, 0.01, decimals=2, unit="м"
+        padding = self._create_slider(
+            "reflection_padding_m", "Отступ от геометрии", decimals=2, unit="м"
         )
         padding.valueChanged.connect(
             lambda v: self._on_control_changed("reflection_padding_m", v)
@@ -374,7 +482,7 @@ class EnvironmentTab(QWidget):
         grid.addLayout(color_row, row, 0, 1, 2)
         row += 1
 
-        density = LabeledSlider("Плотность", 0.0, 1.0, 0.01, decimals=2)
+        density = self._create_slider("fog_density", "Плотность", decimals=2)
         density.valueChanged.connect(
             lambda v: self._on_control_changed("fog_density", v)
         )
@@ -382,8 +490,8 @@ class EnvironmentTab(QWidget):
         grid.addWidget(density, row, 0, 1, 2)
         row += 1
 
-        near_slider = LabeledSlider(
-            "Начало (Near)", 0.0, 50.0, 0.1, decimals=2, unit="м"
+        near_slider = self._create_slider(
+            "fog_near", "Начало (Near)", decimals=2, unit="м"
         )
         near_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_near", v)
@@ -392,7 +500,7 @@ class EnvironmentTab(QWidget):
         grid.addWidget(near_slider, row, 0, 1, 2)
         row += 1
 
-        far_slider = LabeledSlider("Конец (Far)", 0.0, 150.0, 0.1, decimals=2, unit="м")
+        far_slider = self._create_slider("fog_far", "Конец (Far)", decimals=2, unit="м")
         far_slider.valueChanged.connect(
             lambda v: self._on_control_changed("fog_far", v)
         )
@@ -411,11 +519,9 @@ class EnvironmentTab(QWidget):
         grid.addWidget(h_enabled, row, 0, 1, 2)
         row += 1
 
-        least_y = LabeledSlider(
+        least_y = self._create_slider(
+            "fog_least_intense_y",
             "Наименее интенсивная высота Y",
-            -100.0,
-            100.0,
-            0.1,
             decimals=2,
             unit="м",
         )
@@ -426,11 +532,9 @@ class EnvironmentTab(QWidget):
         grid.addWidget(least_y, row, 0, 1, 2)
         row += 1
 
-        most_y = LabeledSlider(
+        most_y = self._create_slider(
+            "fog_most_intense_y",
             "Наиболее интенсивная высота Y",
-            -100.0,
-            100.0,
-            0.1,
             decimals=2,
             unit="м",
         )
@@ -441,7 +545,7 @@ class EnvironmentTab(QWidget):
         grid.addWidget(most_y, row, 0, 1, 2)
         row += 1
 
-        h_curve = LabeledSlider("Кривая высоты", 0.0, 4.0, 0.05, decimals=2)
+        h_curve = self._create_slider("fog_height_curve", "Кривая высоты", decimals=2)
         h_curve.valueChanged.connect(
             lambda v: self._on_control_changed("fog_height_curve", v)
         )
@@ -462,7 +566,9 @@ class EnvironmentTab(QWidget):
         grid.addWidget(t_enabled, row, 0, 1, 2)
         row += 1
 
-        t_curve = LabeledSlider("Кривая передачи", 0.0, 4.0, 0.05, decimals=2)
+        t_curve = self._create_slider(
+            "fog_transmit_curve", "Кривая передачи", decimals=2
+        )
         t_curve.valueChanged.connect(
             lambda v: self._on_control_changed("fog_transmit_curve", v)
         )
@@ -488,7 +594,9 @@ class EnvironmentTab(QWidget):
         grid.addWidget(enabled, row, 0, 1, 2)
         row += 1
 
-        strength = LabeledSlider("Интенсивность", 0.0, 100.0, 1.0, decimals=0, unit="%")
+        strength = self._create_slider(
+            "ao_strength", "Интенсивность", decimals=0, unit="%"
+        )
         strength.valueChanged.connect(
             lambda v: self._on_control_changed("ao_strength", v)
         )
@@ -496,14 +604,14 @@ class EnvironmentTab(QWidget):
         grid.addWidget(strength, row, 0, 1, 2)
         row += 1
 
-        radius = LabeledSlider("Радиус", 0.001, 0.05, 0.001, decimals=3, unit="м")
+        radius = self._create_slider("ao_radius", "Радиус", decimals=3, unit="м")
         radius.set_value(0.008)
         radius.valueChanged.connect(lambda v: self._on_control_changed("ao_radius", v))
         self._controls["ao.radius"] = radius
         grid.addWidget(radius, row, 0, 1, 2)
         row += 1
 
-        softness = LabeledSlider("Мягкость", 0.0, 50.0, 1.0, decimals=0)
+        softness = self._create_slider("ao_softness", "Мягкость", decimals=0)
         softness.valueChanged.connect(
             lambda v: self._on_control_changed("ao_softness", v)
         )

@@ -1222,6 +1222,9 @@
         },
         "scene": {
           "$ref": "#/$defs/SceneSettings"
+        },
+        "environment_ranges": {
+          "$ref": "#/$defs/EnvironmentSliderRanges"
         }
       },
       "required": [
@@ -1231,7 +1234,8 @@
         "camera",
         "materials",
         "effects",
-        "scene"
+        "scene",
+        "environment_ranges"
       ],
       "title": "GraphicsSettings",
       "type": "object"
@@ -2577,53 +2581,22 @@
       "additionalProperties": false,
       "properties": {
         "min": {
-          "title": "Min",
-          "type": "number"
+          "type": "number",
+          "title": "Minimum"
         },
         "max": {
-          "title": "Max",
-          "type": "number"
+          "type": "number",
+          "title": "Maximum"
         },
         "step": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
+          "type": "number",
           "title": "Step"
-        },
-        "decimals": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Decimals"
-        },
-        "units": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Units"
         }
       },
       "required": [
         "min",
-        "max"
+        "max",
+        "step"
       ],
       "title": "SliderRange",
       "type": "object"
@@ -2899,6 +2872,87 @@
         "bind_to_camera"
       ],
       "title": "_LightBase",
+      "type": "object"
+    },
+    "EnvironmentSliderRanges": {
+      "additionalProperties": false,
+      "properties": {
+        "ibl_intensity": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "skybox_brightness": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "probe_horizon": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "skybox_blur": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "ibl_rotation": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "ibl_offset_x": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "ibl_offset_y": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "reflection_padding_m": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_density": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_near": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_far": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_least_intense_y": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_most_intense_y": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_height_curve": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_transmit_curve": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "ao_strength": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "ao_radius": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "ao_softness": {
+          "$ref": "#/$defs/SliderRange"
+        }
+      },
+      "required": [
+        "ibl_intensity",
+        "skybox_brightness",
+        "probe_horizon",
+        "skybox_blur",
+        "ibl_rotation",
+        "ibl_offset_x",
+        "ibl_offset_y",
+        "reflection_padding_m",
+        "fog_density",
+        "fog_near",
+        "fog_far",
+        "fog_least_intense_y",
+        "fog_most_intense_y",
+        "fog_height_curve",
+        "fog_transmit_curve",
+        "ao_strength",
+        "ao_radius",
+        "ao_softness"
+      ],
+      "title": "EnvironmentSliderRanges",
       "type": "object"
     }
   },
