@@ -27,7 +27,7 @@ Paste the following block into the assistant's system message to brief CODEX:
 • Qt CLI-утилиты в контейнере: qmllint, qsb (через aqtinstall Qt 6.10.0).
 • Headless рендер: Xvfb + Mesa (llvmpipe OpenGL), Lavapipe (Vulkan).
 • Проверка шейдеров: нет BOM, #version первой строкой, профили GLSL валидные.
-• Параметры запуска Qt: тесты в OpenGL и Vulkan (QSG_RHI_BACKEND=opengl / QSG_RHI_BACKEND=vulkan), QT_QUICK_CONTROLS_STYLE=Fusion, headless-профиль Qt (QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software) при отсутствии DISPLAY и VK_ICD_FILENAMES для Lavapipe.
+• Параметры запуска Qt: тесты в OpenGL и Vulkan (QSG_RHI_BACKEND=opengl / QSG_RHI_BACKEND=vulkan), QT_QUICK_CONTROLS_STYLE=Fusion, headless-профиль Qt (QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software) при отсутствии DISPLAY и VK_ICD_FILENAMES для Lavapipe. Эти же дефолты прописаны в env.sample и применяются configure_qt_environment().
 • Логи из logs/ и reports/ собрать в /workdir/reports (единый архив/папка артефактов).
 • Не хардкодить рабочие параметры симулятора — читать из config/app_settings.json, тесты запускаются без HDR-ассетов.
 

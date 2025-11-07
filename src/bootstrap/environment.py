@@ -139,14 +139,18 @@ def configure_qt_environment(
     os.environ.setdefault("PSS_DIAG", "1")
 
     # OpenGL остаётся дефолтом на Windows, Linux и macOS — Qt подберёт нужный драйвер.
+    # На Windows это означает использование штатного desktop OpenGL (или ANGLE, если
+    # пользователь явно включит его через QT_OPENGL). На Linux сохраняем 3.3 для Mesa
+    # и проприетарных драйверов, чтобы сцена создавалась на одинаковом профиле.
     if (backend or "").lower() == "opengl":
         os.environ.setdefault("QSG_OPENGL_VERSION", "3.3")
         os.environ.setdefault("QT_OPENGL", "desktop")
 
     # В Linux контейнерах или на CI переменная DISPLAY часто отсутствует.
-    # В этом случае переключаемся на offscreen/софтварный backend, тогда как
-    # на Windows и macOS полагаемся на нативные Qt-плагины (windows / cocoa)
-    # и не переопределяем платформу.
+    # В этом случае переключаемся на offscreen/софтварный backend. Windows и
+    # macOS при этом продолжают использовать нативные плагины (windows/cocoa),
+    # поэтому платформу не переопределяем, чтобы Qt автоматически выбрал
+    # подходящий back-end ввода и рендеринга.
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
