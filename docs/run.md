@@ -44,9 +44,18 @@
 | Профиль | Переменные | Назначение |
 |---------|------------|------------|
 | Linux headless | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Работает в контейнерах и CI без `DISPLAY`, задействует софтварный рендерер Mesa. |
-| Vulkan (headless) | `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json` | Принудительное использование Lavapipe или другого ICD для тестов Vulkan. |
+| Vulkan (headless) | `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json` <br>*(путь может отличаться, см. ниже)* | Принудительное использование Lavapipe или другого ICD для тестов Vulkan. |
 | Windows fallback | `QT_QPA_PLATFORM=windows`, `QT_OPENGL=angle`, (опционально) `LIBGL_ALWAYS_SOFTWARE=0` | Заставляет Qt переключиться на ANGLE/Direct3D, полезно при отсутствии нативного OpenGL. |
 
+> **Внимание:** Путь к ICD-файлу Lavapipe (`lvp_icd.x86_64.json`) может отличаться в зависимости от дистрибутива Linux.  
+> - **Debian/Ubuntu:** обычно `/usr/share/vulkan/icd.d/lvp_icd.json`  
+> - **Arch Linux:** может быть `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`  
+> - **Fedora:** часто `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`  
+> Проверьте наличие файла командой:  
+> ```bash
+> ls /usr/share/vulkan/icd.d/
+> ```
+> и укажите актуальный путь для вашей системы в переменной `VK_ICD_FILENAMES`.
 ### Сценарии Safe / Legacy
 
 - **Safe (software-only):** вызовите `configure_qt_environment(safe_mode=True)` и
