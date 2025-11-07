@@ -1299,10 +1299,25 @@ class SignalsRouter:
         if not isinstance(payload, Mapping):
             return
 
-        physics_updates: dict[str, bool] = {}
-        for key in DEFAULT_PHYSICS_OPTIONS.keys():
-            if key in payload:
-                physics_updates[key] = bool(payload[key])
+        physics_updates: Dict[str, Any] = {}
+        for key, default_value in DEFAULT_PHYSICS_OPTIONS.items():
+            if key not in payload:
+                continue
+
+            raw_value = payload[key]
+            if isinstance(default_value, bool):
+                physics_updates[key] = bool(raw_value)
+                continue
+
+            if isinstance(raw_value, bool):
+                numeric_value = float(default_value)
+            else:
+                try:
+                    numeric_value = float(raw_value)
+                except (TypeError, ValueError):
+                    numeric_value = float(default_value)
+
+            physics_updates[key] = numeric_value
 
         if not physics_updates:
             return
@@ -1362,6 +1377,38 @@ class SignalsRouter:
                 payload.get("volume_mode", "")
             ).upper()
 
+        manager = getattr(window, "settings_manager", None)
+        current_pneumo: Dict[str, Any] = {}
+        if manager is not None and hasattr(manager, "get_category"):
+            try:
+                current = manager.get_category("pneumatic")
+                if isinstance(current, Mapping):
+                    current_pneumo = dict(current)
+            except Exception:
+                current_pneumo = {}
+
+        def _resolve_numeric(key: str) -> float | None:
+            value = pneumatic_updates.get(key)
+            if value is None and current_pneumo:
+                value = current_pneumo.get(key)
+            try:
+                if value is None:
+                    return None
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        recalculated_volume: float | None = None
+        mode_candidate = pneumatic_updates.get("volume_mode") or current_pneumo.get(
+            "volume_mode"
+        )
+        if isinstance(mode_candidate, str) and mode_candidate.upper() == "GEOMETRIC":
+            diameter = _resolve_numeric("receiver_diameter")
+            length = _resolve_numeric("receiver_length")
+            if diameter and length and diameter > 0.0 and length > 0.0:
+                recalculated_volume = math.pi * (diameter / 2.0) ** 2 * length
+                pneumatic_updates["receiver_volume"] = recalculated_volume
+
         if not pneumatic_updates:
             return
 
@@ -1377,19 +1424,23 @@ class SignalsRouter:
         SignalsRouter._mark_update_source(window, "pneumatic", "qml")
         SignalsRouter._push_pneumatic_state(window)
 
-        if "receiver_volume" in pneumatic_updates:
-            receiver_volume = pneumatic_updates.get("receiver_volume")
-            manager = getattr(window, "settings_manager", None)
+        if recalculated_volume is not None or "receiver_volume" in pneumatic_updates:
+            receiver_volume = pneumatic_updates.get(
+                "receiver_volume", recalculated_volume
+            )
             receiver_mode = pneumatic_updates.get("volume_mode")
-            if receiver_mode is None and manager is not None:
-                try:
-                    current = manager.get_category("pneumatic") or {}
-                    receiver_mode = current.get("volume_mode", "MANUAL")
-                except Exception:
-                    receiver_mode = "MANUAL"
+            if receiver_mode is None:
+                receiver_mode = current_pneumo.get("volume_mode", "MANUAL")
             try:
                 bus = window.simulation_manager.state_bus
                 bus.set_receiver_volume.emit(float(receiver_volume), str(receiver_mode))
+                SignalsRouter.logger.info(
+                    "Receiver volume synchronised",
+                    extra={
+                        "mode": receiver_mode,
+                        "volume_m3": float(receiver_volume),
+                    },
+                )
             except Exception as exc:
                 SignalsRouter.logger.debug(
                     "Failed to emit receiver volume update: %s", exc

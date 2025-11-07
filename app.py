@@ -26,7 +26,8 @@ bootstrap_parser = create_bootstrap_parser()
 _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 
-SAFE_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
+SAFE_GRAPHICS_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
+SAFE_RUNTIME_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe", False))
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
 
 _BOOTSTRAP_LOGGER = get_logger("bootstrap.graphics").bind(stage="pre-qt")
@@ -99,7 +100,9 @@ configure_terminal_encoding(log_warning)
 check_python_compatibility(log_warning, log_error)
 
 GRAPHICS_BOOTSTRAP_STATE = bootstrap_graphics_environment(
-    os.environ, platform=sys.platform, safe_mode=SAFE_MODE_REQUESTED
+    os.environ,
+    platform=sys.platform,
+    safe_mode=SAFE_GRAPHICS_MODE_REQUESTED or SAFE_RUNTIME_MODE_REQUESTED,
 )
 
 _BOOTSTRAP_LOGGER.info(
@@ -111,6 +114,7 @@ _BOOTSTRAP_LOGGER.info(
     headless_reasons=list(GRAPHICS_BOOTSTRAP_STATE.headless_reasons),
     qt_qpa_platform=os.environ.get("QT_QPA_PLATFORM"),
     legacy_requested=LEGACY_MODE_REQUESTED,
+    safe_runtime=SAFE_RUNTIME_MODE_REQUESTED,
 )
 
 
@@ -121,12 +125,14 @@ def _log_scenegraph_backend(message: str) -> None:
 
 
 configure_qt_environment(
-    safe_mode=SAFE_MODE_REQUESTED,
+    safe_mode=SAFE_GRAPHICS_MODE_REQUESTED or SAFE_RUNTIME_MODE_REQUESTED,
     log=_log_scenegraph_backend,
 )
 
 if LEGACY_MODE_REQUESTED:
     print("ℹ️ Legacy UI mode requested — QML loading will be skipped after bootstrap.")
+if SAFE_RUNTIME_MODE_REQUESTED:
+    print("ℹ️ Safe runtime mode requested — Qt Quick 3D will remain disabled.")
 
 # =============================================================================
 # Bootstrap Phase2: Qt Import
@@ -155,10 +161,17 @@ def main() -> int:
         force_disable_reasons.append("legacy-cli")
     if GRAPHICS_BOOTSTRAP_STATE.headless:
         force_disable_reasons.append("headless")
+    if getattr(args, "safe", False):
+        force_disable_reasons.append("safe-mode")
 
     setattr(args, "bootstrap_headless", GRAPHICS_BOOTSTRAP_STATE.headless)
     setattr(args, "force_disable_qml_3d", bool(force_disable_reasons))
     setattr(args, "force_disable_qml_3d_reasons", tuple(force_disable_reasons))
+    setattr(
+        args,
+        "safe_runtime",
+        SAFE_RUNTIME_MODE_REQUESTED or bool(getattr(args, "safe", False)),
+    )
 
     runner = ApplicationRunner(QApplication, qInstallMessageHandler, Qt, QTimer)
     return runner.run(args)

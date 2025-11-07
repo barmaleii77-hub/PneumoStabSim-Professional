@@ -30,6 +30,7 @@ from src.runtime.steps import (
     integrate_body,
     update_gas_state,
 )
+from src.runtime.steps.kinematics import integrate_lever_state
 from src.runtime.steps.context import LeverDynamicsConfig
 from src.runtime.sync import PerformanceMetrics
 
@@ -181,6 +182,46 @@ def test_compute_kinematics_updates_wheel_state(step_state: PhysicsStepState) ->
     assert step_state.prev_piston_positions[Wheel.LP] == pytest.approx(
         wheel_state.piston_position
     )
+
+
+def test_integrate_lever_state_without_forces(
+    step_state: PhysicsStepState,
+) -> None:
+    wheel = Wheel.LP
+    cylinder = step_state.pneumatic_system.cylinders[wheel]
+    lever_geom = cylinder.spec.lever_geom
+
+    step_state.lever_config = replace(
+        step_state.lever_config,
+        include_springs=False,
+        include_dampers=False,
+        include_pneumatics=False,
+        spring_constant=0.0,
+        damper_coefficient=0.0,
+    )
+
+    theta0 = 0.18
+    omega0 = -0.35
+
+    result = integrate_lever_state(
+        wheel=wheel,
+        theta0=theta0,
+        omega0=omega0,
+        dt=step_state.dt,
+        lever_config=step_state.lever_config,
+        lever_geom=lever_geom,
+        cylinder=cylinder,
+        road_displacement=0.0,
+        road_velocity=0.0,
+        get_line_pressure=step_state.get_line_pressure,
+    )
+
+    assert result.angle == pytest.approx(theta0)
+    assert result.angular_velocity == pytest.approx(omega0)
+    assert result.spring_force == pytest.approx(0.0)
+    assert result.damper_force == pytest.approx(0.0)
+    assert result.pneumatic_force == pytest.approx(0.0)
+    assert result.clamped is False
 
 
 def test_update_gas_state_syncs_line_states(step_state: PhysicsStepState) -> None:

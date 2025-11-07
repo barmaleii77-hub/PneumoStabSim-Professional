@@ -22,6 +22,11 @@ def _add_mode_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Launch the legacy Qt Widgets interface without loading QML",
     )
+    parser.add_argument(
+        "--safe",
+        action="store_true",
+        help="Headless-safe startup that avoids creating a Qt Quick 3D scene",
+    )
 
 
 def _add_bootstrap_arguments(parser: argparse.ArgumentParser) -> None:
@@ -80,6 +85,7 @@ Examples:
   py app.py --diag             # Run post-run diagnostics to console
   py app.py --safe-mode        # Allow Qt to choose the graphics backend
   py app.py --legacy           # Launch legacy Qt Widgets UI (no QML)
+  py app.py --safe             # Headless-safe mode (no Qt Quick 3D scene)
         """,
     )
 

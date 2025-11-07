@@ -9,6 +9,7 @@ import pytest
 
 from src.ui.main_window_pkg.signals_router import SignalsRouter
 from src.ui.main_window_pkg.qml_bridge import QMLBridge
+from src.ui.panels.modes.defaults import DEFAULT_PHYSICS_OPTIONS
 
 
 class _DummySignal:
@@ -40,6 +41,10 @@ class _DummySettingsManager:
             },
             "simulation": {
                 "physics_dt": 0.001,
+            },
+            "modes": {
+                "mode_preset": "standard",
+                "physics": copy.deepcopy(DEFAULT_PHYSICS_OPTIONS),
             },
             "current.constants.geometry.cylinder": {
                 "dead_zone_head_m3": 0.001,
@@ -182,6 +187,47 @@ def test_handle_cylinder_settings_changed_updates_constants(
             }
         }
     }
+
+
+def test_handle_modes_physics_changed_normalises_numeric_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Physics options from QML must preserve numeric tuning parameters."""
+
+    window = _DummyWindow()
+    dispatched: List[str] = []
+
+    monkeypatch.setattr(
+        SignalsRouter,
+        "_push_modes_state",
+        lambda w: dispatched.append("modes") if w is window else None,
+    )
+
+    payload = {
+        "include_springs": False,
+        "include_dampers": True,
+        "include_pneumatics": False,
+        "spring_constant": "61250",  # Accept stringified floats
+        "damper_coefficient": 3450.5,
+        "lever_inertia_multiplier": 1.35,
+    }
+
+    SignalsRouter.handle_modes_physics_changed(window, payload)
+
+    assert dispatched == ["modes"], "Modes state should be pushed after update"
+    assert window.settings_updates, "Settings update must be recorded"
+
+    category, updates = window.settings_updates[-1]
+    assert category == "modes"
+    assert updates["mode_preset"] == "custom"
+
+    physics_updates = updates["physics"]
+    assert physics_updates["include_springs"] is False
+    assert physics_updates["include_dampers"] is True
+    assert physics_updates["include_pneumatics"] is False
+    assert physics_updates["spring_constant"] == pytest.approx(61250.0)
+    assert physics_updates["damper_coefficient"] == pytest.approx(3450.5)
+    assert physics_updates["lever_inertia_multiplier"] == pytest.approx(1.35)
 
 
 def test_pneumo_panel_receives_qml_updates(
