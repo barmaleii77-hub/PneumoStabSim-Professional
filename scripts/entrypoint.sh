@@ -9,7 +9,15 @@ export PYTHONUNBUFFERED=1
 mkdir -p reports reports/quality
 warnings_log="reports/warnings.log"
 : > "${warnings_log}"
-ln -sf "../warnings.log" "reports/quality/warnings.log"
+
+sync_warning_artifacts() {
+  if [[ -f "${warnings_log}" ]]; then
+    cp -f "${warnings_log}" "reports/quality/warnings.log"
+  fi
+}
+
+sync_warning_artifacts
+trap sync_warning_artifacts EXIT
 
 echo "== Qt == "
 if [[ -f "/opt/Qt/CURRENT_VERSION" ]]; then

@@ -9,29 +9,69 @@ export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
 export MESA_GL_VERSION_OVERRIDE="${MESA_GL_VERSION_OVERRIDE:-4.1}"
 export MESA_GLSL_VERSION_OVERRIDE="${MESA_GLSL_VERSION_OVERRIDE:-410}"
 
-mkdir -p reports
+mkdir -p reports reports/quality
 warnings_log="reports/warnings.log"
 : > "${warnings_log}"
 
+append_warning_block() {
+  local header="$1"
+  shift || true
+  local lines=("$@")
+
+  if ((${#lines[@]} == 0)); then
+    return 0
+  fi
+
+  {
+    if [[ -s "${warnings_log}" ]]; then
+      printf '\n'
+    fi
+    printf '# %s\n' "$header"
+    printf '%s\n' "${lines[@]}"
+  } >>"${warnings_log}"
+}
+
+run_with_warnings_capture() {
+  local header="$1"
+  shift
+  local tmp
+  tmp=$(mktemp)
+
+  set +e
+  "$@" 2>&1 | tee "${tmp}"
+  local status=${PIPESTATUS[0]}
+  set -e
+
+  if [[ -s "${tmp}" ]]; then
+    mapfile -t warning_lines < <(grep -iE '\bwarn(ing)?\b' "${tmp}") || true
+    append_warning_block "${header}" "${warning_lines[@]}"
+  fi
+
+  rm -f "${tmp}"
+  return "${status}"
+}
+
 echo "== Lint =="
-ruff check .
-mypy --ignore-missing-imports .
+run_with_warnings_capture "ruff" ruff check .
+run_with_warnings_capture "mypy" mypy --ignore-missing-imports .
 
 echo "== QML lint =="
 if command -v qmllint >/dev/null 2>&1; then
-  qmllint -I assets/qml assets/qml || true
+  run_with_warnings_capture "qmllint" qmllint -I assets/qml assets/qml || true
 else
   echo "qmllint not available"
 fi
 
 echo "== Shader sanity =="
-python /usr/local/bin/shader_sanity.py
+run_with_warnings_capture "shader_sanity" python /usr/local/bin/shader_sanity.py
 
 echo "== Shader validation =="
-python tools/validate_shaders.py
+run_with_warnings_capture "validate_shaders" python tools/validate_shaders.py
 
 echo "== Shader log audit =="
-python tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
+run_with_warnings_capture \
+  "check_shader_logs" \
+  python tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
 
 python - <<'PY'
 """Aggregate shader warnings into reports/warnings.log for CI publication."""
@@ -94,7 +134,9 @@ print(
 PY
 
 echo "== PyTest =="
-/usr/local/bin/xvfb_wrapper.sh pytest -q -n auto --maxfail=1 --disable-warnings --cov=src || true
+run_with_warnings_capture \
+  "pytest" \
+  /usr/local/bin/xvfb_wrapper.sh pytest -q -n auto --maxfail=1 --cov=src || true
 
 echo "== Smoke OpenGL =="
 /usr/local/bin/xvfb_wrapper.sh env QSG_RHI_BACKEND=opengl python app.py --test-mode || true
