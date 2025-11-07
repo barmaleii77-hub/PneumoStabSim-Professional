@@ -39,6 +39,7 @@ class MaterialsTab(QWidget):
         # Кэш состояний по каждому материалу
         self._materials_state: Dict[str, Dict[str, Any]] = {}
         self._current_key: Optional[str] = None
+        self._qml_root = Path(__file__).resolve().parents[4] / "assets" / "qml"
         self._material_labels = {
             "frame": "Рама",
             "lever": "Рычаг",
@@ -83,6 +84,7 @@ class MaterialsTab(QWidget):
         r = self._add_color_control(grid, r, "Базовый цвет", "base_color")
         grid.addWidget(QLabel("Текстура", self), r, 0)
         texture_widget = FileCyclerWidget(self)
+        texture_widget.set_resolution_roots([self._qml_root])
         texture_widget.set_items(self._texture_items)
         if self._texture_items:
             texture_widget.set_current_data(self._texture_items[0][1], emit=False)
@@ -571,9 +573,8 @@ class MaterialsTab(QWidget):
             project_root / "assets" / "materials",
             project_root / "assets" / "qml" / "textures",
         ]
-        qml_root = project_root / "assets" / "qml"
         try:
-            textures = discover_texture_files(search_dirs, qml_root=qml_root)
+            textures = discover_texture_files(search_dirs, qml_root=self._qml_root)
         except Exception:
             self._logger.exception("Не удалось обнаружить текстуры для материалов")
             return []

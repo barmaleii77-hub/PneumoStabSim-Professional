@@ -44,6 +44,7 @@ class EnvironmentTab(QWidget):
         # Current state - храним ссылки на контролы
         self._controls: Dict[str, Any] = {}
         self._updating_ui = False
+        self._qml_root = Path(__file__).resolve().parents[4] / "assets" / "qml"
         self._hdr_items: List[Tuple[str, str]] = self._discover_hdr_files()
 
         # Setup UI
@@ -163,6 +164,7 @@ class EnvironmentTab(QWidget):
         grid.addWidget(QLabel("HDR окружение", self), row, 0)
         hdr_selector = FileCyclerWidget(self)
         hdr_selector.set_allow_empty_selection(True, label="—")
+        hdr_selector.set_resolution_roots([self._qml_root])
         hdr_selector.set_items(self._hdr_items)
         hdr_selector.currentChanged.connect(
             lambda path: self._on_hdr_source_changed(path)
@@ -313,8 +315,7 @@ class EnvironmentTab(QWidget):
             project_root / "assets" / "hdri",
             project_root / "assets" / "qml" / "assets",
         ]
-        qml_root = project_root / "assets" / "qml"
-        return discover_hdr_files(search_dirs, qml_root=qml_root)
+        return discover_hdr_files(search_dirs, qml_root=self._qml_root)
 
     def _normalize_ibl_path(self, value: Any) -> str:
         """Нормализовать путь для IBL (привести к POSIX и убрать None)."""
@@ -337,9 +338,14 @@ class EnvironmentTab(QWidget):
     def _refresh_hdr_status(self, path: str) -> None:
         widget = self._controls.get("ibl.status_label")
         if isinstance(widget, QLabel):
-            label = Path(path).name if path else "—"
-            widget.setText(label or "—")
-            widget.setToolTip(path or "")
+            selector = self._controls.get("ibl.file")
+            if isinstance(selector, FileCyclerWidget) and selector.is_missing():
+                widget.setText("⚠ файл не найден")
+                widget.setToolTip(path or "")
+            else:
+                label = Path(path).name if path else "—"
+                widget.setText(label or "—")
+                widget.setToolTip(path or "")
 
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
