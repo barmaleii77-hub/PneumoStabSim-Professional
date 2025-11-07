@@ -6,6 +6,11 @@ export PATH="${QT_HOME}/bin:${PATH}"
 export QT_QPA_PLATFORM='offscreen'
 export PYTHONUNBUFFERED=1
 
+mkdir -p reports reports/quality
+warnings_log="reports/warnings.log"
+touch "${warnings_log}"
+ln -sf "../warnings.log" "reports/quality/warnings.log"
+
 echo "== Qt == "
 if [[ -f "/opt/Qt/CURRENT_VERSION" ]]; then
   echo "Active Qt version: $(cat /opt/Qt/CURRENT_VERSION)"
