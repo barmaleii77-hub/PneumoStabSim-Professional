@@ -133,10 +133,15 @@ def configure_qt_environment(
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
     os.environ.setdefault("PSS_DIAG", "1")
 
+    # OpenGL остаётся дефолтом на Windows, Linux и macOS — Qt подберёт нужный драйвер.
     if (backend or "").lower() == "opengl":
         os.environ.setdefault("QSG_OPENGL_VERSION", "3.3")
         os.environ.setdefault("QT_OPENGL", "desktop")
 
+    # В Linux контейнерах или на CI переменная DISPLAY часто отсутствует.
+    # В этом случае переключаемся на offscreen/софтварный backend, тогда как
+    # на Windows и macOS полагаемся на нативные Qt-плагины (windows / cocoa)
+    # и не переопределяем платформу.
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
