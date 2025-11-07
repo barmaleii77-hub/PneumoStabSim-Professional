@@ -8,11 +8,6 @@ import sys
 from pathlib import Path
 
 
-if not os.environ.get("QT_QPA_PLATFORM"):
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    os.environ.setdefault("QT_QUICK_BACKEND", "software")
-
-
 # Ensure the project sources are importable before any local modules execute.
 _PROJECT_ROOT = Path(__file__).resolve().parent
 _SRC_PATH = _PROJECT_ROOT / "src"
