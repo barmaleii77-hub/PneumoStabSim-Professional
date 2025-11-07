@@ -542,6 +542,98 @@
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
         "model_metalness": 0.82
+      },
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 0.1
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 150.0,
+          "step": 0.1
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.05,
+          "step": 0.001
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
+        }
       }
     },
     "animation": {
@@ -1647,6 +1739,98 @@
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
         "model_metalness": 0.82
+      },
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 0.1
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 150.0,
+          "step": 0.1
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.05,
+          "step": 0.001
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
+        }
       }
     },
     "animation": {

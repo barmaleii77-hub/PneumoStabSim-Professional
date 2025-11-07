@@ -1,4 +1,7 @@
 import pytest
+from copy import deepcopy
+
+import src.ui.panels.graphics.environment_tab as environment_tab_module
 
 pytest.importorskip(
     "PySide6.QtWidgets",
@@ -7,7 +10,10 @@ pytest.importorskip(
 )
 
 from src.common.settings_manager import get_settings_manager
-from src.ui.environment_schema import validate_environment_settings
+from src.ui.environment_schema import (
+    ENVIRONMENT_SLIDER_RANGE_DEFAULTS,
+    validate_environment_settings,
+)
 from src.ui.panels.graphics.environment_tab import EnvironmentTab
 
 
@@ -24,3 +30,95 @@ def test_environment_tab_preserves_default_radius(qapp):
     state = tab.get_state()
 
     assert state["ao_radius"] == pytest.approx(validated["ao_radius"])
+
+
+def test_environment_tab_applies_custom_slider_ranges(qapp, monkeypatch):
+    base_manager = get_settings_manager()
+    custom_ranges = {
+        key: {
+            "min": value.minimum,
+            "max": value.maximum,
+            "step": value.step,
+        }
+        for key, value in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
+    }
+    custom_ranges["ibl_intensity"] = {"min": 0.5, "max": 1.5, "step": 0.1}
+
+    class _StubManager:
+        def __init__(self, base, ranges):
+            self._base = base
+            self._ranges = deepcopy(ranges)
+
+        def get(self, path, default=None):
+            if path == "graphics.environment_ranges":
+                return deepcopy(self._ranges)
+            return self._base.get(path, default)
+
+    monkeypatch.setattr(
+        environment_tab_module,
+        "get_settings_manager",
+        lambda: _StubManager(base_manager, custom_ranges),
+    )
+
+    warnings: list[str] = []
+
+    def _capture_warning(parent, title, text):
+        warnings.append(text)
+        return None
+
+    monkeypatch.setattr(environment_tab_module.QMessageBox, "warning", _capture_warning)
+
+    tab = EnvironmentTab()
+    slider = tab.get_controls()["ibl.intensity"]
+
+    assert slider._min == pytest.approx(0.5)
+    assert slider._max == pytest.approx(1.5)
+    assert slider._step == pytest.approx(0.1)
+    assert not warnings
+
+
+def test_environment_tab_missing_range_triggers_warning(qapp, monkeypatch):
+    base_manager = get_settings_manager()
+    partial_ranges = {
+        key: {
+            "min": value.minimum,
+            "max": value.maximum,
+            "step": value.step,
+        }
+        for key, value in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
+    }
+    partial_ranges.pop("skybox_brightness")
+
+    class _StubManager:
+        def __init__(self, base, ranges):
+            self._base = base
+            self._ranges = deepcopy(ranges)
+
+        def get(self, path, default=None):
+            if path == "graphics.environment_ranges":
+                return deepcopy(self._ranges)
+            return self._base.get(path, default)
+
+    monkeypatch.setattr(
+        environment_tab_module,
+        "get_settings_manager",
+        lambda: _StubManager(base_manager, partial_ranges),
+    )
+
+    captured: list[str] = []
+
+    def _capture_warning(parent, title, text):
+        captured.append(text)
+        return None
+
+    monkeypatch.setattr(environment_tab_module.QMessageBox, "warning", _capture_warning)
+
+    tab = EnvironmentTab()
+    slider = tab.get_controls()["ibl.skybox_brightness"]
+
+    default_range = ENVIRONMENT_SLIDER_RANGE_DEFAULTS["skybox_brightness"]
+    assert slider._min == pytest.approx(default_range.minimum)
+    assert slider._max == pytest.approx(default_range.maximum)
+    assert slider._step == pytest.approx(default_range.step)
+    assert captured
+    assert "skybox_brightness" in captured[0]

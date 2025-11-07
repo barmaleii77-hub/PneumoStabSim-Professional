@@ -7,6 +7,7 @@ import pytest
 
 from src.common import settings_manager as settings_manager_module
 from src.common.settings_manager import SettingsManager, get_settings_manager
+from src.ui.environment_schema import ENVIRONMENT_SLIDER_RANGE_DEFAULTS
 
 
 @pytest.fixture
@@ -118,6 +119,20 @@ def test_settings_manager_missing_path_returns_default(legacy_settings: Path) ->
     manager = SettingsManager(settings_file=legacy_settings)
 
     assert manager.get("current.simulation.unknown_key", default=42) == 42
+
+
+def test_environment_slider_ranges_are_defined() -> None:
+    manager = SettingsManager()
+
+    ranges = manager.get("graphics.environment_ranges")
+    assert isinstance(ranges, dict)
+
+    for key, default_range in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items():
+        entry = ranges.get(key)
+        assert isinstance(entry, dict), f"Missing range for {key}"
+        assert entry["min"] == pytest.approx(default_range.minimum)
+        assert entry["max"] == pytest.approx(default_range.maximum)
+        assert entry["step"] == pytest.approx(default_range.step)
 
 
 def test_settings_manager_set_without_auto_save(legacy_settings: Path) -> None:
