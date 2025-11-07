@@ -27,7 +27,10 @@ _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 
 SAFE_GRAPHICS_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
-SAFE_RUNTIME_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe", False))
+SAFE_RUNTIME_MODE_REQUESTED = bool(
+    getattr(bootstrap_args, "safe", False)
+    or getattr(bootstrap_args, "test_mode", False)
+)
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
 
 _BOOTSTRAP_LOGGER = get_logger("bootstrap.graphics").bind(stage="pre-qt")
