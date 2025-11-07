@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Исправления для панели графики - размеры и компоновка
 Graphics panel layout fixes

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Suspension geometry tab - Вкладка геометрии подвески
 Controls for lever geometry and suspension layout

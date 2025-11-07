@@ -66,7 +66,7 @@ def _force_components(
     road_disp: float,
     road_vel: float,
     get_line_pressure,
-) -> Tuple[float, float, float, float, float, float]:
+) -> tuple[float, float, float, float, float, float]:
     """Evaluate forces and resulting torque for a given lever state."""
 
     displacement = lever_geom.angle_to_displacement(theta)

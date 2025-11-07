@@ -3,7 +3,8 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Mapping, Sequence
+from typing import Any
+from collections.abc import Mapping, Sequence
 
 try:  # pragma: no cover - import guarded for minimal environments
     from src.core.settings_service import (

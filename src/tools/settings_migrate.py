@@ -18,7 +18,8 @@ import argparse
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, List, Sequence
+from typing import Any, List
+from collections.abc import Iterable, Sequence
 
 
 def _deep_copy(value: Any) -> Any:
@@ -27,7 +28,7 @@ def _deep_copy(value: Any) -> Any:
     return json.loads(json.dumps(value))
 
 
-def _split_path(path: str) -> List[str]:
+def _split_path(path: str) -> list[str]:
     if not path:
         raise ValueError("Path must be a non-empty string")
     parts = [segment.strip() for segment in path.split(".") if segment.strip()]
@@ -142,7 +143,7 @@ class MigrationDescriptor:
 
     identifier: str
     description: str
-    operations: List[dict[str, Any]]
+    operations: list[dict[str, Any]]
     source: Path
 
     def apply(self, payload: dict[str, Any]) -> bool:
@@ -175,12 +176,12 @@ def _load_descriptor(path: Path) -> MigrationDescriptor:
     )
 
 
-def load_migrations(directory: Path) -> List[MigrationDescriptor]:
+def load_migrations(directory: Path) -> list[MigrationDescriptor]:
     """Load migration descriptors from *directory* sorted by filename."""
 
     if not directory.exists():
         raise FileNotFoundError(f"Migrations directory does not exist: {directory}")
-    descriptors: List[MigrationDescriptor] = []
+    descriptors: list[MigrationDescriptor] = []
     for path in sorted(directory.glob("*.json")):
         descriptors.append(_load_descriptor(path))
     return descriptors

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Ultra simple triangle geometry - if this doesn't work, nothing will
 """

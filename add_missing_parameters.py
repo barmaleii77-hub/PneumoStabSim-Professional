@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Автоматическое добавление отсутствующих параметров в рефакторенные табы GraphicsPanel
 Читает монолит panel_graphics.py и добавляет недостающие LabeledSlider в табы

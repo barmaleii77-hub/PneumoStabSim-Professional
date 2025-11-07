@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Dict
+from collections.abc import Mapping, Sequence
 
 from PySide6.QtCore import QObject, Property, Signal, Slot
 
@@ -49,7 +50,7 @@ class LightingSettingsFacade:
         return self._baseline
 
     # Tonemap presets -----------------------------------------------------
-    def list_tonemap_presets(self) -> list[Dict[str, Any]]:
+    def list_tonemap_presets(self) -> list[dict[str, Any]]:
         """Return presets formatted for consumption by QML."""
 
         return [
@@ -65,7 +66,7 @@ class LightingSettingsFacade:
                 return preset.id
         return None
 
-    def build_preset_payload(self, preset_id: str) -> Dict[str, Any]:
+    def build_preset_payload(self, preset_id: str) -> dict[str, Any]:
         """Return the effect values associated with a preset."""
 
         preset = self._baseline.find_tonemap_preset(preset_id)
@@ -83,7 +84,7 @@ class LightingSettingsFacade:
 
     def apply_tonemap_preset(
         self, preset_id: str, *, auto_save: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Update the settings manager with the preset values."""
 
         payload = self.build_preset_payload(preset_id)
@@ -101,10 +102,10 @@ class LightingSettingsFacade:
     def list_skybox_orientations(self) -> Sequence[SkyboxOrientation]:
         return self._baseline.skyboxes
 
-    def list_orientation_issues(self) -> list[Dict[str, Any]]:
+    def list_orientation_issues(self) -> list[dict[str, Any]]:
         """Return skybox orientation entries flagged for review."""
 
-        issues: list[Dict[str, Any]] = []
+        issues: list[dict[str, Any]] = []
         for issue in self._baseline.detect_orientation_issues():
             entry = issue.skybox
             issues.append(
@@ -131,7 +132,7 @@ class LightingSettingsBridge(QObject):
     def __init__(self, facade: LightingSettingsFacade) -> None:
         super().__init__()
         self._facade = facade
-        self._tonemap_presets: list[Dict[str, Any]] = []
+        self._tonemap_presets: list[dict[str, Any]] = []
         self._active_preset: str = ""
         self._event_bus = get_settings_event_bus()
         self._event_bus.settingChanged.connect(self._on_settings_changed)
@@ -152,7 +153,7 @@ class LightingSettingsBridge(QObject):
         self._active_preset = active
         self.activeTonemapPresetChanged.emit()
 
-    def _payload_targets_effects(self, payload: Dict[str, Any]) -> bool:
+    def _payload_targets_effects(self, payload: dict[str, Any]) -> bool:
         path = payload.get("path")
         if isinstance(path, str) and path.startswith("current.graphics.effects"):
             return True
@@ -168,17 +169,17 @@ class LightingSettingsBridge(QObject):
                     return True
         return False
 
-    def _on_settings_changed(self, payload: Dict[str, Any]) -> None:
+    def _on_settings_changed(self, payload: dict[str, Any]) -> None:
         if self._payload_targets_effects(payload):
             self._refresh_active_preset()
 
-    def _on_settings_batch(self, payload: Dict[str, Any]) -> None:
+    def _on_settings_batch(self, payload: dict[str, Any]) -> None:
         if self._payload_targets_effects(payload):
             self._refresh_active_preset()
 
     # ----------------------------------------------------------------- properties
     @Property("QVariantList", notify=tonemapPresetsChanged)
-    def tonemapPresets(self) -> list[Dict[str, Any]]:  # pragma: no cover - Qt binding
+    def tonemapPresets(self) -> list[dict[str, Any]]:  # pragma: no cover - Qt binding
         return [dict(item) for item in self._tonemap_presets]
 
     @Property(str, notify=activeTonemapPresetChanged)
@@ -187,17 +188,17 @@ class LightingSettingsBridge(QObject):
 
     # --------------------------------------------------------------------- slots
     @Slot(result="QVariantList")
-    def reloadTonemapPresets(self) -> list[Dict[str, Any]]:
+    def reloadTonemapPresets(self) -> list[dict[str, Any]]:
         self._refresh_presets()
         return self.tonemapPresets
 
     @Slot(str, result="QVariantMap")
-    def applyTonemapPreset(self, preset_id: str) -> Dict[str, Any]:
+    def applyTonemapPreset(self, preset_id: str) -> dict[str, Any]:
         updated = self._facade.apply_tonemap_preset(preset_id, auto_save=True)
         self._refresh_active_preset()
         return dict(updated)
 
     @Slot(result="QVariantList")
-    def listOrientationIssues(self) -> list[Dict[str, Any]]:
+    def listOrientationIssues(self) -> list[dict[str, Any]]:
         issues = self._facade.list_orientation_issues()
         return [dict(issue) for issue in issues]

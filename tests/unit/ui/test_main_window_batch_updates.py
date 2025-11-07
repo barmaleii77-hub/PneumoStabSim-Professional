@@ -20,9 +20,9 @@ class _DummyRoot:
 
     def __init__(self, *, result: bool) -> None:
         self._result = result
-        self.calls: list[tuple[str, Dict[str, Any]]] = []
+        self.calls: list[tuple[str, dict[str, Any]]] = []
 
-    def setProperty(self, name: str, value: Dict[str, Any]) -> bool:  # noqa: N802
+    def setProperty(self, name: str, value: dict[str, Any]) -> bool:  # noqa: N802
         self.calls.append((name, value))
         return self._result
 

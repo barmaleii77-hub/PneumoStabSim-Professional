@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Tuple
+from collections.abc import Iterable
 
 
 @dataclass(frozen=True)
@@ -12,15 +13,15 @@ class TrainingPresetMetadata:
 
     difficulty: str
     duration_minutes: int
-    learning_objectives: Tuple[str, ...] = field(default_factory=tuple)
-    recommended_modules: Tuple[str, ...] = field(default_factory=tuple)
-    evaluation_metrics: Tuple[str, ...] = field(default_factory=tuple)
+    learning_objectives: tuple[str, ...] = field(default_factory=tuple)
+    recommended_modules: tuple[str, ...] = field(default_factory=tuple)
+    evaluation_metrics: tuple[str, ...] = field(default_factory=tuple)
     scenario_id: str = ""
     scenario_label: str = ""
     scenario_summary: str = ""
     notes: str = ""
 
-    def to_payload(self) -> Dict[str, object]:
+    def to_payload(self) -> dict[str, object]:
         """Return a QML-friendly serialisable payload."""
 
         return {
@@ -36,7 +37,7 @@ class TrainingPresetMetadata:
         }
 
     @staticmethod
-    def coerce_iterable(items: Iterable[str] | None) -> Tuple[str, ...]:
+    def coerce_iterable(items: Iterable[str] | None) -> tuple[str, ...]:
         if not items:
             return tuple()
         return tuple(str(item) for item in items if str(item).strip())

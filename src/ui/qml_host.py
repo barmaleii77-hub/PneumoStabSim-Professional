@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 QML Host for full suspension 3D visualization
 Embeds UFrameScene.qml with all 4 corners (FL/FR/RL/RR) into PySide6 application
@@ -33,7 +32,7 @@ class SuspensionSceneHost(QQuickWidget):
     view_reset_requested = Signal()
 
     def __init__(
-        self, parent=None, geometry_overrides: Optional[Dict[str, float]] = None
+        self, parent=None, geometry_overrides: Optional[dict[str, float]] = None
     ):
         super().__init__(parent)
 
@@ -120,7 +119,7 @@ class SuspensionSceneHost(QQuickWidget):
             QTimer.singleShot(50, delayed_apply)
 
     @staticmethod
-    def _build_geometry_params(overrides: Dict[str, float]) -> GeometryParams:
+    def _build_geometry_params(overrides: dict[str, float]) -> GeometryParams:
         """Create :class:`GeometryParams` applying numeric overrides when possible."""
 
         params = GeometryParams()
@@ -267,7 +266,7 @@ class SuspensionSceneHost(QQuickWidget):
     # Helpers for modular QML bridge
     # ------------------------------------------------------------------
 
-    def _build_initial_updates(self) -> Dict[str, Dict[str, object]]:
+    def _build_initial_updates(self) -> dict[str, dict[str, object]]:
         """Prepare the initial payload dispatched to the modular QML scene."""
 
         geometry_payload = {
@@ -287,7 +286,7 @@ class SuspensionSceneHost(QQuickWidget):
 
         lever_angles = {}
         piston_positions = {}
-        wheels: Dict[str, Dict[str, float]] = {}
+        wheels: dict[str, dict[str, float]] = {}
         for corner, data in self._corner_data.items():
             rad = float(data.get("leverAngleRad", 0.0))
             piston = float(data.get("pistonPosition", 0.0))
@@ -311,7 +310,7 @@ class SuspensionSceneHost(QQuickWidget):
             "threeD": three_d_payload,
         }
 
-    def _dispatch_updates(self, updates: Dict[str, Dict[str, object]]) -> None:
+    def _dispatch_updates(self, updates: dict[str, dict[str, object]]) -> None:
         """Send updates to the active QML scene, falling back to legacy properties."""
 
         if not updates:

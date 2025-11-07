@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Quick Performance Test
 Быстрый тест основной функциональности оптимизированного приложения

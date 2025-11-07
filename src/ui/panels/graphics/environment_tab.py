@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Environment Tab - вкладка настроек окружения (фон, IBL, туман, AO)
 Part of modular GraphicsPanel restructuring
@@ -55,11 +54,11 @@ class EnvironmentTab(QWidget):
         super().__init__(parent)
 
         # Current state - храним ссылки на контролы
-        self._controls: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
         self._updating_ui = False
         self._qml_root = Path(__file__).resolve().parents[4] / "assets" / "qml"
-        self._hdr_items: List[Tuple[str, str]] = self._discover_hdr_files()
-        self._slider_ranges: Dict[str, EnvironmentSliderRange] = (
+        self._hdr_items: list[tuple[str, str]] = self._discover_hdr_files()
+        self._slider_ranges: dict[str, EnvironmentSliderRange] = (
             self._load_slider_ranges()
         )
 
@@ -85,15 +84,15 @@ class EnvironmentTab(QWidget):
         layout.addStretch(1)
         self._update_ibl_dependency_states()
 
-    def _load_slider_ranges(self) -> Dict[str, EnvironmentSliderRange]:
+    def _load_slider_ranges(self) -> dict[str, EnvironmentSliderRange]:
         settings_manager = get_settings_manager()
         raw_ranges = settings_manager.get("graphics.environment_ranges", {})
 
-        validated: Dict[str, EnvironmentSliderRange] = {}
+        validated: dict[str, EnvironmentSliderRange] = {}
         missing_keys: set[str] = set()
         invalid_keys: set[str] = set()
-        invalid_messages: List[str] = []
-        section_messages: List[str] = []
+        invalid_messages: list[str] = []
+        section_messages: list[str] = []
         recorded_invalid_sections: set[str] = set()
 
         def _record_invalid_section(section: str) -> None:
@@ -153,7 +152,7 @@ class EnvironmentTab(QWidget):
             else:
                 validated[key] = parsed[key]
 
-        fallback_sources: List[Tuple[str, Any]] = [
+        fallback_sources: list[tuple[str, Any]] = [
             (
                 "metadata.environment_slider_ranges",
                 settings_manager.get("metadata.environment_slider_ranges", {}),
@@ -166,7 +165,7 @@ class EnvironmentTab(QWidget):
             ),
         ]
 
-        fallback_used: Dict[str, List[str]] = {}
+        fallback_used: dict[str, list[str]] = {}
         for key in sorted(missing_keys | invalid_keys):
             for source_name, payload in fallback_sources:
                 parsed = _try_parse_range(source_name, payload, key)
@@ -183,7 +182,7 @@ class EnvironmentTab(QWidget):
             for key, default in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
         }
 
-        notifications: List[str] = []
+        notifications: list[str] = []
         notifications.extend(section_messages)
         for source_name, keys in fallback_used.items():
             notifications.append(
@@ -223,7 +222,7 @@ class EnvironmentTab(QWidget):
             unit=unit,
         )
 
-    def _notify_range_warning(self, messages: List[str]) -> None:
+    def _notify_range_warning(self, messages: list[str]) -> None:
         unique_messages = [msg for msg in messages if msg]
         if not unique_messages:
             return
@@ -474,7 +473,7 @@ class EnvironmentTab(QWidget):
 
         return group
 
-    def _discover_hdr_files(self) -> List[Tuple[str, str]]:
+    def _discover_hdr_files(self) -> list[tuple[str, str]]:
         """Discover HDR assets relative to the project root."""
 
         project_root = Path(__file__).resolve().parents[4]
@@ -739,7 +738,7 @@ class EnvironmentTab(QWidget):
             raise KeyError(f"Control '{key}' is not registered")
         return control
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Получить текущее состояние всех параметров окружения"""
         raw_state = {
             "background_mode": self._require_control("background.mode").currentData(),
@@ -798,7 +797,7 @@ class EnvironmentTab(QWidget):
         }
         return validate_environment_settings(raw_state)
 
-    def set_state(self, state: Dict[str, Any]):
+    def set_state(self, state: dict[str, Any]):
         """Установить состояние из словаря"""
         validated = validate_environment_settings(state)
         self._updating_ui = True
@@ -904,7 +903,7 @@ class EnvironmentTab(QWidget):
             self._updating_ui = False
         self._update_ibl_dependency_states()
 
-    def get_controls(self) -> Dict[str, Any]:
+    def get_controls(self) -> dict[str, Any]:
         return self._controls
 
     def set_updating_ui(self, updating: bool) -> None:

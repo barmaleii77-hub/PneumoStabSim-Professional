@@ -20,7 +20,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, Iterable, Iterator, List, Mapping, Sequence
+from typing import Any, List
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SCHEMA_PATH = REPO_ROOT / "config" / "schemas" / "app_settings.schema.json"
@@ -36,7 +37,7 @@ class SettingRow:
     module: str
     default: Any
     validation: str
-    ui_bindings: List[str]
+    ui_bindings: list[str]
 
     def formatted_default(self) -> str:
         text = json.dumps(self.default, ensure_ascii=False)

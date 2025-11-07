@@ -1177,7 +1177,7 @@ class MainWindow(QMainWindow):
             return
         settings.setValue(self.SETTINGS_LAST_PRESET, str(Path(file_path).parent))
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 preset = json.load(f)
             if self.geometry_panel and "geometry" in preset:
                 self.geometry_panel.set_parameters(preset["geometry"])

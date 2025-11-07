@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 🔍 ПОЛНАЯ ТРАССИРОВКА ГРАФИЧЕСКИХ ПАРАМЕТРОВ ДО CANVAS
 Проверяем ВЕСЬ ПУТЬ: Python → QML → ExtendedSceneEnvironment → Canvas Rendering

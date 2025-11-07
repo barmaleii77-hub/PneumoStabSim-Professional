@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Быстрый тест запуска приложения в headless-окружении."""
 
 from __future__ import annotations

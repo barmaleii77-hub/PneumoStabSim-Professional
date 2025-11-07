@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timezone
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 import numpy as np
 
@@ -297,7 +298,7 @@ class PressureScaleWidget(QWidget):
         self.update()
 
     @Slot(object)
-    def update_from_snapshot(self, snapshot: "StateSnapshot") -> None:
+    def update_from_snapshot(self, snapshot: StateSnapshot) -> None:
         """Update from simulation snapshot
 
         Args:
@@ -702,7 +703,7 @@ class TankOverlayHUD:
         self.x = x
         self.y = y
 
-    def update_from_snapshot(self, snapshot: "StateSnapshot") -> None:
+    def update_from_snapshot(self, snapshot: StateSnapshot) -> None:
         """Update from simulation snapshot
 
         Args:

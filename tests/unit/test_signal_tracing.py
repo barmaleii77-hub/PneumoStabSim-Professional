@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Unit-тесты для модуля трассировки Qt-сигналов."""
 
 from __future__ import annotations
@@ -19,7 +18,7 @@ from src.diagnostics.signal_tracing import (
 
 class _FakeSignal:
     def __init__(self) -> None:
-        self._callbacks: List[Any] = []
+        self._callbacks: list[Any] = []
 
     def connect(self, callback: Any) -> None:
         self._callbacks.append(callback)
@@ -80,7 +79,7 @@ class TestSignalTracer:
     def test_sinks_receive_records(self) -> None:
         tracer = SignalTracer()
         source = _FakeQObject("Indicator")
-        captured: List[SignalTraceRecord] = []
+        captured: list[SignalTraceRecord] = []
         tracer.register_sink(captured.append)
         tracer.attach(source, "changed")
 

@@ -11,7 +11,7 @@ import argparse
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 _ACCESSIBLE_PATTERN = re.compile(r"Accessible\\.")
 _ACCESSIBILITY_DICT_PATTERN = re.compile(r"accessibility\s*:\s*[\{(]", re.IGNORECASE)

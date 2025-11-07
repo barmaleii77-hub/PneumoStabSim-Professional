@@ -32,7 +32,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_PATH = PROJECT_ROOT / "src"
 
 
-def _check_python_version() -> Dict[str, Any]:
+def _check_python_version() -> dict[str, Any]:
     current = sys.version_info[:3]
     ok = current >= MIN_PYTHON_VERSION
     return {
@@ -48,7 +48,7 @@ def _check_python_version() -> Dict[str, Any]:
     }
 
 
-def _check_repository_layout() -> Dict[str, Any]:
+def _check_repository_layout() -> dict[str, Any]:
     if SRC_PATH.is_dir():
         status = "ok"
         message = "src directory is present"
@@ -63,13 +63,13 @@ def _check_repository_layout() -> Dict[str, Any]:
     }
 
 
-def _check_imports() -> Dict[str, Any]:
+def _check_imports() -> dict[str, Any]:
     required_modules = [
         "numpy",
         "PySide6",
         "src",
     ]
-    failures: List[str] = []
+    failures: list[str] = []
 
     sys.path.insert(0, str(PROJECT_ROOT))
     sys.path.insert(0, str(SRC_PATH))

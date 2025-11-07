@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Полная интеграция с SettingsManager без дефолтов в коде.
@@ -8,7 +7,8 @@ Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping, Optional
+from typing import Optional
+from collections.abc import Mapping
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -59,7 +59,7 @@ class GeometryPanel(QWidget):
         self._resolving_conflict = False
         self._syncing_rods = False
         self._rod_link_snapshot: tuple[float, float] | None = None
-        self._ui_ranges: dict[str, "_RangeSpec"] = {}
+        self._ui_ranges: dict[str, _RangeSpec] = {}
         self._preset_map: dict[str, GeometryPreset] = {}
         self._active_preset: str = "custom"
         self._block_preset_signal = False
@@ -669,7 +669,7 @@ class GeometryPanel(QWidget):
             ),
         }
 
-        def _cfg_value(key: str) -> Optional[float]:
+        def _cfg_value(key: str) -> float | None:
             raw = geom_cfg.get(key)
             if isinstance(raw, (int, float)):
                 return float(raw)

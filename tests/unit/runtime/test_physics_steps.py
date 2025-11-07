@@ -53,7 +53,7 @@ def _build_cylinder_geom() -> CylinderGeom:
     )
 
 
-def _build_check_valves() -> Dict[Line, Dict[str, CheckValve]]:
+def _build_check_valves() -> dict[Line, dict[str, CheckValve]]:
     base_delta = 5_000.0
     diameter = 0.008
 

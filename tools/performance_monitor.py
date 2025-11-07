@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """PneumoStabSim Performance Monitor utilities and CLI."""
 
 from __future__ import annotations
@@ -74,7 +73,7 @@ class GPUMonitor:
 
     def __init__(self) -> None:
         self.available = PYNVML_AVAILABLE
-        self._device_count: Optional[int] = None
+        self._device_count: int | None = None
 
         if not self.available:
             return
@@ -85,7 +84,7 @@ class GPUMonitor:
             self.available = False
             self._device_count = None
 
-    def collect(self) -> Optional[Dict[str, float]]:
+    def collect(self) -> dict[str, float] | None:
         if not self.available or not self._device_count:
             return None
 
@@ -130,19 +129,19 @@ class PerformanceMetrics:
 
     timestamp: float
     cpu_percent: float
-    cpu_time_user: Optional[float] = None
-    cpu_time_system: Optional[float] = None
-    cpu_time_total: Optional[float] = None
+    cpu_time_user: float | None = None
+    cpu_time_system: float | None = None
+    cpu_time_total: float | None = None
     memory_mb: float
     memory_percent: float
-    fps: Optional[float] = None
-    frame_time_ms: Optional[float] = None
-    gpu_utilization_percent: Optional[float] = None
-    gpu_memory_total_mb: Optional[float] = None
-    gpu_memory_used_mb: Optional[float] = None
-    gpu_memory_free_mb: Optional[float] = None
-    qt_objects_count: Optional[int] = None
-    profiler_overlay_enabled: Optional[bool] = None
+    fps: float | None = None
+    frame_time_ms: float | None = None
+    gpu_utilization_percent: float | None = None
+    gpu_memory_total_mb: float | None = None
+    gpu_memory_used_mb: float | None = None
+    gpu_memory_free_mb: float | None = None
+    qt_objects_count: int | None = None
+    profiler_overlay_enabled: bool | None = None
 
 
 @dataclass
@@ -156,7 +155,7 @@ class ScenarioArtifacts:
 class PerformanceMonitor:
     """Монитор производительности для PneumoStabSim"""
 
-    def __init__(self, pid: Optional[int] = None):
+    def __init__(self, pid: int | None = None):
         if not PSUTIL_AVAILABLE:
             print("[PERF] Performance monitoring disabled (psutil not available)")
             self.process = None
@@ -165,12 +164,12 @@ class PerformanceMonitor:
             self.pid = pid or psutil.Process().pid
             self.process = psutil.Process(self.pid)
 
-        self.metrics: List[PerformanceMetrics] = []
+        self.metrics: list[PerformanceMetrics] = []
         self.monitoring = False
-        self.monitor_thread: Optional[threading.Thread] = None
+        self.monitor_thread: threading.Thread | None = None
 
         # FPS счетчик
-        self._frame_times: List[float] = []
+        self._frame_times: list[float] = []
         self._last_frame_time = time.time()
         self._gpu_monitor = GPUMonitor()
 
@@ -228,7 +227,7 @@ class PerformanceMonitor:
 
                 try:
                     overlay_snapshot = load_profiler_overlay_state()
-                    overlay_enabled: Optional[bool] = overlay_snapshot.overlay_enabled
+                    overlay_enabled: bool | None = overlay_snapshot.overlay_enabled
                 except Exception as overlay_exc:  # pragma: no cover - defensive logging
                     LOGGER.debug(
                         "Unable to load profiler overlay state: %s", overlay_exc
@@ -286,7 +285,7 @@ class PerformanceMonitor:
         if len(self._frame_times) > 60:  # Последние 60 кадров
             self._frame_times = self._frame_times[-30:]
 
-    def _calculate_fps(self) -> Optional[float]:
+    def _calculate_fps(self) -> float | None:
         """Вычислить FPS на основе записанных времен кадров"""
         if len(self._frame_times) < 5:
             return None
@@ -296,7 +295,7 @@ class PerformanceMonitor:
             return 1.0 / avg_frame_time
         return None
 
-    def _calculate_frame_time(self) -> Optional[float]:
+    def _calculate_frame_time(self) -> float | None:
         """Вычислить среднее время кадра в миллисекундах"""
         if len(self._frame_times) < 5:
             return None
@@ -304,26 +303,26 @@ class PerformanceMonitor:
         avg_frame_time = sum(self._frame_times[-10:]) / min(10, len(self._frame_times))
         return avg_frame_time * 1000  # Конвертируем в миллисекунды
 
-    def get_current_metrics(self) -> Optional[PerformanceMetrics]:
+    def get_current_metrics(self) -> PerformanceMetrics | None:
         """Получить текущие метрики"""
         if not self.metrics:
             return None
         return self.metrics[-1]
 
-    def get_average_metrics(self, last_n: int = 10) -> Dict[str, float]:
+    def get_average_metrics(self, last_n: int = 10) -> dict[str, float]:
         """Получить средние метрики за последние N записей"""
         if not self.metrics:
             return {}
 
         recent_metrics = self.metrics[-last_n:]
 
-        def _average_optional(values: List[Optional[float]]) -> Optional[float]:
+        def _average_optional(values: list[float | None]) -> float | None:
             valid = [value for value in values if value is not None]
             if not valid:
                 return None
             return sum(valid) / len(valid)
 
-        averages: Dict[str, Optional[float]] = {
+        averages: dict[str, float | None] = {
             "avg_cpu_percent": sum(m.cpu_percent for m in recent_metrics)
             / len(recent_metrics),
             "avg_memory_mb": sum(m.memory_mb for m in recent_metrics)
@@ -499,7 +498,7 @@ class PerformanceMonitor:
 
 
 # Глобальный монитор производительности
-_global_monitor: Optional[PerformanceMonitor] = None
+_global_monitor: PerformanceMonitor | None = None
 
 
 def start_global_monitoring():
@@ -534,7 +533,7 @@ def print_performance_status():
         print("[PERF] Мониторинг не запущен")
 
 
-def _write_html_report(json_path: Path, html_path: Optional[Path] = None) -> Path:
+def _write_html_report(json_path: Path, html_path: Path | None = None) -> Path:
     """Generate a lightweight HTML report next to the JSON artefact."""
 
     json_path = Path(json_path)
@@ -617,7 +616,7 @@ def _run_phase3_scenario(
     *,
     duration: float,
     interval: float,
-    html_output: Optional[Path] = None,
+    html_output: Path | None = None,
 ) -> ScenarioArtifacts:
     """Capture profiler overlay information for the phase 3 UI scenario."""
 
@@ -713,7 +712,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = _build_argument_parser()
     args = parser.parse_args(argv)
 

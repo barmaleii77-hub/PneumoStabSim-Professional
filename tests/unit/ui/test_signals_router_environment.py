@@ -16,32 +16,32 @@ from src.ui.main_window_pkg import signals_router
 
 
 class _StubBridge:
-    calls: List[Tuple[str, Dict[str, Any]]] = []
-    queue_calls: List[Tuple[str, Dict[str, Any]]] = []
-    logs: List[Tuple[str, Dict[str, Any], bool]] = []
+    calls: list[tuple[str, dict[str, Any]]] = []
+    queue_calls: list[tuple[str, dict[str, Any]]] = []
+    logs: list[tuple[str, dict[str, Any], bool]] = []
     invoke_result: bool = True
 
     @staticmethod
-    def invoke_qml_function(window, name: str, payload: Dict[str, Any]) -> bool:
+    def invoke_qml_function(window, name: str, payload: dict[str, Any]) -> bool:
         _StubBridge.calls.append((name, dict(payload)))
         return _StubBridge.invoke_result
 
     @staticmethod
-    def queue_update(_window, category: str, payload: Dict[str, Any]) -> None:
+    def queue_update(_window, category: str, payload: dict[str, Any]) -> None:
         if not payload:
             return
         _StubBridge.queue_calls.append((category, dict(payload)))
 
     @staticmethod
     def _log_graphics_change(
-        window, category: str, payload: Dict[str, Any], applied: bool
+        window, category: str, payload: dict[str, Any], applied: bool
     ) -> None:
         _StubBridge.logs.append((category, dict(payload), applied))
 
 
 class _StubLogger:
     def __init__(self) -> None:
-        self.records: List[Tuple[str, Tuple[Any, ...]]] = []
+        self.records: list[tuple[str, tuple[Any, ...]]] = []
 
     def warning(
         self, message: str, *args: Any, **kwargs: Any
@@ -58,12 +58,12 @@ class _StubLogger:
 class _StubWindow:
     def __init__(self) -> None:
         self.logger = _StubLogger()
-        self.saved_updates: List[Tuple[str, Dict[str, Any]]] = []
+        self.saved_updates: list[tuple[str, dict[str, Any]]] = []
 
     def normalizeHdrPath(self, value: str) -> str:
         return value.replace("\\", "/")
 
-    def _apply_settings_update(self, key: str, params: Dict[str, Any]) -> None:
+    def _apply_settings_update(self, key: str, params: dict[str, Any]) -> None:
         self.saved_updates.append((key, dict(params)))
 
 
@@ -78,7 +78,7 @@ def _patch_qml_bridge(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_handle_environment_changed_normalises_hdr_path() -> None:
     window = _StubWindow()
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "iblSource": "assets\\hdr\\studio.hdr",
         "ibl_enabled": True,
     }
@@ -104,7 +104,7 @@ def test_handle_environment_changed_normalises_hdr_path() -> None:
 
 def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -> None:
     window = _StubWindow()
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "ibl_source": "assets/hdr/canonical.hdr",
         "iblSource": "assets/hdr/legacy.hdr",
         "ibl_enabled": False,
@@ -126,7 +126,7 @@ def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -
 
 def test_handle_environment_changed_supports_nested_sections() -> None:
     window = _StubWindow()
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "background": {"mode": "color", "color": "#445566", "skybox_enabled": False},
         "ibl": {"enabled": True, "intensity": 1.25, "source": "assets/hdr/nested.hdr"},
         "fog": {"enabled": True, "density": 0.42},
@@ -163,7 +163,7 @@ def test_handle_environment_changed_supports_nested_sections() -> None:
 
 def test_environment_change_invoke_failure_queues_payload() -> None:
     window = _StubWindow()
-    params: Dict[str, Any] = {"iblSource": "assets\\hdr\\queued.hdr"}
+    params: dict[str, Any] = {"iblSource": "assets\\hdr\\queued.hdr"}
 
     _StubBridge.invoke_result = False
     try:
@@ -187,7 +187,7 @@ def test_environment_change_invoke_failure_queues_payload() -> None:
 
 def test_handle_preset_applied_normalizes_environment_section() -> None:
     window = _StubWindow()
-    full_state: Dict[str, Any] = {
+    full_state: dict[str, Any] = {
         "environment": {
             "iblSource": " assets\\hdr\\preset.hdr ",
             "ibl_enabled": True,
@@ -222,7 +222,7 @@ def test_handle_preset_applied_normalizes_environment_section() -> None:
 
 def test_handle_environment_changed_skips_duplicate_payloads() -> None:
     window = _StubWindow()
-    base_params: Dict[str, Any] = {"iblSource": "assets/hdr/unique.hdr"}
+    base_params: dict[str, Any] = {"iblSource": "assets/hdr/unique.hdr"}
 
     signals_router.SignalsRouter.handle_environment_changed(window, dict(base_params))
     initial_invoke_calls = len(_StubBridge.calls)
@@ -235,7 +235,7 @@ def test_handle_environment_changed_skips_duplicate_payloads() -> None:
 
 def test_handle_environment_changed_skips_duplicate_queued_payloads() -> None:
     window = _StubWindow()
-    base_params: Dict[str, Any] = {"iblSource": "assets\\hdr\\dedupe.hdr"}
+    base_params: dict[str, Any] = {"iblSource": "assets\\hdr\\dedupe.hdr"}
 
     _StubBridge.invoke_result = False
     try:

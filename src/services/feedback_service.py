@@ -13,7 +13,8 @@ import json
 import threading
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, MutableMapping, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import MutableMapping
 
 _DEFAULT_STORAGE_DIR = Path(__file__).resolve().parents[2] / "reports" / "feedback"
 
@@ -26,10 +27,10 @@ class FeedbackPayload:
     description: str
     category: str
     severity: str
-    contact: Optional[str] = None
+    contact: str | None = None
     metadata: MutableMapping[str, Any] = field(default_factory=dict)
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         """Return a serialisable representation of the payload."""
 
         payload = {
@@ -41,7 +42,7 @@ class FeedbackPayload:
         if self.contact:
             payload["contact"] = self.contact.strip()
 
-        metadata: Dict[str, Any] = {}
+        metadata: dict[str, Any] = {}
         for key, value in (self.metadata or {}).items():
             if not key:
                 continue
@@ -65,7 +66,7 @@ class FeedbackSubmissionResult:
     created_at: datetime
     storage_path: Path
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "submission_id": self.submission_id,
             "created_at": self.created_at.isoformat(),
@@ -84,7 +85,7 @@ class FeedbackService:
     SUMMARY_JSON_FILENAME = _SUMMARY_JSON
     SUMMARY_MARKDOWN_FILENAME = _SUMMARY_MARKDOWN
 
-    def __init__(self, storage_dir: Optional[Path] = None) -> None:
+    def __init__(self, storage_dir: Path | None = None) -> None:
         self.storage_dir = Path(storage_dir or _DEFAULT_STORAGE_DIR)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
@@ -139,7 +140,7 @@ class FeedbackService:
             "severity": {},
         }
 
-        newest_at: Optional[datetime] = None
+        newest_at: datetime | None = None
 
         for entry in entries:
             category = entry.get("category", "unspecified") or "unspecified"
@@ -173,12 +174,12 @@ class FeedbackService:
         with markdown_path.open("w", encoding="utf-8") as handle:
             handle.write("\n".join(markdown_lines) + "\n")
 
-    def _iter_entries(self) -> List[Dict[str, Any]]:
+    def _iter_entries(self) -> list[dict[str, Any]]:
         inbox_path = self.storage_dir / self._INBOX_FILE
         if not inbox_path.exists():
             return []
 
-        entries: List[Dict[str, Any]] = []
+        entries: list[dict[str, Any]] = []
         with inbox_path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 raw = line.strip()
@@ -192,7 +193,7 @@ class FeedbackService:
         return entries
 
     @staticmethod
-    def _build_markdown_summary(summary: Dict[str, Any]) -> List[str]:
+    def _build_markdown_summary(summary: dict[str, Any]) -> list[str]:
         totals = summary.get("totals", {}) or {}
         categories = totals.get("categories", {}) or {}
         severity = totals.get("severity", {}) or {}
@@ -205,7 +206,7 @@ class FeedbackService:
         lines.append(f"**Total reports:** {totals.get('reports', 0)}")
         lines.append("")
 
-        def _emit_table(title: str, mapping: Dict[str, Any]) -> None:
+        def _emit_table(title: str, mapping: dict[str, Any]) -> None:
             lines.append(f"## {title}")
             if not mapping:
                 lines.append("Нет данных")

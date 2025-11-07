@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 
 from src.diagnostics.logger_factory import get_logger
 from src.services import BackupService, discover_user_data_sources

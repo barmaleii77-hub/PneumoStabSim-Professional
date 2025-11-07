@@ -67,10 +67,10 @@ class UISetup:
     _POST_DIAG_ENV = "PSS_POST_DIAG_TRACE"
 
     @staticmethod
-    def _build_effect_shader_manifest() -> Dict[str, Dict[str, Any]]:
+    def _build_effect_shader_manifest() -> dict[str, dict[str, Any]]:
         """Return a manifest of effect shader files available on disk."""
 
-        manifest: Dict[str, Dict[str, Any]] = {}
+        manifest: dict[str, dict[str, Any]] = {}
 
         for directory in EFFECT_SHADER_DIRS:
             try:
@@ -135,7 +135,7 @@ class UISetup:
     @staticmethod
     def build_qml_context_payload(
         settings_manager: Any | None,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         """Подготовить стартовые словари для QML контекста."""
 
         manager = settings_manager
@@ -157,7 +157,7 @@ class UISetup:
                 "SettingsManager не был инициализирован. Остановлена загрузка QML."
             )
 
-        def _serialize(section: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        def _serialize(section: str, payload: dict[str, Any]) -> dict[str, Any]:
             try:
                 return json.loads(json.dumps(payload))
             except (TypeError, ValueError) as exc:
@@ -173,7 +173,7 @@ class UISetup:
                     f"Настройки {section} содержат неподдерживаемые данные"
                 ) from exc
 
-        def _read_section(name: str) -> Dict[str, Any]:
+        def _read_section(name: str) -> dict[str, Any]:
             path = name if name == "animation" else f"graphics.{name}"
             try:
                 data = manager.get(path, None)
@@ -186,7 +186,7 @@ class UISetup:
                 raise RuntimeError(f"Настройки {path} отсутствуют или повреждены")
             return _serialize(path, data)
 
-        def _read_geometry() -> Dict[str, Any]:
+        def _read_geometry() -> dict[str, Any]:
             try:
                 payload = manager.get_category("geometry") or {}
             except Exception as exc:
@@ -200,7 +200,7 @@ class UISetup:
 
             return _serialize("geometry", payload)
 
-        def _read_diagnostics() -> Dict[str, Any]:
+        def _read_diagnostics() -> dict[str, Any]:
             try:
                 payload = manager.get("diagnostics", {}) or {}
             except Exception as exc:
@@ -225,7 +225,7 @@ class UISetup:
         simulation_payload = manager.get_category("simulation") or {}
         cylinder_payload = manager.get("current.constants.geometry.cylinder", {}) or {}
 
-        def _serialize_mapping(section: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        def _serialize_mapping(section: str, payload: dict[str, Any]) -> dict[str, Any]:
             if not payload:
                 return {}
             return _serialize(section, payload)
@@ -238,7 +238,7 @@ class UISetup:
                 collapsed = collapsed.replace("__", "_")
             return collapsed.strip("_") or f"preset_{index}"
 
-        preset_entries: list[Dict[str, Any]] = []
+        preset_entries: list[dict[str, Any]] = []
         for preset_index, preset_payload in MODE_PRESETS.items():
             entry = {key: value for key, value in preset_payload.items()}
             entry["index"] = int(preset_index)
@@ -256,7 +256,7 @@ class UISetup:
             "parameterRanges": _serialize("modes.parameter_ranges", PARAMETER_RANGES),
         }
 
-        composed_scene: Dict[str, Any] = dict(scene_payload)
+        composed_scene: dict[str, Any] = dict(scene_payload)
         composed_scene.update(
             {
                 "materials": materials_payload,

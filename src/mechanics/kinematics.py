@@ -309,7 +309,7 @@ class InterferenceChecker:
 
     def check_lever_cylinder_interference(
         self, lever_state: LeverState, cylinder_state: CylinderState
-    ) -> Tuple[bool, float]:
+    ) -> tuple[bool, float]:
         """Check if lever and cylinder interfere
 
         Args:

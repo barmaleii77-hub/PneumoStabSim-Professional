@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Cleanup Old QML Blocks
 Удаляет старые inline материалы и источники света после успешной интеграции модулей
@@ -146,7 +145,7 @@ def main():
     backup_path = create_backup(main_qml)
 
     # Прочитать файл
-    with open(main_qml, "r", encoding="utf-8") as f:
+    with open(main_qml, encoding="utf-8") as f:
         content = f.read()
 
     original_lines = len(content.split("\n"))

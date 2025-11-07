@@ -20,7 +20,8 @@ import tempfile
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Mapping, Sequence
+from typing import List
+from collections.abc import Iterable, Mapping, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
@@ -88,7 +89,7 @@ class ShaderFile:
         return classify_shader(self.path)[0]
 
 
-ValidationErrors = List[str]
+ValidationErrors = list[str]
 
 QSB_ENV_VARIABLE = "QSB_COMMAND"
 
@@ -201,7 +202,7 @@ def _summarize_environment_failure(
         )
 
     if exit_code == 127:
-        quoted = " ".join(shlex.quote(part) for part in command)
+        quoted = shlex.join(command)
         return (
             "Qt Shader Baker exited with status 127. Ensure the 'qsb' executable is "
             "installed (Qt Shader Tools) or set QSB_COMMAND to its absolute path. "
@@ -613,7 +614,7 @@ def _run_qsb(
     stderr = completed.stderr or ""
 
     if log_path is not None:
-        log_contents = ["$ " + " ".join(shlex.quote(arg) for arg in command)]
+        log_contents = ["$ " + shlex.join(command)]
         if stdout:
             log_contents.append("[stdout]\n" + stdout)
         if stderr:

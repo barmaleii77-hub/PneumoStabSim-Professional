@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Cleanup Script - Remove Duplicate Defaults
 Скрипт очистки дубликатов дефолтов из кода
@@ -88,7 +87,7 @@ class DuplicatesCleanup:
             self.log_error(f"Ошибка проверки Git: {e}")
             return False
 
-    def search_imports(self, file_path: str) -> List[str]:
+    def search_imports(self, file_path: str) -> list[str]:
         """Найти все импорты удаляемого модуля"""
         module_name = file_path.replace("/", ".").replace("\\", ".").replace(".py", "")
 
@@ -143,7 +142,7 @@ class DuplicatesCleanup:
             return False
 
         try:
-            with open(self.settings_file, "r", encoding="utf-8") as f:
+            with open(self.settings_file, encoding="utf-8") as f:
                 settings = json.load(f)
 
             # Проверка структуры

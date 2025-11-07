@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Parameter Slider Widget - Slider with range controls
 Combines slider, spinbox, and min/max range inputs

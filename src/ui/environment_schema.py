@@ -7,7 +7,8 @@ from dataclasses import dataclass
 import math
 import re
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Mapping, Sequence, Tuple
+from typing import Any, Dict, Tuple
+from collections.abc import Mapping, Sequence
 
 
 class EnvironmentValidationError(ValueError):
@@ -32,7 +33,7 @@ class EnvironmentSliderRange:
     maximum: float
     step: float
 
-    def as_tuple(self) -> Tuple[float, float, float]:
+    def as_tuple(self) -> tuple[float, float, float]:
         return (self.minimum, self.maximum, self.step)
 
 
@@ -109,7 +110,7 @@ def _coerce_string(defn: EnvironmentParameterDefinition, value: Any) -> Any:
     return value
 
 
-ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
+ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "background_mode",
         "string",
@@ -201,7 +202,7 @@ ENVIRONMENT_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
-ENVIRONMENT_SLIDER_RANGE_DEFAULTS: Dict[str, EnvironmentSliderRange] = {
+ENVIRONMENT_SLIDER_RANGE_DEFAULTS: dict[str, EnvironmentSliderRange] = {
     "ibl_intensity": EnvironmentSliderRange("ibl_intensity", 0.0, 8.0, 0.05),
     "skybox_brightness": EnvironmentSliderRange("skybox_brightness", 0.0, 8.0, 0.05),
     "probe_horizon": EnvironmentSliderRange("probe_horizon", -1.0, 1.0, 0.01),
@@ -228,11 +229,11 @@ ENVIRONMENT_SLIDER_RANGE_DEFAULTS: Dict[str, EnvironmentSliderRange] = {
     "ao_softness": EnvironmentSliderRange("ao_softness", 0.0, 50.0, 1.0),
 }
 
-ENVIRONMENT_SLIDER_RANGE_KEYS: Tuple[str, ...] = tuple(
+ENVIRONMENT_SLIDER_RANGE_KEYS: tuple[str, ...] = tuple(
     ENVIRONMENT_SLIDER_RANGE_DEFAULTS.keys()
 )
 
-SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
+SCENE_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "scale_factor", "float", min_value=0.01, max_value=1000.0
     ),
@@ -247,7 +248,7 @@ SCENE_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
-ANIMATION_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
+ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition("is_running", "bool"),
     EnvironmentParameterDefinition(
         "amplitude", "float", min_value=0.0, max_value=180.0
@@ -256,7 +257,7 @@ ANIMATION_PARAMETERS: Tuple[EnvironmentParameterDefinition, ...] = (
 )
 
 ENVIRONMENT_REQUIRED_KEYS = frozenset(defn.key for defn in ENVIRONMENT_PARAMETERS)
-ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
+ENVIRONMENT_CONTEXT_PROPERTIES: dict[str, str] = {
     "background_mode": "startBackgroundMode",
     "background_color": "startBackgroundColor",
     "skybox_enabled": "startSkyboxEnabled",
@@ -296,7 +297,7 @@ ENVIRONMENT_CONTEXT_PROPERTIES: Dict[str, str] = {
 
 
 _CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
-_ENVIRONMENT_KEY_ALIASES: Dict[str, str] = {
+_ENVIRONMENT_KEY_ALIASES: dict[str, str] = {
     "ibl_background_enabled": "skybox_enabled",
     "iblbackgroundenabled": "skybox_enabled",
 }
@@ -379,7 +380,7 @@ def validate_environment_slider_ranges(
     *,
     required_keys: Sequence[str] | None = None,
     raise_on_missing: bool = True,
-) -> Tuple[Dict[str, EnvironmentSliderRange], Tuple[str, ...]]:
+) -> tuple[dict[str, EnvironmentSliderRange], tuple[str, ...]]:
     if not isinstance(ranges, Mapping):
         raise EnvironmentValidationError("environment slider ranges must be a mapping")
 
@@ -389,11 +390,11 @@ def validate_environment_slider_ranges(
             "Unexpected environment slider range keys: " + ", ".join(unexpected)
         )
 
-    validated: Dict[str, EnvironmentSliderRange] = {}
+    validated: dict[str, EnvironmentSliderRange] = {}
     for key, payload in ranges.items():
         validated[key] = _parse_slider_range(key, payload)
 
-    required: Tuple[str, ...]
+    required: tuple[str, ...]
     if required_keys is None:
         required = ENVIRONMENT_SLIDER_RANGE_KEYS
     else:
@@ -409,14 +410,14 @@ def validate_environment_slider_ranges(
 
 
 def _validate_section(
-    payload: Dict[str, Any],
+    payload: dict[str, Any],
     definitions: Sequence[EnvironmentParameterDefinition],
     section_name: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise EnvironmentValidationError(f"{section_name} settings must be a dict")
 
-    normalized: Dict[str, Any] = {}
+    normalized: dict[str, Any] = {}
     seen: set[str] = set()
     for defn in definitions:
         if defn.key not in payload:
@@ -480,11 +481,11 @@ def _normalise_path_value(value: Any) -> str:
     return collapsed
 
 
-def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
+def _prepare_environment_payload(settings: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(settings, dict):
         raise EnvironmentValidationError("environment settings must be a dict")
 
-    normalised: Dict[str, Any] = {}
+    normalised: dict[str, Any] = {}
     for raw_key, value in dict(settings).items():
         key = _normalise_environment_key(raw_key)
         if key in normalised and key != raw_key:
@@ -510,23 +511,23 @@ def _prepare_environment_payload(settings: Dict[str, Any]) -> Dict[str, Any]:
     return payload
 
 
-def validate_environment_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+def validate_environment_settings(settings: dict[str, Any]) -> dict[str, Any]:
     payload = _prepare_environment_payload(settings)
     return _validate_section(payload, ENVIRONMENT_PARAMETERS, "environment")
 
 
-def validate_scene_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+def validate_scene_settings(settings: dict[str, Any]) -> dict[str, Any]:
     return _validate_section(settings, SCENE_PARAMETERS, "scene")
 
 
-def validate_animation_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+def validate_animation_settings(settings: dict[str, Any]) -> dict[str, Any]:
     return _validate_section(settings, ANIMATION_PARAMETERS, "animation")
 
 
 def _build_payload(
     definitions: Sequence[EnvironmentParameterDefinition],
-) -> Dict[str, Any]:
-    payload: Dict[str, Any] = {}
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
     for defn in definitions:
         if defn.value_type == "bool":
             payload[defn.key] = True

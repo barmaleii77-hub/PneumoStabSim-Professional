@@ -21,7 +21,8 @@ import dis
 import inspect
 from functools import lru_cache
 from types import CodeType, FrameType
-from typing import Optional, Sequence
+from typing import Optional
+from collections.abc import Sequence
 
 _INSPECT_UNWRAP_CALLERS = frozenset({"unwrap", "get_annotations"})
 
@@ -40,7 +41,7 @@ _SKIPPED_OPNAMES: frozenset[str] = frozenset(
 
 
 @lru_cache(maxsize=None)
-def _global_called_at(code: CodeType, offset: int) -> Optional[str]:
+def _global_called_at(code: CodeType, offset: int) -> str | None:
     """Return the global function name invoked at ``offset`` in ``code``.
 
     The CPython bytecode sequence for ``hasattr(x, "y")`` (3.12+/3.13) loads

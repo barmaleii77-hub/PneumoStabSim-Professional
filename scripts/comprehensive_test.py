@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Comprehensive test runner for PneumoStabSim Professional.
 
@@ -21,7 +20,7 @@ class ProjectTester:
 
     def __init__(self):
         self.project_root = Path(__file__).parent.parent
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
             "tests": {},
             "summary": {"passed": 0, "failed": 0, "warnings": 0},
@@ -48,8 +47,8 @@ class ProjectTester:
         self.logger.info(f"Test session started - Log file: {log_file}")
 
     def run_command(
-        self, command: List[str], cwd: Optional[Path] = None, timeout: int = 60
-    ) -> Dict[str, Any]:
+        self, command: list[str], cwd: Optional[Path] = None, timeout: int = 60
+    ) -> dict[str, Any]:
         """Run a command and capture output"""
         cwd = cwd or self.project_root
 
@@ -263,7 +262,7 @@ except Exception as e:
 
         for py_file in python_files:
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     compile(f.read(), str(py_file), "exec")
             except SyntaxError as e:
                 syntax_errors.append(f"{py_file}: {e}")
@@ -309,7 +308,7 @@ except Exception as e:
             config_path = self.project_root / config_file
             if config_path.exists():
                 try:
-                    with open(config_path, "r", encoding="utf-8") as f:
+                    with open(config_path, encoding="utf-8") as f:
                         json.load(f)
                 except json.JSONDecodeError as e:
                     config_errors.append(f"{config_file}: {e}")

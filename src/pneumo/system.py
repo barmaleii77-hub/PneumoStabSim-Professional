@@ -17,8 +17,8 @@ from src.common.errors import ConnectionError
 class PneumaticSystem:
     """Complete pneumatic stabilizer system"""
 
-    cylinders: Dict[Wheel, CylinderState]  # One cylinder per wheel
-    lines: Dict[Line, PneumoLine]  # Four diagonal pneumatic lines
+    cylinders: dict[Wheel, CylinderState]  # One cylinder per wheel
+    lines: dict[Line, PneumoLine]  # Four diagonal pneumatic lines
     receiver: ReceiverState  # Pressure tank
     master_isolation_open: bool = False  # Master isolation valve state
 
@@ -81,7 +81,7 @@ class PneumaticSystem:
             raise ConnectionError(f"No cylinder found for wheel {wheel.value}")
         return self.cylinders[wheel]
 
-    def get_connected_cylinders(self, line_name: Line) -> List[tuple]:
+    def get_connected_cylinders(self, line_name: Line) -> list[tuple]:
         """Get cylinders connected by a specific line
 
         Returns:
@@ -99,7 +99,7 @@ class PneumaticSystem:
 
         return connected
 
-    def update_system_from_lever_angles(self, angles: Dict[Wheel, float]):
+    def update_system_from_lever_angles(self, angles: dict[Wheel, float]):
         """Update all cylinder positions from lever angles
 
         Args:
@@ -113,7 +113,7 @@ class PneumaticSystem:
             if wheel in self.cylinders:
                 self.cylinders[wheel].update_from_lever_angle(angle)
 
-    def get_line_volumes(self) -> Dict[Line, Dict[str, float]]:
+    def get_line_volumes(self) -> dict[Line, dict[str, float]]:
         """Calculate current volumes for all line connections
 
         Returns:
@@ -188,8 +188,8 @@ class PneumaticSystem:
 
 
 def create_standard_diagonal_system(
-    cylinder_specs: Dict[Wheel, CylinderSpec],
-    line_configs: Dict[Line, dict],
+    cylinder_specs: dict[Wheel, CylinderSpec],
+    line_configs: dict[Line, dict],
     receiver: ReceiverState,
     master_isolation_open: bool = False,
 ) -> PneumaticSystem:

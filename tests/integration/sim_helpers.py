@@ -9,7 +9,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterator, Mapping
+from typing import Dict
+from collections.abc import Iterator, Mapping
 
 from config.constants import get_pneumo_gas_constants
 from src.app.config_defaults import create_default_system_configuration
@@ -42,13 +43,13 @@ class SimulationContext:
     network: object
     road_input: RoadInput
 
-    def snapshot_pressures(self) -> Dict[str, float]:
+    def snapshot_pressures(self) -> dict[str, float]:
         """Return current line pressures keyed by line name."""
 
         lines = self.network.lines
         return {line.name: float(state.p) for line, state in lines.items()}
 
-    def snapshot_volumes(self) -> Dict[str, float]:
+    def snapshot_volumes(self) -> dict[str, float]:
         """Return current line volumes keyed by line name."""
 
         volumes = self.network.compute_line_volumes()
@@ -132,7 +133,7 @@ def apply_body_roll(
     angle_deg: float = 3.0,
     thermo_mode: ThermoMode = ThermoMode.ISOTHERMAL,
     logger: logging.Logger | None = None,
-) -> Dict[str, Mapping[str, float]]:
+) -> dict[str, Mapping[str, float]]:
     """Apply a static body roll and return pressure/volume deltas."""
 
     network = context.network
@@ -162,7 +163,7 @@ def apply_body_roll(
 
     def _delta(
         after: Mapping[str, float], before: Mapping[str, float]
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         return {key: float(after[key]) - float(before[key]) for key in before.keys()}
 
     return {
@@ -184,7 +185,7 @@ def run_oscillation_cycle(
     dt: float = 0.01,
     thermo_mode: ThermoMode = ThermoMode.ISOTHERMAL,
     logger: logging.Logger | None = None,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     """Drive the stabiliser through oscillations and record metrics."""
 
     network = context.network
@@ -192,7 +193,7 @@ def run_oscillation_cycle(
     steps = max(1, int(total_time / dt))
     angle_rad = float(amplitude_deg) * DEG2RAD
 
-    series: Dict[str, list[float]] = defaultdict(list)
+    series: dict[str, list[float]] = defaultdict(list)
     masses: list[float] = []
 
     if logger:
@@ -234,7 +235,7 @@ def run_oscillation_cycle(
     }
 
 
-def compute_road_metrics(road_input: RoadInput) -> Dict[str, object]:
+def compute_road_metrics(road_input: RoadInput) -> dict[str, object]:
     """Extract deterministic metrics from a primed road input."""
 
     info = road_input.get_info()

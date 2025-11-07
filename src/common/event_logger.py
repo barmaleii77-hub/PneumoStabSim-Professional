@@ -46,7 +46,7 @@ class EventType(Enum):
 class EventLogger:
     """Singleton логгер для отслеживания Python↔QML событий"""
 
-    _instance: Optional["EventLogger"] = None
+    _instance: EventLogger | None = None
     _initialized: bool = False
 
     def __new__(cls):
@@ -59,7 +59,7 @@ class EventLogger:
             return
 
         self.logger = logging.getLogger("EventLogger")
-        self.events: list[Dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
         self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         EventLogger._initialized = True
 
@@ -71,7 +71,7 @@ class EventLogger:
         *,
         old_value: Any = None,
         new_value: Any = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
         source: str = "python",
     ) -> None:
         """
@@ -171,7 +171,7 @@ class EventLogger:
             new_value=new_value,
         )
 
-    def log_signal_emit(self, signal_name: str, payload: Dict[str, Any]) -> None:
+    def log_signal_emit(self, signal_name: str, payload: dict[str, Any]) -> None:
         """Логирование вызова .emit()"""
         self.log_event(
             EventType.SIGNAL_EMIT,
@@ -180,7 +180,7 @@ class EventLogger:
             new_value=payload,
         )
 
-    def log_qml_invoke(self, function_name: str, arguments: Dict[str, Any]) -> None:
+    def log_qml_invoke(self, function_name: str, arguments: dict[str, Any]) -> None:
         """Логирование QMetaObject.invokeMethod"""
         self.log_event(
             EventType.QML_INVOKE,
@@ -202,7 +202,7 @@ class EventLogger:
         self,
         function_name: str,
         qml_component: str,
-        arguments: Optional[Dict[str, Any]] = None,
+        arguments: dict[str, Any] | None = None,
     ) -> None:
         """Логирование вызова QML функции"""
         self.log_event(
@@ -279,7 +279,7 @@ class EventLogger:
         *,
         component: str,
         action: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         error: Exception,
     ) -> None:
         """Логирование отказа при обновлении QML."""
@@ -315,7 +315,7 @@ class EventLogger:
         self.logger.info(f"Events exported to: {output_file}")
         return output_file
 
-    def get_python_qml_pairs(self) -> list[Dict[str, Any]]:
+    def get_python_qml_pairs(self) -> list[dict[str, Any]]:
         """Найти пары Python→QML событий для анализа синхронизации"""
         pairs = []
 
@@ -404,7 +404,7 @@ class EventLogger:
 
         return pairs
 
-    def analyze_sync(self) -> Dict[str, Any]:
+    def analyze_sync(self) -> dict[str, Any]:
         """Анализ синхронизации Python↔QML"""
         pairs = self.get_python_qml_pairs()
 

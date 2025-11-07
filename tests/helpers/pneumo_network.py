@@ -43,7 +43,7 @@ def _default_cylinder_geometry() -> CylinderGeom:
 
 def _build_line_valves(
     delta_open: float = 5_000.0, diameter: float = 0.008
-) -> Dict[Line, Dict[str, CheckValve]]:
+) -> dict[Line, dict[str, CheckValve]]:
     def _valve(kind: CheckValveKind) -> CheckValve:
         return CheckValve(kind=kind, delta_open=delta_open, d_eq=diameter)
 
@@ -62,7 +62,7 @@ def build_default_system_and_network(
     delta_open: float = 5_000.0,
     valve_diameter: float = 0.008,
     master_equalization_diameter: float = 0.0,
-) -> Tuple[PneumaticSystem, GasNetwork]:
+) -> tuple[PneumaticSystem, GasNetwork]:
     """Construct the canonical pneumatic system and gas network for tests."""
 
     lever_geom = _default_lever_geometry()

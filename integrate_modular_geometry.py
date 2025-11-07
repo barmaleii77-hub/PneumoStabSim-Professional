@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Скрипт для интеграции модульных компонентов геометрии в main.qml
 ЗАВЕРШАЕТ РЕФАКТОРИНГ: добавляет Frame, SuspensionCorner, Lights в worldRoot

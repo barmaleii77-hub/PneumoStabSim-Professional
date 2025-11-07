@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Удаление дублирующихся 3 Model для U-рамы из main.qml
 """
@@ -18,7 +17,7 @@ def remove_duplicate_uframe():
         return False
 
     print(f"📖 Читаем {main_qml}...")
-    with open(main_qml, "r", encoding="utf-8") as f:
+    with open(main_qml, encoding="utf-8") as f:
         lines = f.readlines()
 
     print(f"📏 Исходно: {len(lines)} строк")

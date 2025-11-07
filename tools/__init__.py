@@ -18,7 +18,7 @@ _KNOWN_SUBMODULES = {
     "check_shader_logs",
 }
 
-_cache: Dict[str, ModuleType] = {}
+_cache: dict[str, ModuleType] = {}
 
 
 def __getattr__(name: str) -> ModuleType:

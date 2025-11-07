@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 CORRECT QQuick3DGeometry implementation based on DOCUMENTATION STUDY
 Using EXACT API discovered from documentation analysis

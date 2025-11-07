@@ -61,7 +61,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def find_uv(explicit: str) -> Optional[str]:
+def find_uv(explicit: str) -> str | None:
     """Locate the uv executable, respecting an explicit path if provided."""
     explicit_path = Path(explicit)
     if explicit_path.is_file() and os.access(explicit_path, os.X_OK):

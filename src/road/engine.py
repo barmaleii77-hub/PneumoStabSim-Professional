@@ -35,8 +35,8 @@ class RoadInput:
 
         # Generated profile data
         self.time_base: Optional[np.ndarray] = None
-        self.wheel_profiles: Optional[Dict[str, np.ndarray]] = None
-        self.interpolators: Optional[Dict[str, interp1d]] = None
+        self.wheel_profiles: Optional[dict[str, np.ndarray]] = None
+        self.interpolators: Optional[dict[str, interp1d]] = None
 
         # Timing parameters
         self.duration: float = 0.0
@@ -97,7 +97,7 @@ class RoadInput:
         # Create interpolators for fast lookup
         self._create_interpolators()
 
-    def get_wheel_excitation(self, t: float) -> Dict[str, float]:
+    def get_wheel_excitation(self, t: float) -> dict[str, float]:
         """Get road excitation for all wheels at given time
 
         Args:
@@ -138,7 +138,7 @@ class RoadInput:
 
     def get_profile_preview(
         self, duration: float = 10.0, dt: float = 0.01
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+    ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
         """Get preview of road profiles for plotting
 
         Args:
@@ -340,7 +340,7 @@ class RoadInput:
         }
 
     def _map_lr_to_wheels(
-        self, t: np.ndarray, profiles_dict: Dict[str, np.ndarray]
+        self, t: np.ndarray, profiles_dict: dict[str, np.ndarray]
     ) -> None:
         """Map left/right profiles to 4 wheels with axle delay"""
 
@@ -385,7 +385,7 @@ class RoadInput:
                 fill_value=0.0,  # Zero outside bounds
             )
 
-    def get_info(self) -> Dict[str, Any]:
+    def get_info(self) -> dict[str, Any]:
         """Get information about current configuration
 
         Returns:

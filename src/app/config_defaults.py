@@ -21,7 +21,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Mapping, Type, TypeVar
+from typing import Any, Dict, Type, TypeVar
+from collections.abc import Mapping
 
 from config.constants import (
     get_pneumo_gas_constants,
@@ -57,7 +58,7 @@ def _require_value(payload: Mapping[str, Any], key: str, path: str) -> Any:
 
 
 def _enum_from_config(
-    enum_cls: Type[EnumType], value: object, *, path: str
+    enum_cls: type[EnumType], value: object, *, path: str
 ) -> EnumType:
     """Return an enum value using case-insensitive lookups."""
 
@@ -116,7 +117,7 @@ def _create_default_geometry() -> tuple[FrameGeom, LeverGeom, CylinderGeom]:
     return frame, lever, cylinder
 
 
-def _create_line_valves() -> Dict[Line, dict]:
+def _create_line_valves() -> dict[Line, dict]:
     """Create check valve configuration for every pneumatic line."""
 
     valve_defaults = get_pneumo_valve_constants()
@@ -128,7 +129,7 @@ def _create_line_valves() -> Dict[Line, dict]:
     def _check_valve(kind: CheckValveKind) -> CheckValve:
         return CheckValve(kind=kind, delta_open=delta_open, d_eq=d_eq)
 
-    line_defaults: Dict[Line, dict] = {}
+    line_defaults: dict[Line, dict] = {}
     for line in (Line.A1, Line.B1, Line.A2, Line.B2):
         line_defaults[line] = {
             "cv_atmo": _check_valve(CheckValveKind.ATMO_TO_LINE),
@@ -232,7 +233,7 @@ def create_default_gas_network(system) -> GasNetwork:
     )
 
 
-def get_default_lever_angles() -> Dict[Wheel, float]:
+def get_default_lever_angles() -> dict[Wheel, float]:
     """Return zeroed lever angles for all wheels."""
 
     return {wheel: 0.0 for wheel in Wheel}

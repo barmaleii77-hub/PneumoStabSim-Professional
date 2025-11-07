@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import argparse, datetime as dt, json, os, sys, sqlite3, glob
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from collections.abc import Iterable
 
 # ---------- утилиты ----------
 
@@ -54,13 +54,13 @@ def write_msgs(md, title, source_path, conv_ts, msgs, fallback_epoch=None):
 
 # ---------- парсеры ----------
 
-def load_json_safe(p: Path) -> Optional[Dict[str, Any]]:
+def load_json_safe(p: Path) -> Optional[dict[str, Any]]:
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return None
 
-def extract_from_vscode_chatSessions(root: Path) -> List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]]:
+def extract_from_vscode_chatSessions(root: Path) -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
     """
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/chatSessions/*.json
     """
@@ -86,7 +86,7 @@ def extract_from_vscode_chatSessions(root: Path) -> List[Tuple[str, Optional[dt.
             out.append((f"{jf}", conv_ts, msgs, jf.stat().st_mtime))
     return out
 
-def extract_from_vscode_state_db(db_path: Path) -> List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]]:
+def extract_from_vscode_state_db(db_path: Path) -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
     """
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/state.vscdb -> keys:
       - 'interactive.sessions' (array)
@@ -152,10 +152,10 @@ def extract_from_vscode_state_db(db_path: Path) -> List[Tuple[str, Optional[dt.d
         pass
     return out
 
-def extract_vscode_all() -> List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]]:
+def extract_vscode_all() -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
     out = []
     # корни VS Code (Windows/macOS/Linux)
-    roots: List[Path] = []
+    roots: list[Path] = []
     home = Path.home()
     appdata = os.environ.get("APPDATA")
     if appdata:
@@ -188,7 +188,7 @@ def extract_vscode_all() -> List[Tuple[str, Optional[dt.datetime], List[Dict[str
                 out += extract_from_vscode_state_db(db)
     return out
 
-def extract_visualstudio_logs() -> List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]]:
+def extract_visualstudio_logs() -> list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]]:
     """
     Visual Studio: логи Copilot Chat в %LOCALAPPDATA%\\Temp\\**\\*VSGitHubCopilot*.chat*.log
     """
@@ -244,7 +244,7 @@ def main():
             print("Неверный формат --since. Используйте YYYY-MM-DD.")
             sys.exit(2)
 
-    collected: List[Tuple[str, Optional[dt.datetime], List[Dict[str,Any]], float]] = []
+    collected: list[tuple[str, Optional[dt.datetime], list[dict[str,Any]], float]] = []
     collected += extract_vscode_all()
     collected += extract_visualstudio_logs()
 

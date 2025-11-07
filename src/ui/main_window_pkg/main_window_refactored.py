@@ -69,7 +69,7 @@ class MainWindow(QMainWindow):
     SETTINGS_LAST_PRESET = "Presets/LastPath"
 
     # QML update methods (for QMLBridge)
-    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
+    QML_UPDATE_METHODS: dict[str, tuple[str, ...]] = {
         "geometry": ("applyGeometryUpdates", "updateGeometry"),
         "animation": (
             "applyAnimationUpdates",
@@ -204,19 +204,19 @@ class MainWindow(QMainWindow):
 
         # QML update system
         self._suppress_qml_feedback = False
-        self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
-        self._qml_method_support: Dict[tuple[str, bool], bool] = {}
+        self._qml_update_queue: dict[str, dict[str, Any]] = {}
+        self._qml_method_support: dict[tuple[str, bool], bool] = {}
         self._qml_flush_timer = QTimer()
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
-        self._qml_pending_property_supported: Optional[bool] = None
-        self._last_batched_updates: Optional[Dict[str, Any]] = None
-        self._last_camera_payload: Dict[str, Any] = {}
+        self._qml_pending_property_supported: bool | None = None
+        self._last_batched_updates: dict[str, Any] | None = None
+        self._last_camera_payload: dict[str, Any] = {}
 
         # State tracking
         from ...runtime import StateSnapshot
 
-        self.current_snapshot: Optional[StateSnapshot] = None
+        self.current_snapshot: StateSnapshot | None = None
         self.is_simulation_running = False
         self._sim_started = False
 
@@ -238,15 +238,15 @@ class MainWindow(QMainWindow):
         self.tab_widget = None
         self.main_splitter = None
         self.main_horizontal_splitter = None
-        self._qquick_widget: Optional[QQuickWidget] = None
+        self._qquick_widget: QQuickWidget | None = None
         self._qml_root_object = None
-        self._qml_base_dir: Optional[Path] = None
+        self._qml_base_dir: Path | None = None
 
         # Status bar labels (initialized by UISetup)
-        self.sim_time_label: Optional[QLabel] = None
-        self.step_count_label: Optional[QLabel] = None
-        self.fps_label: Optional[QLabel] = None
-        self.queue_label: Optional[QLabel] = None
+        self.sim_time_label: QLabel | None = None
+        self.step_count_label: QLabel | None = None
+        self.fps_label: QLabel | None = None
+        self.queue_label: QLabel | None = None
         self.status_bar = None
 
         # ====== BUILD UI ======
@@ -378,7 +378,7 @@ class MainWindow(QMainWindow):
     # Settings synchronization helpers
     # ------------------------------------------------------------------
     def _apply_settings_update(
-        self, category_path: str, updates: Dict[str, Any]
+        self, category_path: str, updates: dict[str, Any]
     ) -> None:
         """Merge updates into SettingsManager and log diffs."""
 
@@ -437,7 +437,7 @@ class MainWindow(QMainWindow):
             self.logger.error("Failed to save settings for %s: %s", category_path, exc)
 
     @staticmethod
-    def _deep_merge_dicts(target: Dict[str, Any], updates: Dict[str, Any]) -> None:
+    def _deep_merge_dicts(target: dict[str, Any], updates: dict[str, Any]) -> None:
         for key, value in updates.items():
             if isinstance(value, dict):
                 base = target.get(key)
@@ -449,9 +449,7 @@ class MainWindow(QMainWindow):
                 target[key] = copy.deepcopy(value)
 
     @staticmethod
-    def _iter_diff(
-        old: Any, new: Any, prefix: str = ""
-    ) -> "list[tuple[str, Any, Any]]":
+    def _iter_diff(old: Any, new: Any, prefix: str = "") -> list[tuple[str, Any, Any]]:
         diffs: list[tuple[str, Any, Any]] = []
         if isinstance(old, dict) and isinstance(new, dict):
             keys = set(old) | set(new)
@@ -467,7 +465,7 @@ class MainWindow(QMainWindow):
         return diffs
 
     @Slot(str, dict)
-    def applyQmlConfigChange(self, category: str, payload: Dict[str, Any]) -> None:
+    def applyQmlConfigChange(self, category: str, payload: dict[str, Any]) -> None:
         """Приём изменений конфигурации из QML."""
 
         if not isinstance(payload, dict):
@@ -496,7 +494,7 @@ class MainWindow(QMainWindow):
         """Flush queued QML updates → QMLBridge"""
         QMLBridge.flush_updates(self)
 
-    def _queue_qml_update(self, key: str, params: Dict[str, Any]) -> None:
+    def _queue_qml_update(self, key: str, params: dict[str, Any]) -> None:
         """Queue QML update → QMLBridge"""
         QMLBridge.queue_update(self, key, params)
 
@@ -635,7 +633,7 @@ class MainWindow(QMainWindow):
     # Signal Handlers (delegation to SignalsRouter)
     # ------------------------------------------------------------------
     @Slot(dict)
-    def _on_geometry_changed_qml(self, params: Dict[str, Any]) -> None:
+    def _on_geometry_changed_qml(self, params: dict[str, Any]) -> None:
         """Geometry changed → direct QML call"""
         if not isinstance(params, dict):
             return
@@ -655,37 +653,37 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage("Геометрия обновлена", 2000)
 
     @Slot(dict)
-    def _on_lighting_changed(self, params: Dict[str, Any]) -> None:
+    def _on_lighting_changed(self, params: dict[str, Any]) -> None:
         """Lighting changed → SignalsRouter"""
         SignalsRouter.handle_lighting_changed(self, params)
 
     @Slot(dict)
-    def _on_material_changed(self, params: Dict[str, Any]) -> None:
+    def _on_material_changed(self, params: dict[str, Any]) -> None:
         """Material changed → SignalsRouter"""
         SignalsRouter.handle_material_changed(self, params)
 
     @Slot(dict)
-    def _on_environment_changed(self, params: Dict[str, Any]) -> None:
+    def _on_environment_changed(self, params: dict[str, Any]) -> None:
         """Environment changed → SignalsRouter"""
         SignalsRouter.handle_environment_changed(self, params)
 
     @Slot(dict)
-    def _on_quality_changed(self, params: Dict[str, Any]) -> None:
+    def _on_quality_changed(self, params: dict[str, Any]) -> None:
         """Quality changed → SignalsRouter"""
         SignalsRouter.handle_quality_changed(self, params)
 
     @Slot(dict)
-    def _on_scene_changed(self, params: Dict[str, Any]) -> None:
+    def _on_scene_changed(self, params: dict[str, Any]) -> None:
         """Scene changed → SignalsRouter"""
         SignalsRouter.handle_scene_changed(self, params)
 
     @Slot(dict)
-    def _on_camera_changed(self, params: Dict[str, Any]) -> None:
+    def _on_camera_changed(self, params: dict[str, Any]) -> None:
         """Camera changed → SignalsRouter"""
         SignalsRouter.handle_camera_changed(self, params)
 
     @Slot(dict)
-    def _on_effects_changed(self, params: Dict[str, Any]) -> None:
+    def _on_effects_changed(self, params: dict[str, Any]) -> None:
         """Effects changed → SignalsRouter"""
         SignalsRouter.handle_effects_changed(self, params)
 
@@ -695,12 +693,12 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_animation_toggled(self, bool(running))
 
     @Slot(dict)
-    def _on_preset_applied(self, full_state: Dict[str, Any]) -> None:
+    def _on_preset_applied(self, full_state: dict[str, Any]) -> None:
         """Preset applied → SignalsRouter"""
         SignalsRouter.handle_preset_applied(self, full_state)
 
     @Slot(dict)
-    def _on_animation_changed(self, params: Dict[str, Any]) -> None:
+    def _on_animation_changed(self, params: dict[str, Any]) -> None:
         """Animation changed → SignalsRouter"""
         SignalsRouter.handle_animation_changed(self, params)
 
@@ -715,22 +713,22 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_modes_mode_changed(self, mode_type, new_mode)
 
     @Slot(dict)
-    def _on_modes_physics_changed(self, payload: Dict[str, Any]) -> None:
+    def _on_modes_physics_changed(self, payload: dict[str, Any]) -> None:
         """Modes physics toggles changed → SignalsRouter"""
         SignalsRouter.handle_modes_physics_changed(self, payload)
 
     @Slot(dict)
-    def _on_pneumatic_settings_changed(self, payload: Dict[str, Any]) -> None:
+    def _on_pneumatic_settings_changed(self, payload: dict[str, Any]) -> None:
         """Pneumatic settings changed in QML → SignalsRouter"""
         SignalsRouter.handle_pneumatic_settings_changed(self, payload)
 
     @Slot(dict)
-    def _on_simulation_settings_changed(self, payload: Dict[str, Any]) -> None:
+    def _on_simulation_settings_changed(self, payload: dict[str, Any]) -> None:
         """Core simulation settings changed in QML → SignalsRouter"""
         SignalsRouter.handle_simulation_settings_changed(self, payload)
 
     @Slot(dict)
-    def _on_cylinder_settings_changed(self, payload: Dict[str, Any]) -> None:
+    def _on_cylinder_settings_changed(self, payload: dict[str, Any]) -> None:
         """Cylinder constants changed in QML → SignalsRouter"""
         SignalsRouter.handle_cylinder_settings_changed(self, payload)
 
@@ -800,7 +798,7 @@ class MainWindow(QMainWindow):
             return raw_value
 
     @Slot(dict)
-    def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
+    def _on_qml_batch_ack(self, summary: dict[str, Any]) -> None:
         """QML batch ACK → QMLBridge"""
         QMLBridge.handle_qml_ack(self, summary)
 

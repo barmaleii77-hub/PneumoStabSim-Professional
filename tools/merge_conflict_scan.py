@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 # Standard Git conflict markers. `=======` is intentionally omitted because it
 # appears legitimately in ASCII art banners throughout the repository; we only

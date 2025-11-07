@@ -58,12 +58,12 @@ def _example_value(defn: Any) -> Any:
     raise AssertionError(f"Unsupported value type: {defn.value_type}")
 
 
-def _build_payload(definitions) -> Dict[str, Any]:
+def _build_payload(definitions) -> dict[str, Any]:
     return {defn.key: _example_value(defn) for defn in definitions}
 
 
-def _alternate_payload(definitions) -> Dict[str, Any]:
-    result: Dict[str, Any] = {}
+def _alternate_payload(definitions) -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for defn in definitions:
         if defn.value_type == "bool":
             result[defn.key] = False
@@ -87,7 +87,7 @@ def _alternate_payload(definitions) -> Dict[str, Any]:
 
 class DummySettingsManager:
     def __init__(self) -> None:
-        self.data: Dict[str, Any] = {
+        self.data: dict[str, Any] = {
             "graphics": {
                 "environment": _build_payload(ENVIRONMENT_PARAMETERS),
                 "scene": _build_payload(SCENE_PARAMETERS),

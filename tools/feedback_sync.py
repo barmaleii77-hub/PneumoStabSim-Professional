@@ -9,7 +9,8 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, List, MutableMapping, Optional
+from typing import List, Optional
+from collections.abc import Iterable, MutableMapping
 
 import requests
 
@@ -24,11 +25,11 @@ class FeedbackRecord:
     description: str
     category: str
     severity: str
-    contact: Optional[str]
+    contact: str | None
     metadata: MutableMapping[str, object]
 
     @classmethod
-    def from_dict(cls, payload: MutableMapping[str, object]) -> "FeedbackRecord":
+    def from_dict(cls, payload: MutableMapping[str, object]) -> FeedbackRecord:
         return cls(
             submission_id=str(payload.get("submission_id")),
             created_at=str(payload.get("created_at")),
@@ -41,12 +42,12 @@ class FeedbackRecord:
         )
 
 
-def _load_inbox(storage_dir: Path) -> List[FeedbackRecord]:
+def _load_inbox(storage_dir: Path) -> list[FeedbackRecord]:
     inbox_path = storage_dir / FeedbackService.INBOX_FILENAME
     if not inbox_path.exists():
         return []
 
-    records: List[FeedbackRecord] = []
+    records: list[FeedbackRecord] = []
     with inbox_path.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -88,7 +89,7 @@ def _prepare_payload(record: FeedbackRecord) -> MutableMapping[str, object]:
     }
 
 
-def _push_records(records: Iterable[FeedbackRecord], *, dry_run: bool) -> List[str]:
+def _push_records(records: Iterable[FeedbackRecord], *, dry_run: bool) -> list[str]:
     endpoint = os.environ.get("FEEDBACK_SYNC_ENDPOINT")
     token = os.environ.get("FEEDBACK_SYNC_TOKEN")
 
@@ -102,7 +103,7 @@ def _push_records(records: Iterable[FeedbackRecord], *, dry_run: bool) -> List[s
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    processed: List[str] = []
+    processed: list[str] = []
     for record in records:
         payload = _prepare_payload(record)
         if dry_run:
@@ -173,7 +174,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     storage_dir: Path = args.storage

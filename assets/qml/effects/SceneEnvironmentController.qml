@@ -1155,8 +1155,6 @@ ExtendedSceneEnvironment {
                 return
             var opts = options || {}
             var finalValue = numeric
-            if (opts.forceInt)
-                finalValue = Math.round(finalValue)
             if (opts.min !== undefined && finalValue < opts.min)
                 finalValue = opts.min
             if (opts.max !== undefined && finalValue > opts.max)

@@ -35,7 +35,7 @@ class Mass:
 
         return self.value * gravity
 
-    def combine(self, other: "Mass") -> "Mass":
+    def combine(self, other: Mass) -> Mass:
         """Return a new mass representing the sum of two bodies."""
 
         return Mass(self.value + other.value)
@@ -57,7 +57,7 @@ class Lever:
         tail_point = (0.0, self.cylinder_geom.Y_tail, self.cylinder_geom.Z_axle)
         return self.cylinder_geom.project_to_cyl_axis(tail_point, rod_point)
 
-    def joint_position(self, angle: float) -> Tuple[float, float, float]:
+    def joint_position(self, angle: float) -> tuple[float, float, float]:
         """Return the 3D coordinates of the rod joint for ``angle``."""
 
         rod_x, rod_y = self.lever_geom.rod_joint_pos(angle)
@@ -144,7 +144,7 @@ class PneumaticCylinder:
         assert self.state is not None
         self.state.x = self.clamp_position(x)
 
-    def volumes(self) -> Tuple[float, float]:
+    def volumes(self) -> tuple[float, float]:
         """Return head/rod chamber volumes for the current position."""
 
         assert self.state is not None

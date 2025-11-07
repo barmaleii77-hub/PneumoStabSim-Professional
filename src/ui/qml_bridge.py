@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utilities for wiring Python code to QML update contracts.
 
 The module provides several layers of functionality:
@@ -29,14 +28,12 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
-    Iterable,
     List,
-    Mapping,
-    MutableMapping,
     Optional,
     Tuple,
     Union,
 )
+from collections.abc import Iterable, Mapping, MutableMapping
 
 import yaml
 
@@ -89,9 +86,9 @@ class QMLSignalSpec:
     name: str
     handler: str
     connection: str = "auto"
-    description: Optional[str] = None
+    description: str | None = None
 
-    def resolve_connection_type(self) -> Optional[int]:
+    def resolve_connection_type(self) -> int | None:
         """Translate the textual connection hint into a Qt constant.
 
         The helper imports :mod:`PySide6.QtCore` lazily to avoid binding Qt when
@@ -128,10 +125,10 @@ class QMLSignalSpec:
 class QMLBridgeMetadata:
     """Structured representation of the bridge metadata."""
 
-    update_methods: Mapping[str, Tuple[str, ...]]
-    qml_signals: Tuple[QMLSignalSpec, ...]
+    update_methods: Mapping[str, tuple[str, ...]]
+    qml_signals: tuple[QMLSignalSpec, ...]
 
-    def describe_routes(self) -> Dict[str, Tuple[str, ...]]:
+    def describe_routes(self) -> dict[str, tuple[str, ...]]:
         """Return a JSON-serialisable view of update categories → methods."""
 
         return {
@@ -178,20 +175,20 @@ def _load_metadata_from_disk(path: Path) -> QMLBridgeMetadata:
 
 
 @lru_cache(maxsize=1)
-def get_bridge_metadata(path: Optional[Path] = None) -> QMLBridgeMetadata:
+def get_bridge_metadata(path: Path | None = None) -> QMLBridgeMetadata:
     """Return cached bridge metadata loaded from disk."""
 
     target_path = path or _METADATA_PATH
     return _load_metadata_from_disk(target_path)
 
 
-def describe_routes() -> Dict[str, Tuple[str, ...]]:
+def describe_routes() -> dict[str, tuple[str, ...]]:
     """Expose update routes for diagnostics overlays and CLI tooling."""
 
     return get_bridge_metadata().describe_routes()
 
 
-def register_qml_signals(window: Any, root_object: Any) -> List[QMLSignalSpec]:
+def register_qml_signals(window: Any, root_object: Any) -> list[QMLSignalSpec]:
     """Connect QML signals described in metadata to Python handlers.
 
     Args:
@@ -205,7 +202,7 @@ def register_qml_signals(window: Any, root_object: Any) -> List[QMLSignalSpec]:
     if root_object is None:
         return []
 
-    connected: List[QMLSignalSpec] = []
+    connected: list[QMLSignalSpec] = []
     for spec in get_bridge_metadata().qml_signals:
         signal_obj = getattr(root_object, spec.name, None)
         handler = getattr(window, spec.handler, None)
@@ -253,8 +250,8 @@ class QMLUpdateResult:
     """Structured result describing the outcome of a QML update push."""
 
     success: bool
-    error: Optional[str] = None
-    exception: Optional[Exception] = None
+    error: str | None = None
+    exception: Exception | None = None
 
 
 class QMLBridge:
@@ -262,13 +259,13 @@ class QMLBridge:
 
     logger = logging.getLogger(__name__ + ".bridge")
 
-    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
+    QML_UPDATE_METHODS: dict[str, tuple[str, ...]] = {
         key: tuple(methods)
         for key, methods in get_bridge_metadata().update_methods.items()
     }
 
     @staticmethod
-    def describe_routes() -> Dict[str, tuple[str, ...]]:
+    def describe_routes() -> dict[str, tuple[str, ...]]:
         """Return the update categories declared in the metadata."""
 
         return describe_routes()
@@ -277,13 +274,13 @@ class QMLBridge:
     # Queue management
     # ------------------------------------------------------------------
     @staticmethod
-    def queue_update(window: "MainWindow", key: str, params: Dict[str, Any]) -> None:
+    def queue_update(window: MainWindow, key: str, params: dict[str, Any]) -> None:
         """Queue changes for batched delivery to QML."""
 
         if not params:
             return
 
-        queue: Dict[str, Dict[str, Any]] = getattr(window, "_qml_update_queue", {})
+        queue: dict[str, dict[str, Any]] = getattr(window, "_qml_update_queue", {})
         if not queue:
             window._qml_update_queue = queue
 
@@ -299,10 +296,10 @@ class QMLBridge:
                 pass
 
     @staticmethod
-    def flush_updates(window: "MainWindow") -> None:
+    def flush_updates(window: MainWindow) -> None:
         """Flush queued updates to QML, falling back to per-category calls."""
 
-        queue: Dict[str, Dict[str, Any]] = getattr(window, "_qml_update_queue", {})
+        queue: dict[str, dict[str, Any]] = getattr(window, "_qml_update_queue", {})
         if not queue:
             return
 
@@ -343,12 +340,12 @@ class QMLBridge:
 
     @staticmethod
     def _push_batched_updates(
-        window: "MainWindow",
-        updates: Dict[str, Any],
+        window: MainWindow,
+        updates: dict[str, Any],
         *,
         detailed: bool = False,
         raise_on_error: bool = False,
-    ) -> Union[bool, QMLUpdateResult]:
+    ) -> bool | QMLUpdateResult:
         """Push a batched payload through ``pendingPythonUpdates``."""
 
         if not updates:
@@ -395,7 +392,7 @@ class QMLBridge:
     # Simulation state synchronisation
     # ------------------------------------------------------------------
     @staticmethod
-    def set_simulation_state(window: "MainWindow", snapshot: StateSnapshot) -> bool:
+    def set_simulation_state(window: MainWindow, snapshot: StateSnapshot) -> bool:
         """Push an entire :class:`StateSnapshot` into QML."""
 
         if snapshot is None or not getattr(window, "_qml_root_object", None):
@@ -440,7 +437,7 @@ class QMLBridge:
             return False
 
     @staticmethod
-    def _snapshot_to_payload(snapshot: StateSnapshot) -> Dict[str, Any]:
+    def _snapshot_to_payload(snapshot: StateSnapshot) -> dict[str, Any]:
         """Convert a :class:`StateSnapshot` into a QML friendly dict."""
 
         wheel_key_map = {
@@ -450,9 +447,9 @@ class QMLBridge:
             Wheel.PZ: "rr",
         }
 
-        wheels_payload: Dict[str, Dict[str, Any]] = {}
-        lever_angles: Dict[str, float] = {}
-        piston_positions: Dict[str, float] = {}
+        wheels_payload: dict[str, dict[str, Any]] = {}
+        lever_angles: dict[str, float] = {}
+        piston_positions: dict[str, float] = {}
 
         for wheel_enum, corner_key in wheel_key_map.items():
             wheel_state = getattr(snapshot, "wheels", {}).get(wheel_enum)
@@ -481,9 +478,9 @@ class QMLBridge:
             lever_angles[corner_key] = lever_angle
             piston_positions[corner_key] = piston_position
 
-        line_payload: Dict[str, Dict[str, Any]] = {}
-        line_flow_network: Dict[str, Dict[str, Any]] = {}
-        line_magnitudes: Dict[str, float] = {}
+        line_payload: dict[str, dict[str, Any]] = {}
+        line_flow_network: dict[str, dict[str, Any]] = {}
+        line_magnitudes: dict[str, float] = {}
         for line_enum in Line:
             line_state = getattr(snapshot, "lines", {}).get(line_enum)
             if not line_state:
@@ -532,7 +529,7 @@ class QMLBridge:
             line_magnitudes[key] = magnitude
 
         max_line_magnitude = max(line_magnitudes.values(), default=0.0)
-        line_pressures: Dict[str, float] = {}
+        line_pressures: dict[str, float] = {}
         if max_line_magnitude > 0.0:
             for line_key, magnitude in line_magnitudes.items():
                 speed_ratio = min(max(magnitude / max_line_magnitude, 0.0), 1.0)
@@ -609,7 +606,7 @@ class QMLBridge:
             "maxPressure": max_line_pressure,
         }
 
-        check_valves_payload: Dict[str, Dict[str, Any]] = {}
+        check_valves_payload: dict[str, dict[str, Any]] = {}
         for key, entry in line_flow_network.items():
             valves = entry.get("valves", {}) if isinstance(entry, dict) else {}
             check_valves_payload[key] = {
@@ -690,7 +687,7 @@ class QMLBridge:
     # ------------------------------------------------------------------
     @staticmethod
     def invoke_qml_function(
-        window: "MainWindow", method_name: str, payload: Optional[Dict[str, Any]] = None
+        window: MainWindow, method_name: str, payload: dict[str, Any] | None = None
     ) -> bool:
         """Safely invoke a QML method, logging failures at debug level."""
 
@@ -735,16 +732,16 @@ class QMLBridge:
     def _make_update_result(
         success: bool,
         detailed: bool,
-        error: Optional[str] = None,
-        exception: Optional[Exception] = None,
-    ) -> Union[bool, QMLUpdateResult]:
+        error: str | None = None,
+        exception: Exception | None = None,
+    ) -> bool | QMLUpdateResult:
         if detailed:
             return QMLUpdateResult(success=success, error=error, exception=exception)
         return success
 
     @staticmethod
     def _log_qml_update_failure(
-        window: "MainWindow", *, context: str, payload: Dict[str, Any], error: Exception
+        window: MainWindow, *, context: str, payload: dict[str, Any], error: Exception
     ) -> None:
         """Record failures in the diagnostic event logger."""
 
@@ -763,7 +760,7 @@ class QMLBridge:
 
     @staticmethod
     def _notify_qml_failure(
-        window: "MainWindow", message: str, details: Optional[str]
+        window: MainWindow, message: str, details: str | None
     ) -> None:
         """Surface a user-visible notification about a QML error."""
 
@@ -799,14 +796,14 @@ class QMLBridge:
             )
 
     @staticmethod
-    def _next_batch_id(window: "MainWindow") -> int:
+    def _next_batch_id(window: MainWindow) -> int:
         current = int(getattr(window, "_qml_batch_sequence", 0)) + 1
         window._qml_batch_sequence = current
         return current
 
     @staticmethod
     def _track_pending_batch(
-        window: "MainWindow", batch_id: int, payload: Dict[str, Any]
+        window: MainWindow, batch_id: int, payload: dict[str, Any]
     ) -> None:
         try:
             stored_payload = copy.deepcopy(payload)
@@ -822,12 +819,12 @@ class QMLBridge:
 
     @staticmethod
     def _extract_ack_components(
-        summary: Dict[str, Any],
-    ) -> tuple[Optional[int], Dict[str, str], set[str], Optional[bool]]:
-        batch_id: Optional[int] = None
-        failed: Dict[str, str] = {}
+        summary: dict[str, Any],
+    ) -> tuple[int | None, dict[str, str], set[str], bool | None]:
+        batch_id: int | None = None
+        failed: dict[str, str] = {}
         unknown: set[str] = set()
-        success_flag: Optional[bool] = None
+        success_flag: bool | None = None
 
         if isinstance(summary, Mapping):
             raw_failed = summary.get("failed")
@@ -845,7 +842,7 @@ class QMLBridge:
                     if item is not None and str(item) != ""
                 }
 
-            meta_candidates: list[Optional[Any]] = []
+            meta_candidates: list[Any | None] = []
             raw_meta = summary.get("meta") or summary.get("_meta")
             if isinstance(raw_meta, Mapping):
                 meta_candidates.extend(
@@ -870,8 +867,8 @@ class QMLBridge:
 
     @staticmethod
     def _process_ack_retry(
-        window: "MainWindow", summary: Dict[str, Any]
-    ) -> tuple[bool, bool, Dict[str, str], set[str], bool]:
+        window: MainWindow, summary: dict[str, Any]
+    ) -> tuple[bool, bool, dict[str, str], set[str], bool]:
         pending = getattr(window, "_pending_batch_ack", None)
         batch_id, failed, unknown, success_flag = QMLBridge._extract_ack_components(
             summary
@@ -936,7 +933,7 @@ class QMLBridge:
         """Normalise Python objects so they can be passed into QML."""
 
         if isinstance(value, dict):
-            result: Dict[str, Any] = {}
+            result: dict[str, Any] = {}
             for key, raw in value.items():
                 prepared = QMLBridge._prepare_for_qml(raw)
                 str_key = str(key)
@@ -979,7 +976,7 @@ class QMLBridge:
         return head + "".join(part[:1].upper() + part[1:] for part in tail)
 
     @staticmethod
-    def _deep_merge_dicts(target: Dict[str, Any], source: Dict[str, Any]) -> None:
+    def _deep_merge_dicts(target: dict[str, Any], source: dict[str, Any]) -> None:
         for key, value in source.items():
             if isinstance(value, dict) and isinstance(target.get(key), dict):
                 QMLBridge._deep_merge_dicts(target[key], value)
@@ -987,7 +984,7 @@ class QMLBridge:
                 target[key] = value
 
     @staticmethod
-    def handle_qml_ack(window: "MainWindow", summary: Dict[str, Any]) -> None:
+    def handle_qml_ack(window: MainWindow, summary: dict[str, Any]) -> None:
         """Handle acknowledgement payloads emitted from QML."""
 
         try:
@@ -1053,7 +1050,7 @@ class QMLBridge:
 
     @staticmethod
     def _log_graphics_change(
-        window: "MainWindow", category: str, payload: Dict[str, Any], applied: bool
+        window: MainWindow, category: str, payload: dict[str, Any], applied: bool
     ) -> None:
         try:
             from .panels.graphics_logger import get_graphics_logger

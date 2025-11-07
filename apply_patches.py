@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Скрипт для автоматического применения патчей к файлам проекта
 Script to automatically apply patches to project files
@@ -136,7 +135,7 @@ class PatchApplier:
 
         try:
             # Читаем содержимое патча
-            with open(patch_path, "r", encoding="utf-8") as f:
+            with open(patch_path, encoding="utf-8") as f:
                 patch_content = f.read()
 
             # Простой парсер патча
@@ -158,7 +157,7 @@ class PatchApplier:
                 return False
 
             # Читаем целевой файл
-            with open(target_path, "r", encoding="utf-8") as f:
+            with open(target_path, encoding="utf-8") as f:
                 target_content = f.read()
 
             # Применяем изменения (простая замена)

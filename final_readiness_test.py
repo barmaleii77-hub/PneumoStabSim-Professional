@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 PneumoStabSim Professional - Финальный тест готовности
 Final Readiness Test - окончательная проверка перед продакшеном

@@ -7,7 +7,7 @@ import platform
 import sys
 from ctypes.util import find_library
 from dataclasses import dataclass
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from src.bootstrap.dependency_config import (
     DependencyConfigError,

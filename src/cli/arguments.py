@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Модуль обработки аргументов командной строки.
 
@@ -7,7 +6,7 @@ test-mode, verbose logging и диагностики.
 """
 
 import argparse
-from typing import Iterable
+from collections.abc import Iterable
 
 
 def _add_mode_arguments(parser: argparse.ArgumentParser) -> None:

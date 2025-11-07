@@ -9,7 +9,8 @@ Qt stack during unit tests.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping, MutableMapping, Tuple
+from typing import Tuple
+from collections.abc import Mapping, MutableMapping
 
 
 _TRUTHY_VALUES = {"1", "true", "yes", "on"}
@@ -36,7 +37,7 @@ def choose_scenegraph_backend(platform: str) -> str:
     return "opengl"
 
 
-def detect_headless_environment(env: Mapping[str, str]) -> Tuple[bool, Tuple[str, ...]]:
+def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str, ...]]:
     """Detect whether the current process should consider itself headless.
 
     Parameters
@@ -67,7 +68,7 @@ class GraphicsEnvironmentDecision:
 
     backend: str
     headless: bool
-    headless_reasons: Tuple[str, ...]
+    headless_reasons: tuple[str, ...]
     safe_mode: bool
 
 

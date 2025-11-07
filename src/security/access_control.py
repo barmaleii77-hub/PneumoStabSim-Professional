@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Iterable, Mapping
 
 __all__ = [
     "AccessControlService",
@@ -57,7 +58,7 @@ class RolePolicy:
         return False
 
 
-def _serialise_metadata(metadata: Mapping[str, Any] | None) -> Dict[str, Any]:
+def _serialise_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
     if metadata is None:
         return {}
 
@@ -73,7 +74,7 @@ def _serialise_metadata(metadata: Mapping[str, Any] | None) -> Dict[str, Any]:
     return {str(key): _convert(val) for key, val in metadata.items()}
 
 
-def _resolve_log_path(path: Optional[Path | str]) -> Path:
+def _resolve_log_path(path: Path | str | None) -> Path:
     if path is None:
         override = os.environ.get("PSS_SECURITY_AUDIT_LOG")
         if override:
@@ -88,7 +89,7 @@ def _resolve_log_path(path: Optional[Path | str]) -> Path:
 class SecurityAuditLogger:
     """Append-only audit log that maintains an immutable hash chain."""
 
-    def __init__(self, log_path: Optional[Path | str] = None) -> None:
+    def __init__(self, log_path: Path | str | None = None) -> None:
         self._path = _resolve_log_path(log_path)
         self._lock = threading.RLock()
         self._last_hash = self._load_last_hash()
@@ -116,7 +117,7 @@ class SecurityAuditLogger:
 
     def _digest(self, previous_hash: str, payload: Mapping[str, Any]) -> str:
         canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
-        data = f"{previous_hash}:{canonical}".encode("utf-8")
+        data = f"{previous_hash}:{canonical}".encode()
         return sha256(data).hexdigest()
 
     # ---------------------------------------------------------------- recording
@@ -132,7 +133,7 @@ class SecurityAuditLogger:
         """Append a new entry to the audit log and return the entry hash."""
 
         timestamp = datetime.now(timezone.utc).isoformat()
-        entry: Dict[str, Any] = {
+        entry: dict[str, Any] = {
             "timestamp": timestamp,
             "actor": actor or "unknown",
             "action": action,
@@ -198,7 +199,7 @@ class _AccessProfile:
 class AccessControlService:
     """Evaluate permissions and coordinate immutable security auditing."""
 
-    _DEFAULT_POLICIES: Dict[UserRole, RolePolicy] = {
+    _DEFAULT_POLICIES: dict[UserRole, RolePolicy] = {
         UserRole.ADMIN: RolePolicy(
             editable_prefixes=("*",),
             ui_flags={
@@ -252,11 +253,11 @@ class AccessControlService:
     def __init__(
         self,
         *,
-        audit_logger: Optional[SecurityAuditLogger] = None,
-        policies: Optional[Mapping[UserRole, RolePolicy]] = None,
+        audit_logger: SecurityAuditLogger | None = None,
+        policies: Mapping[UserRole, RolePolicy] | None = None,
     ) -> None:
         self._logger = audit_logger or SecurityAuditLogger()
-        self._policies: Dict[UserRole, RolePolicy] = dict(
+        self._policies: dict[UserRole, RolePolicy] = dict(
             policies or self._DEFAULT_POLICIES
         )
         self._role: UserRole = UserRole.ADMIN
@@ -264,7 +265,7 @@ class AccessControlService:
         self._lock = threading.RLock()
 
     # ----------------------------------------------------------------- metadata
-    def set_role(self, role: UserRole, *, actor: Optional[str] = None) -> None:
+    def set_role(self, role: UserRole, *, actor: str | None = None) -> None:
         with self._lock:
             previous = self._role
             self._role = role
@@ -328,7 +329,7 @@ class AccessControlService:
     def simulation_profile(self) -> str:
         return self.active_policy().policy.simulation_profile
 
-    def describe_access_profile(self) -> Dict[str, Any]:
+    def describe_access_profile(self) -> dict[str, Any]:
         profile = self.active_policy()
         return {
             "role": profile.role.value,
@@ -340,7 +341,7 @@ class AccessControlService:
         }
 
 
-_access_control_singleton: Optional[AccessControlService] = None
+_access_control_singleton: AccessControlService | None = None
 _singleton_lock = threading.Lock()
 
 

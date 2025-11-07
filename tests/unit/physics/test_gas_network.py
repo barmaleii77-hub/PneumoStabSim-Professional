@@ -161,7 +161,7 @@ def test_master_isolation_equalises_pressures(default_network):
     gas_network.master_isolation_open = True
     gas_network.master_equalization_diameter = 0.0
 
-    volumes: Dict[Line, float] = {
+    volumes: dict[Line, float] = {
         line: state.V_curr for line, state in gas_network.lines.items()
     }
 

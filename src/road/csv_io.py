@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 from .types import CorrelationSpec
 
 
-def detect_csv_format(filepath: str, max_preview_lines: int = 10) -> Dict[str, Any]:
+def detect_csv_format(filepath: str, max_preview_lines: int = 10) -> dict[str, Any]:
     """Auto-detect CSV format and encoding
 
     Args:
@@ -43,7 +43,7 @@ def detect_csv_format(filepath: str, max_preview_lines: int = 10) -> Dict[str, A
 
     for encoding in encodings_to_try:
         try:
-            with open(filepath, "r", encoding=encoding, newline="") as f:
+            with open(filepath, encoding=encoding, newline="") as f:
                 # Read first few lines
                 preview_lines = []
                 for i, line in enumerate(f):
@@ -123,7 +123,7 @@ def load_csv_profile(
     velocity: float = 25.0,
     correlation: Optional[CorrelationSpec] = None,
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Load road profile from CSV file
 
     Args:
@@ -159,7 +159,7 @@ def load_csv_profile(
 
     # Read CSV data
     try:
-        with open(filepath, "r", encoding=encoding, newline="") as f:
+        with open(filepath, encoding=encoding, newline="") as f:
             reader = csv.reader(f, delimiter=delimiter)
 
             # Read header
@@ -306,7 +306,7 @@ def _expand_single_profile_to_wheels(
     velocity: float,
     correlation: CorrelationSpec,
     resample_hz: float,
-) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Expand single profile to 4 wheels with delays and correlation"""
 
     # Calculate rear axle delay
@@ -366,8 +366,8 @@ def _expand_single_profile_to_wheels(
 
 
 def _resample_wheel_profiles(
-    time_orig: np.ndarray, wheel_data: Dict[str, np.ndarray], resample_hz: float
-) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+    time_orig: np.ndarray, wheel_data: dict[str, np.ndarray], resample_hz: float
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Resample wheel profiles to uniform time grid"""
 
     duration = time_orig[-1] - time_orig[0]
@@ -391,7 +391,7 @@ def _resample_wheel_profiles(
 def save_csv_profile(
     filepath: str,
     time: np.ndarray,
-    wheel_profiles: Dict[str, np.ndarray],
+    wheel_profiles: dict[str, np.ndarray],
     format_type: str = "time_wheels",
     encoding: str = "utf-8",
 ) -> None:

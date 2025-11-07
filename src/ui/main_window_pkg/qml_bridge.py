@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Compatibility shim re-exporting the consolidated QML bridge helpers."""
 
 from __future__ import annotations

@@ -75,7 +75,7 @@ class LeverGeom:
                 f"Frame-to-hinge distance must be positive, got {self.d_frame_to_lever_hinge}"
             )
 
-    def lever_tip_pos(self, angle: float) -> Tuple[float, float]:
+    def lever_tip_pos(self, angle: float) -> tuple[float, float]:
         """Calculate lever tip position in the axle plane
 
         Args:
@@ -88,7 +88,7 @@ class LeverGeom:
         y = self.L_lever * math.sin(angle)
         return (x, y)
 
-    def rod_joint_pos(self, angle: float) -> Tuple[float, float]:
+    def rod_joint_pos(self, angle: float) -> tuple[float, float]:
         """Calculate rod joint position on lever
 
         Args:
@@ -231,8 +231,8 @@ class CylinderGeom:
 
     def project_to_cyl_axis(
         self,
-        tail_point: Tuple[float, float, float],
-        joint_point: Tuple[float, float, float],
+        tail_point: tuple[float, float, float],
+        joint_point: tuple[float, float, float],
     ) -> float:
         """Project geometry change to cylinder axis displacement
 

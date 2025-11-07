@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Скрипт рефакторинга панелей на использование SettingsManager
 Автоматическое обновление всех панелей для централизованного управления настройками
@@ -31,7 +30,7 @@ class PanelRefactorer:
     def load(self) -> bool:
         """Загрузить содержимое панели"""
         try:
-            with open(self.panel_file, "r", encoding="utf-8") as f:
+            with open(self.panel_file, encoding="utf-8") as f:
                 self.content = f.read()
             return True
         except Exception as e:
@@ -49,7 +48,7 @@ class PanelRefactorer:
             backup = self.panel_file.with_suffix(".py.backup")
             with open(backup, "w", encoding="utf-8") as f:
                 # Читаем оригинал заново для бэкапа
-                with open(self.panel_file, "r", encoding="utf-8") as orig:
+                with open(self.panel_file, encoding="utf-8") as orig:
                     f.write(orig.read())
 
             # Сохраняем модифицированный файл

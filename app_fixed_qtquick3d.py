@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 PneumoStabSim - Fixed QtQuick3D Launcher
 This launcher properly sets up QtQuick3D environment before starting the app

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from importlib import import_module
-from typing import Iterable
+from collections.abc import Iterable
 
 try:
     from PySide6.QtQml import qmlRegisterModule, qmlRegisterType

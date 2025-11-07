@@ -18,7 +18,8 @@ import importlib.util
 import json
 import platform
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional, Protocol, Sequence
+from typing import Any, Callable, Optional, Protocol
+from collections.abc import Iterable, Sequence
 
 from src.diagnostics.logger_factory import configure_logging, get_logger
 
@@ -349,7 +350,7 @@ def build_report(
     *,
     issue: str,
     snippets: Sequence[Snippet],
-    agent_run: Optional[AgentRun],
+    agent_run: AgentRun | None,
     platform_name: str,
 ) -> str:
     timestamp = _dt.datetime.utcnow().isoformat() + "Z"
@@ -407,7 +408,7 @@ def save_report(content: str) -> Path:
     return destination
 
 
-def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate AI-assisted diagnostics report"
     )
@@ -448,7 +449,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     ensure_system_prompt()
     configure_logging()
     log = get_logger("tools.ai_diagnose")
@@ -467,7 +468,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     )
     persist_payload(args.issue, snippets)
 
-    agent_run: Optional[AgentRun] = None
+    agent_run: AgentRun | None = None
     if not args.skip_llm:
         try:
             chat_model = OpenAIChatModel(args.model)

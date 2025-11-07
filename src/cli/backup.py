@@ -6,7 +6,7 @@ import argparse
 import json
 from collections.abc import Sequence as SequenceABC
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 
 from src.services import BackupService, discover_user_data_sources
 

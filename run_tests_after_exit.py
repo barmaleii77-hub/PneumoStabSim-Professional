@@ -14,7 +14,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional
 
-QT_ENV_DEFAULTS: Dict[str, str] = {
+QT_ENV_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
     "QT_QUICK_BACKEND": "software",
     "QT_PLUGIN_PATH": "",
@@ -23,7 +23,7 @@ QT_ENV_DEFAULTS: Dict[str, str] = {
 
 
 @lru_cache(maxsize=1)
-def _detect_qt_environment() -> Dict[str, str]:
+def _detect_qt_environment() -> dict[str, str]:
     """Возвращает значения переменных окружения для корректной работы Qt."""
 
     environment = dict(QT_ENV_DEFAULTS)
@@ -50,7 +50,7 @@ class PostExitTestRunner:
 
     def __init__(self) -> None:
         self.project_root = Path(__file__).parent
-        self.test_results: List[Dict[str, object]] = []
+        self.test_results: list[dict[str, object]] = []
         self.test_environment = os.environ.copy()
         self.test_environment.update(_detect_qt_environment())
         self.logs_dir = self.project_root / "logs"
@@ -62,11 +62,11 @@ class PostExitTestRunner:
 
         print(f"🗂️ Логи тестов будут сохраняться в: {self.logs_dir}")
 
-    def run_verify_suite(self) -> Optional[Dict[str, object]]:
+    def run_verify_suite(self) -> dict[str, object] | None:
         """Запускает ``make verify`` или прямой ``pytest`` для smoke/integration."""
 
         log_file = self.logs_dir / "post_exit_verify.log"
-        command: List[str]
+        command: list[str]
 
         if shutil.which("make"):
             command = ["make", "verify"]
@@ -108,7 +108,7 @@ class PostExitTestRunner:
         status = "✅" if success else "❌"
         print(f"{status} make verify завершен с кодом {result.returncode}")
 
-        verification_result: Dict[str, object] = {
+        verification_result: dict[str, object] = {
             "name": "make verify",
             "path": "make verify",
             "success": success,
@@ -123,7 +123,7 @@ class PostExitTestRunner:
 
     def run_test_script(
         self, script_path: Path, timeout: int = 30
-    ) -> Dict[str, object]:
+    ) -> dict[str, object]:
         """Запускает тестовый скрипт и возвращает результат."""
 
         test_name = script_path.stem
@@ -148,7 +148,7 @@ class PostExitTestRunner:
             elapsed = time.perf_counter() - start_time
 
             success = result.returncode == 0
-            test_result: Dict[str, object] = {
+            test_result: dict[str, object] = {
                 "name": test_name,
                 "path": str(script_path),
                 "success": success,
@@ -180,12 +180,12 @@ class PostExitTestRunner:
 
         return test_result
 
-    def discover_test_scripts(self) -> List[Path]:
+    def discover_test_scripts(self) -> list[Path]:
         """Находит все скрипты для запуска после выхода."""
 
         test_patterns = ["test_*.py", "*_test.py", "analyze_*.py", "diagnose_*.py"]
 
-        test_scripts: List[Path] = []
+        test_scripts: list[Path] = []
         exclude_dirs = {
             "venv",
             ".venv",
@@ -214,7 +214,7 @@ class PostExitTestRunner:
 
         return sorted(test_scripts)
 
-    def run_all_tests(self, scripts: Optional[List[Path]] = None) -> Dict[str, object]:
+    def run_all_tests(self, scripts: list[Path] | None = None) -> dict[str, object]:
         """Запускает все тестовые скрипты."""
 
         if scripts is None:
@@ -262,7 +262,7 @@ class PostExitTestRunner:
             "tests": self.test_results,
         }
 
-    def save_report(self, output_file: Optional[Path] = None) -> None:
+    def save_report(self, output_file: Path | None = None) -> None:
         """Сохраняет отчет о тестах."""
 
         if output_file is None:

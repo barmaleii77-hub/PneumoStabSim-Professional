@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Compatibility wrapper for the pneumatic panel."""
 
 from __future__ import annotations

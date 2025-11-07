@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Quality Tab - вкладка настроек качества рендеринга
 Part of modular GraphicsPanel restructuring
@@ -44,7 +43,7 @@ class QualityTab(QWidget):
         super().__init__(parent)
 
         # Контролы UI
-        self._controls: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
         self._updating_ui = False
 
         # Флаг для предотвращения переключения в custom при программном обновлении
@@ -64,7 +63,7 @@ class QualityTab(QWidget):
         # Setup UI
         self._setup_ui()
 
-    def _build_quality_presets(self) -> Dict[str, Dict[str, Any]]:
+    def _build_quality_presets(self) -> dict[str, dict[str, Any]]:
         """Построить словарь пресетов качества - ТОЧНО КАК В МОНОЛИТЕ"""
         return {
             "ultra": {
@@ -549,7 +548,7 @@ class QualityTab(QWidget):
 
     # ========== ГЕТТЕРЫ/СЕТТЕРЫ СОСТОЯНИЯ ==========
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Получить текущее состояние всех параметров качества
 
         Returns:
@@ -593,7 +592,7 @@ class QualityTab(QWidget):
             },
         }
 
-    def set_state(self, state: Dict[str, Any]):
+    def set_state(self, state: dict[str, Any]):
         """Установить состояние из словаря
 
         Args:
@@ -717,7 +716,7 @@ class QualityTab(QWidget):
                     pass
             self._updating_ui = False
 
-    def get_controls(self) -> Dict[str, Any]:
+    def get_controls(self) -> dict[str, Any]:
         """Получить словарь контролов для внешнего управления"""
         return self._controls
 

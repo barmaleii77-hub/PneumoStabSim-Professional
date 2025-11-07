@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 
-def load_latest_events(logs_dir: Path | str = "logs") -> Dict[str, Any]:
+def load_latest_events(logs_dir: Path | str = "logs") -> dict[str, Any]:
     """Загружает последний файл событий"""
     logs_dir = Path(logs_dir)
 
@@ -30,11 +30,11 @@ def load_latest_events(logs_dir: Path | str = "logs") -> Dict[str, Any]:
     latest_file = event_files[0]
     print(f"📁 Загружаем: {latest_file.name}")
 
-    with open(latest_file, "r", encoding="utf-8") as f:
+    with open(latest_file, encoding="utf-8") as f:
         return json.load(f)
 
 
-def analyze_event_pairs(events: List[Dict[str, Any]]) -> Dict[str, Any]:
+def analyze_event_pairs(events: list[dict[str, Any]]) -> dict[str, Any]:
     """Анализ пар Python→QML событий"""
     pairs = []
 
@@ -90,7 +90,7 @@ def analyze_event_pairs(events: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def analyze_by_category(events: List[Dict[str, Any]]) -> Dict[str, Dict[str, int]]:
+def analyze_by_category(events: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     """Группировка событий по категориям"""
     categories = {}
 
@@ -149,8 +149,8 @@ def analyze_by_category(events: List[Dict[str, Any]]) -> Dict[str, Dict[str, int
 
 
 def find_slow_updates(
-    pairs: List[Dict[str, Any]], threshold_ms: float = 50.0
-) -> List[Dict[str, Any]]:
+    pairs: list[dict[str, Any]], threshold_ms: float = 50.0
+) -> list[dict[str, Any]]:
     """Находит медленные обновления (задержка > threshold)"""
     slow = []
 
@@ -167,7 +167,7 @@ def find_slow_updates(
     return sorted(slow, key=lambda x: x["latency_ms"], reverse=True)
 
 
-def print_analysis_report(events: List[Dict[str, Any]]) -> None:
+def print_analysis_report(events: list[dict[str, Any]]) -> None:
     """Печать детального отчета"""
     print("\n" + "=" * 60)
     print("📊 АНАЛИЗ СОБЫТИЙ Python↔QML")
@@ -293,7 +293,7 @@ def print_analysis_report(events: List[Dict[str, Any]]) -> None:
 
 
 def export_html_report(
-    events: List[Dict[str, Any]], output_file: Path | str = "logs/event_analysis.html"
+    events: list[dict[str, Any]], output_file: Path | str = "logs/event_analysis.html"
 ) -> None:
     """Экспорт отчета в HTML"""
     output_file = Path(output_file)

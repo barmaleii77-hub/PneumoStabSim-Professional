@@ -96,7 +96,7 @@ class Knob(QWidget):
         self._units = units
         self._dial_resolution = 1000  # Internal dial resolution
         self._accessible_role = accessible_role or "dial"
-        self._shortcut_metadata: List[AccessibilityShortcut] = []
+        self._shortcut_metadata: list[AccessibilityShortcut] = []
 
         # Create UI
         self._setup_ui(title)
@@ -313,7 +313,7 @@ class Knob(QWidget):
 
         return self._accessible_role
 
-    def accessibilityShortcuts(self) -> List[AccessibilityShortcut]:
+    def accessibilityShortcuts(self) -> list[AccessibilityShortcut]:
         """Return the shortcuts that should be announced to automation."""
 
         return list(self._shortcut_metadata)

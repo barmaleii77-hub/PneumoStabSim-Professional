@@ -72,10 +72,10 @@ class QMLScene:
         if engine is not None:
             engine.clearComponentCache()
 
-    def __enter__(self) -> "QMLScene":
+    def __enter__(self) -> QMLScene:
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> Optional[bool]:
+    def __exit__(self, exc_type, exc, tb) -> bool | None:
         self.close()
         return None
 
@@ -86,7 +86,7 @@ def _initialise_view(
     qml_path: Path,
     width: int = 800,
     height: int = 450,
-    scene_bridge: Optional[SceneBridge] = None,
+    scene_bridge: SceneBridge | None = None,
 ) -> QMLScene:
     view = QQuickView()
     view.setColor(QColor(Qt.black))

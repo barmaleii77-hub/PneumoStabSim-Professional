@@ -31,7 +31,8 @@ import importlib.util
 import logging
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Any, Dict, Iterable, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from collections.abc import Iterable
 
 try:  # pragma: no cover - exercised indirectly by tests
     import structlog
@@ -84,8 +85,8 @@ except ModuleNotFoundError:  # pragma: no cover - fallback exercised in kata env
 
     class _JSONRenderer:  # pragma: no cover - shim
         def __call__(
-            self, logger: Any, name: str, event_dict: Dict[str, Any]
-        ) -> Dict[str, Any]:
+            self, logger: Any, name: str, event_dict: dict[str, Any]
+        ) -> dict[str, Any]:
             return event_dict
 
     structlog_shim.processors.JSONRenderer = _JSONRenderer  # type: ignore[attr-defined]
@@ -102,7 +103,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback exercised in kata env
 class LoggerProtocol(Protocol):
     """Common interface implemented by structlog and fallback loggers."""
 
-    def bind(self, **kwargs: Any) -> "LoggerProtocol": ...
+    def bind(self, **kwargs: Any) -> LoggerProtocol: ...
 
     def debug(self, event: str, **kwargs: Any) -> None: ...
 
@@ -123,19 +124,19 @@ class _FallbackBoundLogger(LoggerProtocol):
     def __init__(
         self,
         base_logger: logging.Logger,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> None:
         self._logger = base_logger
-        self._context: Dict[str, Any] = dict(context or {})
+        self._context: dict[str, Any] = dict(context or {})
 
     # -------------------------------------------------------------- utils
-    def _with_context(self, **extra: Any) -> Dict[str, Any]:
+    def _with_context(self, **extra: Any) -> dict[str, Any]:
         payload = dict(self._context)
         payload.update(extra)
         return payload
 
     @staticmethod
-    def _format(event: str, payload: Dict[str, Any]) -> str:
+    def _format(event: str, payload: dict[str, Any]) -> str:
         if not payload:
             return event
         formatted = ", ".join(f"{key}={payload[key]!r}" for key in sorted(payload))
@@ -147,7 +148,7 @@ class _FallbackBoundLogger(LoggerProtocol):
         self._logger.log(level, message)
 
     # -------------------------------------------------------------- api
-    def bind(self, **kwargs: Any) -> "_FallbackBoundLogger":
+    def bind(self, **kwargs: Any) -> _FallbackBoundLogger:
         if not kwargs:
             return self
         return _FallbackBoundLogger(self._logger, self._with_context(**kwargs))
@@ -185,7 +186,7 @@ HAS_STRUCTLOG = structlog is not None
 if not HAS_STRUCTLOG:
     stdlib_shim.BoundLogger = _FallbackBoundLogger  # type: ignore[name-defined]
 
-_FALLBACK_LOGGER_CACHE: Dict[str, _FallbackBoundLogger] = {}
+_FALLBACK_LOGGER_CACHE: dict[str, _FallbackBoundLogger] = {}
 _fallback_configured = False
 
 if HAS_STRUCTLOG:  # pragma: no cover - covered by integration when structlog present
@@ -252,9 +253,9 @@ def _ensure_stdlib_bridge(level: int) -> None:
 def configure_logging(
     *,
     level: int = DEFAULT_LOG_LEVEL,
-    wrapper_class: Optional[type[object]] = None,
+    wrapper_class: type[object] | None = None,
     cache_logger_on_first_use: bool = True,
-    processors: Optional[Iterable[Any]] = None,
+    processors: Iterable[Any] | None = None,
 ) -> None:
     """Initialise structlog and bridge stdlib loggers.
 

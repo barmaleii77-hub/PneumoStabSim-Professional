@@ -21,12 +21,12 @@ class ProfileService(QObject):
         super().__init__()
         self._manager = manager
 
-    def _emit_profiles(self) -> List[str]:
+    def _emit_profiles(self) -> list[str]:
         names = self._safe_list_profiles()
         self.profilesChanged.emit(names)
         return names
 
-    def _safe_list_profiles(self) -> List[str]:
+    def _safe_list_profiles(self) -> list[str]:
         try:
             return list(self._manager.list_profiles())
         except Exception as exc:  # pragma: no cover - defensive guard for UI runtime
@@ -50,13 +50,13 @@ class ProfileService(QObject):
         return False
 
     @Slot(result=list)
-    def listProfiles(self) -> List[str]:
+    def listProfiles(self) -> list[str]:
         """Return available profile names without emitting signals."""
 
         return self._safe_list_profiles()
 
     @Slot(result=list)
-    def refresh(self) -> List[str]:
+    def refresh(self) -> list[str]:
         """Refresh the cached list and notify listeners."""
 
         return self._emit_profiles()

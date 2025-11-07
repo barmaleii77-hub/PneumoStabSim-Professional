@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 ModesPanel module - switch fallback mechanism
 Модуль панели режимов симуляции с механизмом отката

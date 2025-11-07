@@ -15,7 +15,7 @@ from src.ui.qml_bridge import QMLSignalSpec, register_qml_signals
 
 
 @pytest.fixture(scope="module")
-def qml_bridge_metadata() -> Dict[str, object]:
+def qml_bridge_metadata() -> dict[str, object]:
     """Return the parsed contents of ``config/qml_bridge.yaml`` for reuse."""
 
     metadata_path = Path("config/qml_bridge.yaml")
@@ -30,7 +30,7 @@ def main_qml_text() -> str:
     return Path("assets/qml/main.qml").read_text(encoding="utf-8")
 
 
-def _parse_proxy_methods(qml_source: str) -> List[str]:
+def _parse_proxy_methods(qml_source: str) -> list[str]:
     """Extract the ``_proxyMethodNames`` list from ``main.qml``."""
 
     match = re.search(r"_proxyMethodNames:\s*\[(?P<body>.*?)\]", qml_source, re.S)
@@ -50,7 +50,7 @@ def _parse_proxy_methods(qml_source: str) -> List[str]:
 
 
 def test_update_methods_have_matching_qml_proxies(
-    qml_bridge_metadata: Dict[str, object], main_qml_text: str
+    qml_bridge_metadata: dict[str, object], main_qml_text: str
 ) -> None:
     """Every Python-declared update method must have a QML proxy."""
 
@@ -65,7 +65,7 @@ def test_update_methods_have_matching_qml_proxies(
 
 
 def test_qml_signals_declared_in_main_qml(
-    qml_bridge_metadata: Dict[str, object], main_qml_text: str
+    qml_bridge_metadata: dict[str, object], main_qml_text: str
 ) -> None:
     """Signals in the metadata must be declared by ``main.qml``."""
 

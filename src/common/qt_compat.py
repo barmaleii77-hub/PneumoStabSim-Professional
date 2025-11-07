@@ -62,9 +62,9 @@ else:
             def __init__(
                 self,
                 fget: Callable[[Any], Any],
-                fset: Optional[Callable[[Any, Any], None]] = None,
-                freset: Optional[Callable[[Any], None]] = None,
-                notify: Optional[Any] = None,
+                fset: Callable[[Any, Any], None] | None = None,
+                freset: Callable[[Any], None] | None = None,
+                notify: Any | None = None,
                 **extra: Any,
             ) -> None:
                 self.fget = fget
@@ -73,7 +73,7 @@ else:
                 self.notify = notify
                 self.extra = extra
 
-            def __get__(self, instance: Any, owner: Optional[type[Any]]) -> Any:
+            def __get__(self, instance: Any, owner: type[Any] | None) -> Any:
                 if instance is None:
                     return self
                 return self.fget(instance)
@@ -83,20 +83,20 @@ else:
                     raise AttributeError("can't set attribute")
                 self.fset(instance, value)
 
-            def setter(self, func: Callable[[Any, Any], None]) -> "_FallbackProperty":
+            def setter(self, func: Callable[[Any, Any], None]) -> _FallbackProperty:
                 self.fset = func
                 return self
 
-            def reset(self, func: Callable[[Any], None]) -> "_FallbackProperty":
+            def reset(self, func: Callable[[Any], None]) -> _FallbackProperty:
                 self.freset = func
                 return self
 
         def Property(
             _type: Any,
-            fget: Optional[Callable[[Any], Any]] = None,
-            fset: Optional[Callable[[Any, Any], None]] = None,
-            freset: Optional[Callable[[Any], None]] = None,
-            notify: Optional[Any] = None,
+            fget: Callable[[Any], Any] | None = None,
+            fset: Callable[[Any, Any], None] | None = None,
+            freset: Callable[[Any], None] | None = None,
+            notify: Any | None = None,
             **extra: Any,
         ) -> Any:
             def _wrap(getter: Callable[[Any], Any]) -> _FallbackProperty:

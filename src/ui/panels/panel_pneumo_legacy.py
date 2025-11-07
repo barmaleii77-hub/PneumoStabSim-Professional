@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Pneumatic system configuration panel - РУССКИЙ ИНТЕРФЕЙС
 Полная интеграция с SettingsManager без дефолтов в коде.

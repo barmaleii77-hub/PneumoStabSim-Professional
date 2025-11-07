@@ -36,10 +36,10 @@ def test_visualization_service_enriches_camera_payload() -> None:
                 return dict(self._camera)
             return default
 
-        def refresh_orbit_presets(self) -> Dict[str, Any]:
+        def refresh_orbit_presets(self) -> dict[str, Any]:
             return self.get_orbit_presets()
 
-        def get_orbit_presets(self) -> Dict[str, Any]:
+        def get_orbit_presets(self) -> dict[str, Any]:
             return {
                 "version": 1,
                 "default": "default",

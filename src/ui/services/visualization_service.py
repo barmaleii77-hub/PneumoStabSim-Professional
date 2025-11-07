@@ -62,11 +62,11 @@ class VisualizationService(VisualizationServiceProtocol):
     def __init__(
         self,
         *,
-        settings_manager: Optional[SettingsManager] = None,
-        access_control: Optional[AccessControlService] = None,
+        settings_manager: SettingsManager | None = None,
+        access_control: AccessControlService | None = None,
     ) -> None:
-        self._state: Dict[str, Dict[str, Any]] = {key: {} for key in self._CATEGORIES}
-        self._latest_updates: Dict[str, Dict[str, Any]] = {}
+        self._state: dict[str, dict[str, Any]] = {key: {} for key in self._CATEGORIES}
+        self._latest_updates: dict[str, dict[str, Any]] = {}
         self._settings_manager = settings_manager
         self._camera_telemetry = CameraHudTelemetry()
         self._access_control = access_control or get_access_control()
@@ -80,7 +80,7 @@ class VisualizationService(VisualizationServiceProtocol):
             logger.debug("VisualizationService.populate_initial_state: no manager")
             return self.populate_camera_defaults()
 
-        payload: Dict[str, Mapping[str, Any]] = {}
+        payload: dict[str, Mapping[str, Any]] = {}
         loaded_categories: list[str] = []
 
         for category, path in self._GRAPHICS_CATEGORY_PATHS.items():
@@ -145,7 +145,7 @@ class VisualizationService(VisualizationServiceProtocol):
     def dispatch_updates(
         self, updates: Mapping[str, Mapping[str, Any]]
     ) -> Mapping[str, Mapping[str, Any]]:
-        sanitized: Dict[str, Dict[str, Any]] = {}
+        sanitized: dict[str, dict[str, Any]] = {}
         for key, payload in updates.items():
             if key not in self._CATEGORIES:
                 continue
@@ -183,7 +183,7 @@ class VisualizationService(VisualizationServiceProtocol):
         self, payload: Mapping[str, Any] | None = None
     ) -> Mapping[str, Any]:
         manager = self._resolve_settings_manager()
-        base: Dict[str, Any] = {}
+        base: dict[str, Any] = {}
         if manager is not None:
             camera_defaults = manager.get("current.graphics.camera", {})
             if isinstance(camera_defaults, Mapping):
@@ -242,7 +242,7 @@ class VisualizationService(VisualizationServiceProtocol):
             return {}
         return self.dispatch_updates({"camera": camera_payload})
 
-    def _resolve_settings_manager(self) -> Optional[SettingsManager]:
+    def _resolve_settings_manager(self) -> SettingsManager | None:
         if self._settings_manager is not None:
             return self._settings_manager
         try:
@@ -252,18 +252,18 @@ class VisualizationService(VisualizationServiceProtocol):
         return self._settings_manager
 
     @staticmethod
-    def _sanitize_payload(payload: Mapping[str, Any] | None) -> Dict[str, Any]:
+    def _sanitize_payload(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         if isinstance(payload, Mapping):
             return {key: deepcopy(value) for key, value in payload.items()}
         return {}
 
-    def _build_access_payload(self, category: str) -> Dict[str, Any] | None:
+    def _build_access_payload(self, category: str) -> dict[str, Any] | None:
         target = self._CATEGORY_PERMISSION_MAP.get(category)
         if not target:
             return None
         can_edit = self._access_control.can_modify(target)
         profile = self._access_control.describe_access_profile()
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "role": profile.get("role", "unknown"),
             "actor": profile.get("actor", "system"),
             "description": profile.get("description", ""),
@@ -277,7 +277,7 @@ class VisualizationService(VisualizationServiceProtocol):
         return payload
 
     def _augment_with_orbit_metadata(
-        self, payload: Dict[str, Any], manager: SettingsManager
+        self, payload: dict[str, Any], manager: SettingsManager
     ) -> None:
         try:
             presets = manager.get_orbit_presets()
@@ -328,13 +328,13 @@ class VisualizationService(VisualizationServiceProtocol):
 
     def _synchronise_vector_field(
         self,
-        base: Dict[str, Any],
+        base: dict[str, Any],
         payload: Mapping[str, Any],
         *,
         key: str,
     ) -> None:
         axes: Sequence[str] = ("x", "y", "z")
-        components: Dict[str, Any] = {}
+        components: dict[str, Any] = {}
 
         vector_value = payload.get(key)
         if isinstance(vector_value, Mapping):

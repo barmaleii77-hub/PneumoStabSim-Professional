@@ -9,7 +9,8 @@ Pydantic's forward compatibility.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
 
 from pydantic import BaseModel, Field, RootModel
 
@@ -28,14 +29,14 @@ class Metadata(_StrictModel):
     schema_version: str
     last_modified: str
     units_version: str
-    migrations: List[str]
+    migrations: list[str]
     last_migration: str
     migrated_from: str
     migration_date: str
     total_parameters: int
     description: str
-    operational_imperatives: List[str]
-    legacy: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
+    operational_imperatives: list[str]
+    legacy: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
 class SimulationSettings(_StrictModel):
@@ -303,13 +304,13 @@ class MaterialSettings(_StrictModel):
     emissive_color: str
     emissive_intensity: float
     normal_strength: float
-    texture_path: Optional[str] = None
+    texture_path: str | None = None
     occlusion_amount: float
     alpha_mode: str
     alpha_cutoff: float
-    warning_color: Optional[str] = None
-    ok_color: Optional[str] = None
-    error_color: Optional[str] = None
+    warning_color: str | None = None
+    ok_color: str | None = None
+    error_color: str | None = None
     id: str
 
 
@@ -404,11 +405,11 @@ class PhysicsSuspensionSettings(_StrictModel):
     spring_rest_position_m: float
     cylinder_head_area_m2: float
     cylinder_rod_area_m2: float
-    axis_unit_world: List[float]
+    axis_unit_world: list[float]
 
 
 class PhysicsReferenceAxes(_StrictModel):
-    vertical_world: List[float]
+    vertical_world: list[float]
 
 
 class PhysicsValidationSettings(_StrictModel):
@@ -430,7 +431,7 @@ class PhysicsIntegratorLoopSettings(_StrictModel):
 
 class PhysicsIntegratorSolverSettings(_StrictModel):
     primary_method: str
-    fallback_methods: List[str]
+    fallback_methods: list[str]
     relative_tolerance: float
     absolute_tolerance: float
     max_step_divisor: float
@@ -458,7 +459,7 @@ class PhysicsRigidBodySettings(_StrictModel):
     load_sum_min_reference: float
     damping_coefficient: float
     angle_limit_rad: float
-    attachment_points_m: Dict[str, AttachmentPoint]
+    attachment_points_m: dict[str, AttachmentPoint]
 
 
 class PhysicsConstants(_StrictModel):
@@ -508,24 +509,24 @@ class GeometryInitialStateConstants(_StrictModel):
     lever_length_m: float
     cylinder_body_length_m: float
     tail_rod_length_m: float
-    j_arm_left: List[float]
-    j_arm_right: List[float]
-    j_tail_left: List[float]
-    j_tail_right: List[float]
+    j_arm_left: list[float]
+    j_arm_right: list[float]
+    j_tail_left: list[float]
+    j_tail_right: list[float]
 
 
 class SliderRange(_StrictModel):
     min: float
     max: float
-    step: Optional[float] = None
-    decimals: Optional[int] = None
-    units: Optional[str] = None
+    step: float | None = None
+    decimals: int | None = None
+    units: str | None = None
 
 
 class GeometryPreset(_StrictModel):
     key: str
     label: str
-    values: Dict[str, float | bool | str]
+    values: dict[str, float | bool | str]
 
 
 class GeometryConstants(_StrictModel):
@@ -533,8 +534,8 @@ class GeometryConstants(_StrictModel):
     cylinder: GeometryCylinderConstants
     visualization: GeometryVisualizationConstants
     initial_state: GeometryInitialStateConstants
-    ui_ranges: Dict[str, SliderRange]
-    presets: List[GeometryPreset]
+    ui_ranges: dict[str, SliderRange]
+    presets: list[GeometryPreset]
 
 
 class PneumoValveConstants(_StrictModel):
@@ -581,8 +582,8 @@ class Constants(_StrictModel):
 class SignalTraceSettings(_StrictModel):
     enabled: bool
     history_limit: int
-    include: List[str]
-    exclude: List[str]
+    include: list[str]
+    exclude: list[str]
     overlay_enabled: bool
 
 
@@ -608,18 +609,18 @@ class DiagnosticsSettings(_StrictModel):
 class SystemDependencyVariant(_StrictModel):
     id: str
     human_name: str
-    platform_prefixes: List[str]
-    error_markers: List[str]
+    platform_prefixes: list[str]
+    error_markers: list[str]
     install_hint: str
-    library_name: Optional[str] = None
-    packages: Optional[List[str]] = None
-    install_command: Optional[str] = None
+    library_name: str | None = None
+    packages: list[str] | None = None
+    install_command: str | None = None
 
 
 class SystemDependency(_StrictModel):
     description: str
     missing_message: str
-    variants: List[SystemDependencyVariant]
+    variants: list[SystemDependencyVariant]
 
 
 class SystemDependencies(_StrictModel):
@@ -663,7 +664,7 @@ class AppSettings(_StrictModel):
     defaults_snapshot: CurrentSettings
 
 
-def dump_settings(settings: AppSettings) -> Dict[str, Any]:
+def dump_settings(settings: AppSettings) -> dict[str, Any]:
     """Return a serialisable dictionary representation of the settings."""
 
     return settings.model_dump(mode="python", round_trip=True)

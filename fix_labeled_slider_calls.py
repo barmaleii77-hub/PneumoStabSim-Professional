@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Полная проверка соответствия ВСЕХ отрефакторенных файлов старым монолитам
 Проверяет: GraphicsPanel, GeometryPanel, ModesPanel
@@ -28,12 +27,12 @@ class ComparisonReport:
     """Отчёт о сравнении файлов"""
 
     panel_name: str = ""
-    monolith_widgets: List[WidgetUsage] = field(default_factory=list)
-    refactored_widgets: List[WidgetUsage] = field(default_factory=list)
-    missing_in_refactored: List[str] = field(default_factory=list)
-    extra_in_refactored: List[str] = field(default_factory=list)
-    matched_widgets: List[Tuple[str, str]] = field(default_factory=list)
-    files_analyzed: Dict[str, int] = field(default_factory=dict)
+    monolith_widgets: list[WidgetUsage] = field(default_factory=list)
+    refactored_widgets: list[WidgetUsage] = field(default_factory=list)
+    missing_in_refactored: list[str] = field(default_factory=list)
+    extra_in_refactored: list[str] = field(default_factory=list)
+    matched_widgets: list[tuple[str, str]] = field(default_factory=list)
+    files_analyzed: dict[str, int] = field(default_factory=dict)
 
     def print_report(self):
         """Вывести отчёт на экран"""
@@ -73,7 +72,7 @@ class ComparisonReport:
                     print(f"   ... и ещё {len(self.missing_in_refactored) - 10}")
 
 
-def extract_labeled_sliders(file_path: Path) -> List[WidgetUsage]:
+def extract_labeled_sliders(file_path: Path) -> list[WidgetUsage]:
     """Извлечь все LabeledSlider из файла"""
     widgets = []
 
@@ -143,7 +142,7 @@ def extract_labeled_sliders(file_path: Path) -> List[WidgetUsage]:
 
 
 def compare_panel(
-    monolith_path: Path, refactored_dir: Path, tab_files: List[str], panel_name: str
+    monolith_path: Path, refactored_dir: Path, tab_files: list[str], panel_name: str
 ) -> ComparisonReport:
     """Сравнить один монолит с рефакторенными табами"""
     report = ComparisonReport(panel_name=panel_name)
@@ -332,7 +331,7 @@ def main():
     ]
 
     # Результаты по всем панелям
-    all_reports: List[ComparisonReport] = []
+    all_reports: list[ComparisonReport] = []
 
     for panel_config in panels:
         print(f"\n{'=' * 80}")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 
 __all__ = ["discover_texture_files"]
 

@@ -9,7 +9,8 @@ import re
 import shutil
 import subprocess
 import sys
-from typing import Iterable, List, Sequence, Set, Tuple
+from typing import List, Set, Tuple
+from collections.abc import Iterable, Sequence
 
 QT_ROOT = pathlib.Path(os.environ.get("QT_ROOT", "/opt/Qt")).resolve()
 QT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -35,7 +36,7 @@ QT_BASE_MODULE = "qtbase"
 AQT_BASE_CMD = [sys.executable, "-m", "aqt"]
 
 
-def _list_available_modules(version: str) -> Set[str]:
+def _list_available_modules(version: str) -> set[str]:
     """Return a lower-case set of modules available for the version/arch."""
     try:
         out = subprocess.check_output(
@@ -57,7 +58,7 @@ def _list_available_modules(version: str) -> Set[str]:
         )
         return set()
 
-    available: Set[str] = set()
+    available: set[str] = set()
     for line in out.splitlines():
         token = line.strip().split()[0:1]
         if token:
@@ -65,7 +66,7 @@ def _list_available_modules(version: str) -> Set[str]:
     return available
 
 
-def _version_sort_key(version: str) -> Tuple[int, ...]:
+def _version_sort_key(version: str) -> tuple[int, ...]:
     """Return a tuple suitable for sorting Qt semantic versions."""
 
     parts = [int(part) for part in re.findall(r"\d+", version)]
@@ -85,8 +86,8 @@ def _list_available_versions() -> Sequence[str]:
         print(f"[qt] Unable to list available Qt versions: {exc}", file=sys.stderr)
         return []
 
-    seen: Set[str] = set()
-    versions: List[str] = []
+    seen: set[str] = set()
+    versions: list[str] = []
     for line in out.splitlines():
         token = line.strip().split()[0:1]
         if not token:
@@ -103,11 +104,11 @@ def _list_available_versions() -> Sequence[str]:
     return versions
 
 
-def _normalise_modules(modules: Iterable[str]) -> List[str]:
+def _normalise_modules(modules: Iterable[str]) -> list[str]:
     """Ensure the qtbase module is included and order is preserved."""
 
-    normalised: List[str] = []
-    seen: Set[str] = set()
+    normalised: list[str] = []
+    seen: set[str] = set()
     for module in modules:
         key = module.lower()
         if key in seen:
@@ -160,7 +161,7 @@ def _install(version: str, modules: Sequence[str]) -> None:
     subprocess.check_call(base_cmd)
 
 
-def _select_version() -> Tuple[str, Sequence[str], Sequence[str]]:
+def _select_version() -> tuple[str, Sequence[str], Sequence[str]]:
     """Pick the best Qt version and module set available."""
     module_catalogue = {}
     for version in QT_VERSIONS:

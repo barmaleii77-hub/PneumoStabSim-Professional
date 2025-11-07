@@ -124,17 +124,17 @@ class PhysicsWorker(QObject):
         self.dead_zone_rod_m3: float = 0.0
 
         # Cached state for snapshot creation
-        self._latest_wheel_states: Dict[Wheel, WheelState] = {
+        self._latest_wheel_states: dict[Wheel, WheelState] = {
             wheel: WheelState(wheel=wheel) for wheel in Wheel
         }
-        self._latest_line_states: Dict[Line, LineState] = {
+        self._latest_line_states: dict[Line, LineState] = {
             line: LineState(line=line) for line in Line
         }
         self._latest_tank_state = TankState()
-        self._prev_piston_positions: Dict[Wheel, float] = {
+        self._prev_piston_positions: dict[Wheel, float] = {
             wheel: 0.0 for wheel in Wheel
         }
-        self._last_road_inputs: Dict[str, float] = {
+        self._last_road_inputs: dict[str, float] = {
             k: 0.0 for k in ("LF", "RF", "LR", "RR")
         }
         self._lever_config = LeverDynamicsConfig()
@@ -472,7 +472,7 @@ class PhysicsWorker(QObject):
                 self.settings_manager.get("defaults_snapshot.pneumatic", {}) or {}
             )
 
-            def _resolve_numeric(data: Dict[str, Any], key: str) -> Optional[float]:
+            def _resolve_numeric(data: dict[str, Any], key: str) -> Optional[float]:
                 value = data.get(key)
                 if isinstance(value, bool) or not isinstance(value, (int, float)):
                     return None
@@ -989,7 +989,7 @@ class PhysicsWorker(QObject):
         self.simulation_time += self.dt_physics
         self.step_counter += 1
 
-    def _get_road_inputs(self) -> Dict[str, float]:
+    def _get_road_inputs(self) -> dict[str, float]:
         """Get road excitation for all wheels"""
         if self.road_input:
             try:
@@ -1331,7 +1331,7 @@ class SimulationManager(QObject):
         """Get latest state snapshot without blocking"""
         return self.state_queue.get_nowait()
 
-    def get_queue_stats(self) -> Dict[str, Any]:
+    def get_queue_stats(self) -> dict[str, Any]:
         """Get state queue statistics"""
         return self.state_queue.get_stats()
 

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, List, Mapping, Sequence
+from typing import Callable, Dict, List
+from collections.abc import Iterable, Mapping, Sequence
 
 from PySide6.QtCore import QObject, Property, Signal, Slot
 
@@ -25,8 +26,8 @@ class MetricDescriptor:
     color: str
     range_hint: Sequence[float] | None = None
 
-    def as_payload(self) -> Dict[str, object]:
-        payload: Dict[str, object] = {
+    def as_payload(self) -> dict[str, object]:
+        payload: dict[str, object] = {
             "id": self.id,
             "label": self.label,
             "unit": self.unit,
@@ -199,7 +200,7 @@ class TelemetryDataBridge(QObject):
         self._extractors: Mapping[str, MetricExtractor] = (
             extractors or _DEFAULT_EXTRACTORS
         )
-        self._buffers: Dict[str, deque[float]] = {
+        self._buffers: dict[str, deque[float]] = {
             descriptor.id: deque(maxlen=self._max_samples)
             for descriptor in self._descriptors
         }
@@ -215,11 +216,11 @@ class TelemetryDataBridge(QObject):
 
     # ------------------------------------------------------------------ properties
     @Property("QVariantList", notify=metricsChanged)
-    def metricCatalog(self) -> List[Dict[str, object]]:
+    def metricCatalog(self) -> list[dict[str, object]]:
         return [descriptor.as_payload() for descriptor in self._descriptors]
 
     @Property("QStringList", notify=activeMetricsChanged)
-    def activeMetrics(self) -> List[str]:
+    def activeMetrics(self) -> list[str]:
         return list(self._active_metrics)
 
     @Property(int, notify=updateIntervalChanged)
@@ -237,7 +238,7 @@ class TelemetryDataBridge(QObject):
     # ------------------------------------------------------------------ mutators
     @Slot("QStringList")
     def setActiveMetrics(self, metric_ids: Iterable[str]) -> None:
-        normalized: List[str] = []
+        normalized: list[str] = []
         seen = set()
         for metric_id in metric_ids:
             key = str(metric_id)
@@ -292,7 +293,7 @@ class TelemetryDataBridge(QObject):
         self._skip_counter = 0
 
         timestamp = float(snapshot.simulation_time)
-        values: Dict[str, float] = {}
+        values: dict[str, float] = {}
         for metric_id, extractor in self._extractors.items():
             try:
                 value = float(extractor(snapshot))
@@ -330,7 +331,7 @@ class TelemetryDataBridge(QObject):
         self.sampleAppended.emit(payload)
 
     @Slot("QStringList", result="QVariantMap")
-    def exportSeries(self, metric_ids: Iterable[str]) -> Dict[str, object]:
+    def exportSeries(self, metric_ids: Iterable[str]) -> dict[str, object]:
         metrics = [str(metric_id) for metric_id in metric_ids if metric_id]
         if not metrics:
             return {
@@ -340,7 +341,7 @@ class TelemetryDataBridge(QObject):
             }
 
         time_points = list(self._time_buffer)
-        series_payload: Dict[str, List[Dict[str, float]]] = {}
+        series_payload: dict[str, list[dict[str, float]]] = {}
 
         for metric_id in metrics:
             buffer = self._buffers.get(metric_id)

@@ -7,7 +7,8 @@ import csv
 import gzip
 from importlib import util
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Sequence, cast
+from typing import TYPE_CHECKING, Any, cast
+from collections.abc import Iterable, Mapping, Sequence
 
 _NUMPY_AVAILABLE = util.find_spec("numpy") is not None
 

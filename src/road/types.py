@@ -114,7 +114,7 @@ class RoadConfig:
     csv_path: Optional[str] = None  # Path to CSV file
     csv_format: str = "auto"  # 'auto', 'time_z', 'time_wheels'
 
-    def get_effective_params(self) -> Dict[str, Any]:
+    def get_effective_params(self) -> dict[str, Any]:
         """Get effective parameters (preset overridden by manual values)"""
         params = {}
 
@@ -183,7 +183,7 @@ ISO8608_PARAMETERS = {
 
 
 # Wheel position mapping
-WheelPosition = Dict[str, Union[str, float]]
+WheelPosition = dict[str, Union[str, float]]
 WHEEL_POSITIONS = {
     "LF": {"name": "Left Front", "x": -0.8, "z": -1.6},  # Left front
     "RF": {"name": "Right Front", "x": +0.8, "z": -1.6},  # Right front
@@ -192,7 +192,7 @@ WHEEL_POSITIONS = {
 }
 
 
-def validate_wheel_excitation(excitation: Dict[str, float]) -> bool:
+def validate_wheel_excitation(excitation: dict[str, float]) -> bool:
     """Validate wheel excitation dictionary format"""
     required_keys = {"LF", "RF", "LR", "RR"}
     if not isinstance(excitation, dict):

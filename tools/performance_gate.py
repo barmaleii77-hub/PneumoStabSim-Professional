@@ -16,17 +16,17 @@ class MetricOutcome:
     """Result for a single metric evaluation."""
 
     name: str
-    actual: Optional[float]
+    actual: float | None
     passed: bool
-    messages: List[str]
+    messages: list[str]
 
 
-def _load_json(path: Path) -> Dict[str, Any]:
+def _load_json(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 
 
-def _extract_averages(report_payload: Dict[str, Any]) -> Dict[str, float]:
+def _extract_averages(report_payload: dict[str, Any]) -> dict[str, float]:
     extra = report_payload.get("extra") or {}
     averages = extra.get("averages") or {}
     if not averages:
@@ -34,7 +34,7 @@ def _extract_averages(report_payload: Dict[str, Any]) -> Dict[str, float]:
         averages = metadata.get("averages") or {}
     if not isinstance(averages, dict):
         return {}
-    numeric: Dict[str, float] = {}
+    numeric: dict[str, float] = {}
     for key, value in averages.items():
         if isinstance(value, (int, float)):
             numeric[key] = float(value)
@@ -43,12 +43,12 @@ def _extract_averages(report_payload: Dict[str, Any]) -> Dict[str, float]:
 
 def _evaluate_metric(
     name: str,
-    config: Dict[str, Any],
-    actual: Optional[float],
+    config: dict[str, Any],
+    actual: float | None,
     *,
     fail_on_missing: bool = True,
 ) -> MetricOutcome:
-    messages: List[str] = []
+    messages: list[str] = []
     optional = bool(config.get("optional"))
     if actual is None:
         if fail_on_missing and not optional:
@@ -122,7 +122,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = _build_argument_parser()
     args = parser.parse_args(argv)
 
@@ -137,7 +137,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     report_averages = _extract_averages(report_data)
 
-    outcomes: List[MetricOutcome] = []
+    outcomes: list[MetricOutcome] = []
     for metric_name, config in baseline_metrics.items():
         if not isinstance(config, dict):
             parser.error(

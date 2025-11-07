@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Scene Tab - управление базовыми параметрами сценического окружения."""
 
 from __future__ import annotations
@@ -26,7 +25,7 @@ class SceneTab(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._controls: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
         self._updating_ui = False
         self._setup_ui()
 
@@ -122,7 +121,7 @@ class SceneTab(QWidget):
             raise KeyError(f"Control '{key}' is not registered") from exc
 
     # ------------------------------------------------------------------ state API
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return {
             "scale_factor": self._require_control("scale_factor").value(),
             "exposure": self._require_control("exposure").value(),
@@ -136,7 +135,7 @@ class SceneTab(QWidget):
             "model_metalness": self._require_control("model_metalness").value(),
         }
 
-    def set_state(self, state: Dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any]) -> None:
         validated = validate_scene_settings(state)
         self._updating_ui = True
         try:

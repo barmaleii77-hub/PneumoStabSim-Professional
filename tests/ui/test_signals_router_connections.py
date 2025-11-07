@@ -14,7 +14,7 @@ class _RecordingSignal:
     """Lightweight stand-in for Qt signals recording ``connect`` calls."""
 
     def __init__(self) -> None:
-        self.calls: List[Tuple[Callable[..., Any], Any]] = []
+        self.calls: list[tuple[Callable[..., Any], Any]] = []
 
     def connect(self, handler: Callable[..., Any], connection_type: Any = None) -> None:
         self.calls.append((handler, connection_type))

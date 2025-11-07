@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Tuple
+from collections.abc import Iterable
 
 # Directories to skip entirely when scanning for artifacts
 SKIP_DIR_NAMES = {
@@ -24,7 +25,7 @@ SKIP_DIR_NAMES = {
 # Specific repository-relative subpaths to skip
 SKIP_SUBPATHS = {Path("docs/_build"), Path("docs/api/generated")}
 
-FORBIDDEN_PATTERNS: Tuple[Tuple[str, str], ...] = (
+FORBIDDEN_PATTERNS: tuple[tuple[str, str], ...] = (
     ("*.rej", "Patch reject file"),
     ("*.orig", "Patch/merge backup file"),
     ("*.bak", "Backup file"),
@@ -66,13 +67,13 @@ def should_skip(path: Path, repo_root: Path) -> bool:
     return False
 
 
-def find_forbidden(root: Path) -> Dict[Path, str]:
+def find_forbidden(root: Path) -> dict[Path, str]:
     """Locate forbidden artifacts below *root*.
 
     Returns a mapping of path -> description for each discovered forbidden file.
     """
 
-    discovered: Dict[Path, str] = {}
+    discovered: dict[Path, str] = {}
     for pattern, description in FORBIDDEN_PATTERNS:
         for match in root.rglob(pattern):
             if not match.is_file():
@@ -83,7 +84,7 @@ def find_forbidden(root: Path) -> Dict[Path, str]:
     return discovered
 
 
-def format_report(paths: Iterable[Tuple[Path, str]], root: Path) -> str:
+def format_report(paths: Iterable[tuple[Path, str]], root: Path) -> str:
     """Format a human-readable report of discovered forbidden artifacts."""
 
     lines = ["Forbidden artifacts detected:"]

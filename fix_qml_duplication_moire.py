@@ -22,7 +22,7 @@ def check_cylinder_duplication():
         print("❌ main.qml не найден!")
         return False
 
-    with open(main_qml_path, "r", encoding="utf-8") as f:
+    with open(main_qml_path, encoding="utf-8") as f:
         content = f.read()
 
     print("🔍 АНАЛИЗ ДУБЛИРОВАНИЯ ЦИЛИНДРОВ:")
@@ -86,7 +86,7 @@ def check_scene_environment_usage():
 
     main_qml_path = "assets/qml/main.qml"
 
-    with open(main_qml_path, "r", encoding="utf-8") as f:
+    with open(main_qml_path, encoding="utf-8") as f:
         content = f.read()
 
     print("\n🔍 АНАЛИЗ SCENE ENVIRONMENT:")
@@ -130,7 +130,7 @@ def analyze_antialiasing_values():
 
     main_qml_path = "assets/qml/main.qml"
 
-    with open(main_qml_path, "r", encoding="utf-8") as f:
+    with open(main_qml_path, encoding="utf-8") as f:
         content = f.read()
 
     print("\n🔍 АНАЛИЗ АНТИАЛИАСИНГА:")
@@ -180,7 +180,7 @@ def check_hdr_background():
 
     main_qml_path = "assets/qml/main.qml"
 
-    with open(main_qml_path, "r", encoding="utf-8") as f:
+    with open(main_qml_path, encoding="utf-8") as f:
         content = f.read()
 
     print("\n🔍 АНАЛИЗ HDR ФОНА:")

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Geometry panel state manager
 Управление состоянием и валидация геометрии
@@ -50,7 +49,7 @@ class GeometryStateManager:
         self._fallback_warnings: set[str] = set()
 
         # Current state (mutable)
-        self.state: Dict[str, Any] = DEFAULT_GEOMETRY.copy()
+        self.state: dict[str, Any] = DEFAULT_GEOMETRY.copy()
         self._rod_link_snapshot: Optional[tuple[float, float]] = None
 
         # Load saved state if available
@@ -77,12 +76,12 @@ class GeometryStateManager:
             raise KeyError(f"Unknown geometry parameter: {param_name}")
 
     def _partition_parameters(
-        self, payload: Dict[str, Any]
-    ) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        self, payload: dict[str, Any]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Split payload into known geometry keys and legacy values."""
 
-        known: Dict[str, Any] = {}
-        legacy: Dict[str, Any] = {}
+        known: dict[str, Any] = {}
+        legacy: dict[str, Any] = {}
 
         for key, value in payload.items():
             if key in self._allowed_keys:
@@ -98,7 +97,7 @@ class GeometryStateManager:
 
         return known, legacy
 
-    def _record_legacy_parameters(self, path: str, legacy: Dict[str, Any]) -> bool:
+    def _record_legacy_parameters(self, path: str, legacy: dict[str, Any]) -> bool:
         """Persist legacy parameters under the metadata."""
 
         if not legacy or not self.settings_manager:
@@ -115,7 +114,7 @@ class GeometryStateManager:
             self.logger.error("Failed to record legacy geometry parameters: %s", exc)
         return False
 
-    def _apply_sanitised_payload(self, path: str, payload: Dict[str, Any]) -> bool:
+    def _apply_sanitised_payload(self, path: str, payload: dict[str, Any]) -> bool:
         if not self.settings_manager:
             return False
 
@@ -178,7 +177,7 @@ class GeometryStateManager:
         else:
             self._rod_link_snapshot = None
 
-    def get_all_parameters(self) -> Dict[str, Any]:
+    def get_all_parameters(self) -> dict[str, Any]:
         """Get all parameters
 
         Returns:
@@ -186,7 +185,7 @@ class GeometryStateManager:
         """
         return self.state.copy()
 
-    def update_parameters(self, params: Dict[str, Any]) -> None:
+    def update_parameters(self, params: dict[str, Any]) -> None:
         """Update multiple parameters
 
         Args:
@@ -207,7 +206,7 @@ class GeometryStateManager:
     # VALIDATION
     # =========================================================================
 
-    def validate_geometry(self) -> List[str]:
+    def validate_geometry(self) -> list[str]:
         """Validate current geometry configuration
 
         Returns:
@@ -225,7 +224,7 @@ class GeometryStateManager:
 
         return errors
 
-    def get_warnings(self) -> List[str]:
+    def get_warnings(self) -> list[str]:
         """Get warnings (non-critical issues)
 
         Returns:
@@ -239,7 +238,7 @@ class GeometryStateManager:
 
         return warnings
 
-    def _validate_geometric_constraints(self) -> List[str]:
+    def _validate_geometric_constraints(self) -> list[str]:
         """Validate geometric constraints
 
         Returns:
@@ -262,7 +261,7 @@ class GeometryStateManager:
 
         return errors
 
-    def _validate_hydraulic_constraints(self) -> List[str]:
+    def _validate_hydraulic_constraints(self) -> list[str]:
         """Validate hydraulic constraints
 
         Returns:
@@ -291,7 +290,7 @@ class GeometryStateManager:
 
         return errors
 
-    def _get_hydraulic_warnings(self) -> List[str]:
+    def _get_hydraulic_warnings(self) -> list[str]:
         """Get hydraulic warnings (non-critical)
 
         Returns:
@@ -324,7 +323,7 @@ class GeometryStateManager:
 
     def check_dependencies(
         self, param_name: str, new_value: Any, old_value: Any
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Check parameter dependencies
 
         Args:
@@ -351,7 +350,7 @@ class GeometryStateManager:
 
     def _check_hydraulic_dependency(
         self, param_name: str, new_value: float
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Check hydraulic parameter dependencies
 
         Args:
@@ -405,7 +404,7 @@ class GeometryStateManager:
 
     def _check_geometric_dependency(
         self, param_name: str, new_value: float
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Check geometric parameter dependencies
 
         Args:
@@ -486,7 +485,7 @@ class GeometryStateManager:
 
         needs_cleanup = False
 
-        def _load_section(path: str) -> Dict[str, Any]:
+        def _load_section(path: str) -> dict[str, Any]:
             nonlocal needs_cleanup
             try:
                 payload = self.settings_manager.get(path, default={})
@@ -548,7 +547,7 @@ class GeometryStateManager:
     # HELPER METHODS
     # =========================================================================
 
-    def get_3d_geometry_update(self) -> Dict[str, float]:
+    def get_3d_geometry_update(self) -> dict[str, float]:
         """Get geometry update for 3D scene.
 
         Returns:

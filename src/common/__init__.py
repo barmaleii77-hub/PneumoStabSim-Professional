@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Common utilities package - WITH LOGGING
 Provides logging, CSV export, and UI event tracking

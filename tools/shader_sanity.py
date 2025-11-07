@@ -6,7 +6,8 @@ from __future__ import annotations
 import pathlib
 import re
 import sys
-from typing import Iterable, List
+from typing import List
+from collections.abc import Iterable
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SHADER_ROOT = ROOT / "assets" / "shaders"
@@ -18,7 +19,7 @@ def iter_shader_files() -> Iterable[pathlib.Path]:
     patterns = ("*.frag", "*.vert")
     if not SHADER_ROOT.exists():
         return []
-    files: List[pathlib.Path] = []
+    files: list[pathlib.Path] = []
     for pattern in patterns:
         files.extend(SHADER_ROOT.rglob(pattern))
     return sorted(files)

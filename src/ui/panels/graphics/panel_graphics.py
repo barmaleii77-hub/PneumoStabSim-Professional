@@ -80,7 +80,7 @@ class GraphicsPanel(QWidget):
         self.event_logger = get_event_logger()
 
         # Загружаем текущее состояние из JSON (не дефолты)
-        self.state: Dict[str, Any] = {}
+        self.state: dict[str, Any] = {}
 
         self._color_adjustments_toggle: LoggingCheckBox | None = None
         self._syncing_color_toggle = False
@@ -174,7 +174,7 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
     # ------------------------------------------------------------------
-    def _log_state_changes(self, category: str, new_state: Dict[str, Any]) -> None:
+    def _log_state_changes(self, category: str, new_state: dict[str, Any]) -> None:
         if not isinstance(new_state, dict):
             return
 
@@ -186,7 +186,7 @@ class GraphicsPanel(QWidget):
         else:
             previous_state = {}
 
-        updated_state: Dict[str, Any] = deepcopy(previous_state)
+        updated_state: dict[str, Any] = deepcopy(previous_state)
 
         for key, new_value in new_state.items():
             old_value = previous_state.get(key)
@@ -197,31 +197,31 @@ class GraphicsPanel(QWidget):
         self.state[category] = updated_state
 
     def _emit_with_logging(
-        self, signal_name: str, payload: Dict[str, Any], category: str
+        self, signal_name: str, payload: dict[str, Any], category: str
     ) -> None:
         self._log_state_changes(category, payload)
         getattr(self, signal_name).emit(payload)
         self.event_logger.log_signal_emit(signal_name, payload)
 
-    def _on_lighting_changed(self, data: Dict[str, Any]) -> None:
+    def _on_lighting_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("lighting_changed", data, "lighting")
 
-    def _on_environment_changed(self, data: Dict[str, Any]) -> None:
+    def _on_environment_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("environment_changed", data, "environment")
 
-    def _on_quality_changed(self, data: Dict[str, Any]) -> None:
+    def _on_quality_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("quality_changed", data, "quality")
 
-    def _on_scene_changed(self, data: Dict[str, Any]) -> None:
+    def _on_scene_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("scene_changed", data, "scene")
 
-    def _on_camera_changed(self, data: Dict[str, Any]) -> None:
+    def _on_camera_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("camera_changed", data, "camera")
 
-    def _on_material_changed(self, data: Dict[str, Any]) -> None:
+    def _on_material_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("material_changed", data, "materials")
 
-    def _on_effects_changed(self, data: Dict[str, Any]) -> None:
+    def _on_effects_changed(self, data: dict[str, Any]) -> None:
         self._update_color_adjustments_toggle(data)
         self._emit_with_logging("effects_changed", data, "effects")
 
@@ -403,7 +403,7 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Централизованный сбор состояния — для MainWindow.closeEvent()
     # ------------------------------------------------------------------
-    def collect_state(self) -> Dict[str, Any]:
+    def collect_state(self) -> dict[str, Any]:
         try:
             state = {
                 "lighting": self.lighting_tab.get_state(),

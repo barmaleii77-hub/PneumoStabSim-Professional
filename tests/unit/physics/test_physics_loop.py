@@ -92,7 +92,7 @@ def _create_receiver_state() -> ReceiverState:
 
 
 @pytest.fixture()
-def pneumatic_system_and_gas() -> Tuple[object, GasNetwork]:
+def pneumatic_system_and_gas() -> tuple[object, GasNetwork]:
     lever = LeverGeom(L_lever=0.75, rod_joint_frac=0.45, d_frame_to_lever_hinge=0.42)
     cylinder_geom = _build_default_cylinder_geom()
 
@@ -133,7 +133,7 @@ def pneumatic_system_and_gas() -> Tuple[object, GasNetwork]:
 
 
 def test_physics_loop_updates_pneumatics(
-    pneumatic_system_and_gas: Tuple[object, GasNetwork],
+    pneumatic_system_and_gas: tuple[object, GasNetwork],
 ) -> None:
     system, gas = pneumatic_system_and_gas
 

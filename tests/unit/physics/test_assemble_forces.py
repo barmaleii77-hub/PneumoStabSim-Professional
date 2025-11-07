@@ -24,7 +24,7 @@ from src.common.units import PA_ATM, T_AMBIENT
 
 
 @pytest.fixture()
-def pneumatic_system_with_gas() -> Tuple[object, GasNetwork, Dict[Line, float]]:
+def pneumatic_system_with_gas() -> tuple[object, GasNetwork, dict[Line, float]]:
     """Construct a minimal pneumatic system and gas network for force tests."""
 
     lever_geom = LeverGeom(
@@ -81,7 +81,7 @@ def pneumatic_system_with_gas() -> Tuple[object, GasNetwork, Dict[Line, float]]:
         master_isolation_open=False,
     )
 
-    line_pressures: Dict[Line, float] = {
+    line_pressures: dict[Line, float] = {
         Line.A1: 150_000.0,
         Line.B1: 210_000.0,
         Line.A2: 170_000.0,
@@ -117,7 +117,7 @@ def pneumatic_system_with_gas() -> Tuple[object, GasNetwork, Dict[Line, float]]:
 
 
 def test_assemble_forces_uses_pneumatic_pressures(
-    pneumatic_system_with_gas: Tuple[object, GasNetwork, Dict[Line, float]],
+    pneumatic_system_with_gas: tuple[object, GasNetwork, dict[Line, float]],
 ) -> None:
     system, gas_network, _ = pneumatic_system_with_gas
 

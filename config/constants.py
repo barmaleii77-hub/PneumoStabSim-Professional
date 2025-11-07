@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
 from src.core.settings_models import dump_settings
 from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
@@ -17,7 +18,7 @@ def get_settings_service(custom_path: str | None = None) -> SettingsService:
     return get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
 
 
-def _load_settings(custom_path: str | None = None) -> Dict[str, Any]:
+def _load_settings(custom_path: str | None = None) -> dict[str, Any]:
     """Load the JSON settings file using :class:`SettingsService`."""
 
     if custom_path is None:

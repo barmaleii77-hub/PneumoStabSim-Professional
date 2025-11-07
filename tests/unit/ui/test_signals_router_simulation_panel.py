@@ -16,7 +16,7 @@ class _DummySignal:
     """Lightweight stand-in for Qt signals used in tests."""
 
     def __init__(self) -> None:
-        self.emitted: List[Tuple[Any, ...]] = []
+        self.emitted: list[tuple[Any, ...]] = []
 
     def emit(self, *args: Any) -> None:  # pragma: no cover - behaviour exercised
         self.emitted.append(tuple(args))
@@ -35,7 +35,7 @@ class _DummySimulationManager:
 
 class _DummySettingsManager:
     def __init__(self) -> None:
-        self._categories: Dict[str, Dict[str, Any]] = {
+        self._categories: dict[str, dict[str, Any]] = {
             "pneumatic": {
                 "volume_mode": "MANUAL",
             },
@@ -52,7 +52,7 @@ class _DummySettingsManager:
             },
         }
 
-    def get_category(self, name: str) -> Dict[str, Any]:
+    def get_category(self, name: str) -> dict[str, Any]:
         payload = self._categories.get(name, {})
         return copy.deepcopy(payload)
 
@@ -64,11 +64,11 @@ class _DummySettingsManager:
 
 class _DummyWindow:
     def __init__(self) -> None:
-        self.settings_updates: List[Tuple[str, Dict[str, Any]]] = []
+        self.settings_updates: list[tuple[str, dict[str, Any]]] = []
         self.settings_manager = _DummySettingsManager()
         self.simulation_manager = _DummySimulationManager()
 
-    def _apply_settings_update(self, category: str, payload: Dict[str, Any]) -> None:
+    def _apply_settings_update(self, category: str, payload: dict[str, Any]) -> None:
         self.settings_updates.append((category, copy.deepcopy(payload)))
 
 
@@ -78,7 +78,7 @@ def test_handle_pneumatic_settings_changed_updates_settings_and_bus(
     """Numeric pneumatic edits must persist and forward to the state bus."""
 
     window = _DummyWindow()
-    dispatched: List[str] = []
+    dispatched: list[str] = []
 
     monkeypatch.setattr(
         SignalsRouter,
@@ -126,7 +126,7 @@ def test_handle_simulation_settings_changed_updates_settings_and_bus(
     """Simulation edits must persist and notify the simulation manager."""
 
     window = _DummyWindow()
-    dispatched: List[str] = []
+    dispatched: list[str] = []
 
     monkeypatch.setattr(
         SignalsRouter,
@@ -161,7 +161,7 @@ def test_handle_cylinder_settings_changed_updates_constants(
     """Cylinder dead zones from QML must persist under constants geometry."""
 
     window = _DummyWindow()
-    dispatched: List[str] = []
+    dispatched: list[str] = []
 
     monkeypatch.setattr(
         SignalsRouter,
@@ -231,7 +231,7 @@ def test_handle_modes_physics_changed_normalises_numeric_options(
 
 
 def test_pneumo_panel_receives_qml_updates(
-    qtbot: "pytestqt.qtbot.QtBot",
+    qtbot: pytestqt.qtbot.QtBot,
     settings_manager,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -247,13 +247,13 @@ def test_pneumo_panel_receives_qml_updates(
 
     class _PanelWindow:
         def __init__(self) -> None:
-            self.settings_updates: List[Tuple[str, Dict[str, Any]]] = []
+            self.settings_updates: list[tuple[str, dict[str, Any]]] = []
             self.settings_manager = settings_manager
             self.simulation_manager = _DummySimulationManager()
             self.pneumo_panel = panel
 
         def _apply_settings_update(
-            self, category: str, payload: Dict[str, Any]
+            self, category: str, payload: dict[str, Any]
         ) -> None:
             self.settings_updates.append((category, copy.deepcopy(payload)))
 
@@ -288,7 +288,7 @@ def test_push_pneumatic_state_skips_when_marked_qml(
     window.pneumo_panel = object()
     SignalsRouter._mark_update_source(window, "pneumatic", "qml")
 
-    dispatched: List[Tuple[Any, ...]] = []
+    dispatched: list[tuple[Any, ...]] = []
 
     monkeypatch.setattr(
         SignalsRouter,

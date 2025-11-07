@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Утилита анализа логов графических изменений
 Позволяет анализировать сохраненные сессии логирования
@@ -17,8 +16,8 @@ class LogAnalyzer:
 
     def __init__(self, log_file: Path):
         self.log_file = log_file
-        self.events: List[Dict[str, Any]] = []
-        self.session_info: Dict[str, Any] = {}
+        self.events: list[dict[str, Any]] = []
+        self.session_info: dict[str, Any] = {}
         self.load_log()
 
     def load_log(self):
@@ -27,7 +26,7 @@ class LogAnalyzer:
             print(f"❌ Файл не найден: {self.log_file}")
             return
 
-        with open(self.log_file, "r", encoding="utf-8") as f:
+        with open(self.log_file, encoding="utf-8") as f:
             for line in f:
                 try:
                     event = json.loads(line.strip())
@@ -85,7 +84,7 @@ class LogAnalyzer:
 
     def print_timeline(self, limit: int = 20):
         """Вывести временную шкалу изменений"""
-        print("⏱️  TIMELINE (последние {})".format(min(limit, len(self.events))))
+        print(f"⏱️  TIMELINE (последние {min(limit, len(self.events))})")
         print("-" * 60)
 
         for event in self.events[-limit:]:

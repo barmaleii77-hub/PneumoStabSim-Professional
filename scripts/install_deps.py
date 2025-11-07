@@ -9,14 +9,15 @@ import pathlib
 import subprocess
 import sys
 import tomllib
-from typing import Iterable, List
+from typing import List
+from collections.abc import Iterable
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REQ_FILES = [ROOT / "requirements-dev.txt", ROOT / "requirements.txt"]
 
 
 def pip_install(args: Iterable[str]) -> None:
-    items: List[str] = [str(a) for a in args if str(a).strip()]
+    items: list[str] = [str(a) for a in args if str(a).strip()]
     if not items:
         return
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", *items])
@@ -47,7 +48,7 @@ def install_optional_dev() -> None:
         dependencies = list(dev)
     else:
         dependencies = []
-    flat: List[str] = []
+    flat: list[str] = []
     for entry in dependencies:
         if isinstance(entry, str):
             flat.append(entry)

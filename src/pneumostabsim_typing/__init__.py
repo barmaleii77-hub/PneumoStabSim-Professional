@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from collections.abc import Iterable
 
 
 @dataclass(slots=True)
@@ -14,7 +14,7 @@ class SampleVector:
     y: float
     z: float
 
-    def scaled(self, factor: float) -> "SampleVector":
+    def scaled(self, factor: float) -> SampleVector:
         """Return a new vector scaled by ``factor``."""
 
         return SampleVector(self.x * factor, self.y * factor, self.z * factor)

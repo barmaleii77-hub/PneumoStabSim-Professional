@@ -5,7 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable
+from typing import Any, Dict
+from collections.abc import Iterable
 
 from src.core.interfaces import SettingsOrchestrator as SettingsOrchestratorProtocol
 from src.runtime.sync import LatestOnlyQueue
@@ -15,14 +16,14 @@ class FakeSettingsOrchestrator(SettingsOrchestratorProtocol):
     """In-memory implementation of :class:`SettingsOrchestrator` for tests."""
 
     def __init__(self, initial_state: Mapping[str, Any] | None = None) -> None:
-        self._state: Dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
         if initial_state:
             self._merge_state(self._state, initial_state)
         self._listeners: set[Callable[[Mapping[str, Any]], None]] = set()
 
     # ------------------------------------------------------------------ protocol
     def snapshot(self, paths: Sequence[str]) -> Mapping[str, Any]:
-        payload: Dict[str, Any] = {}
+        payload: dict[str, Any] = {}
         for path in paths:
             payload[path] = deepcopy(self._lookup(path))
         return payload
@@ -32,7 +33,7 @@ class FakeSettingsOrchestrator(SettingsOrchestratorProtocol):
     ) -> Mapping[str, Any]:  # noqa: ARG002 - parity with protocol
         if not updates:
             return {}
-        materialised: Dict[str, Any] = {}
+        materialised: dict[str, Any] = {}
         for path, value in updates.items():
             self._assign(path, value)
             materialised[path] = deepcopy(value)
@@ -53,7 +54,7 @@ class FakeSettingsOrchestrator(SettingsOrchestratorProtocol):
     def inject_external_change(self, updates: Mapping[str, Any]) -> Mapping[str, Any]:
         """Simulate an update that originates outside of the service under test."""
 
-        applied: Dict[str, Any] = {}
+        applied: dict[str, Any] = {}
         for path, value in updates.items():
             self._assign(path, value)
             applied[path] = deepcopy(value)
@@ -88,7 +89,7 @@ class FakeSettingsOrchestrator(SettingsOrchestratorProtocol):
             target = target[key]
         return target
 
-    def _merge_state(self, target: Dict[str, Any], payload: Mapping[str, Any]) -> None:
+    def _merge_state(self, target: dict[str, Any], payload: Mapping[str, Any]) -> None:
         for key, value in payload.items():
             if isinstance(value, Mapping):
                 bucket = target.setdefault(key, {})
@@ -129,7 +130,7 @@ class FakeVisualizationClient:
     """Subscribe to :class:`SceneBridge` signals and store payloads."""
 
     def __init__(self) -> None:
-        self.events: list[tuple[str, Dict[str, Any]]] = []
+        self.events: list[tuple[str, dict[str, Any]]] = []
         self._connections: list[Callable[[], None]] = []
 
     def bind(self, bridge: Any) -> None:

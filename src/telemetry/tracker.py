@@ -12,7 +12,8 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
-from typing import TYPE_CHECKING, Any, Dict, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
+from collections.abc import Mapping
 
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
 from src.telemetry.schema import EVENT_SCHEMA_VERSION, TelemetryRecord
@@ -40,7 +41,7 @@ class TelemetryRouter:
         self,
         base_dir: Path | str = _DEFAULT_BASE_DIR,
         *,
-        logger: Optional[LoggerProtocol] = None,
+        logger: LoggerProtocol | None = None,
     ) -> None:
         self._base_dir = Path(base_dir)
         self._base_dir.mkdir(parents=True, exist_ok=True)
@@ -77,9 +78,9 @@ class TelemetryTracker:
 
     def __init__(
         self,
-        router: Optional[TelemetryRouter] = None,
+        router: TelemetryRouter | None = None,
         *,
-        logger: Optional[LoggerProtocol] = None,
+        logger: LoggerProtocol | None = None,
     ) -> None:
         self._router = router or TelemetryRouter(logger=logger)
         self._logger = logger or get_logger("telemetry.tracker")
@@ -87,17 +88,17 @@ class TelemetryTracker:
     @staticmethod
     def _build_payload(
         action: str,
-        metadata: Optional[Mapping[str, Any]] = None,
-        context: Optional[Mapping[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"action": action}
+        metadata: Mapping[str, Any] | None = None,
+        context: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"action": action}
         if metadata:
             payload["metadata"] = dict(metadata)
         if context:
             payload["context"] = dict(context)
         return payload
 
-    def _record(self, channel: str, event: str, payload: Dict[str, Any]) -> Path:
+    def _record(self, channel: str, event: str, payload: dict[str, Any]) -> Path:
         record = TelemetryRecord(
             channel=channel,
             event=event,
@@ -117,8 +118,8 @@ class TelemetryTracker:
         self,
         action: str,
         *,
-        metadata: Optional[Mapping[str, Any]] = None,
-        context: Optional[Mapping[str, Any]] = None,
+        metadata: Mapping[str, Any] | None = None,
+        context: Mapping[str, Any] | None = None,
     ) -> Path:
         payload = self._build_payload(action, metadata=metadata, context=context)
         return self._record("user", action, payload)
@@ -127,8 +128,8 @@ class TelemetryTracker:
         self,
         event: str,
         *,
-        metadata: Optional[Mapping[str, Any]] = None,
-        context: Optional[Mapping[str, Any]] = None,
+        metadata: Mapping[str, Any] | None = None,
+        context: Mapping[str, Any] | None = None,
     ) -> Path:
         payload = self._build_payload(event, metadata=metadata, context=context)
         return self._record("simulation", event, payload)
@@ -160,8 +161,8 @@ def get_tracker(*, base_dir: Path | str | None = None) -> TelemetryTracker:
 def track_user_action(
     action: str,
     *,
-    metadata: Optional[Mapping[str, Any]] = None,
-    context: Optional[Mapping[str, Any]] = None,
+    metadata: Mapping[str, Any] | None = None,
+    context: Mapping[str, Any] | None = None,
 ) -> Path:
     """Record a user-facing telemetry event."""
 
@@ -172,8 +173,8 @@ def track_user_action(
 def track_simulation_event(
     event: str,
     *,
-    metadata: Optional[Mapping[str, Any]] = None,
-    context: Optional[Mapping[str, Any]] = None,
+    metadata: Mapping[str, Any] | None = None,
+    context: Mapping[str, Any] | None = None,
 ) -> Path:
     """Record a simulation telemetry event."""
 

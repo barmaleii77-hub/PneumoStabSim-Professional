@@ -21,26 +21,26 @@ from src.ui.qml_bridge import QMLBridge as RealBridge
 
 class _BridgeStub:
     invoke_result: bool = False
-    invoke_calls: List[Tuple[str, Dict[str, Any]]] = []
-    queue_calls: List[Tuple[str, Dict[str, Any]]] = []
-    logs: List[Tuple[str, Dict[str, Any], bool]] = []
+    invoke_calls: list[tuple[str, dict[str, Any]]] = []
+    queue_calls: list[tuple[str, dict[str, Any]]] = []
+    logs: list[tuple[str, dict[str, Any], bool]] = []
 
     @staticmethod
     def invoke_qml_function(
-        _window: object, name: str, payload: Dict[str, Any]
+        _window: object, name: str, payload: dict[str, Any]
     ) -> bool:
         _BridgeStub.invoke_calls.append((name, dict(payload)))
         return _BridgeStub.invoke_result
 
     @staticmethod
-    def queue_update(_window: object, category: str, payload: Dict[str, Any]) -> None:
+    def queue_update(_window: object, category: str, payload: dict[str, Any]) -> None:
         if not payload:
             return
         _BridgeStub.queue_calls.append((category, dict(payload)))
 
     @staticmethod
     def _log_graphics_change(
-        _window: object, category: str, payload: Dict[str, Any], applied: bool
+        _window: object, category: str, payload: dict[str, Any], applied: bool
     ) -> None:
         _BridgeStub.logs.append((category, dict(payload), applied))
 
@@ -48,17 +48,17 @@ class _BridgeStub:
 class _WindowStub(QObject):
     def __init__(self) -> None:
         super().__init__()
-        self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
-        self._last_dispatched_payloads: Dict[str, Dict[str, Any]] = {}
-        self.settings_applied: List[Tuple[str, Dict[str, Any]]] = []
+        self._qml_update_queue: dict[str, dict[str, Any]] = {}
+        self._last_dispatched_payloads: dict[str, dict[str, Any]] = {}
+        self.settings_applied: list[tuple[str, dict[str, Any]]] = []
 
-    def _apply_settings_update(self, path: str, params: Dict[str, Any]) -> None:
+    def _apply_settings_update(self, path: str, params: dict[str, Any]) -> None:
         self.settings_applied.append((path, dict(params)))
 
 
 @pytest.mark.gui
 def test_graphics_panel_lighting_payload_hits_queue(
-    qtbot: "pytestqt.qtbot.QtBot", monkeypatch: pytest.MonkeyPatch
+    qtbot: pytestqt.qtbot.QtBot, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Simulate user edits and assert lighting payload respects bridge schema."""
 

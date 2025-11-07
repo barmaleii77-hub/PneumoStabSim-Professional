@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Постепенная модульная интеграция в main.qml
 НЕ РАЗДУВАЕМ ФАЙЛ - ИСПОЛЬЗУЕМ МОДУЛИ!
@@ -34,7 +33,7 @@ def integrate_modules_step_by_step():
     backup = main_qml.with_suffix(".qml.backup_before_modules")
     print(f"\n💾 Creating backup: {backup}")
 
-    with open(main_qml, "r", encoding="utf-8") as f:
+    with open(main_qml, encoding="utf-8") as f:
         content = f.read()
 
     backup.write_text(content, encoding="utf-8")

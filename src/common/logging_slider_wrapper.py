@@ -32,7 +32,7 @@ class LoggingLabeledSlider:
         self._slider = wrapped_slider
         self.widget_name = widget_name
         self.event_logger = get_event_logger()
-        self._previous_value: Optional[float] = None
+        self._previous_value: float | None = None
 
         # ✅ ИСПРАВЛЕНО: Подключаем внутренний обработчик к ОРИГИНАЛЬНОМУ слайдеру
         self._slider.valueChanged.connect(self._on_value_changed_with_logging)
@@ -87,7 +87,7 @@ class LoggingColorButton:
         self._button = wrapped_button
         self.widget_name = widget_name
         self.event_logger = get_event_logger()
-        self._previous_color: Optional[str] = None
+        self._previous_color: str | None = None
 
         # Пробрасываем сигнал с логированием
         self.color_changed = Signal(str)
