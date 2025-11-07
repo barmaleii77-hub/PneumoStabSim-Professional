@@ -7,8 +7,11 @@ Graphics panel widgets - reusable UI components
 from __future__ import annotations
 
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Iterable, Sequence
+from urllib.parse import unquote, urlparse
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
@@ -17,6 +20,7 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -259,11 +263,17 @@ class FileCyclerWidget(QWidget):
     ) -> None:
         super().__init__(parent)
 
+        self._logger = logging.getLogger(self.__class__.__name__)
         self._placeholder = placeholder
         self._items: list[tuple[str, str]] = []
         self._index: int = -1
         self._custom_entry: tuple[str, str] | None = None
         self._allow_empty_selection = False
+        self._resolution_roots: list[Path] = []
+        self._missing_path: str = ""
+        self._logged_missing_paths: set[str] = set()
+        self._dialogued_missing_paths: set[str] = set()
+        self._pending_dialog_paths: list[str] = []
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -281,6 +291,12 @@ class FileCyclerWidget(QWidget):
             Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
         )
         layout.addWidget(self._label, 1)
+
+        self._warning_label = QLabel("⚠ файл не найден", self)
+        self._warning_label.setObjectName("fileCyclerMissingIndicator")
+        self._warning_label.setStyleSheet("color: #d4380d; font-weight: 600;")
+        self._warning_label.setVisible(False)
+        layout.addWidget(self._warning_label)
 
         self._next_btn = QPushButton("▶", self)
         self._next_btn.setFixedWidth(28)
@@ -349,6 +365,21 @@ class FileCyclerWidget(QWidget):
                 self._custom_entry = None
             self._update_ui(emit=False)
 
+    def set_resolution_roots(self, roots: Sequence[Path]) -> None:
+        """Define base directories for resolving relative paths."""
+
+        resolved: list[Path] = []
+        for root in roots:
+            if not root:
+                continue
+            try:
+                candidate = Path(root)
+            except TypeError:
+                continue
+            if candidate not in resolved:
+                resolved.append(candidate)
+        self._resolution_roots = resolved
+
     def set_current_data(self, path: str | None, *, emit: bool = True) -> None:
         """Установить текущий путь. Допускает значения вне списка items."""
 
@@ -407,6 +438,31 @@ class FileCyclerWidget(QWidget):
         super().setEnabled(enabled)
         self._update_ui(emit=False)
 
+    def is_missing(self) -> bool:
+        """Return ``True`` if the current entry points to a missing file."""
+
+        return bool(self._missing_path)
+
+    def missing_path(self) -> str:
+        """Return the missing file path if any."""
+
+        return self._missing_path
+
+    # ------------------------------------------------------------------
+    # Qt overrides
+    # ------------------------------------------------------------------
+    def showEvent(self, event) -> None:  # type: ignore[override]
+        super().showEvent(event)
+        if not self._pending_dialog_paths:
+            return
+        pending = list(self._pending_dialog_paths)
+        self._pending_dialog_paths.clear()
+        for path in pending:
+            if path in self._dialogued_missing_paths:
+                continue
+            self._show_warning_dialog(path)
+            self._dialogued_missing_paths.add(path)
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
@@ -427,6 +483,16 @@ class FileCyclerWidget(QWidget):
         else:
             path = ""
             self._label.setText(self._placeholder)
+
+        missing = bool(path) and self._is_path_missing(path)
+        self._missing_path = path if missing else ""
+
+        self._warning_label.setVisible(missing)
+        self._warning_label.setToolTip(path if missing else "")
+        self._label.setToolTip(path if path else "")
+
+        if missing:
+            self._handle_missing_path(path)
 
         available_states = len(self._items)
         if self._allow_empty_selection:
@@ -487,6 +553,72 @@ class FileCyclerWidget(QWidget):
         else:
             self._index = (self._index + 1) % len(self._items)
         self._update_ui(emit=True)
+
+    def _handle_missing_path(self, path: str) -> None:
+        if path not in self._logged_missing_paths:
+            self._logger.warning("Файл не найден: %s", path)
+            self._logged_missing_paths.add(path)
+
+        if path in self._dialogued_missing_paths:
+            return
+
+        if self.isVisible():
+            self._show_warning_dialog(path)
+            self._dialogued_missing_paths.add(path)
+        elif path not in self._pending_dialog_paths:
+            self._pending_dialog_paths.append(path)
+
+    def _show_warning_dialog(self, path: str) -> None:
+        try:
+            QMessageBox.warning(
+                self.window() or self,
+                "Файл не найден",
+                f"Не удалось найти файл:\n{path}",
+            )
+        except Exception:  # pragma: no cover - defensive
+            self._logger.debug(
+                "Не удалось показать предупреждение об отсутствии файла: %s",
+                path,
+                exc_info=True,
+            )
+
+    def _is_path_missing(self, path: str) -> bool:
+        for candidate in self._iter_path_candidates(path):
+            try:
+                if candidate.exists():
+                    return False
+            except OSError:
+                continue
+        return True
+
+    def _iter_path_candidates(self, path: str) -> Iterable[Path]:
+        seen: set[Path] = set()
+        parsed = urlparse(path)
+        if parsed.scheme == "file":
+            candidate = Path(unquote(parsed.path))
+            if parsed.netloc:
+                candidate = Path(f"//{parsed.netloc}{candidate.as_posix()}")
+            if candidate not in seen:
+                seen.add(candidate)
+                yield candidate
+
+        raw_path = Path(path)
+        if raw_path.is_absolute() and raw_path not in seen:
+            seen.add(raw_path)
+            yield raw_path
+
+        if raw_path not in seen:
+            seen.add(raw_path)
+            yield raw_path
+
+        for root in self._resolution_roots:
+            try:
+                resolved = (root / raw_path).resolve()
+            except Exception:
+                continue
+            if resolved not in seen:
+                seen.add(resolved)
+                yield resolved
 
 
 class QuantitySlider(LabeledSlider):
