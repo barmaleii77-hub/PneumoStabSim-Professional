@@ -31,7 +31,7 @@ import importlib.util
 import logging
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable
 from collections.abc import Iterable
 
 try:  # pragma: no cover - exercised indirectly by tests

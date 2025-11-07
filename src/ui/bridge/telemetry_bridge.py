@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from typing import Callable, Dict, List
+from typing import Callable
 from collections.abc import Iterable, Mapping, Sequence
 
 from PySide6.QtCore import QObject, Property, Signal, Slot

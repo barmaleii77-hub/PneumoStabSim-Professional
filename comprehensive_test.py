@@ -8,7 +8,6 @@ import sys
 import os
 import time
 from pathlib import Path
-from typing import Dict, List
 import json
 
 # Добавляем src в путь для импортов

@@ -8,7 +8,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from collections.abc import Iterable
 
 _TIMESTEP_EPSILON = 1e-9

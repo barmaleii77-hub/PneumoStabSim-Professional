@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal, Qt
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Any
 
 from .widgets import ColorButton, LabeledSlider, FileCyclerWidget
 from .hdr_discovery import discover_hdr_files
@@ -45,7 +45,7 @@ class EnvironmentTab(QWidget):
     """Вкладка настроек окружения: фон, IBL, туман, AO
 
     Signals:
-        environment_changed: Dict[str, Any] - параметры окружения изменились
+        environment_changed: dict[str, Any] - параметры окружения изменились
     """
 
     environment_changed = Signal(dict)

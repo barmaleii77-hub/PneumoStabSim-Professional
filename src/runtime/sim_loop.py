@@ -7,7 +7,7 @@ import math
 import sys
 import time
 from dataclasses import replace
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 import numpy as np
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, Qt
@@ -570,7 +570,7 @@ class PhysicsWorker(QObject):
             )
 
             line_volumes = structure.get_line_volumes()
-            line_states: Dict[Line, Any] = {}
+            line_states: dict[Line, Any] = {}
             for line_name, volume_info in line_volumes.items():
                 if (
                     not isinstance(volume_info, dict)

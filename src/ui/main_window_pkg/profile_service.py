@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from src.common.qt_compat import QObject, Signal, Slot
 from src.core.settings_manager import ProfileSettingsManager, ProfileOperationResult
 

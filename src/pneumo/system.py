@@ -4,7 +4,6 @@ Manages 4 cylinders and 4 lines with diagonal connection scheme
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
 from .enums import Line, Wheel, Port
 from .cylinder import CylinderState, CylinderSpec
 from .line import PneumoLine

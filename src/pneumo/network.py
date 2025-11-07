@@ -6,7 +6,7 @@ Manages interconnections between lines, receiver, and atmosphere
 import logging
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Dict, Optional, Tuple
+from typing import Optional
 from collections.abc import Mapping, Sequence
 from .enums import Line, ThermoMode
 from .gas_state import (

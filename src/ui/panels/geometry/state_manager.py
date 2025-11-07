@@ -4,7 +4,7 @@ Geometry panel state manager
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Optional, Any
 
 from src.common.settings_manager import SettingsManager
 

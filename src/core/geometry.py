@@ -19,7 +19,7 @@ References:
 
 from dataclasses import dataclass
 import numpy as np
-from typing import Any, Tuple
+from typing import Any
 from collections.abc import Mapping
 
 from config.constants import (

@@ -6,7 +6,7 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable, Deque, List, Optional, Tuple
+from typing import Any, Callable, Deque, Optional
 from collections.abc import Iterable, Iterator
 
 from .logger_factory import LoggerProtocol, get_logger

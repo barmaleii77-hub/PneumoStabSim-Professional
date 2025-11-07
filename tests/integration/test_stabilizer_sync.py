@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import sys
 from types import ModuleType, SimpleNamespace
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import pytest
 

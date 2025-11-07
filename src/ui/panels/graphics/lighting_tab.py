@@ -4,7 +4,7 @@ Graphics panel - lighting configuration tab
 """
 
 import copy
-from typing import Any, Dict
+from typing import Any
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (

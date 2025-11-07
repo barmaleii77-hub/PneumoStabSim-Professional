@@ -6,7 +6,7 @@ import logging
 import math
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 from collections.abc import Iterable, Mapping
 
 try:  # pragma: no cover - structlog is optional at runtime

@@ -6,7 +6,6 @@ import ast
 import re
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Dict, List
 
 import pytest
 import yaml

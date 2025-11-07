@@ -11,7 +11,7 @@ API surface stable.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from src.ui.main_window_pkg import (
     MainWindow as _PkgMainWindow,

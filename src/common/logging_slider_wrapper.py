@@ -146,7 +146,7 @@ def create_logging_slider(
         slider.valueChanged.connect(lambda v: self._update_lighting("key", "brightness", v))
 
     Returns:
-        Tuple[LabeledSlider, LoggingLabeledSlider] - (исходный слайдер, wrapper с логированием)
+        tuple[LabeledSlider, LoggingLabeledSlider] - (исходный слайдер, wrapper с логированием)
     """
     # ⚠️ Важно: импортируем здесь, чтобы избежать циклических импортов
     from src.ui.panels.panel_graphics import LabeledSlider

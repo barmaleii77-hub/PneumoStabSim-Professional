@@ -4,7 +4,7 @@ Advances gas state without body dynamics (no ODE solver)
 """
 
 import logging
-from typing import Optional, Dict
+from typing import Optional
 from .network import GasNetwork
 from .system import PneumaticSystem
 from .enums import ThermoMode, Line
@@ -16,7 +16,7 @@ def advance_gas(
     net: GasNetwork,
     thermo_mode: ThermoMode,
     log: Optional[logging.Logger] = None,
-    volumes_override: Optional[Dict[Line, float]] = None,
+    volumes_override: Optional[dict[Line, float]] = None,
 ):
     """Advance gas simulation by one time step
 

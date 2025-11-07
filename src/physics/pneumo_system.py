@@ -13,7 +13,7 @@ rigid body model.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Mapping, Tuple
+from typing import Mapping
 
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
@@ -27,11 +27,11 @@ class PneumaticUpdate:
 
     left_force: float
     right_force: float
-    wheel_forces: Dict[Wheel, float]
-    piston_positions: Dict[Wheel, float]
-    chamber_volumes: Dict[Wheel, Tuple[float, float]]
-    axis_directions: Dict[Wheel, Tuple[float, float, float]]
-    pressures: Dict[Wheel, Tuple[float, float]]
+    wheel_forces: dict[Wheel, float]
+    piston_positions: dict[Wheel, float]
+    chamber_volumes: dict[Wheel, tuple[float, float]]
+    axis_directions: dict[Wheel, tuple[float, float, float]]
+    pressures: dict[Wheel, tuple[float, float]]
 
 
 class PneumaticSystem:
@@ -52,8 +52,8 @@ class PneumaticSystem:
 
         # Cache reference volumes used for dead-zone enforcement so that they do
         # not need to be recomputed every frame.
-        self._max_head_volume: Dict[Wheel, float] = {}
-        self._max_rod_volume: Dict[Wheel, float] = {}
+        self._max_head_volume: dict[Wheel, float] = {}
+        self._max_rod_volume: dict[Wheel, float] = {}
         for wheel, cylinder in self._structure.cylinders.items():
             geom = cylinder.spec.geometry
             half_travel = geom.L_travel_max / 2.0
@@ -97,7 +97,7 @@ class PneumaticSystem:
         return None
 
     @staticmethod
-    def _normalise(vector: Tuple[float, float, float]) -> Tuple[float, float, float]:
+    def _normalise(vector: tuple[float, float, float]) -> tuple[float, float, float]:
         vx, vy, vz = vector
         magnitude_sq = vx * vx + vy * vy + vz * vz
         if magnitude_sq <= 0.0:
@@ -107,7 +107,7 @@ class PneumaticSystem:
 
     def _enforce_dead_zones(
         self, wheel: Wheel, head_volume: float, rod_volume: float
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         head_limit = (
             self._max_head_volume.get(wheel, 0.0) * self._dead_zone_head_fraction
         )
@@ -143,11 +143,11 @@ class PneumaticSystem:
         if master_isolation_open:
             self._gas_network.enforce_master_isolation(dt=0.0)
 
-        chamber_volumes: Dict[Wheel, Tuple[float, float]] = {}
-        piston_positions: Dict[Wheel, float] = {}
-        wheel_forces: Dict[Wheel, float] = {}
-        axis_directions: Dict[Wheel, Tuple[float, float, float]] = {}
-        pressures: Dict[Wheel, Tuple[float, float]] = {}
+        chamber_volumes: dict[Wheel, tuple[float, float]] = {}
+        piston_positions: dict[Wheel, float] = {}
+        wheel_forces: dict[Wheel, float] = {}
+        axis_directions: dict[Wheel, tuple[float, float, float]] = {}
+        pressures: dict[Wheel, tuple[float, float]] = {}
 
         left_force = 0.0
         right_force = 0.0

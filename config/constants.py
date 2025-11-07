@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from collections.abc import Mapping
 
 from src.core.settings_models import dump_settings
@@ -51,7 +51,9 @@ def _require_scalar_key(container: Mapping[str, Any], key: str, context: str) ->
     return container[key]
 
 
-def _require_positive_float(container: Mapping[str, Any], key: str, context: str) -> float:
+def _require_positive_float(
+    container: Mapping[str, Any], key: str, context: str
+) -> float:
     value = _require_scalar_key(container, key, context)
     try:
         numeric = float(value)
@@ -320,9 +322,7 @@ def get_pneumo_relief_thresholds(
     return {
         "min": _require_positive_float(gas, "relief_min_threshold_pa", context),
         "stiff": _require_positive_float(gas, "relief_stiff_threshold_pa", context),
-        "safety": _require_positive_float(
-            gas, "relief_safety_threshold_pa", context
-        ),
+        "safety": _require_positive_float(gas, "relief_safety_threshold_pa", context),
     }
 
 

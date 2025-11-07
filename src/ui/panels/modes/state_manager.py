@@ -3,7 +3,7 @@ ModesPanel state manager
 Управление состоянием панели режимов симуляции
 """
 
-from typing import Any, Dict, List
+from typing import Any
 import copy
 
 from .defaults import (

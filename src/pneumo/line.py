@@ -4,7 +4,6 @@ Connects cylinders with valve control
 """
 
 from dataclasses import dataclass
-from typing import Dict, Tuple
 from collections.abc import Mapping
 
 from src.common.errors import ConnectionError

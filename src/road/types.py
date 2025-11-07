@@ -5,7 +5,7 @@ Defines source types, ISO 8608 classes, correlation specs, and configuration str
 
 from enum import Enum, auto
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Any, Union
 import numpy as np
 
 

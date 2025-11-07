@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Tuple
 
 TwoVector = tuple[float, float]
 

@@ -3,7 +3,7 @@ Predefined road scenarios and presets
 Highway, urban, offroad, and maneuver scenarios with typical parameters
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 from .types import SourceKind, Iso8608Class, CorrelationSpec, Preset
 
 

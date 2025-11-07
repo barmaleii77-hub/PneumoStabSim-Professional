@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 
 from PySide6.QtWidgets import QMainWindow, QLabel
 from PySide6.QtCore import Qt, QTimer, Slot, QUrl
@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
         self.logger.info(f"MainWindow init: {backend_name}")
 
         # Geometry payload cache for dependency corrections
-        self._last_geometry_payload: Dict[str, float] = {}
+        self._last_geometry_payload: dict[str, float] = {}
 
         # Settings manager
         self.settings_manager = get_settings_manager()
@@ -499,11 +499,11 @@ class MainWindow(QMainWindow):
         QMLBridge.queue_update(self, key, params)
 
     def _sanitize_geometry_payload(
-        self, params: Dict[str, Any]
-    ) -> tuple[Dict[str, Any], list[str]]:
+        self, params: dict[str, Any]
+    ) -> tuple[dict[str, Any], list[str]]:
         """Clamp geometry payload to maintain internal dependencies."""
 
-        sanitized: Dict[str, Any] = dict(params)
+        sanitized: dict[str, Any] = dict(params)
         adjustments: list[str] = []
 
         def _float(value: Any, fallback: float | None = None) -> float | None:

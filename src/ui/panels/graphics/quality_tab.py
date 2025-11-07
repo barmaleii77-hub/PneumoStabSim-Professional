@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
 )
 from PySide6.QtCore import Signal
-from typing import Dict, Any
+from typing import Any
 import copy
 
 from .widgets import LabeledSlider
@@ -32,7 +32,7 @@ class QualityTab(QWidget):
     """Вкладка настроек качества рендеринга: тени, AA, производительность
 
     Signals:
-        quality_changed: Dict[str, Any] - параметры качества изменились
+        quality_changed: dict[str, Any] - параметры качества изменились
         preset_applied: str - пресет качества применён (название)
     """
 

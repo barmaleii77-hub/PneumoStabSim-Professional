@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from importlib import import_module
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

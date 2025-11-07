@@ -14,8 +14,6 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
-    List,
     Optional,
     Protocol,
     TypeVar,

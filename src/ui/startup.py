@@ -9,7 +9,6 @@ Qt stack during unit tests.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Tuple
 from collections.abc import Mapping, MutableMapping
 
 

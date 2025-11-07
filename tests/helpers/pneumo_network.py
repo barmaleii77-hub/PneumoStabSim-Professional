@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Dict, Tuple
-
 from src.common.units import PA_ATM, T_AMBIENT
 from src.pneumo.cylinder import CylinderSpec
 from src.pneumo.enums import CheckValveKind, Line, ReceiverVolumeMode, Wheel

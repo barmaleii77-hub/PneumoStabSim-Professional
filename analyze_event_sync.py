@@ -9,7 +9,7 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
 def load_latest_events(logs_dir: Path | str = "logs") -> dict[str, Any]:

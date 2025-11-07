@@ -20,7 +20,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
-from typing import Any, List
+from typing import Any
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

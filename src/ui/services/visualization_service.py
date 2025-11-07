@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from src.common.settings_manager import SettingsManager
 from src.core.interfaces import VisualizationService as VisualizationServiceProtocol

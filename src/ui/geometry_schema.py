@@ -11,7 +11,7 @@ compatible with the expectations of :mod:`tests.unit.test_geometry_schema`.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 from collections.abc import Mapping
 
 

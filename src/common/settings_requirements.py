@@ -1,8 +1,6 @@
 """Список обязательных секций и ключей для файла настроек."""
 
 from __future__ import annotations
-
-from typing import Tuple
 from collections.abc import Iterable
 
 

@@ -8,7 +8,7 @@ import json
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 from collections.abc import Iterable
 
 

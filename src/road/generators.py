@@ -5,7 +5,7 @@ Implements deterministic and stochastic road excitation patterns
 
 import numpy as np
 from scipy import signal
-from typing import Tuple, Optional, Dict, Any
+from typing import Optional, Any
 
 from .types import Iso8608Class, ISO8608_PARAMETERS, CorrelationSpec
 

@@ -5,7 +5,7 @@ Camera Tab - вкладка настроек камеры
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (

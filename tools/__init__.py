@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib
 from types import ModuleType
-from typing import Dict
 
 _KNOWN_SUBMODULES = {
     "ci_tasks",
