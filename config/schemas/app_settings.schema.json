@@ -1543,6 +1543,9 @@
           "title": "Operational Imperatives",
           "type": "array"
         },
+        "environment_slider_ranges": {
+          "$ref": "#/$defs/EnvironmentSliderRanges"
+        },
         "legacy": {
           "additionalProperties": {
             "additionalProperties": true,

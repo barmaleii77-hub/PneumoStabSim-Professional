@@ -90,12 +90,43 @@ class EnvironmentTab(QWidget):
         raw_ranges = settings_manager.get("graphics.environment_ranges", {})
 
         validated: Dict[str, EnvironmentSliderRange] = {}
-        missing_keys: List[str] = []
-        section_message: str | None = None
+        missing_keys: set[str] = set()
+        invalid_keys: set[str] = set()
         invalid_messages: List[str] = []
+        section_messages: List[str] = []
+        recorded_invalid_sections: set[str] = set()
+
+        def _record_invalid_section(section: str) -> None:
+            if section in recorded_invalid_sections:
+                return
+            recorded_invalid_sections.add(section)
+            section_messages.append(
+                f"Секция {section} отсутствует или имеет неверный формат."
+            )
+
+        def _try_parse_range(
+            source: str,
+            payload: Any,
+            key: str,
+        ) -> EnvironmentSliderRange | None:
+            if not isinstance(payload, dict):
+                _record_invalid_section(source)
+                return None
+            if key not in payload:
+                return None
+            try:
+                parsed, _ = validate_environment_slider_ranges(
+                    {key: payload[key]},
+                    required_keys=(key,),
+                    raise_on_missing=True,
+                )
+            except EnvironmentValidationError as exc:
+                invalid_messages.append(f"{source}.{key}: {exc}")
+                return None
+            return parsed[key]
 
         if not isinstance(raw_ranges, dict):
-            section_message = "Секция graphics.environment_ranges отсутствует или имеет неверный формат."
+            _record_invalid_section("graphics.environment_ranges")
             raw_ranges = {}
 
         unexpected = sorted(
@@ -108,7 +139,7 @@ class EnvironmentTab(QWidget):
 
         for key in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.keys():
             if key not in raw_ranges:
-                missing_keys.append(key)
+                missing_keys.add(key)
                 continue
             try:
                 parsed, _ = validate_environment_slider_ranges(
@@ -117,9 +148,35 @@ class EnvironmentTab(QWidget):
                     raise_on_missing=True,
                 )
             except EnvironmentValidationError as exc:
-                invalid_messages.append(f"{key}: {exc}")
+                invalid_messages.append(f"graphics.environment_ranges.{key}: {exc}")
+                invalid_keys.add(key)
             else:
                 validated[key] = parsed[key]
+
+        fallback_sources: List[Tuple[str, Any]] = [
+            (
+                "metadata.environment_slider_ranges",
+                settings_manager.get("metadata.environment_slider_ranges", {}),
+            ),
+            (
+                "defaults_snapshot.graphics.environment_ranges",
+                settings_manager.get(
+                    "defaults_snapshot.graphics.environment_ranges", {}
+                ),
+            ),
+        ]
+
+        fallback_used: Dict[str, List[str]] = {}
+        for key in sorted(missing_keys | invalid_keys):
+            for source_name, payload in fallback_sources:
+                parsed = _try_parse_range(source_name, payload, key)
+                if parsed is None:
+                    continue
+                validated[key] = parsed
+                fallback_used.setdefault(source_name, []).append(key)
+                missing_keys.discard(key)
+                invalid_keys.discard(key)
+                break
 
         final_ranges = {
             key: validated.get(key, default)
@@ -127,17 +184,20 @@ class EnvironmentTab(QWidget):
         }
 
         notifications: List[str] = []
-        if section_message:
-            notifications.append(section_message)
+        notifications.extend(section_messages)
+        for source_name, keys in fallback_used.items():
+            notifications.append(
+                "Диапазоны "
+                + ", ".join(sorted(set(keys)))
+                + f" загружены из {source_name}."
+            )
         if missing_keys:
             notifications.append(
                 "Используются значения по умолчанию для диапазонов: "
-                + ", ".join(sorted(set(missing_keys)))
+                + ", ".join(sorted(missing_keys))
             )
         for msg in invalid_messages:
-            notifications.append(
-                f"Диапазон {msg}. Применены безопасные значения по умолчанию."
-            )
+            notifications.append(f"Диапазон {msg}. Использованы безопасные значения.")
 
         self._notify_range_warning(notifications)
 
