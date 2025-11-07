@@ -1,0 +1,104 @@
+name: Windows smoke test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.13"
+  QT_VERSION: "6.10.0"
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
+  QT_OPENGL: software
+
+jobs:
+  smoke:
+    name: Windows headless smoke
+    runs-on: windows-latest
+    env:
+      PYTHONPATH: src
+      QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+      QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+      QT_OPENGL: ${{ env.QT_OPENGL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure GNU Make is available
+        run: choco install make --no-progress -y
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements*.txt
+            pyproject.toml
+
+      - name: Upgrade pip and install tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install uv aqtinstall
+
+      - name: Install project dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Provision Qt ${{ env.QT_VERSION }}
+        run: python tools/setup_qt.py --qt-version ${{ env.QT_VERSION }} --force --prune-archives
+
+      - name: Export Qt paths
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+
+          version = os.environ["QT_VERSION"]
+          root = Path.cwd() / "Qt" / version
+          arch = "win64_msvc2019_64"
+
+          base = root / arch
+          bin_path = base / "bin"
+          plugin_path = base / "plugins"
+          qml_path = base / "qml"
+
+          github_path = Path(os.environ["GITHUB_PATH"])
+          with github_path.open("a", encoding="utf-8") as fh:
+              fh.write(f"{bin_path}{os.linesep}")
+
+          github_env = Path(os.environ["GITHUB_ENV"])
+          with github_env.open("a", encoding="utf-8") as fh:
+              fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
+              fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
+
+      - name: Prepare logs directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path logs -Force | Out-Null
+
+      - name: Run headless smoke test
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+          QT_OPENGL: ${{ env.QT_OPENGL }}
+        run: |
+          $logPath = Join-Path (Get-Location) "logs/windows-smoke.log"
+          $ErrorActionPreference = "Stop"
+          & python app.py --test-mode --safe-mode *> $logPath
+          $exitCode = $LASTEXITCODE
+          Get-Content $logPath
+          if ($exitCode -ne 0) {
+            exit $exitCode
+          }
+
+      - name: Upload smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-smoke-logs
+          path: logs/
+          if-no-files-found: warn
