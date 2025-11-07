@@ -6,7 +6,9 @@
 param(
     [switch]$Verbose,
     [switch]$Test,
-    [switch]$Debug
+    [switch]$Debug,
+    [switch]$SafeMode,
+    [switch]$Legacy
 )
 
 # Кодировка UTF-8
@@ -28,11 +30,19 @@ Write-Host "🔧 Активация виртуального окружения.
 $env:PYTHONPATH = "$PWD;$PWD\src"
 $env:PYTHONIOENCODING = "utf-8"
 $env:PYTHONUNBUFFERED = "1"
-$env:QSG_RHI_BACKEND = "opengl"
 $env:QT_ASSUME_STDERR_HAS_CONSOLE = "1"
 $env:QT_AUTO_SCREEN_SCALE_FACTOR = "1"
 $env:QT_SCALE_FACTOR_ROUNDING_POLICY = "PassThrough"
 $env:QT_ENABLE_HIGHDPI_SCALING = "1"
+
+if ($SafeMode) {
+    if (Test-Path Env:\QSG_RHI_BACKEND) {
+        Remove-Item Env:\QSG_RHI_BACKEND -ErrorAction SilentlyContinue
+    }
+    Write-Host "ℹ️ Safe mode detected — Qt will auto-select the scene graph backend." -ForegroundColor Yellow
+} else {
+    $env:QSG_RHI_BACKEND = "opengl"
+}
 
 if ($Debug) {
     $env:QSG_INFO = "1"
@@ -48,6 +58,11 @@ if ($Debug) {
 $Args = @()
 if ($Verbose) { $Args += "--verbose" }
 if ($Test) { $Args += "--test-mode" }
+if ($SafeMode) { $Args += "--safe-mode" }
+if ($Legacy) {
+    $Args += "--legacy"
+    Write-Host "ℹ️ Legacy UI mode requested — QML loading will be skipped." -ForegroundColor Yellow
+}
 
 # Запуск
 Write-Host "▶️  Запуск PneumoStabSim Professional..." -ForegroundColor Green

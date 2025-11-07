@@ -21,7 +21,10 @@ from src.cli.arguments import create_bootstrap_parser
 
 
 bootstrap_parser = create_bootstrap_parser()
-bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(sys.argv[1:])
+_initial_argv = list(sys.argv[1:])
+bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
+
+SAFE_MODE_REQUESTED = "--safe-mode" in _initial_argv
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
     from src.bootstrap.environment_check import (
@@ -89,7 +92,7 @@ if not qtquick3d_setup_ok:
 
 configure_terminal_encoding(log_warning)
 check_python_compatibility(log_warning, log_error)
-configure_qt_environment()
+configure_qt_environment(safe_mode=SAFE_MODE_REQUESTED)
 
 # =============================================================================
 # Bootstrap Phase2: Qt Import

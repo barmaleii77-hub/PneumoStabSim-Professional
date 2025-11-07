@@ -98,11 +98,32 @@ def setup_qtquick3d_environment(
         return False, reason
 
 
-def configure_qt_environment() -> None:
-    """Настройка переменных окружения Qt для графики и логирования."""
+def configure_qt_environment(
+    *, safe_mode: bool = False, log: Callable[[str], None] | None = None
+) -> None:
+    """Настройка переменных окружения Qt для графики и логирования.
+
+    Args:
+        safe_mode: Если ``True``, не устанавливать ``QSG_RHI_BACKEND`` и
+            позволить Qt самостоятельно выбрать графический backend.
+        log: Необязательная функция логирования для сообщений о выбранном
+            backend.
+    """
+
+    def _default_emitter(message: str) -> None:
+        print(message)
+
+    emitter = log if log is not None else _default_emitter
+
     # Уважаем .env, но задаём дефолты при отсутствии значений
     backend_default = "opengl"
-    backend = os.environ.setdefault("QSG_RHI_BACKEND", backend_default)
+    removed_backend: str | None = None
+
+    if safe_mode:
+        removed_backend = os.environ.pop("QSG_RHI_BACKEND", None)
+        backend = os.environ.get("QSG_RHI_BACKEND")
+    else:
+        backend = os.environ.setdefault("QSG_RHI_BACKEND", backend_default)
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
     os.environ.setdefault("QSG_INFO", "0")
     os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false;*.info=false")
@@ -112,7 +133,7 @@ def configure_qt_environment() -> None:
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
     os.environ.setdefault("PSS_DIAG", "1")
 
-    if backend.lower() == "opengl":
+    if (backend or "").lower() == "opengl":
         os.environ.setdefault("QSG_OPENGL_VERSION", "3.3")
         os.environ.setdefault("QT_OPENGL", "desktop")
 
@@ -132,3 +153,16 @@ def configure_qt_environment() -> None:
         if env_var in os.environ:
             # просто убедимся, что значение строковое (оставляем как есть)
             os.environ[env_var] = str(os.environ.get(env_var))
+
+    backend_value = os.environ.get("QSG_RHI_BACKEND")
+    backend_label = backend_value or "auto (Qt default)"
+    if safe_mode:
+        if removed_backend:
+            emitter(
+                "Qt Quick Scene Graph backend: "
+                f"{backend_label} [safe mode; removed '{removed_backend}']"
+            )
+        else:
+            emitter(f"Qt Quick Scene Graph backend: {backend_label} [safe mode]")
+    else:
+        emitter(f"Qt Quick Scene Graph backend: {backend_label} [standard mode]")

@@ -18,8 +18,26 @@ call fix_terminal.bat 2>nul || (
 
 echo.
 
-rem Force OpenGL RHI backend for consistent shader feature set
-set QSG_RHI_BACKEND=opengl
+rem Detect optional launch modes before configuring graphics backend
+set PSS_SAFE_MODE=0
+set PSS_LEGACY_MODE=0
+for %%I in (%*) do (
+    if /I "%%~I"=="--safe-mode" set PSS_SAFE_MODE=1
+    if /I "%%~I"=="--legacy" set PSS_LEGACY_MODE=1
+)
+
+if "%PSS_SAFE_MODE%"=="0" (
+    rem Force OpenGL RHI backend for consistent shader feature set
+    set QSG_RHI_BACKEND=opengl
+) else (
+    rem Safe mode: allow Qt to choose the most compatible backend (DirectX on Windows)
+    set QSG_RHI_BACKEND=
+    echo [i] Safe mode detected — Qt will auto-select the scene graph backend.
+)
+
+if "%PSS_LEGACY_MODE%"=="1" (
+    echo [i] Legacy UI mode requested — QML loading will be skipped.
+)
 
 rem Check if venv exists and works
 if not exist "venv\Scripts\python.exe" (

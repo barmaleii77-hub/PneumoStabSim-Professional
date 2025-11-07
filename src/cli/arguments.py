@@ -37,6 +37,16 @@ def _add_main_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--diag", action="store_true", help="Run post-run diagnostics to console"
     )
+    parser.add_argument(
+        "--safe-mode",
+        action="store_true",
+        help="Allow Qt to auto-select the graphics backend (no forced OpenGL)",
+    )
+    parser.add_argument(
+        "--legacy",
+        action="store_true",
+        help="Launch the legacy Qt Widgets interface without loading QML",
+    )
 
 
 def create_bootstrap_parser() -> argparse.ArgumentParser:
@@ -59,6 +69,8 @@ Examples:
   py app.py --test-mode        # Test mode (auto-close 5s)
   py app.py --verbose          # Verbose console output
   py app.py --diag             # Run post-run diagnostics to console
+  py app.py --safe-mode        # Allow Qt to choose the graphics backend
+  py app.py --legacy           # Launch legacy Qt Widgets UI (no QML)
         """,
     )
 
