@@ -262,7 +262,13 @@ Item {
                         model: metricsModel
                         delegate: CheckDelegate {
                             id: metricDelegate
-                            width: ListView.view ? ListView.view.width : parent.width
+                            width: {
+                                const view = ListView.view
+                                const fallbackParent = parent && parent.width !== undefined ? parent.width : 0
+                                const baseWidth = view && view.width !== undefined ? view.width : fallbackParent
+                                const numericWidth = Number(baseWidth)
+                                return isNaN(numericWidth) ? 0 : Math.round(numericWidth)
+                            }
                             text: model.label + " (" + model.unit + ")"
                             checked: root.selectedMetrics.indexOf(model.metricId) !== -1
                             indicator: Rectangle {
