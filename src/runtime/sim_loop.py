@@ -1000,13 +1000,16 @@ class PhysicsWorker(QObject):
 
         except Exception as exc:
             elapsed = time.perf_counter() - step_start_time
-            step_logger.exception(
+            error_message = f"{type(exc).__name__}: {exc}"
+            step_logger.error(
                 "ERROR: physics step failed",
                 error=str(exc),
+                error_type=type(exc).__name__,
                 elapsed_s=elapsed,
                 steps_requested=steps_to_take,
+                exc_info=exc,
             )
-            self.error_occurred.emit(f"Physics step error: {exc}")
+            self.error_occurred.emit(f"Physics step error: {error_message}")
             self.stop_simulation()
 
     def _execute_physics_step(self):

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from src.infrastructure.logging import ErrorHookManager, install_error_hooks
+from src.diagnostics.logger_factory import LoggerProtocol, get_logger
 
 from src.core.settings_validation import (
     SettingsValidationError,
@@ -51,6 +52,9 @@ class ApplicationRunner:
         self.window_instance: Any | None = None
         self.app_logger: logging.Logger | None = None
         self.error_hook_manager: ErrorHookManager | None = None
+        self.logger: LoggerProtocol = get_logger("app.runner").bind(
+            component="ApplicationRunner"
+        )
 
         self.use_qml_3d_schema: bool = True
         self.use_legacy_ui: bool = False
@@ -102,6 +106,14 @@ class ApplicationRunner:
             parts.append(f"{key}={value}")
         return " | ".join(parts)
 
+    def _log_with_fallback(self, level: str, message: str, **kwargs: Any) -> None:
+        """Emit a log message using the configured logger or structlog fallback."""
+
+        logger_obj: Any = self.app_logger if self.app_logger else self.logger
+        log_method = getattr(logger_obj, level, None)
+        if callable(log_method):
+            log_method(message, **kwargs)
+
     def _log_startup_environment(self) -> None:
         """Emit startup environment diagnostics to file, logger, and stdout."""
 
@@ -145,8 +157,9 @@ class ApplicationRunner:
                     "Safe mode active — skipping forced OpenGL surface format"
                 )
             else:
-                print(
-                    "ℹ️ Safe mode active — relying on Qt runtime to choose the scene graph backend"
+                self._log_with_fallback(
+                    "info",
+                    "INFO: safe mode active — relying on Qt runtime to choose the scene graph backend",
                 )
             return
 
@@ -157,8 +170,9 @@ class ApplicationRunner:
                     extra={"reason": "cli-safe"},
                 )
             else:
-                print(
-                    "ℹ️ Safe CLI mode active — relying on Qt runtime to choose the scene graph backend"
+                self._log_with_fallback(
+                    "info",
+                    "INFO: safe CLI mode active — relying on Qt runtime to choose the scene graph backend",
                 )
             return
 
@@ -168,7 +182,10 @@ class ApplicationRunner:
                     "Safe runtime requested — leaving surface format selection to Qt"
                 )
             else:
-                print("ℹ️ Safe runtime requested — surface format will not be forced")
+                self._log_with_fallback(
+                    "info",
+                    "INFO: safe runtime requested — surface format will not be forced",
+                )
             return
 
         try:
@@ -480,9 +497,9 @@ class ApplicationRunner:
                 )
         elif self._is_headless:
             reason = self._headless_reason or "PySide6 is unavailable"
-            print(
-                "⚠️ Headless diagnostics mode enabled (Qt GUI unavailable)."
-                f" Reason: {reason}"
+            self._log_with_fallback(
+                "warning",
+                f"WARNING: headless diagnostics mode enabled (Qt GUI unavailable). Reason: {reason}",
             )
 
     def create_main_window(self) -> None:
@@ -494,7 +511,10 @@ class ApplicationRunner:
                     extra={"reason": "cli-safe"},
                 )
             else:
-                print("ℹ️ Safe CLI mode: skipping MainWindow creation; exiting shortly.")
+                self._log_with_fallback(
+                    "info",
+                    "INFO: safe CLI mode — skipping MainWindow creation; exiting shortly",
+                )
             self.window_instance = None
             return
 
@@ -504,8 +524,9 @@ class ApplicationRunner:
                     "Safe runtime mode active — skipping MainWindow instantiation"
                 )
             else:
-                print(
-                    "ℹ️ Safe runtime mode: skipping MainWindow creation; exiting shortly."
+                self._log_with_fallback(
+                    "info",
+                    "INFO: safe runtime mode — skipping MainWindow creation; exiting shortly",
                 )
             self.window_instance = None
             return
@@ -516,8 +537,9 @@ class ApplicationRunner:
                     "Headless mode active — skipping MainWindow instantiation"
                 )
             else:
-                print(
-                    "⚠️ Headless mode: skipping MainWindow creation; diagnostics only."
+                self._log_with_fallback(
+                    "warning",
+                    "WARNING: headless mode — skipping MainWindow creation; diagnostics only",
                 )
             self.window_instance = None
             return
@@ -532,7 +554,10 @@ class ApplicationRunner:
                         "Legacy UI mode enabled — QML scene initialisation skipped"
                     )
                 else:
-                    print("ℹ️ Legacy UI mode enabled — QML scene initialisation skipped")
+                    self._log_with_fallback(
+                        "info",
+                        "INFO: legacy UI mode enabled — QML scene initialisation skipped",
+                    )
             else:
                 from src.ui.main_window import MainWindow as MW  # type: ignore
 
@@ -548,7 +573,10 @@ class ApplicationRunner:
                     "MainWindow creation failed: %s", exc, exc_info=True
                 )
             else:
-                print(f"⚠️ Fallback window due to startup error: {exc}")
+                self._log_with_fallback(
+                    "warning",
+                    f"WARNING: fallback window due to startup error: {exc}",
+                )
 
             from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget, QPushButton
 
@@ -579,7 +607,10 @@ class ApplicationRunner:
                     if self.app_logger:
                         self.app_logger.error("Retry failed: %s", e2, exc_info=True)
                     else:
-                        print(f"❌ Retry failed: {e2}")
+                        self._log_with_fallback(
+                            "error",
+                            f"ERROR: retry failed while creating main window: {e2}",
+                        )
                 else:
                     # Заменяем fallback-окно реальным окном
                     window.close()
@@ -613,8 +644,9 @@ class ApplicationRunner:
                     "Legacy UI mode active — no Qt Quick scene graph backend in use"
                 )
             else:
-                print(
-                    "ℹ️ Legacy UI mode active — no Qt Quick scene graph backend in use"
+                self._log_with_fallback(
+                    "info",
+                    "INFO: legacy UI mode active — no Qt Quick scene graph backend in use",
                 )
             return
 
@@ -645,7 +677,7 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.info(message)
         else:
-            print(f"ℹ️ {message}")
+            self._log_with_fallback("info", f"INFO: {message}")
 
     def _resolve_schema_path(self) -> Path:
         return (
@@ -953,17 +985,27 @@ class ApplicationRunner:
                         extra={"reasons": list(disable_reasons) or None},
                     )
             elif self.use_legacy_ui:
-                print("ℹ️ Legacy UI mode requested (QML will be skipped)")
+                self._log_with_fallback(
+                    "info",
+                    "INFO: legacy UI mode requested — QML will be skipped",
+                )
             elif force_disable_qml_3d:
                 reason_label = ", ".join(disable_reasons) or "bootstrap"
-                print(f"⚠️ Qt Quick 3D disabled ({reason_label})")
+                self._log_with_fallback(
+                    "warning",
+                    f"WARNING: Qt Quick 3D disabled ({reason_label})",
+                )
             elif self.safe_runtime_requested:
                 if self.safe_cli_mode and not getattr(args, "safe", False):
-                    print(
-                        "ℹ️ Safe CLI mode enabled — graphical scene will not be initialised"
+                    self._log_with_fallback(
+                        "info",
+                        "INFO: safe CLI mode enabled — graphical scene will not be initialised",
                     )
                 else:
-                    print("ℹ️ Safe runtime mode enabled — graphical scene disabled")
+                    self._log_with_fallback(
+                        "info",
+                        "INFO: safe runtime mode enabled — graphical scene disabled",
+                    )
 
             self._log_startup_environment()
 
@@ -1041,11 +1083,15 @@ class ApplicationRunner:
                     run_log_diagnostics()
                 elif args.diag:
                     # diag flag requested but no diagnostics executed (should not happen)
-                    print(
-                        "⚠️  Пост-диагностика не выполнена из-за внутреннего ограничения."
+                    self._log_with_fallback(
+                        "warning",
+                        "WARNING: пост-диагностика не выполнена из-за внутреннего ограничения",
                     )
             except Exception as diag_exc:
-                print(f"⚠️  Не удалось выполнить пост-диагностику логов: {diag_exc}")
+                self._log_with_fallback(
+                    "warning",
+                    f"WARNING: не удалось выполнить пост-диагностику логов: {diag_exc}",
+                )
 
     def _print_header(self) -> None:
         """Печать заголовка приложения в консоль."""
@@ -1094,7 +1140,7 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.error(message)
         else:
-            print(f"⚠️ {message}")
+            self._log_with_fallback("warning", f"WARNING: {message}")
 
         self._append_post_diag_trace(f"qml-check:{reason}")
 

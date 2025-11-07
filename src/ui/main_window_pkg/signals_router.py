@@ -11,6 +11,7 @@ from __future__ import annotations
 import copy
 import logging
 import math
+import sys
 from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 from collections.abc import Mapping
@@ -22,6 +23,7 @@ if util.find_spec("PySide6.QtCore") is not None:
     Qt = qtcore.Qt
     QTimer = getattr(qtcore, "QTimer", None)
     QObject = getattr(qtcore, "QObject", None)
+    QCoreApplication = getattr(qtcore, "QCoreApplication", None)
 else:  # pragma: no cover - executed only on headless environments
 
     class _QtStub:
@@ -32,6 +34,7 @@ else:  # pragma: no cover - executed only on headless environments
     Qt = _QtStub()
     QTimer = None
     QObject = None
+    QCoreApplication = None
 
 from ...pneumo.enums import Wheel
 from ..panels.modes.defaults import (
@@ -1623,10 +1626,29 @@ class SignalsRouter:
             window: MainWindow instance
             message: Error message
         """
-        SignalsRouter.logger.error(f"Physics engine error: {message}")
+        formatted = f"ERROR: physics engine error: {message}"
+        SignalsRouter.logger.error(formatted)
+
+        try:
+            sys.stderr.write(formatted + "\n")
+            sys.stderr.flush()
+        except Exception:
+            SignalsRouter.logger.debug(
+                "Failed to write physics error to stderr", exc_info=True
+            )
 
         if hasattr(window, "status_bar") and window.status_bar:
             window.status_bar.showMessage(f"Physics error: {message}", 5000)
+
+        app = QCoreApplication.instance() if QCoreApplication is not None else None
+        if app is not None:
+            try:
+                app.exit(1)
+            except Exception as exc:
+                SignalsRouter.logger.error(
+                    "ERROR: failed to request application exit after physics error",
+                    exc_info=exc,
+                )
 
     # ------------------------------------------------------------------
     # Signal Handlers - Simulation Control
