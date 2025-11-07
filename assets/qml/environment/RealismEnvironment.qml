@@ -234,7 +234,7 @@ ExtendedSceneEnvironment {
 
     // Ambient occlusion
     property bool ssaoEnabled: _bool("environment", ["ao_enabled", "ssao_enabled"], true)
-    property int ssaoSampleRate: _number("environment", ["ao_sample_rate", "ssao_sample_rate"], 3)
+    property int ssaoSampleRate: Math.round(_number("environment", ["ao_sample_rate", "ssao_sample_rate"], 3))
     property real ssaoRadius: _number("environment", ["ao_radius", "ssao_radius"], 200.0)
     property real ssaoIntensity: _number("environment", ["ao_strength", "ssao_intensity"], 70.0)
     property real ssaoSoftness: _number("environment", ["ao_softness", "ssao_softness"], 20.0)
@@ -249,11 +249,11 @@ ExtendedSceneEnvironment {
     property bool glowUseBicubic: _bool("effects", ["bloom_bicubic_upscale", "glow_use_bicubic"], true)
     property real glowHdrMaximumValue: _number("effects", ["bloom_hdr_max", "glow_hdr_maximum"], 8.0)
     property real glowHdrScale: _number("effects", ["bloom_hdr_scale", "glow_hdr_scale"], 2.0)
-    property int glowBlendModeValue: _number("effects", ["glow_blend_mode", "blend_mode"], 0)
+    property int glowBlendModeValue: Math.round(_number("effects", ["glow_blend_mode", "blend_mode"], 0))
 
     // Lens flare
     property bool lensFlareActive: _bool("effects", ["lens_flare", "lens_flare_enabled"], true)
-    property int lensFlareGhosts: _number("effects", ["lens_flare_ghost_count", "lens_flare_ghosts"], 3)
+    property int lensFlareGhosts: Math.round(_number("effects", ["lens_flare_ghost_count", "lens_flare_ghosts"], 3))
     property real lensFlareGhostDispersalValue: _number("effects", ["lens_flare_ghost_dispersal"], 0.6)
     property real lensFlareHaloWidthValue: _number("effects", ["lens_flare_halo_width"], 0.25)
     property real lensFlareBloomBiasValue: _number("effects", ["lens_flare_bloom_bias"], 0.35)
