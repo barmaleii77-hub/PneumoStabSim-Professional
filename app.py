@@ -169,8 +169,6 @@ def main() -> int:
         force_disable_reasons.append("legacy-cli")
     if GRAPHICS_BOOTSTRAP_STATE.headless:
         force_disable_reasons.append("headless")
-    if not BOOTSTRAP_USE_QML_3D:
-        force_disable_reasons.append("bootstrap-disabled")
     if getattr(args, "safe", False):
         force_disable_reasons.append("safe-mode")
     if safe_cli_mode and "safe-mode" not in force_disable_reasons:
