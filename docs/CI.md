@@ -38,6 +38,28 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 | Полный тестовый набор | `make test` | `python -m tools.ci_tasks test` | Последовательно запускает юнит, интеграционные и UI тесты, затем анализ логов. |
 | Комплексная проверка | `make check` | `python -m tools.ci_tasks verify` | Полный CI-пайплайн: lint → mypy → qmllint → тесты → анализ логов + дополнительные проверки Makefile. На Linux используйте `bash scripts/xvfb_wrapper.sh make check`, чтобы повторить поведение CI. |
 
+### Headless-рецепт (CI и контейнеры)
+
+1. **Переменные окружения**
+   ```sh
+   export QT_QPA_PLATFORM=offscreen
+   export QT_QUICK_BACKEND=software
+   export QSG_RHI_BACKEND=opengl
+   export LIBGL_ALWAYS_SOFTWARE=1
+   ```
+   На macOS допускается `QT_QPA_PLATFORM=minimal` в паре с `QT_MAC_WANTS_LAYER=1`,
+   если требуется инициализировать Metal без окон. Для Windows RDP-сессий
+   достаточно `QT_QPA_PLATFORM=offscreen` + `QSG_RHI_BACKEND=d3d11`.
+2. **Smoke-проверка** — `python app.py --safe` (alias: `--test-mode`). Скрипт
+   выполняет импорт Qt, прогоняет диагностические проверки и завершает процесс
+   без инициализации QML сцены.
+3. **Проверка совместимости** — при необходимости добавьте `--legacy`, чтобы
+   принудительно использовать OpenGL и убедиться, что fallback-шейдеры
+   компилируются корректно.
+4. **CI wrapper** — GitHub Actions выполняет `make check` через
+   `scripts/xvfb_wrapper.sh`, что обеспечивает виртуальный дисплей и повторяет
+   локальные условия Mesa.
+
 ### Pre-commit хуки
 
 - При установке `pre-commit` активируются:
