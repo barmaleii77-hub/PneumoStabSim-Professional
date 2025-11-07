@@ -535,13 +535,23 @@ class MainWindow(QMainWindow):
         rod_length = _float(
             sanitized.get("pistonRodLengthM"), _float(prev.get("pistonRodLengthM"))
         )
+        pressure_min = _float(
+            sanitized.get("pressureScaleMin"), _float(prev.get("pressureScaleMin"))
+        )
+        pressure_max = _float(
+            sanitized.get("pressureScaleMax"), _float(prev.get("pressureScaleMax"))
+        )
 
         tolerance = 1e-6
-        if track_width and track_width > 0.0:
+        if track_width is not None and track_width > 0.0:
             track_half = track_width / 2.0
+            prev_track = _float(prev.get("trackWidth"), track_width)
             prev_frame = _float(prev.get("frameToPivot"), frame_to_pivot)
             prev_lever = _float(prev.get("leverLength"), lever_length)
 
+            changed_track = (
+                prev_track is not None and abs(track_width - prev_track) > tolerance
+            )
             changed_frame = (
                 frame_to_pivot is not None
                 and prev_frame is not None
@@ -554,13 +564,34 @@ class MainWindow(QMainWindow):
             )
 
             if frame_to_pivot is None:
-                frame_to_pivot = max(
-                    0.0, min(track_half, prev_frame or track_half / 2.0)
-                )
+                base_frame = prev_frame if prev_frame is not None else track_half / 2.0
+                frame_to_pivot = max(0.0, min(track_half, base_frame))
             if lever_length is None:
-                lever_length = max(0.0, min(track_half, prev_lever or track_half / 2.0))
+                base_lever = prev_lever if prev_lever is not None else track_half / 2.0
+                lever_length = max(0.0, min(track_half, base_lever))
 
-            if changed_frame:
+            if changed_track and not changed_frame and not changed_lever:
+                base_frame = prev_frame if prev_frame is not None else frame_to_pivot
+                base_lever = prev_lever if prev_lever is not None else lever_length
+                total = (base_frame or 0.0) + (base_lever or 0.0)
+                if total <= tolerance:
+                    base_frame = base_lever = track_half / 2.0
+                    total = base_frame + base_lever
+                frame_ratio = max(0.0, min(1.0, (base_frame or 0.0) / total))
+                lever_ratio = 1.0 - frame_ratio
+                new_frame = max(0.0, min(track_half * frame_ratio, track_half))
+                new_lever = max(0.0, track_half - new_frame)
+                if abs(new_frame - frame_to_pivot) > tolerance:
+                    adjustments.append(
+                        f"WARNING: frameToPivot rescaled to {new_frame:.3f} m for track"
+                    )
+                if abs(new_lever - lever_length) > tolerance:
+                    adjustments.append(
+                        f"WARNING: leverLength rescaled to {new_lever:.3f} m for track"
+                    )
+                frame_to_pivot = new_frame
+                lever_length = new_lever
+            elif changed_frame:
                 original = frame_to_pivot
                 frame_to_pivot = max(0.0, min(frame_to_pivot, track_half))
                 if abs(original - frame_to_pivot) > tolerance:
@@ -582,7 +613,30 @@ class MainWindow(QMainWindow):
                     and lever_length is not None
                     and abs(frame_to_pivot + lever_length - track_half) > tolerance
                 ):
+                    original = lever_length
                     lever_length = max(track_half - frame_to_pivot, 0.0)
+                    if abs(lever_length - original) > tolerance:
+                        adjustments.append(
+                            f"WARNING: leverLength rescaled to {lever_length:.3f} m"
+                        )
+
+            if frame_to_pivot is not None:
+                clamped_frame = max(0.0, min(frame_to_pivot, track_half))
+                if (
+                    abs(clamped_frame - frame_to_pivot) > tolerance
+                    and not changed_frame
+                ):
+                    adjustments.append(
+                        f"WARNING: frameToPivot clamped to {clamped_frame:.3f} m"
+                    )
+                frame_to_pivot = clamped_frame
+            if lever_length is not None:
+                clamped_lever = max(0.0, min(lever_length, track_half))
+                if abs(clamped_lever - lever_length) > tolerance and not changed_lever:
+                    adjustments.append(
+                        f"WARNING: leverLength clamped to {clamped_lever:.3f} m"
+                    )
+                lever_length = clamped_lever
 
             sanitized["trackWidth"] = track_width
             sanitized["frameToPivot"] = frame_to_pivot
@@ -613,6 +667,39 @@ class MainWindow(QMainWindow):
                     f"WARNING: pistonRodLength raised to {min_rod:.3f} m (>=110% cylinder body)"
                 )
 
+        PRESSURE_MIN_LIMIT = -101_325.0
+        PRESSURE_MAX_LIMIT = 10_000_000.0
+        PRESSURE_MIN_SPAN = 5_000.0
+
+        if pressure_min is not None or pressure_max is not None:
+            if pressure_min is None:
+                pressure_min = 0.0
+            if pressure_max is None:
+                pressure_max = max(pressure_min + PRESSURE_MIN_SPAN, 1_000_000.0)
+
+            original_min = pressure_min
+            original_max = pressure_max
+
+            pressure_min = max(
+                PRESSURE_MIN_LIMIT, min(pressure_min, PRESSURE_MAX_LIMIT)
+            )
+            pressure_max = max(
+                pressure_min + PRESSURE_MIN_SPAN,
+                min(pressure_max, PRESSURE_MAX_LIMIT),
+            )
+
+            if abs(original_min - pressure_min) > tolerance:
+                adjustments.append(
+                    f"WARNING: pressureScaleMin clamped to {pressure_min:.1f} Pa"
+                )
+            if abs(original_max - pressure_max) > tolerance:
+                adjustments.append(
+                    f"WARNING: pressureScaleMax clamped to {pressure_max:.1f} Pa"
+                )
+
+            sanitized["pressureScaleMin"] = pressure_min
+            sanitized["pressureScaleMax"] = pressure_max
+
         tracked_keys = {
             "trackWidth",
             "frameToPivot",
@@ -621,6 +708,9 @@ class MainWindow(QMainWindow):
             "strokeM",
             "cylinderBodyLength",
             "pistonRodLengthM",
+            "maxSuspTravel",
+            "pressureScaleMin",
+            "pressureScaleMax",
         }
         for key in tracked_keys:
             value = sanitized.get(key)
@@ -628,6 +718,36 @@ class MainWindow(QMainWindow):
                 self._last_geometry_payload[key] = float(value)
 
         return sanitized, adjustments
+
+    def _geometry_settings_payload(self, payload: dict[str, Any]) -> dict[str, float]:
+        """Convert geometry payload keys to settings manager schema."""
+
+        mapping = {
+            "frameLength": "wheelbase",
+            "trackWidth": "track",
+            "frameToPivot": "frame_to_pivot",
+            "leverLength": "lever_length",
+            "rodPosition": "rod_position",
+            "cylinderBodyLength": "cylinder_body_length_m",
+            "strokeM": "stroke_m",
+            "deadGapM": "dead_gap_m",
+            "cylDiamM": "cyl_diam_m",
+            "pistonRodLengthM": "piston_rod_length_m",
+            "pistonThicknessM": "piston_thickness_m",
+            "tailRodLength": "tail_rod_length_m",
+            "frameHeight": "frame_height_m",
+            "frameBeamSize": "frame_beam_size_m",
+            "maxSuspTravel": "max_susp_travel_m",
+            "pressureScaleMin": "pressure_scale_min_pa",
+            "pressureScaleMax": "pressure_scale_max_pa",
+        }
+
+        settings_payload: dict[str, float] = {}
+        for source_key, target_key in mapping.items():
+            value = payload.get(source_key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                settings_payload[target_key] = float(value)
+        return settings_payload
 
     # ------------------------------------------------------------------
     # Signal Handlers (delegation to SignalsRouter)
@@ -645,6 +765,15 @@ class MainWindow(QMainWindow):
         params = sanitized
 
         self.logger.info(f"Geometry update: {len(params)} keys")
+
+        settings_payload = self._geometry_settings_payload(params)
+        if settings_payload:
+            try:
+                self._apply_settings_update("current.geometry", settings_payload)
+            except Exception as exc:
+                self.logger.debug(
+                    "Failed to persist geometry settings: %s", exc, exc_info=exc
+                )
 
         if not QMLBridge.invoke_qml_function(self, "applyGeometryUpdates", params):
             QMLBridge.queue_update(self, "geometry", params)
