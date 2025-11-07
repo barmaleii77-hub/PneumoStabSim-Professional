@@ -69,6 +69,28 @@ def test_bootstrap_graphics_environment_enables_headless_defaults() -> None:
     assert state.use_qml_3d is False
 
 
+def test_bootstrap_graphics_environment_preserves_display_defaults() -> None:
+    env: dict[str, str] = {"DISPLAY": ":1"}
+
+    state = bootstrap_graphics_environment(env, platform="linux", safe_mode=False)
+
+    assert "QT_QPA_PLATFORM" not in env
+    assert env["QSG_RHI_BACKEND"] == "opengl"
+    assert state.headless is False
+    assert state.use_qml_3d is True
+
+
+def test_bootstrap_graphics_environment_respects_custom_headless_platform() -> None:
+    env: dict[str, str] = {"QT_QPA_PLATFORM": "minimal"}
+
+    state = bootstrap_graphics_environment(env, platform="linux", safe_mode=False)
+
+    assert env["QT_QPA_PLATFORM"] == "minimal"
+    assert env["PSS_FORCE_NO_QML_3D"] == "1"
+    assert state.headless is True
+    assert "qt-qpa-platform:minimal" in state.headless_reasons
+
+
 def test_bootstrap_graphics_environment_respects_safe_mode() -> None:
     env: dict[str, str] = {"QT_QPA_PLATFORM": "xcb"}
     state = bootstrap_graphics_environment(env, platform="darwin", safe_mode=True)
