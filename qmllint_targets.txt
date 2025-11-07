@@ -7,3 +7,4 @@ assets/qml/effects
 assets/qml/themes
 src/ui/qml/panels
 src/ui/feedback
+qml
