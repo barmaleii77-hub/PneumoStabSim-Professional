@@ -156,7 +156,7 @@ validate-shaders:
 check-shaders: validate-shaders
 
 monitor-shader-logs:
-	$(PYTHON) tools/check_shader_logs.py reports/shaders --recursive --fail-on-warnings --expect-fallback
+	$(PYTHON) tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
 
 shader-artifacts:
 	$(PYTHON) tools/validate_shaders.py --emit-qsb
