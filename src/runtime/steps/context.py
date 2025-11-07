@@ -27,6 +27,7 @@ class LeverDynamicsConfig:
     damper_threshold: float = 0.0
     spring_rest_position: float = 0.0
     lever_inertia: float = 1.0
+    integrator_method: str = "rk4"
 
 
 @dataclass

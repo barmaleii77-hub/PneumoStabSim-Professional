@@ -379,6 +379,15 @@ class PhysicsWorker(QObject):
                     return float(fallback_val)
                 return default
 
+            def _modes_string(name: str, default: str) -> str:
+                value = modes_physics.get(name)
+                if isinstance(value, str) and value.strip():
+                    return value
+                fallback_val = modes_defaults.get(name)
+                if isinstance(fallback_val, str) and fallback_val.strip():
+                    return fallback_val
+                return default
+
             include_springs = _modes_bool("include_springs", True)
             include_dampers = _modes_bool("include_dampers", True)
             include_pneumatics = _modes_bool("include_pneumatics", True)
@@ -387,9 +396,20 @@ class PhysicsWorker(QObject):
             damper_coefficient = _modes_number(
                 "damper_coefficient", damper_coefficient_base
             )
+            damper_threshold = _modes_number(
+                "damper_force_threshold_n", damper_threshold
+            )
+            spring_rest_position = _modes_number(
+                "spring_rest_position_m", spring_rest_position
+            )
             inertia_multiplier = max(
                 _modes_number("lever_inertia_multiplier", 1.0), 0.01
             )
+            integrator_method = (
+                _modes_string("integrator_method", "rk4").strip().lower()
+            )
+            if integrator_method not in {"rk4", "euler"}:
+                integrator_method = "rk4"
 
             base_inertia = wheel_mass * lever_length * lever_length
             lever_inertia = max(base_inertia * inertia_multiplier, 1e-6)
@@ -403,6 +423,7 @@ class PhysicsWorker(QObject):
                 damper_threshold=damper_threshold,
                 spring_rest_position=spring_rest_position,
                 lever_inertia=lever_inertia,
+                integrator_method=integrator_method,
             )
         except Exception as exc:
             self.logger.critical(f"Failed to load physics settings: {exc}")

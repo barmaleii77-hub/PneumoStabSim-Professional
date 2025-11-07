@@ -2,6 +2,9 @@ import logging
 from dataclasses import replace
 from typing import Dict
 
+import math
+from dataclasses import dataclass
+
 import numpy as np
 import pytest
 
@@ -33,6 +36,43 @@ from src.runtime.steps import (
 from src.runtime.steps.kinematics import integrate_lever_state
 from src.runtime.steps.context import LeverDynamicsConfig
 from src.runtime.sync import PerformanceMetrics
+
+
+@dataclass
+class _StubCylinderGeom:
+    L_travel_max: float = 100.0
+    Z_axle: float = 0.0
+
+    def area_head(self, is_front: bool) -> float:  # pragma: no cover - simple stub
+        return 0.01
+
+    def area_rod(self, is_front: bool) -> float:  # pragma: no cover - simple stub
+        return 0.01
+
+
+@dataclass
+class _StubLeverGeom:
+    L_lever: float
+
+    def angle_to_displacement(self, angle: float) -> float:
+        return self.L_lever * angle
+
+    def mechanical_advantage(self, angle: float) -> float:
+        return self.L_lever
+
+
+@dataclass
+class _StubCylinderSpec:
+    geometry: _StubCylinderGeom
+    is_front: bool
+    lever_geom: _StubLeverGeom
+
+
+@dataclass
+class _StubCylinder:
+    spec: _StubCylinderSpec
+    penetration_head: float = 0.0
+    penetration_rod: float = 0.0
 
 
 def _build_cylinder_geom() -> CylinderGeom:
@@ -161,6 +201,7 @@ def step_state() -> PhysicsStepState:
             damper_threshold=50.0,
             spring_rest_position=0.0,
             lever_inertia=50.0 * lever.L_lever * lever.L_lever,
+            integrator_method="rk4",
         ),
     )
 
@@ -198,6 +239,7 @@ def test_integrate_lever_state_without_forces(
         include_pneumatics=False,
         spring_constant=0.0,
         damper_coefficient=0.0,
+        integrator_method="rk4",
     )
 
     theta0 = 0.18
@@ -222,6 +264,115 @@ def test_integrate_lever_state_without_forces(
     assert result.damper_force == pytest.approx(0.0)
     assert result.pneumatic_force == pytest.approx(0.0)
     assert result.clamped is False
+
+
+def test_free_oscillation_rk4_conserves_amplitude() -> None:
+    lever_length = 0.75
+    inertia = 25.0
+    spring_constant = 10_000.0
+
+    lever_geom = _StubLeverGeom(lever_length)
+    cylinder = _StubCylinder(
+        spec=_StubCylinderSpec(
+            geometry=_StubCylinderGeom(), is_front=True, lever_geom=lever_geom
+        )
+    )
+
+    config = LeverDynamicsConfig(
+        include_springs=True,
+        include_dampers=False,
+        include_pneumatics=False,
+        spring_constant=spring_constant,
+        damper_coefficient=0.0,
+        damper_threshold=0.0,
+        spring_rest_position=0.0,
+        lever_inertia=inertia,
+        integrator_method="rk4",
+    )
+
+    theta = 0.1
+    omega = 0.0
+    dt = 5e-4
+
+    natural_freq = math.sqrt(spring_constant * lever_length**2 / inertia)
+    period = 2.0 * math.pi / natural_freq
+    steps = max(1, int(round(period / dt)))
+
+    for _ in range(steps):
+        result = integrate_lever_state(
+            wheel=Wheel.LP,
+            theta0=theta,
+            omega0=omega,
+            dt=dt,
+            lever_config=config,
+            lever_geom=lever_geom,
+            cylinder=cylinder,
+            road_displacement=0.0,
+            road_velocity=0.0,
+            get_line_pressure=lambda *_args: 0.0,
+            method="rk4",
+        )
+        theta, omega = result.angle, result.angular_velocity
+
+    assert theta == pytest.approx(0.1, abs=5e-3)
+    assert omega == pytest.approx(0.0, abs=5e-3)
+
+
+def test_lever_damping_reduces_amplitude() -> None:
+    lever_length = 0.75
+    inertia = 25.0
+    spring_constant = 10_000.0
+    damper = 1_000.0
+
+    lever_geom = _StubLeverGeom(lever_length)
+    cylinder = _StubCylinder(
+        spec=_StubCylinderSpec(
+            geometry=_StubCylinderGeom(), is_front=True, lever_geom=lever_geom
+        )
+    )
+
+    config = LeverDynamicsConfig(
+        include_springs=True,
+        include_dampers=True,
+        include_pneumatics=False,
+        spring_constant=spring_constant,
+        damper_coefficient=damper,
+        damper_threshold=0.0,
+        spring_rest_position=0.0,
+        lever_inertia=inertia,
+        integrator_method="rk4",
+    )
+
+    theta = 0.15
+    omega = 0.0
+    dt = 1e-3
+    steps = 4000
+
+    initial_peak = 0.0
+    late_peak = 0.0
+
+    for idx in range(steps):
+        result = integrate_lever_state(
+            wheel=Wheel.LP,
+            theta0=theta,
+            omega0=omega,
+            dt=dt,
+            lever_config=config,
+            lever_geom=lever_geom,
+            cylinder=cylinder,
+            road_displacement=0.0,
+            road_velocity=0.0,
+            get_line_pressure=lambda *_args: 0.0,
+            method="rk4",
+        )
+        theta, omega = result.angle, result.angular_velocity
+        amplitude = abs(theta)
+        if idx < steps // 4:
+            initial_peak = max(initial_peak, amplitude)
+        else:
+            late_peak = max(late_peak, amplitude)
+
+    assert late_peak < initial_peak
 
 
 def test_update_gas_state_syncs_line_states(step_state: PhysicsStepState) -> None:

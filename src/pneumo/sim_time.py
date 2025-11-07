@@ -7,7 +7,7 @@ import logging
 from typing import Optional, Dict
 from .network import GasNetwork
 from .system import PneumaticSystem
-from .enums import ThermoMode
+from .enums import ThermoMode, Line
 
 
 def advance_gas(
@@ -16,6 +16,7 @@ def advance_gas(
     net: GasNetwork,
     thermo_mode: ThermoMode,
     log: Optional[logging.Logger] = None,
+    volumes_override: Optional[Dict[Line, float]] = None,
 ):
     """Advance gas simulation by one time step
 
@@ -25,6 +26,8 @@ def advance_gas(
         net: Gas network (updated in-place)
         thermo_mode: Thermodynamic process mode
         log: Optional logger for diagnostics
+        volumes_override: Optional mapping of line volumes to use instead of
+            querying the pneumatic system (e.g. to account for stop penetration)
     """
     if dt <= 0:
         raise ValueError(f"Time step must be positive: {dt}")
@@ -36,7 +39,10 @@ def advance_gas(
     if log:
         log.debug("Step 1: Updating pressures from volume changes")
 
-    net.update_pressures_due_to_volume(thermo_mode)
+    if volumes_override is not None:
+        net.update_pressures_with_explicit_volumes(volumes_override, thermo_mode)
+    else:
+        net.update_pressures_due_to_volume(thermo_mode)
 
     if log:
         for line_name, line_state in net.lines.items():

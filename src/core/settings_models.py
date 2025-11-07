@@ -111,6 +111,9 @@ class ModesPhysicsSettings(_StrictModel):
     spring_constant: float
     damper_coefficient: float
     lever_inertia_multiplier: float
+    damper_force_threshold_n: float
+    spring_rest_position_m: float
+    integrator_method: str
 
 
 class ModesSettings(_StrictModel):

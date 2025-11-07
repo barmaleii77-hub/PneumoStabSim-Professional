@@ -7,6 +7,7 @@ from typing import Dict
 from src.common.units import PA_ATM
 from src.pneumo.enums import Line, Port
 from src.pneumo.gas_state import apply_instant_volume_change
+from src.pneumo.sim_time import advance_gas
 
 from .context import PhysicsStepState
 
@@ -43,10 +44,6 @@ def update_gas_state(state: PhysicsStepState) -> None:
         corrected_volumes[line_name] = max(total_volume - penetration_volume, 1e-9)
 
     state.gas_network.master_isolation_open = state.master_isolation_open
-    state.gas_network.update_pressures_with_explicit_volumes(
-        corrected_volumes, state.thermo_mode
-    )
-
     state.gas_network.tank.mode = state.receiver_mode
     if abs(state.gas_network.tank.V - state.receiver_volume) > 1e-9:
         apply_instant_volume_change(
@@ -55,8 +52,14 @@ def update_gas_state(state: PhysicsStepState) -> None:
             gamma=state.gas_network.tank.gamma,
         )
 
-    state.gas_network.apply_valves_and_flows(state.dt, state.logger)
-    state.gas_network.enforce_master_isolation(state.logger, dt=state.dt)
+    advance_gas(
+        state.dt,
+        state.pneumatic_system,
+        state.gas_network,
+        state.thermo_mode,
+        state.logger,
+        corrected_volumes,
+    )
 
     for line_name, gas_state in state.gas_network.lines.items():
         line_state = state.line_states[line_name]

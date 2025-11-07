@@ -188,7 +188,10 @@
         "include_pneumatics": true,
         "spring_constant": 50000.0,
         "damper_coefficient": 2000.0,
-        "lever_inertia_multiplier": 1.0
+        "lever_inertia_multiplier": 1.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "integrator_method": "rk4"
       }
     },
     "graphics": {
@@ -1388,7 +1391,10 @@
         "include_pneumatics": true,
         "spring_constant": 50000.0,
         "damper_coefficient": 2000.0,
-        "lever_inertia_multiplier": 1.0
+        "lever_inertia_multiplier": 1.0,
+        "damper_force_threshold_n": 50.0,
+        "spring_rest_position_m": 0.0,
+        "integrator_method": "rk4"
       }
     },
     "graphics": {

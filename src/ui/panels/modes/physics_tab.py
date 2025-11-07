@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QDoubleSpinBox,
     QFormLayout,
+    QComboBox,
 )
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
@@ -130,6 +131,26 @@ class PhysicsTab(QWidget):
         )
         tuning_form.addRow("Коэф. демпфера", self.damper_coefficient_spin)
 
+        self.damper_threshold_spin = QDoubleSpinBox()
+        self.damper_threshold_spin.setRange(0.0, 10_000.0)
+        self.damper_threshold_spin.setSuffix(" Н")
+        self.damper_threshold_spin.setDecimals(0)
+        self.damper_threshold_spin.setSingleStep(10.0)
+        self.damper_threshold_spin.valueChanged.connect(
+            lambda value: self._on_option_changed("damper_force_threshold_n", value)
+        )
+        tuning_form.addRow("Порог демпфера", self.damper_threshold_spin)
+
+        self.spring_rest_position_spin = QDoubleSpinBox()
+        self.spring_rest_position_spin.setRange(-0.2, 0.2)
+        self.spring_rest_position_spin.setSuffix(" м")
+        self.spring_rest_position_spin.setDecimals(3)
+        self.spring_rest_position_spin.setSingleStep(0.001)
+        self.spring_rest_position_spin.valueChanged.connect(
+            lambda value: self._on_option_changed("spring_rest_position_m", value)
+        )
+        tuning_form.addRow("Смещение нуля", self.spring_rest_position_spin)
+
         self.inertia_multiplier_spin = QDoubleSpinBox()
         self.inertia_multiplier_spin.setRange(0.1, 5.0)
         self.inertia_multiplier_spin.setDecimals(2)
@@ -138,6 +159,12 @@ class PhysicsTab(QWidget):
             lambda value: self._on_option_changed("lever_inertia_multiplier", value)
         )
         tuning_form.addRow("Множитель инерции", self.inertia_multiplier_spin)
+
+        self.integrator_combo = QComboBox()
+        self.integrator_combo.addItem("RK4 (устойчивый)", "rk4")
+        self.integrator_combo.addItem("Эйлер (быстрый)", "euler")
+        self.integrator_combo.currentIndexChanged.connect(self._on_integrator_changed)
+        tuning_form.addRow("Интегратор рычага", self.integrator_combo)
 
         layout.addLayout(tuning_form)
 
@@ -185,6 +212,9 @@ class PhysicsTab(QWidget):
         self.spring_constant_spin.blockSignals(True)
         self.damper_coefficient_spin.blockSignals(True)
         self.inertia_multiplier_spin.blockSignals(True)
+        self.damper_threshold_spin.blockSignals(True)
+        self.spring_rest_position_spin.blockSignals(True)
+        self.integrator_combo.blockSignals(True)
 
         # Update checkboxes
         self.include_springs_check.setChecked(options.get("include_springs", True))
@@ -198,9 +228,22 @@ class PhysicsTab(QWidget):
         self.damper_coefficient_spin.setValue(
             float(options.get("damper_coefficient", 2_000.0))
         )
+        self.damper_threshold_spin.setValue(
+            float(options.get("damper_force_threshold_n", 50.0))
+        )
+        self.spring_rest_position_spin.setValue(
+            float(options.get("spring_rest_position_m", 0.0))
+        )
         self.inertia_multiplier_spin.setValue(
             float(options.get("lever_inertia_multiplier", 1.0))
         )
+        method = str(options.get("integrator_method", "rk4")).strip().lower()
+        if method not in {"rk4", "euler"}:
+            method = "rk4"
+        idx = self.integrator_combo.findData(method)
+        if idx < 0:
+            idx = 0
+        self.integrator_combo.setCurrentIndex(idx)
 
         # Unblock signals
         self.include_springs_check.blockSignals(False)
@@ -209,6 +252,9 @@ class PhysicsTab(QWidget):
         self.spring_constant_spin.blockSignals(False)
         self.damper_coefficient_spin.blockSignals(False)
         self.inertia_multiplier_spin.blockSignals(False)
+        self.damper_threshold_spin.blockSignals(False)
+        self.spring_rest_position_spin.blockSignals(False)
+        self.integrator_combo.blockSignals(False)
 
     def set_enabled_for_running(self, running: bool):
         """Включить/выключить элементы при запущенной симуляции"""
@@ -219,3 +265,14 @@ class PhysicsTab(QWidget):
         self.spring_constant_spin.setEnabled(enabled)
         self.damper_coefficient_spin.setEnabled(enabled)
         self.inertia_multiplier_spin.setEnabled(enabled)
+        self.damper_threshold_spin.setEnabled(enabled)
+        self.spring_rest_position_spin.setEnabled(enabled)
+        self.integrator_combo.setEnabled(enabled)
+
+    def _on_integrator_changed(self, index: int) -> None:
+        if index < 0:
+            return
+        method = self.integrator_combo.itemData(index)
+        if not method:
+            return
+        self._on_option_changed("integrator_method", method)

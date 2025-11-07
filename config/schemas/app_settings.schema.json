@@ -1597,6 +1597,22 @@
         "lever_inertia_multiplier": {
           "title": "Lever Inertia Multiplier",
           "type": "number"
+        },
+        "damper_force_threshold_n": {
+          "title": "Damper Force Threshold N",
+          "type": "number"
+        },
+        "spring_rest_position_m": {
+          "title": "Spring Rest Position M",
+          "type": "number"
+        },
+        "integrator_method": {
+          "title": "Integrator Method",
+          "type": "string",
+          "enum": [
+            "rk4",
+            "euler"
+          ]
         }
       },
       "required": [
@@ -1605,7 +1621,10 @@
         "include_pneumatics",
         "spring_constant",
         "damper_coefficient",
-        "lever_inertia_multiplier"
+        "lever_inertia_multiplier",
+        "damper_force_threshold_n",
+        "spring_rest_position_m",
+        "integrator_method"
       ],
       "title": "ModesPhysicsSettings",
       "type": "object"
