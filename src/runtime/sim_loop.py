@@ -3,6 +3,7 @@ Physics simulation loop with fixed timestep
 Runs in dedicated QThread with QTimer for precise timing
 """
 
+import math
 import time
 import logging
 from dataclasses import replace
@@ -62,6 +63,7 @@ from src.runtime.steps import (
     integrate_body,
     update_gas_state,
 )
+from src.runtime.steps.context import LeverDynamicsConfig
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
 from src.common.settings_manager import get_settings_manager
@@ -133,6 +135,7 @@ class PhysicsWorker(QObject):
         self._last_road_inputs: Dict[str, float] = {
             k: 0.0 for k in ("LF", "RF", "LR", "RR")
         }
+        self._lever_config = LeverDynamicsConfig()
 
         # Threading objects (created in target thread)
         self.physics_timer: Optional[QTimer] = None
@@ -300,6 +303,101 @@ class PhysicsWorker(QObject):
                 self.thermo_mode = ThermoMode[thermo]
             except KeyError as exc:
                 raise RuntimeError(f"Unsupported thermo_mode: {thermo}") from exc
+
+            geometry_defaults = defaults.get("geometry", {})
+
+            def _geometry_value(key: str) -> float:
+                value = _current(f"geometry.{key}")
+                if isinstance(value, bool):
+                    value = None
+                if isinstance(value, (int, float)):
+                    return float(value)
+                fallback_val = (
+                    geometry_defaults.get(key)
+                    if isinstance(geometry_defaults, dict)
+                    else None
+                )
+                if isinstance(fallback_val, (int, float)):
+                    return float(fallback_val)
+                return float("nan")
+
+            wheel_mass = _geometry_value("wheel_mass")
+            if math.isnan(wheel_mass):
+                wheel_mass = 50.0
+            lever_length = _geometry_value("lever_length")
+            if math.isnan(lever_length):
+                lever_length = _geometry_value("lever_length_m")
+            if math.isnan(lever_length):
+                lever_length = 0.75
+
+            suspension_defaults = _default("physics", "suspension") or {}
+
+            def _suspension_value(name: str, fallback: float) -> float:
+                value = _current(f"physics.suspension.{name}")
+                if isinstance(value, bool):
+                    value = None
+                if isinstance(value, (int, float)):
+                    return float(value)
+                fallback_val = suspension_defaults.get(name)
+                if isinstance(fallback_val, (int, float)):
+                    return float(fallback_val)
+                return fallback
+
+            spring_constant_base = _suspension_value("spring_constant", 50_000.0)
+            damper_coefficient_base = _suspension_value("damper_coefficient", 2_000.0)
+            damper_threshold = _suspension_value("damper_force_threshold_n", 0.0)
+            spring_rest_position = _suspension_value("spring_rest_position_m", 0.0)
+
+            modes_physics = _current("modes.physics")
+            if not isinstance(modes_physics, dict):
+                modes_physics = {}
+            modes_defaults = _default("modes", "physics") or {}
+
+            def _modes_bool(name: str, default: bool) -> bool:
+                value = modes_physics.get(name)
+                if isinstance(value, bool):
+                    return value
+                fallback_val = modes_defaults.get(name)
+                if isinstance(fallback_val, bool):
+                    return fallback_val
+                return default
+
+            def _modes_number(name: str, default: float) -> float:
+                value = modes_physics.get(name)
+                if isinstance(value, bool):
+                    value = None
+                if isinstance(value, (int, float)):
+                    return float(value)
+                fallback_val = modes_defaults.get(name)
+                if isinstance(fallback_val, (int, float)):
+                    return float(fallback_val)
+                return default
+
+            include_springs = _modes_bool("include_springs", True)
+            include_dampers = _modes_bool("include_dampers", True)
+            include_pneumatics = _modes_bool("include_pneumatics", True)
+
+            spring_constant = _modes_number("spring_constant", spring_constant_base)
+            damper_coefficient = _modes_number(
+                "damper_coefficient", damper_coefficient_base
+            )
+            inertia_multiplier = max(
+                _modes_number("lever_inertia_multiplier", 1.0), 0.01
+            )
+
+            base_inertia = wheel_mass * lever_length * lever_length
+            lever_inertia = max(base_inertia * inertia_multiplier, 1e-6)
+
+            self._lever_config = LeverDynamicsConfig(
+                include_springs=include_springs,
+                include_dampers=include_dampers,
+                include_pneumatics=include_pneumatics,
+                spring_constant=spring_constant,
+                damper_coefficient=damper_coefficient,
+                damper_threshold=damper_threshold,
+                spring_rest_position=spring_rest_position,
+                lever_inertia=lever_inertia,
+            )
         except Exception as exc:
             self.logger.critical(f"Failed to load physics settings: {exc}")
             raise
@@ -496,6 +594,7 @@ class PhysicsWorker(QObject):
                 wheel_state = self._latest_wheel_states[wheel]
                 wheel_state.piston_position = cylinder.x
                 wheel_state.lever_angle = 0.0
+                wheel_state.lever_angular_velocity = 0.0
 
             preset_name = self._select_road_preset()
             road_input = create_road_input_from_preset(preset_name)
@@ -764,8 +863,9 @@ class PhysicsWorker(QObject):
             raise RuntimeError("Physics dependencies are not initialized")
 
         # 1. Get road inputs
+        prev_road_inputs = dict(self._last_road_inputs)
         road_inputs = self._get_road_inputs()
-        self._last_road_inputs = {k: float(v) for k, v in road_inputs.items()}
+        current_road_inputs = {k: float(v) for k, v in road_inputs.items()}
 
         step_state = PhysicsStepState(
             dt=self.dt_physics,
@@ -782,12 +882,14 @@ class PhysicsWorker(QObject):
             wheel_states=self._latest_wheel_states,
             line_states=self._latest_line_states,
             tank_state=self._latest_tank_state,
-            last_road_inputs=self._last_road_inputs,
+            last_road_inputs=current_road_inputs,
+            prev_road_inputs=prev_road_inputs,
             latest_frame_accel=self._latest_frame_accel,
             prev_frame_velocities=self._prev_frame_velocities,
             performance=self.performance,
             logger=self.logger,
             get_line_pressure=self._get_line_pressure,
+            lever_config=replace(self._lever_config),
         )
 
         compute_kinematics(step_state, road_inputs)
@@ -797,6 +899,7 @@ class PhysicsWorker(QObject):
         self.physics_state = step_state.physics_state
         self._latest_frame_accel = step_state.latest_frame_accel
         self._prev_frame_velocities = step_state.prev_frame_velocities
+        self._last_road_inputs = dict(step_state.last_road_inputs)
 
         # Update simulation time and step counter
         self.simulation_time += self.dt_physics

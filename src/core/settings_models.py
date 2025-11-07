@@ -107,6 +107,9 @@ class ModesPhysicsSettings(_StrictModel):
     include_springs: bool
     include_dampers: bool
     include_pneumatics: bool
+    spring_constant: float
+    damper_coefficient: float
+    lever_inertia_multiplier: float
 
 
 class ModesSettings(_StrictModel):

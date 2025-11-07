@@ -4,7 +4,7 @@ ModesPanel state manager
 Управление состоянием панели режимов симуляции
 """
 
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 import copy
 
 from .defaults import (
@@ -21,14 +21,14 @@ class ModesStateManager:
     def __init__(self):
         """Инициализация с дефолтными значениями"""
         self.parameters: Dict[str, Any] = copy.deepcopy(DEFAULT_MODES_PARAMS)
-        self.physics_options: Dict[str, bool] = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
+        self.physics_options: Dict[str, Any] = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
         self._current_preset: int = 0  # Standard preset
 
     def get_parameters(self) -> Dict[str, Any]:
         """Получить копию параметров"""
         return copy.deepcopy(self.parameters)
 
-    def get_physics_options(self) -> Dict[str, bool]:
+    def get_physics_options(self) -> Dict[str, Any]:
         """Получить копию опций физики"""
         return copy.deepcopy(self.physics_options)
 
@@ -41,10 +41,20 @@ class ModesStateManager:
         """
         self.parameters[name] = value
 
-    def update_physics_option(self, name: str, enabled: bool) -> None:
+    def update_physics_option(self, name: str, value: Any) -> None:
         """Обновить опцию физики"""
-        if name in self.physics_options:
-            self.physics_options[name] = bool(enabled)
+        if name not in self.physics_options:
+            return
+        default_value = DEFAULT_PHYSICS_OPTIONS.get(name)
+        if isinstance(default_value, bool):
+            self.physics_options[name] = bool(value)
+        elif isinstance(default_value, (int, float)):
+            try:
+                self.physics_options[name] = float(value)
+            except (TypeError, ValueError):
+                self.physics_options[name] = float(default_value)
+        else:
+            self.physics_options[name] = value
 
     def apply_preset(self, preset_index: int) -> Dict[str, Any]:
         """Применить пресет и вернуть обновлённые параметры"""
@@ -67,7 +77,7 @@ class ModesStateManager:
             self.parameters["thermo_mode"] = preset["thermo_mode"]
 
         # Update physics options
-        for key in ["include_springs", "include_dampers", "include_pneumatics"]:
+        for key in DEFAULT_PHYSICS_OPTIONS.keys():
             if key in preset:
                 self.physics_options[key] = preset[key]
 
@@ -162,7 +172,11 @@ class ModesStateManager:
 
         # Если отключены все компоненты в динамике
         if param_name == "sim_type" and value == "DYNAMICS":
-            if not any(self.physics_options.values()):
+            bool_flags = [
+                bool(self.physics_options.get(key, False))
+                for key in ("include_springs", "include_dampers", "include_pneumatics")
+            ]
+            if not any(bool_flags):
                 warnings["physics"] = (
                     "В режиме динамики рекомендуется включить хотя бы один "
                     "физический компонент"

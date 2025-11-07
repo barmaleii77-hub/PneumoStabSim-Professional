@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Callable, Dict
-import logging
 
 import numpy as np
 
@@ -13,6 +13,20 @@ from src.pneumo.enums import Line, Port, ReceiverVolumeMode, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.runtime.state import LineState, TankState, WheelState
 from src.runtime.sync import PerformanceMetrics
+
+
+@dataclass
+class LeverDynamicsConfig:
+    """Configuration bundle for lever dynamics integration."""
+
+    include_springs: bool = True
+    include_dampers: bool = True
+    include_pneumatics: bool = True
+    spring_constant: float = 0.0
+    damper_coefficient: float = 0.0
+    damper_threshold: float = 0.0
+    spring_rest_position: float = 0.0
+    lever_inertia: float = 1.0
 
 
 @dataclass
@@ -34,8 +48,10 @@ class PhysicsStepState:
     line_states: Dict[Line, LineState]
     tank_state: TankState
     last_road_inputs: Dict[str, float]
+    prev_road_inputs: Dict[str, float]
     latest_frame_accel: np.ndarray
     prev_frame_velocities: np.ndarray
     performance: PerformanceMetrics
     logger: logging.Logger
     get_line_pressure: Callable[[Wheel, Port], float]
+    lever_config: LeverDynamicsConfig

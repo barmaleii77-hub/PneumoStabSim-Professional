@@ -4,7 +4,15 @@ Physics tab for ModesPanel
 Вкладка опций физических компонентов
 """
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGroupBox, QCheckBox, QLabel
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QGroupBox,
+    QCheckBox,
+    QLabel,
+    QDoubleSpinBox,
+    QFormLayout,
+)
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
 
@@ -99,6 +107,41 @@ class PhysicsTab(QWidget):
         layout.addWidget(self.include_dampers_check)
         layout.addWidget(self.include_pneumatics_check)
 
+        tuning_form = QFormLayout()
+        tuning_form.setContentsMargins(4, 8, 4, 8)
+        tuning_form.setSpacing(6)
+
+        self.spring_constant_spin = QDoubleSpinBox()
+        self.spring_constant_spin.setRange(1_000.0, 200_000.0)
+        self.spring_constant_spin.setSuffix(" Н/м")
+        self.spring_constant_spin.setDecimals(0)
+        self.spring_constant_spin.setSingleStep(500.0)
+        self.spring_constant_spin.valueChanged.connect(
+            lambda value: self._on_option_changed("spring_constant", value)
+        )
+        tuning_form.addRow("Жёсткость пружин", self.spring_constant_spin)
+
+        self.damper_coefficient_spin = QDoubleSpinBox()
+        self.damper_coefficient_spin.setRange(0.0, 20_000.0)
+        self.damper_coefficient_spin.setSuffix(" Н·с/м")
+        self.damper_coefficient_spin.setDecimals(0)
+        self.damper_coefficient_spin.setSingleStep(200.0)
+        self.damper_coefficient_spin.valueChanged.connect(
+            lambda value: self._on_option_changed("damper_coefficient", value)
+        )
+        tuning_form.addRow("Коэф. демпфера", self.damper_coefficient_spin)
+
+        self.inertia_multiplier_spin = QDoubleSpinBox()
+        self.inertia_multiplier_spin.setRange(0.1, 5.0)
+        self.inertia_multiplier_spin.setDecimals(2)
+        self.inertia_multiplier_spin.setSingleStep(0.1)
+        self.inertia_multiplier_spin.valueChanged.connect(
+            lambda value: self._on_option_changed("lever_inertia_multiplier", value)
+        )
+        tuning_form.addRow("Множитель инерции", self.inertia_multiplier_spin)
+
+        layout.addLayout(tuning_form)
+
         # Info about components
         info_layout = QVBoxLayout()
         info_layout.setContentsMargins(10, 10, 10, 10)
@@ -140,6 +183,9 @@ class PhysicsTab(QWidget):
         self.include_springs_check.blockSignals(True)
         self.include_dampers_check.blockSignals(True)
         self.include_pneumatics_check.blockSignals(True)
+        self.spring_constant_spin.blockSignals(True)
+        self.damper_coefficient_spin.blockSignals(True)
+        self.inertia_multiplier_spin.blockSignals(True)
 
         # Update checkboxes
         self.include_springs_check.setChecked(options.get("include_springs", True))
@@ -147,11 +193,23 @@ class PhysicsTab(QWidget):
         self.include_pneumatics_check.setChecked(
             options.get("include_pneumatics", True)
         )
+        self.spring_constant_spin.setValue(
+            float(options.get("spring_constant", 50_000.0))
+        )
+        self.damper_coefficient_spin.setValue(
+            float(options.get("damper_coefficient", 2_000.0))
+        )
+        self.inertia_multiplier_spin.setValue(
+            float(options.get("lever_inertia_multiplier", 1.0))
+        )
 
         # Unblock signals
         self.include_springs_check.blockSignals(False)
         self.include_dampers_check.blockSignals(False)
         self.include_pneumatics_check.blockSignals(False)
+        self.spring_constant_spin.blockSignals(False)
+        self.damper_coefficient_spin.blockSignals(False)
+        self.inertia_multiplier_spin.blockSignals(False)
 
     def set_enabled_for_running(self, running: bool):
         """Включить/выключить элементы при запущенной симуляции"""
@@ -159,3 +217,6 @@ class PhysicsTab(QWidget):
         self.include_springs_check.setEnabled(enabled)
         self.include_dampers_check.setEnabled(enabled)
         self.include_pneumatics_check.setEnabled(enabled)
+        self.spring_constant_spin.setEnabled(enabled)
+        self.damper_coefficient_spin.setEnabled(enabled)
+        self.inertia_multiplier_spin.setEnabled(enabled)

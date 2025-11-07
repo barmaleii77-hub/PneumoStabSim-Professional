@@ -24,6 +24,7 @@ class WheelState:
 
     wheel: Wheel
     lever_angle: float = 0.0  # Lever angle (rad)
+    lever_angular_velocity: float = 0.0  # Lever angular velocity (rad/s)
     piston_position: float = 0.0  # Piston position (m)
     piston_velocity: float = 0.0  # Piston velocity (m/s)
 
