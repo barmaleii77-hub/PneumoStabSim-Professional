@@ -86,10 +86,10 @@ PneumoStabSim/
 └──────────────┬───────────────┘
                │ RHI selection (configure_qt_environment)
                ▼
-┌──────────────┼───────────────┐
+┌──────────────┬───────────────┐
 │ OpenGL (desktop) │ Vulkan ICD │
 │  QSG_RHI_BACKEND │ VK_ICD_*   │
-└──────────────┬──┴───────┬────┘
+└──────────────┴───────────────┘
                │          │
        ┌───────▼───┐  ┌───▼────────┐
        │ GPU driver │  │ Software GL│
