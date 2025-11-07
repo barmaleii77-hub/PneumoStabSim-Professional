@@ -1428,17 +1428,24 @@ class SignalsRouter:
             receiver_volume = pneumatic_updates.get(
                 "receiver_volume", recalculated_volume
             )
-            receiver_mode = pneumatic_updates.get("volume_mode")
-            if receiver_mode is None:
-                receiver_mode = current_pneumo.get("volume_mode", "MANUAL")
+            resolved_mode = (
+                pneumatic_updates.get("volume_mode")
+                or current_pneumo.get("volume_mode")
+                or "MANUAL"
+            )
+            if recalculated_volume is not None:
+                resolved_mode = "GEOMETRIC"
+            resolved_mode = str(resolved_mode).upper()
+
             try:
                 bus = window.simulation_manager.state_bus
-                bus.set_receiver_volume.emit(float(receiver_volume), str(receiver_mode))
+                bus.set_receiver_volume.emit(float(receiver_volume), str(resolved_mode))
                 SignalsRouter.logger.info(
                     "Receiver volume synchronised",
                     extra={
-                        "mode": receiver_mode,
+                        "mode": resolved_mode,
                         "volume_m3": float(receiver_volume),
+                        "recalculated": recalculated_volume is not None,
                     },
                 )
             except Exception as exc:
