@@ -1373,6 +1373,43 @@ class SignalsRouter:
                 SignalsRouter.logger.debug(
                     "Failed to synchronize PneumoPanel: %s", exc, exc_info=exc
                 )
+        recompute_geometric = any(
+            key in pneumatic_updates for key in ("receiver_diameter", "receiver_length")
+        ) or (
+            "volume_mode" in pneumatic_updates
+            and str(pneumatic_updates.get("volume_mode", "")).upper() == "GEOMETRIC"
+        )
+        if recompute_geometric:
+            manager = getattr(panel, "state_manager", None)
+            receiver_mode = pneumatic_updates.get("volume_mode")
+            if manager is not None and not receiver_mode:
+                try:
+                    receiver_mode = manager.get_volume_mode()
+                except Exception:
+                    receiver_mode = None
+            if str(receiver_mode or "").upper() == "GEOMETRIC" and manager is not None:
+                try:
+                    new_volume = float(manager.refresh_geometric_volume())
+                except Exception as exc:
+                    SignalsRouter.logger.debug(
+                        "Failed to refresh geometric receiver volume: %s", exc
+                    )
+                else:
+                    window._apply_settings_update(
+                        "pneumatic", {"receiver_volume": new_volume}
+                    )
+                    try:
+                        bus = window.simulation_manager.state_bus
+                        bus.set_receiver_volume.emit(new_volume, "GEOMETRIC")
+                    except Exception as exc:
+                        SignalsRouter.logger.debug(
+                            "Failed to emit geometric receiver volume update: %s", exc
+                        )
+                    else:
+                        SignalsRouter.logger.info(
+                            "Receiver geometry changed → volume recalculated: %.3fm³",
+                            new_volume,
+                        )
         SignalsRouter._mark_update_source(window, "pneumatic", "qml")
         SignalsRouter._push_pneumatic_state(window)
 

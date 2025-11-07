@@ -60,7 +60,10 @@ from src.runtime.steps import (
     PhysicsStepState,
     compute_kinematics,
     integrate_body,
-    update_gas_state,
+)
+from src.physics.pneumo_system import (
+    PneumaticSystem as SimulationPneumaticSystem,
+    PneumaticUpdate,
 )
 
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
@@ -118,6 +121,8 @@ class PhysicsWorker(QObject):
         self.receiver_volume: float = 0.0
         self.receiver_volume_mode: str = ""
         self._volume_limits: tuple[float, float] = (0.0, 0.0)
+        self.dead_zone_head: float = 0.0
+        self.dead_zone_rod: float = 0.0
 
         # Cached state for snapshot creation
         self._latest_wheel_states: Dict[Wheel, WheelState] = {
@@ -281,6 +286,25 @@ class PhysicsWorker(QObject):
                     f"Receiver volume {self.receiver_volume} outside limits {self._volume_limits}"
                 )
 
+            head_dead_zone = self.settings_manager.get(
+                "constants.geometry.cylinder.dead_zone_head_m3", None
+            )
+            rod_dead_zone = self.settings_manager.get(
+                "constants.geometry.cylinder.dead_zone_rod_m3", None
+            )
+
+            defaults_geometry = (
+                defaults.get("constants", {}).get("geometry", {}).get("cylinder", {})
+            )
+
+            if not isinstance(head_dead_zone, (int, float)):
+                head_dead_zone = defaults_geometry.get("dead_zone_head_m3")
+            if not isinstance(rod_dead_zone, (int, float)):
+                rod_dead_zone = defaults_geometry.get("dead_zone_rod_m3")
+
+            self.dead_zone_head = float(head_dead_zone or 0.0)
+            self.dead_zone_rod = float(rod_dead_zone or 0.0)
+
             pneumatic_strings = {
                 key: _require_str("pneumatic", key) for key in STRING_PNEUMATIC_KEYS
             }
@@ -427,14 +451,14 @@ class PhysicsWorker(QObject):
                 mode=receiver_mode,
             )
 
-            self.pneumatic_system = create_standard_diagonal_system(
+            core_system = create_standard_diagonal_system(
                 cylinder_specs=config_defaults["cylinder_specs"],
                 line_configs=config_defaults["line_configs"],
                 receiver=receiver_state,
                 master_isolation_open=self.master_isolation_open,
             )
 
-            line_volumes = self.pneumatic_system.get_line_volumes()
+            line_volumes = core_system.get_line_volumes()
             line_states: Dict[Line, Any] = {}
             for line_name, volume_info in line_volumes.items():
                 if (
@@ -466,7 +490,7 @@ class PhysicsWorker(QObject):
             self.gas_network = GasNetwork(
                 lines=line_states,
                 tank=tank_state,
-                system_ref=self.pneumatic_system,
+                system_ref=core_system,
                 master_isolation_open=self.master_isolation_open,
                 ambient_temperature=ambient_temperature,
                 relief_min_threshold=relief_min_threshold,
@@ -481,6 +505,14 @@ class PhysicsWorker(QObject):
                 leak_reference_area=leak_reference_area,
                 master_equalization_diameter=diagonal_coupling_diameter,
             )
+
+            self.pneumatic_system = SimulationPneumaticSystem(
+                core_system,
+                self.gas_network,
+                dead_zone_head=self.dead_zone_head,
+                dead_zone_rod=self.dead_zone_rod,
+            )
+            self.gas_network = self.pneumatic_system.gas_network
 
             self.master_equalization_diameter = diagonal_coupling_diameter
 
@@ -692,10 +724,31 @@ class PhysicsWorker(QObject):
                     volume,
                     gamma=self.gas_network.tank.gamma,
                 )
+                tank_state = self.gas_network.tank
+                self._latest_tank_state.volume = float(tank_state.V)
+                self._latest_tank_state.pressure = float(tank_state.p)
+                self._latest_tank_state.temperature = float(tank_state.T)
+                self._latest_tank_state.mass = float(tank_state.m)
             except Exception as exc:
                 self.logger.warning(f"Failed to update gas network tank volume: {exc}")
 
-        self.logger.info(f"Receiver volume set: {volume:.3f}m? (mode: {mode})")
+        tank_pressure = (
+            float(self.gas_network.tank.p)
+            if self.gas_network is not None
+            else float("nan")
+        )
+        tank_mass = (
+            float(self.gas_network.tank.m)
+            if self.gas_network is not None
+            else float("nan")
+        )
+        self.logger.info(
+            "Receiver volume set: %.3fm³ (mode: %s, tank p=%.2f Pa, m=%.6f kg)",
+            volume,
+            mode,
+            tank_pressure,
+            tank_mass,
+        )
 
     @Slot(float)
     def set_physics_dt(self, dt: float):
@@ -758,6 +811,45 @@ class PhysicsWorker(QObject):
             self.error_occurred.emit(f"Physics step error: {str(e)}")
             self.stop_simulation()
 
+    def _apply_pneumatic_update(self, result: PneumaticUpdate) -> None:
+        for line_name, data in result.line_states.items():
+            line_state = self._latest_line_states[line_name]
+            line_state.pressure = float(data.get("pressure", line_state.pressure))
+            line_state.temperature = float(
+                data.get("temperature", line_state.temperature)
+            )
+            line_state.mass = float(data.get("mass", line_state.mass))
+            line_state.volume = float(data.get("volume", line_state.volume))
+            line_state.cv_atmo_open = bool(data.get("cv_atmo_open", False))
+            line_state.cv_tank_open = bool(data.get("cv_tank_open", False))
+
+            flow_data = result.flows.get(line_name, {})
+            line_state.flow_atmo = float(flow_data.get("flow_atmo", 0.0))
+            line_state.flow_tank = float(flow_data.get("flow_tank", 0.0))
+
+        tank_data = result.tank_state
+        tank_state = self._latest_tank_state
+        tank_state.pressure = float(tank_data.get("pressure", tank_state.pressure))
+        tank_state.temperature = float(
+            tank_data.get("temperature", tank_state.temperature)
+        )
+        tank_state.mass = float(tank_data.get("mass", tank_state.mass))
+        tank_state.volume = float(tank_data.get("volume", tank_state.volume))
+        tank_state.relief_min_open = bool(tank_data.get("relief_min_open", False))
+        tank_state.relief_stiff_open = bool(tank_data.get("relief_stiff_open", False))
+        tank_state.relief_safety_open = bool(tank_data.get("relief_safety_open", False))
+        tank_state.flow_min = float(tank_data.get("flow_min", 0.0))
+        tank_state.flow_stiff = float(tank_data.get("flow_stiff", 0.0))
+        tank_state.flow_safety = float(tank_data.get("flow_safety", 0.0))
+
+        for wheel, force in result.wheel_forces.items():
+            wheel_state = self._latest_wheel_states[wheel]
+            wheel_state.force_pneumatic = float(force)
+
+        for wheel, position in result.piston_positions.items():
+            self._prev_piston_positions[wheel] = float(position)
+            self._latest_wheel_states[wheel].piston_position = float(position)
+
     def _execute_physics_step(self):
         """Execute single physics timestep"""
         if not self.pneumatic_system or not self.gas_network or not self.road_input:
@@ -790,8 +882,17 @@ class PhysicsWorker(QObject):
             get_line_pressure=self._get_line_pressure,
         )
 
-        compute_kinematics(step_state, road_inputs)
-        update_gas_state(step_state)
+        lever_angles = compute_kinematics(step_state, road_inputs)
+        pneumo_update = self.pneumatic_system.update(
+            lever_angles=lever_angles,
+            master_isolation_open=self.master_isolation_open,
+            thermo_mode=self.thermo_mode,
+            receiver_volume=self.receiver_volume,
+            receiver_mode=self._resolve_receiver_mode(self.receiver_volume_mode),
+            dt=self.dt_physics,
+            logger=self.logger,
+        )
+        self._apply_pneumatic_update(pneumo_update)
         integrate_body(step_state)
 
         self.physics_state = step_state.physics_state

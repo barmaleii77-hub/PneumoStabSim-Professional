@@ -56,9 +56,12 @@ class ApplicationRunner:
         self.use_qml_3d_schema: bool = True
         self.use_legacy_ui: bool = False
         self.safe_mode_requested: bool = False
+        self.safe_execution_requested: bool = False
+        self._env_headless_flag: bool = False
         self._is_headless: bool = False
         self._headless_reason: Optional[str] = None
         self._surface_format_configured: bool = False
+        self._safe_exit_timer: Optional[Any] = None
 
     @staticmethod
     def _gather_startup_environment_snapshot() -> dict[str, str]:
@@ -67,6 +70,7 @@ class ApplicationRunner:
         qt_qpa = os.environ.get("QT_QPA_PLATFORM", "<unset>")
         qsg_backend = os.environ.get("QSG_RHI_BACKEND", "<unset>")
         qt_plugin_path = os.environ.get("QT_PLUGIN_PATH", "<unset>")
+        headless_flag = os.environ.get("PSS_HEADLESS", "<unset>")
 
         try:
             import PySide6
@@ -80,6 +84,7 @@ class ApplicationRunner:
             "QT_QPA_PLATFORM": qt_qpa or "<empty>",
             "QSG_RHI_BACKEND": qsg_backend or "<empty>",
             "QT_PLUGIN_PATH": qt_plugin_path or "<empty>",
+            "PSS_HEADLESS": headless_flag or "<empty>",
             "PySide6": pyside_version,
         }
 
@@ -135,6 +140,20 @@ class ApplicationRunner:
         """
 
         if self._surface_format_configured:
+            return
+
+        if self.safe_execution_requested or self._env_headless_flag:
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Headless safe mode active — skipping surface format configuration"
+                )
+            return
+
+        if not self.use_qml_3d_schema or self.use_legacy_ui:
+            if self.app_logger:
+                self.app_logger.debug(
+                    "Qt Quick 3D surface configuration skipped (legacy/Widgets mode)"
+                )
             return
 
         if self.safe_mode_requested:
@@ -418,12 +437,21 @@ class ApplicationRunner:
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
-        self._is_headless = bool(
+        qt_reports_headless = bool(
             getattr(app, "is_headless", False) or getattr(self.Qt, "is_headless", False)
         )
-        self._headless_reason = getattr(app, "headless_reason", None) or getattr(
+        qt_reason = getattr(app, "headless_reason", None) or getattr(
             self.Qt, "headless_reason", None
         )
+        forced_headless = self.safe_execution_requested or self._env_headless_flag
+
+        self._is_headless = qt_reports_headless or forced_headless
+        self._headless_reason = qt_reason
+        if forced_headless and not self._headless_reason:
+            if self.safe_execution_requested:
+                self._headless_reason = "Safe headless mode requested"
+            elif self._env_headless_flag:
+                self._headless_reason = "Headless platform detected"
 
         # Если глобальные хуки не установлены (например, ошибка на этапе логгирования),
         # подключаем локальный перехватчик Qt сообщений как fallback.
@@ -460,6 +488,15 @@ class ApplicationRunner:
 
     def create_main_window(self) -> None:
         """Создание и отображение главного окна."""
+        if self.safe_execution_requested:
+            message = "Safe headless mode active — skipping MainWindow creation"
+            if self.app_logger:
+                self.app_logger.info(message)
+            else:
+                print(f"ℹ️ {message}.")
+            self.window_instance = None
+            return
+
         if self._is_headless:
             if self.app_logger:
                 self.app_logger.info(
@@ -550,6 +587,53 @@ class ApplicationRunner:
             self.app_logger.info("MainWindow created and shown")
 
         self._log_runtime_scenegraph_backend()
+
+    def _enter_headless_mode(self) -> None:
+        """Switch to headless execution without creating any windows."""
+
+        self._is_headless = True
+        if not self._headless_reason:
+            if self.safe_execution_requested:
+                self._headless_reason = "Safe headless mode requested"
+            elif self._env_headless_flag:
+                self._headless_reason = "Environment requested headless platform"
+            else:
+                self._headless_reason = "Headless mode engaged"
+
+        if self.app_logger:
+            self.app_logger.info(
+                "Headless execution mode active — Qt windows will not be created"
+            )
+            self.app_logger.debug("Headless reason: %s", self._headless_reason)
+        else:
+            print("ℹ️ Headless execution mode active — Qt windows will not be created.")
+
+        self.window_instance = None
+
+    def _schedule_safe_exit(self, delay_ms: int = 1000) -> None:
+        """Schedule automatic application shutdown for headless execution."""
+
+        if not self.app_instance:
+            return
+
+        if self._safe_exit_timer is not None:
+            try:
+                self._safe_exit_timer.stop()
+            except Exception:
+                pass
+
+        timer = self.QTimer(self.app_instance)
+        timer.setSingleShot(True)
+        timer.timeout.connect(self.app_instance.quit)
+        timer.start(max(1, int(delay_ms)))
+        self._safe_exit_timer = timer
+
+        seconds = max(delay_ms, 0) / 1000.0
+        message = f"Headless mode: quitting Qt event loop in {seconds:.1f} seconds"
+        if self.app_logger:
+            self.app_logger.info(message)
+        else:
+            print(f"ℹ️ {message}.")
 
     def _log_runtime_scenegraph_backend(self) -> None:
         """Report the runtime Qt Quick Scene Graph backend selection."""
@@ -764,20 +848,28 @@ class ApplicationRunner:
         Args:
             enabled: Включить ли тестовый режим
         """
-        if not enabled or not self.window_instance:
+        if not enabled:
+            return
+
+        parent = self.window_instance or self.app_instance
+        if parent is None:
             return
 
         print("🧪 Test mode: auto-closing in 5 seconds...")
         if self.app_logger:
             self.app_logger.info("Test mode: auto-closing in 5 seconds")
 
-        # Удерживаем QTimer в живых через атрибут window
-        self.window_instance._auto_close_timer = self.QTimer(self.window_instance)
-        self.window_instance._auto_close_timer.setSingleShot(True)
-        self.window_instance._auto_close_timer.timeout.connect(
-            lambda: self.window_instance.close()
-        )
-        self.window_instance._auto_close_timer.start(5000)
+        timer = self.QTimer(parent)
+        timer.setSingleShot(True)
+
+        if self.window_instance is not None:
+            timer.timeout.connect(lambda: self.window_instance.close())
+            self.window_instance._auto_close_timer = timer
+        else:
+            timer.timeout.connect(self.app_instance.quit)
+            self._safe_exit_timer = timer
+
+        timer.start(5000)
 
     def run(self, args: argparse.Namespace) -> int:
         """
@@ -806,8 +898,15 @@ class ApplicationRunner:
             self.app_logger = self.setup_logging(verbose_console=args.verbose)
 
             self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
+            self.safe_execution_requested = bool(getattr(args, "safe", False))
             self.use_legacy_ui = bool(getattr(args, "legacy", False))
             if self.use_legacy_ui:
+                self.use_qml_3d_schema = False
+
+            self._env_headless_flag = os.environ.get(
+                "PSS_HEADLESS", ""
+            ).strip().lower() in {"1", "true", "yes"}
+            if self.safe_execution_requested or self._env_headless_flag:
                 self.use_qml_3d_schema = False
 
             if self.app_logger:
@@ -818,10 +917,18 @@ class ApplicationRunner:
                     self.app_logger.info(
                         "Safe mode enabled — Qt backend auto-selection active"
                     )
+                if self.safe_execution_requested:
+                    self.app_logger.info(
+                        "Safe headless execution requested via CLI flag"
+                    )
+                elif self._env_headless_flag:
+                    self.app_logger.info("Headless execution requested via environment")
                 if self.use_legacy_ui:
                     self.app_logger.info("Legacy UI mode requested from CLI")
             elif self.use_legacy_ui:
                 print("ℹ️ Legacy UI mode requested (QML will be skipped)")
+            elif self.safe_execution_requested:
+                print("ℹ️ Safe headless execution requested — UI will not start")
 
             self._log_startup_environment()
 
@@ -829,13 +936,19 @@ class ApplicationRunner:
             self.create_application()
             # Строгая валидация конфигурации до создания окна
             self._validate_settings_file()
-            self.create_main_window()
+
+            if self.safe_execution_requested or self._env_headless_flag:
+                self._enter_headless_mode()
+            else:
+                self.create_main_window()
 
             print("✅ Ready!")
             print("=" * 60 + "\n")
 
             self.setup_signals()
             self.setup_test_mode(args.test_mode)
+            if self.safe_execution_requested and not args.test_mode:
+                self._schedule_safe_exit(1000)
 
             # ✅ Запуск event loop
             result = self.app_instance.exec()

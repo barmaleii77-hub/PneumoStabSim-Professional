@@ -25,6 +25,7 @@ _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 
 SAFE_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
+SAFE_EXECUTION_REQUESTED = bool(getattr(bootstrap_args, "safe", False))
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
@@ -103,11 +104,14 @@ def _log_scenegraph_backend(message: str) -> None:
 
 configure_qt_environment(
     safe_mode=SAFE_MODE_REQUESTED,
+    safe_execution=SAFE_EXECUTION_REQUESTED,
     log=_log_scenegraph_backend,
 )
 
 if LEGACY_MODE_REQUESTED:
     print("ℹ️ Legacy UI mode requested — QML loading will be skipped after bootstrap.")
+if SAFE_EXECUTION_REQUESTED:
+    print("ℹ️ Safe headless mode requested — main window will not be created.")
 
 # =============================================================================
 # Bootstrap Phase2: Qt Import

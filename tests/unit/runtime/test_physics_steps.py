@@ -23,13 +23,9 @@ from src.pneumo.receiver import ReceiverSpec, ReceiverState
 from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.valves import CheckValve
 from src.runtime.state import LineState, TankState, WheelState
-from src.runtime.steps import (
-    PhysicsStepState,
-    compute_kinematics,
-    integrate_body,
-    update_gas_state,
-)
+from src.runtime.steps import PhysicsStepState, compute_kinematics, integrate_body
 from src.runtime.sync import PerformanceMetrics
+from src.physics.pneumo_system import PneumaticSystem as SimulationPneumaticSystem
 
 
 def _build_cylinder_geom() -> CylinderGeom:
@@ -170,28 +166,68 @@ def test_compute_kinematics_updates_wheel_state(step_state: PhysicsStepState) ->
 
 def test_update_gas_state_syncs_line_states(step_state: PhysicsStepState) -> None:
     road_inputs = {"LF": 0.01, "RF": -0.005, "LR": 0.0, "RR": 0.002}
-    compute_kinematics(step_state, road_inputs)
+    pneumo = SimulationPneumaticSystem(
+        step_state.pneumatic_system,
+        step_state.gas_network,
+        dead_zone_head=0.0,
+        dead_zone_rod=0.0,
+    )
 
-    update_gas_state(step_state)
+    lever_angles = compute_kinematics(step_state, road_inputs)
+    update = pneumo.update(
+        lever_angles=lever_angles,
+        master_isolation_open=True,
+        thermo_mode=step_state.thermo_mode,
+        receiver_volume=step_state.receiver_volume,
+        receiver_mode=step_state.receiver_mode,
+        dt=step_state.dt,
+        logger=step_state.logger,
+    )
 
-    assert step_state.gas_network.master_isolation_open is True
-    for line_name in [Line.A1, Line.B1, Line.A2, Line.B2]:
+    for line_name, data in update.line_states.items():
         expected_volume = step_state.pneumatic_system.get_line_volumes()[line_name][
             "total_volume"
         ]
-        assert step_state.line_states[line_name].volume == pytest.approx(
-            float(expected_volume)
+        assert pytest.approx(float(expected_volume)) == pytest.approx(
+            float(data["volume"])
         )
 
-    assert step_state.tank_state.pressure == pytest.approx(
-        step_state.gas_network.tank.p
+    assert pytest.approx(step_state.gas_network.tank.p) == pytest.approx(
+        update.tank_state["pressure"]
     )
 
 
 def test_integrate_body_advances_state(step_state: PhysicsStepState) -> None:
     road_inputs = {"LF": 0.01, "RF": -0.005, "LR": 0.0, "RR": 0.002}
-    compute_kinematics(step_state, road_inputs)
-    update_gas_state(step_state)
+    pneumo = SimulationPneumaticSystem(
+        step_state.pneumatic_system,
+        step_state.gas_network,
+        dead_zone_head=0.0,
+        dead_zone_rod=0.0,
+    )
+
+    lever_angles = compute_kinematics(step_state, road_inputs)
+    update = pneumo.update(
+        lever_angles=lever_angles,
+        master_isolation_open=True,
+        thermo_mode=step_state.thermo_mode,
+        receiver_volume=step_state.receiver_volume,
+        receiver_mode=step_state.receiver_mode,
+        dt=step_state.dt,
+        logger=step_state.logger,
+    )
+
+    for line_name, data in update.line_states.items():
+        step_state.line_states[line_name].volume = float(data["volume"])
+        step_state.line_states[line_name].pressure = float(data["pressure"])
+        step_state.line_states[line_name].temperature = float(data["temperature"])
+        step_state.line_states[line_name].mass = float(data["mass"])
+
+    tank_state = step_state.gas_network.tank
+    tank_state.p = float(update.tank_state["pressure"])
+    tank_state.T = float(update.tank_state["temperature"])
+    tank_state.m = float(update.tank_state["mass"])
+    tank_state.V = float(update.tank_state["volume"])
 
     initial_state = step_state.physics_state.copy()
     integrate_body(step_state)

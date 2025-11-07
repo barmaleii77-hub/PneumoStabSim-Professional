@@ -20,7 +20,9 @@ _WHEEL_KEY_MAP: Dict[Wheel, str] = {
 }
 
 
-def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -> None:
+def compute_kinematics(
+    state: PhysicsStepState, road_inputs: Dict[str, float]
+) -> Dict[Wheel, float]:
     """Update pneumatic system and wheel states from road excitation."""
 
     state.last_road_inputs.update({k: float(v) for k, v in road_inputs.items()})
@@ -72,3 +74,5 @@ def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -
         wheel_state.force_pneumatic = (
             head_pressure_gauge * area_head - rod_pressure_gauge * area_rod
         )
+
+    return lever_angles

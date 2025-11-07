@@ -8,6 +8,8 @@ from typing import Callable, Mapping
 
 import importlib.util
 
+os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+
 import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
@@ -15,10 +17,32 @@ from pytest import MonkeyPatch
 from tests.physics.cases import build_case_loader
 
 
-try:
-    _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
-except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
+# Configure headless environment before importing optional pytest-qt plugin
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ.setdefault("QT_QUICK_BACKEND", "software")
+os.environ.setdefault("QSG_RHI_BACKEND", "software")
+os.environ.setdefault("QT_OPENGL", "software")
+os.environ.pop("QSG_OPENGL_VERSION", None)
+os.environ.setdefault("PSS_HEADLESS", "1")
+os.environ.setdefault("PYTHONHASHSEED", "0")
+
+_skip_pytestqt = os.environ.get("PSS_SKIP_PYTESTQT", "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+}
+if not _skip_pytestqt:
+    platform_hint = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
+    if platform_hint in {"offscreen", "minimal"}:
+        _skip_pytestqt = True
+
+if _skip_pytestqt:
     _pytestqt_spec = None
+else:
+    try:
+        _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
+    except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
+        _pytestqt_spec = None
 
 if _pytestqt_spec is not None:
     pytest_plugins = ("pytestqt.plugin",)
@@ -53,11 +77,6 @@ src_path = str(project_root / "src")
 if src_path not in sys.path:
     # Вставляем src на позицию 1, чтобы project_root имел приоритет при разрешении импортов (Insert at position 1 to preserve project_root priority)
     sys.path.insert(1, src_path)
-
-# Set up environment variables for testing
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
-os.environ.setdefault("QT_QUICK_BACKEND", "software")
-os.environ.setdefault("PYTHONHASHSEED", "0")
 
 _security_audit_dir = project_root / "reports" / "security_audit"
 _security_audit_dir.mkdir(parents=True, exist_ok=True)
