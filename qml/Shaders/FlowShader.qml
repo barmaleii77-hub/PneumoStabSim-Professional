@@ -30,12 +30,14 @@ ManagedShaderEffect {
             + "uniform lowp float time;\n"
             + "uniform lowp vec4 baseColor;\n"
             + "varying highp vec2 texCoord;\n"
-            + "lowp float wave = sin((texCoord.x + time * pulseSpeed) * 6.28318530718);\n"
-            + "lowp float flowRamp = smoothstep(0.1, 0.9, texCoord.y);\n"
-            + "lowp float pulse = 0.5 + 0.5 * wave;\n"
-            + "lowp float alpha = clamp(intensity * (0.35 + glowStrength * pulse) * flowRamp, 0.0, 1.0);\n"
-            + "lowp vec3 colour = baseColor.rgb * (0.4 + 0.6 * flowRamp);\n"
-            + "gl_FragColor = vec4(colour, baseColor.a * alpha);\n"
+            + "void main() {\n"
+            + "    lowp float wave = sin((texCoord.x + time * pulseSpeed) * 6.28318530718);\n"
+            + "    lowp float flowRamp = smoothstep(0.1, 0.9, texCoord.y);\n"
+            + "    lowp float pulse = 0.5 + 0.5 * wave;\n"
+            + "    lowp float alpha = clamp(intensity * (0.35 + glowStrength * pulse) * flowRamp, 0.0, 1.0);\n"
+            + "    lowp vec3 colour = baseColor.rgb * (0.4 + 0.6 * flowRamp);\n"
+            + "    gl_FragColor = vec4(colour, baseColor.a * alpha);\n"
+            + "}\n"
 
     NumberAnimation on time {
         id: timeAnimation
