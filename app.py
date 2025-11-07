@@ -156,6 +156,8 @@ def main() -> int:
     """Main application entry point - MODULAR VERSION"""
     args = parse_arguments()
 
+    safe_cli_mode = bool(getattr(args, "safe_cli_mode", False))
+
     force_disable_reasons: list[str] = []
     if getattr(args, "legacy", False):
         force_disable_reasons.append("legacy-cli")
@@ -163,6 +165,8 @@ def main() -> int:
         force_disable_reasons.append("headless")
     if getattr(args, "safe", False):
         force_disable_reasons.append("safe-mode")
+    if safe_cli_mode and "safe-mode" not in force_disable_reasons:
+        force_disable_reasons.append("safe-cli")
 
     setattr(args, "bootstrap_headless", GRAPHICS_BOOTSTRAP_STATE.headless)
     setattr(args, "force_disable_qml_3d", bool(force_disable_reasons))
@@ -170,8 +174,11 @@ def main() -> int:
     setattr(
         args,
         "safe_runtime",
-        SAFE_RUNTIME_MODE_REQUESTED or bool(getattr(args, "safe", False)),
+        SAFE_RUNTIME_MODE_REQUESTED
+        or bool(getattr(args, "safe", False))
+        or safe_cli_mode,
     )
+    setattr(args, "safe_cli_mode", safe_cli_mode)
 
     runner = ApplicationRunner(QApplication, qInstallMessageHandler, Qt, QTimer)
     return runner.run(args)
