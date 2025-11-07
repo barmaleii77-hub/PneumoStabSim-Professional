@@ -1160,82 +1160,88 @@ Pane {
             }
 
             GroupBox {
+                id: simulationSettingsGroup
                 title: qsTrId("simulation.panel.section.simulation")
                     || qsTr("Настройки симуляции")
                 Layout.fillWidth: true
 
-                GridLayout {
-                    columns: 2
-                    columnSpacing: 12
-                    rowSpacing: 8
+                ColumnLayout {
                     Layout.fillWidth: true
+                    spacing: 8
 
-                    Label {
-                        text: qsTrId("simulation.panel.physicsDt")
-                            || qsTr("Шаг физики dt (с)")
-                    }
-                    SpinBox {
-                        id: physicsDtSpin
-                        readonly property int valueScale: root._floatScale
-                        from: 1
-                        to: 200
-                        stepSize: 1
-                        value: Math.round(0.001 * valueScale)
-                        editable: true
-                        textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
-                        valueFromText: function(text, locale) {
-                            var numeric = Number(text)
-                            return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                    GridLayout {
+                        columns: 2
+                        columnSpacing: 12
+                        rowSpacing: 8
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: qsTrId("simulation.panel.physicsDt")
+                                || qsTr("Шаг физики dt (с)")
                         }
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("physics_dt", value / valueScale)
-                    }
-
-                    Label {
-                        text: qsTrId("simulation.panel.vsync")
-                            || qsTr("Ограничение FPS (Гц)")
-                    }
-                    SpinBox {
-                        id: vsyncSpin
-                        from: 15
-                        to: 360
-                        stepSize: 1
-                        value: 60
-                        editable: true
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("render_vsync_hz", value)
-                    }
-
-                    Label {
-                        text: qsTrId("simulation.panel.stepsPerFrame")
-                            || qsTr("Шагов на кадр (шт)")
-                    }
-                    SpinBox {
-                        id: maxStepsSpin
-                        from: 1
-                        to: 120
-                        stepSize: 1
-                        value: 10
-                        editable: true
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_steps_per_frame", value)
-                    }
-
-                    Label {
-                        text: qsTrId("simulation.panel.maxFrameTime")
-                            || qsTr("Макс. время кадра (с)")
-                    }
-                    SpinBox {
-                        id: maxFrameTimeSpin
-                        readonly property int valueScale: 1000
-                        from: 1
-                        to: 200
-                        stepSize: 1
-                        value: Math.round(0.05 * valueScale)
-                        editable: true
-                        textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 3) }
-                        valueFromText: function(text, locale) {
-                            var numeric = Number(text)
-                            return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                        SpinBox {
+                            id: physicsDtSpin
+                            readonly property int valueScale: root._floatScale
+                            from: 1
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.001 * valueScale)
+                            editable: true
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitSimulationChange("physics_dt", value / valueScale)
                         }
-                        onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_frame_time", value / valueScale)
+
+                        Label {
+                            text: qsTrId("simulation.panel.vsync")
+                                || qsTr("Ограничение FPS (Гц)")
+                        }
+                        SpinBox {
+                            id: vsyncSpin
+                            from: 15
+                            to: 360
+                            stepSize: 1
+                            value: 60
+                            editable: true
+                            onValueModified: if (!root._updatingFromPython) _emitSimulationChange("render_vsync_hz", value)
+                        }
+
+                        Label {
+                            text: qsTrId("simulation.panel.stepsPerFrame")
+                                || qsTr("Шагов на кадр (шт)")
+                        }
+                        SpinBox {
+                            id: maxStepsSpin
+                            from: 1
+                            to: 120
+                            stepSize: 1
+                            value: 10
+                            editable: true
+                            onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_steps_per_frame", value)
+                        }
+
+                        Label {
+                            text: qsTrId("simulation.panel.maxFrameTime")
+                                || qsTr("Макс. время кадра (с)")
+                        }
+                        SpinBox {
+                            id: maxFrameTimeSpin
+                            readonly property int valueScale: 1000
+                            from: 1
+                            to: 200
+                            stepSize: 1
+                            value: Math.round(0.05 * valueScale)
+                            editable: true
+                            textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 3) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value
+                            }
+                            onValueModified: if (!root._updatingFromPython) _emitSimulationChange("max_frame_time", value / valueScale)
+                        }
                     }
                 }
             }
