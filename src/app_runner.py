@@ -852,12 +852,7 @@ class ApplicationRunner:
                 self.app_logger.info(
                     "Safe shutdown timer triggered", extra={"reason": reason}
                 )
-            try:
-                from PySide6.QtCore import QCoreApplication
-            except Exception:
-                app_instance.exit(0)
-            else:
-                QCoreApplication.exit(0)
+            app_instance.exit(0)
 
         timer.timeout.connect(_quit_app)
         timer.start(timer_ms)
