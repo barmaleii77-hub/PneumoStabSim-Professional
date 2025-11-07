@@ -676,8 +676,8 @@ def validate_shaders(
     *,
     qsb_command: Sequence[str] | None = None,
     reports_dir: Path | None = None,
-) -> ValidationErrors:
-    """Return a list of validation error messages for *shader_root*.
+) -> ShaderValidationReport:
+    """Validate *shader_root* and return a :class:`ShaderValidationReport`.
 
     Raises
     ------
@@ -690,21 +690,24 @@ def validate_shaders(
     warnings: list[str] = []
 
     if not shader_root.exists():
-        return [f"Shader directory does not exist: {shader_root}"]
+        return ShaderValidationReport(
+            errors=[f"Shader directory does not exist: {shader_root}"],
+            warnings=warnings,
+        )
 
     try:
         command = (
             list(qsb_command) if qsb_command is not None else _resolve_qsb_command()
         )
     except (FileNotFoundError, RuntimeError) as exc:
-        return [str(exc)]
+        return ShaderValidationReport(errors=[str(exc)], warnings=warnings)
 
     try:
         _probe_qsb(command)
     except ShaderValidationUnavailableError:
         raise
     except QsbEnvironmentError as exc:
-        return [str(exc)]
+        return ShaderValidationReport(errors=[str(exc)], warnings=warnings)
 
     if reports_dir is not None:
         _ensure_directory(reports_dir)
