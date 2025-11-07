@@ -15,7 +15,7 @@ from src.simulation.service import TrainingPresetService
 class _CallableMap(dict):
     """Dictionary that can also be invoked like a callable returning a copy."""
 
-    def __call__(self) -> Dict[str, Any]:  # type: ignore[override]
+    def __call__(self) -> dict[str, Any]:  # type: ignore[override]
         return dict(self)
 
 
@@ -29,10 +29,10 @@ class TrainingPresetBridge(QObject):
     def __init__(
         self,
         *,
-        settings_manager: Optional[SettingsManager] = None,
-        library: Optional[TrainingPresetLibrary] = None,
-        simulation_service: Optional[TrainingPresetService] = None,
-        orchestrator: Optional[SettingsOrchestrator] = None,
+        settings_manager: SettingsManager | None = None,
+        library: TrainingPresetLibrary | None = None,
+        simulation_service: TrainingPresetService | None = None,
+        orchestrator: SettingsOrchestrator | None = None,
     ) -> None:
         super().__init__()
         self._settings_manager = settings_manager or get_settings_manager()
@@ -43,12 +43,12 @@ class TrainingPresetBridge(QObject):
         self._service = simulation_service or TrainingPresetService(
             orchestrator=self._orchestrator, library=self._library
         )
-        self._presets_payload: List[Dict[str, Any]] = []
+        self._presets_payload: list[dict[str, Any]] = []
         self._active_preset_id: str = ""
-        self._selected_payload: Dict[str, Any] = {}
+        self._selected_payload: dict[str, Any] = {}
         self._refresh_presets()
         self._refresh_active_preset()
-        self._dispose_callbacks: List[Callable[[], None]] = []
+        self._dispose_callbacks: list[Callable[[], None]] = []
         self._dispose_callbacks.append(
             self._service.register_active_observer(self._handle_active_change)
         )
@@ -94,7 +94,7 @@ class TrainingPresetBridge(QObject):
     def _resolve_active_id(self) -> str:
         return self._service.active_preset_id()
 
-    def _describe(self, preset_id: str) -> Dict[str, Any]:
+    def _describe(self, preset_id: str) -> dict[str, Any]:
         payload = self._service.describe_preset(preset_id)
         return dict(payload)
 
@@ -107,7 +107,7 @@ class TrainingPresetBridge(QObject):
 
     # ------------------------------------------------------------------ properties
     @Property("QVariantList", notify=presetsChanged)
-    def presets(self) -> List[Dict[str, Any]]:  # pragma: no cover - Qt binding
+    def presets(self) -> list[dict[str, Any]]:  # pragma: no cover - Qt binding
         return [dict(item) for item in self._presets_payload]
 
     @Property(str, notify=activePresetChanged)
@@ -115,16 +115,16 @@ class TrainingPresetBridge(QObject):
         return self._active_preset_id
 
     @Property("QVariantMap", notify=selectedPresetChanged)
-    def selectedPreset(self) -> Dict[str, Any]:  # pragma: no cover - Qt binding
+    def selectedPreset(self) -> dict[str, Any]:  # pragma: no cover - Qt binding
         return _CallableMap(self._selected_payload)
 
     # ---------------------------------------------------------------------- slots
     @Slot(result="QVariantList")
-    def listPresets(self) -> List[Dict[str, Any]]:
+    def listPresets(self) -> list[dict[str, Any]]:
         return [dict(item) for item in self._presets_payload]
 
     @Slot(str, result="QVariantMap")
-    def describePreset(self, preset_id: str) -> Dict[str, Any]:
+    def describePreset(self, preset_id: str) -> dict[str, Any]:
         return self._describe(preset_id)
 
     @Slot(str, result=bool)
@@ -148,11 +148,11 @@ class TrainingPresetBridge(QObject):
         return str(self._presets_payload[0].get("id", ""))
 
     @Slot(result="QVariantMap")
-    def selectedPreset(self) -> Dict[str, Any]:
+    def selectedPreset(self) -> dict[str, Any]:
         return dict(self._selected_payload)
 
     @Slot(result="QVariantList")
-    def refreshPresets(self) -> List[Dict[str, Any]]:
+    def refreshPresets(self) -> list[dict[str, Any]]:
         self._refresh_presets()
         self._refresh_active_preset()
         return self.listPresets()

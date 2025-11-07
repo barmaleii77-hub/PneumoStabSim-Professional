@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Диагностика загрузки QML файлов
 """
@@ -32,7 +31,7 @@ def main():
                 print(f"   Полный путь: {path.absolute()}")
 
                 # Проверяем первые строки файла
-                with open(path, "r", encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     first_line = f.readline().strip()
                     print(f"   Первая строка: {first_line}")
 

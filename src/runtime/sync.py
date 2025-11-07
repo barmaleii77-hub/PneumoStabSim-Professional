@@ -8,7 +8,8 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Iterable
 
 _TIMESTEP_EPSILON = 1e-9
 
@@ -80,7 +81,7 @@ class LatestOnlyQueue:
             except queue.Empty:
                 return None
 
-    def get_stats(self) -> Dict[str, float]:
+    def get_stats(self) -> dict[str, float]:
         """Get queue statistics
 
         Returns:
@@ -179,7 +180,7 @@ class PerformanceMetrics:
         """
         return abs(self.realtime_factor - 1.0) <= tolerance
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get performance summary for logging/display"""
         return {
             "steps": self.total_steps,
@@ -331,7 +332,7 @@ class StateSnapshotBuffer:
         with self._lock:
             self._buffer.clear()
 
-    def to_list(self) -> List[Any]:
+    def to_list(self) -> list[Any]:
         """Return a copy of buffered snapshots in insertion order."""
 
         with self._lock:

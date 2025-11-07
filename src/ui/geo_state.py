@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 GeometryState: Centralized geometry management with kinematic constraints
 """
@@ -40,8 +39,8 @@ class GeometryState:
     dead_gap_m: float = 0.005
 
     # Validation state
-    _validation_errors: List[str] = field(default_factory=list)
-    _validation_warnings: List[str] = field(default_factory=list)
+    _validation_errors: list[str] = field(default_factory=list)
+    _validation_warnings: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         """Initialize and validate after creation"""
@@ -179,7 +178,7 @@ class GeometryState:
 
     def normalize_parameter(
         self, param_name: str, value: float
-    ) -> Tuple[float, List[str]]:
+    ) -> tuple[float, list[str]]:
         """Normalize parameter value and return corrections applied"""
         corrections = []
         normalized_value = value
@@ -217,7 +216,7 @@ class GeometryState:
 
         return normalized_value, corrections
 
-    def get_parameters(self) -> Dict[str, float]:
+    def get_parameters(self) -> dict[str, float]:
         """Get all parameters as dictionary"""
         return {
             "wheelbase": self.wheelbase,
@@ -233,7 +232,7 @@ class GeometryState:
             "dead_gap_m": self.dead_gap_m,
         }
 
-    def set_parameters(self, params: Dict[str, float]):
+    def set_parameters(self, params: dict[str, float]):
         """Set multiple parameters with validation"""
         for param_name, value in params.items():
             if hasattr(self, param_name):
@@ -241,11 +240,11 @@ class GeometryState:
 
         self.validate_all_constraints()
 
-    def get_validation_results(self) -> Tuple[List[str], List[str]]:
+    def get_validation_results(self) -> tuple[list[str], list[str]]:
         """Get current validation errors and warnings"""
         return self._validation_errors.copy(), self._validation_warnings.copy()
 
-    def get_computed_values(self) -> Dict[str, float]:
+    def get_computed_values(self) -> dict[str, float]:
         """Get computed/derived values"""
         area_head = math.pi * (self.cyl_diam_m / 2.0) ** 2
         area_rod = area_head - math.pi * (self.rod_diam_m / 2.0) ** 2

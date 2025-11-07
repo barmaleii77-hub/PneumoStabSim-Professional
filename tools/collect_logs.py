@@ -5,7 +5,7 @@ import pathlib
 import shutil
 import sys
 import time
-from typing import Iterable
+from collections.abc import Iterable
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 LOG_SOURCES: Iterable[pathlib.Path] = (ROOT / "logs", ROOT / "reports")

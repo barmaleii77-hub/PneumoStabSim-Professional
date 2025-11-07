@@ -17,7 +17,7 @@ def generate_sine_profile(
     frequency: float,
     phase: float = 0.0,
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate sinusoidal road profile
 
     Args:
@@ -53,7 +53,7 @@ def generate_sweep_profile(
     sweep_type: str = "logarithmic",
     phase: float = 0.0,
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate frequency sweep (chirp) road profile
 
     Args:
@@ -94,7 +94,7 @@ def generate_step_profile(
     step_time: float,
     rise_time: float = 0.01,
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate step input profile
 
     Args:
@@ -131,7 +131,7 @@ def generate_pothole_profile(
     pothole_length: float,
     pothole_center_time: float,
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate pothole profile
 
     Args:
@@ -176,7 +176,7 @@ def generate_speed_bump_profile(
     bump_center_time: float,
     profile_type: str = "sinusoidal",
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate speed bump profile (TRL-style)
 
     Args:
@@ -230,7 +230,7 @@ def generate_iso8608_profile(
     iso_class: Iso8608Class,
     correlation: Optional[CorrelationSpec] = None,
     resample_hz: float = 1000.0,
-) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Generate ISO8608 stochastic road profile
 
     Generates correlated left/right track profiles according to ISO8608 PSD specification
@@ -363,7 +363,7 @@ def validate_iso8608_profile(
     iso_class: Iso8608Class,
     resample_hz: float = 1000.0,
     tolerance: float = 0.5,
-) -> Tuple[bool, Dict[str, Any]]:
+) -> tuple[bool, dict[str, Any]]:
     """Validate generated ISO8608 profile against target PSD
 
     Args:

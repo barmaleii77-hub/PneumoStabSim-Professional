@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 PneumoStabSim Professional - Быстрый системный тест
 Quick System Test - проверка готовности к запуску

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Road excitation tab for ModesPanel
 Вкладка дорожного воздействия (амплитуда, частота, фазы)

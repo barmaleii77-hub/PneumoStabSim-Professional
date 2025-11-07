@@ -13,7 +13,7 @@ from src.pneumo.enums import Port, Wheel
 from .context import LeverDynamicsConfig, PhysicsStepState
 
 
-_WHEEL_KEY_MAP: Dict[Wheel, str] = {
+_WHEEL_KEY_MAP: dict[Wheel, str] = {
     Wheel.LP: "LF",
     Wheel.PP: "RF",
     Wheel.LZ: "LR",
@@ -50,7 +50,7 @@ def _force_components(
     road_disp: float,
     road_vel: float,
     get_line_pressure,
-) -> Tuple[float, float, float, float, float, float]:
+) -> tuple[float, float, float, float, float, float]:
     """Evaluate forces and resulting torque for a given lever state."""
 
     displacement = lever_geom.angle_to_displacement(theta)
@@ -89,15 +89,15 @@ def _force_components(
     )
 
 
-def compute_kinematics(state: PhysicsStepState, road_inputs: Dict[str, float]) -> None:
+def compute_kinematics(state: PhysicsStepState, road_inputs: dict[str, float]) -> None:
     """Update pneumatic system and wheel states from road excitation."""
 
     dt = float(state.dt)
     lever_config = state.lever_config
     inertia = max(lever_config.lever_inertia, 1e-6)
 
-    results: Dict[Wheel, Dict[str, float]] = {}
-    lever_angles: Dict[Wheel, float] = {}
+    results: dict[Wheel, dict[str, float]] = {}
+    lever_angles: dict[Wheel, float] = {}
 
     for wheel, key in _WHEEL_KEY_MAP.items():
         road_disp = float(road_inputs.get(key, 0.0))

@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
 __all__ = [
     "EVENT_SCHEMA_VERSION",
@@ -34,10 +35,10 @@ class TelemetryRecord:
     channel: str
     event: str
     timestamp: datetime
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
     schema_version: str = EVENT_SCHEMA_VERSION
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
             "channel": self.channel,

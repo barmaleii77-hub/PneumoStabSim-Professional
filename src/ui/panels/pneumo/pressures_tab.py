@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Pressure configuration tab."""
 
 from __future__ import annotations

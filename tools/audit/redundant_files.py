@@ -14,7 +14,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 __all__ = [
     "AuditCandidate",

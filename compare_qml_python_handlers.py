@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Скрипт для сравнения обработчиков между QML и panel_graphics.py
 Находит недостающие свойства и обработчики
@@ -10,7 +9,7 @@ from pathlib import Path
 
 def extract_qml_properties(qml_file):
     """Извлечь свойства из QML файла"""
-    with open(qml_file, "r", encoding="utf-8") as f:
+    with open(qml_file, encoding="utf-8") as f:
         content = f.read()
 
     # Ищем property объявления
@@ -26,7 +25,7 @@ def extract_qml_properties(qml_file):
 
 def extract_qml_functions(qml_file):
     """Извлечь функции из QML файла"""
-    with open(qml_file, "r", encoding="utf-8") as f:
+    with open(qml_file, encoding="utf-8") as f:
         content = f.read()
 
     # Ищем function объявления
@@ -38,7 +37,7 @@ def extract_qml_functions(qml_file):
 
 def extract_python_handlers(py_file):
     """Извлечь обработчики из Python файла"""
-    with open(py_file, "r", encoding="utf-8") as f:
+    with open(py_file, encoding="utf-8") as f:
         content = f.read()
 
     # Ищем @Slot обработчики
@@ -50,7 +49,7 @@ def extract_python_handlers(py_file):
 
 def extract_python_signals(py_file):
     """Извлечь сигналы из Python файла"""
-    with open(py_file, "r", encoding="utf-8") as f:
+    with open(py_file, encoding="utf-8") as f:
         content = f.read()
 
     # Ищем Signal объявления
@@ -62,7 +61,7 @@ def extract_python_signals(py_file):
 
 def extract_python_properties(py_file):
     """Извлечь свойства из current_graphics словаря"""
-    with open(py_file, "r", encoding="utf-8") as f:
+    with open(py_file, encoding="utf-8") as f:
         content = f.read()
 
     # Ищем self.current_graphics словарь

@@ -20,7 +20,8 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from jsonschema import Draft7Validator
 
@@ -199,11 +200,9 @@ def build_report(result: AuditResult, config_path: Path, baseline_path: Path) ->
         diff_section.append(f"- ⚠️ Найдено расхождений: {len(result.diffs)}")
         for entry in result.diffs[:20]:
             diff_section.append(
-                (
-                    " - "
-                    f"`{entry.path}`: эталон = `{entry.baseline}` "
-                    f"→ текущий = `{entry.current}`"
-                )
+                " - "
+                f"`{entry.path}`: эталон = `{entry.baseline}` "
+                f"→ текущий = `{entry.current}`"
             )
         if len(result.diffs) > 20:
             diff_section.append(f" - … ещё {len(result.diffs) - 20} расхождений")

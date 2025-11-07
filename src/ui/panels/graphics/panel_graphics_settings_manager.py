@@ -43,10 +43,10 @@ def _deep_copy(payload: Any) -> Any:
     return json.loads(json.dumps(payload))
 
 
-def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge two dictionaries without modifying the inputs."""
 
-    result: Dict[str, Any] = {key: _deep_copy(value) for key, value in base.items()}
+    result: dict[str, Any] = {key: _deep_copy(value) for key, value in base.items()}
 
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
@@ -139,7 +139,7 @@ class GraphicsSettingsService:
         path = getattr(self._settings_manager, "settings_file", None)
         return Path(path) if path is not None else None
 
-    def _load_json(self, path: Path) -> Dict[str, Any]:
+    def _load_json(self, path: Path) -> dict[str, Any]:
         try:
             return json.loads(path.read_text(encoding="utf-8"))
         except FileNotFoundError as exc:  # pragma: no cover - defensive branch
@@ -150,8 +150,8 @@ class GraphicsSettingsService:
             ) from exc
 
     def _extract_graphics_section(
-        self, payload: Dict[str, Any], section: str
-    ) -> Dict[str, Any]:
+        self, payload: dict[str, Any], section: str
+    ) -> dict[str, Any]:
         container = payload.get(section)
         if not isinstance(container, dict):
             raise GraphicsSettingsError(f"Baseline payload missing '{section}' object")
@@ -164,8 +164,8 @@ class GraphicsSettingsService:
         return _deep_copy(graphics)
 
     def _extract_animation_section(
-        self, payload: Dict[str, Any], section: str
-    ) -> Dict[str, Any]:
+        self, payload: dict[str, Any], section: str
+    ) -> dict[str, Any]:
         container = payload.get(section)
         if not isinstance(container, dict):
             raise GraphicsSettingsError(f"Baseline payload missing '{section}' object")
@@ -181,10 +181,10 @@ class GraphicsSettingsService:
 
     def _split_legacy_animation(
         self,
-        payload: Dict[str, Any] | None,
+        payload: dict[str, Any] | None,
         *,
         source: str,
-    ) -> tuple[Dict[str, Any], Dict[str, Any] | None]:
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
         if payload is None:
             return {}, None
         if not isinstance(payload, dict):
@@ -204,10 +204,10 @@ class GraphicsSettingsService:
     def _resolve_animation_payload(
         self,
         *,
-        top_level: Dict[str, Any] | None,
-        legacy: Dict[str, Any] | None,
+        top_level: dict[str, Any] | None,
+        legacy: dict[str, Any] | None,
         source: str,
-    ) -> Dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         if top_level is not None:
             if legacy is not None:
                 self._logger.warning(
@@ -225,13 +225,13 @@ class GraphicsSettingsService:
 
     def _normalise_materials(
         self,
-        materials: Dict[str, Any],
+        materials: dict[str, Any],
         *,
-        baseline: Dict[str, Any],
+        baseline: dict[str, Any],
         allow_missing: bool,
         provided_keys: set[str] | None,
-    ) -> Dict[str, Any]:
-        normalised: Dict[str, Any] = {}
+    ) -> dict[str, Any]:
+        normalised: dict[str, Any] = {}
 
         for key, value in materials.items():
             if key in self.FORBIDDEN_MATERIAL_ALIASES:
@@ -282,7 +282,7 @@ class GraphicsSettingsService:
         return normalised
 
     @staticmethod
-    def _coerce_quality_int(value: Any) -> Optional[int]:
+    def _coerce_quality_int(value: Any) -> int | None:
         if isinstance(value, bool):
             return int(value)
         if isinstance(value, int):
@@ -304,7 +304,7 @@ class GraphicsSettingsService:
             return int(round(numeric))
         return None
 
-    def _normalise_quality_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalise_quality_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         shadows = payload.get("shadows")
         if isinstance(shadows, dict):
             resolution = self._coerce_quality_int(shadows.get("resolution"))
@@ -314,12 +314,12 @@ class GraphicsSettingsService:
 
     def _coerce_state(
         self,
-        raw_state: Dict[str, Any] | None,
+        raw_state: dict[str, Any] | None,
         *,
-        baseline: Dict[str, Any],
+        baseline: dict[str, Any],
         allow_missing: bool,
         source: str,
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> dict[str, dict[str, Any]]:
         if raw_state is None:
             raw_state = {}
         if not isinstance(raw_state, dict):
@@ -327,7 +327,7 @@ class GraphicsSettingsService:
                 f"graphics state from {source} must be an object, got {type(raw_state).__name__}"
             )
 
-        state: Dict[str, Dict[str, Any]] = {}
+        state: dict[str, dict[str, Any]] = {}
 
         for category in self.GRAPHICS_CATEGORIES:
             payload = raw_state.get(category)
@@ -415,12 +415,12 @@ class GraphicsSettingsService:
 
     def _coerce_animation(
         self,
-        payload: Dict[str, Any] | None,
+        payload: dict[str, Any] | None,
         *,
-        baseline: Dict[str, Any],
+        baseline: dict[str, Any],
         allow_missing: bool,
         source: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if payload is None:
             if allow_missing and baseline:
                 return _deep_copy(baseline)
@@ -468,13 +468,13 @@ class GraphicsSettingsService:
 
     # -------------------------------------------------------------------- API
     def _apply_persistence_aliases(
-        self, state: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, state: dict[str, dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
         """Return a deep copy of *state* for persistence."""
 
         return _deep_copy(state)
 
-    def load_current(self) -> Dict[str, Dict[str, Any]]:
+    def load_current(self) -> dict[str, dict[str, Any]]:
         """Load and normalise the current graphics configuration."""
 
         raw_graphics = self._settings_manager.get_category("graphics")
@@ -509,7 +509,7 @@ class GraphicsSettingsService:
         )
         return state
 
-    def load_defaults(self) -> Dict[str, Dict[str, Any]]:
+    def load_defaults(self) -> dict[str, dict[str, Any]]:
         """Load and normalise the defaults snapshot."""
 
         raw_graphics = self._settings_manager.get("defaults_snapshot.graphics")
@@ -538,7 +538,7 @@ class GraphicsSettingsService:
 
         return state
 
-    def ensure_valid_state(self, state: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def ensure_valid_state(self, state: dict[str, Any]) -> dict[str, dict[str, Any]]:
         """Validate a state payload originating from the UI before persisting."""
 
         if not isinstance(state, dict):
@@ -570,7 +570,7 @@ class GraphicsSettingsService:
         )
         return validated
 
-    def save_current(self, state: Dict[str, Any]) -> None:
+    def save_current(self, state: dict[str, Any]) -> None:
         """Persist the provided state into the ``current`` section."""
 
         normalised = self.ensure_valid_state(state)
@@ -585,7 +585,7 @@ class GraphicsSettingsService:
         )
         self._settings_manager.save()
 
-    def save_current_as_defaults(self, state: Dict[str, Any]) -> None:
+    def save_current_as_defaults(self, state: dict[str, Any]) -> None:
         """Persist the provided state as both current values and defaults."""
 
         normalised = self.ensure_valid_state(state)
@@ -606,7 +606,7 @@ class GraphicsSettingsService:
         )
         self._settings_manager.save()
 
-    def reset_to_defaults(self) -> Dict[str, Dict[str, Any]]:
+    def reset_to_defaults(self) -> dict[str, dict[str, Any]]:
         """Reset the ``current`` settings and return the refreshed state."""
 
         self._settings_manager.reset_to_defaults(category="graphics", auto_save=False)

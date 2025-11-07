@@ -10,34 +10,34 @@ from src.ui.main_window_pkg import signals_router
 
 
 class _BridgeStub:
-    invoke_calls: List[Tuple[str, Dict[str, Any]]] = []
-    queue_calls: List[Tuple[str, Dict[str, Any]]] = []
-    logs: List[Tuple[str, Dict[str, Any], bool]] = []
+    invoke_calls: list[tuple[str, dict[str, Any]]] = []
+    queue_calls: list[tuple[str, dict[str, Any]]] = []
+    logs: list[tuple[str, dict[str, Any], bool]] = []
     invoke_result: bool = False
 
     @staticmethod
-    def invoke_qml_function(window, name: str, payload: Dict[str, Any]) -> bool:
+    def invoke_qml_function(window, name: str, payload: dict[str, Any]) -> bool:
         _BridgeStub.invoke_calls.append((name, dict(payload)))
         return _BridgeStub.invoke_result
 
     @staticmethod
-    def queue_update(_window, category: str, payload: Dict[str, Any]) -> None:
+    def queue_update(_window, category: str, payload: dict[str, Any]) -> None:
         if not payload:
             return
         _BridgeStub.queue_calls.append((category, dict(payload)))
 
     @staticmethod
     def _log_graphics_change(
-        _window, category: str, payload: Dict[str, Any], applied: bool
+        _window, category: str, payload: dict[str, Any], applied: bool
     ) -> None:
         _BridgeStub.logs.append((category, dict(payload), applied))
 
 
 class _WindowStub:
     def __init__(self) -> None:
-        self.saved_updates: List[Tuple[str, Dict[str, Any]]] = []
+        self.saved_updates: list[tuple[str, dict[str, Any]]] = []
 
-    def _apply_settings_update(self, key: str, params: Dict[str, Any]) -> None:
+    def _apply_settings_update(self, key: str, params: dict[str, Any]) -> None:
         self.saved_updates.append((key, dict(params)))
 
 
@@ -52,7 +52,7 @@ def _patch_qml_bridge(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_quality_updates_queue_only_once_for_duplicates() -> None:
     window = _WindowStub()
-    params: Dict[str, Any] = {"taa_enabled": True, "fxaa_enabled": False}
+    params: dict[str, Any] = {"taa_enabled": True, "fxaa_enabled": False}
 
     signals_router.SignalsRouter.handle_quality_changed(window, dict(params))
     signals_router.SignalsRouter.handle_quality_changed(window, dict(params))
@@ -64,7 +64,7 @@ def test_quality_updates_queue_only_once_for_duplicates() -> None:
 def test_lighting_updates_invoke_only_once_for_duplicates() -> None:
     window = _WindowStub()
     _BridgeStub.invoke_result = True
-    params: Dict[str, Any] = {"exposure": 1.5, "temperature": 6500}
+    params: dict[str, Any] = {"exposure": 1.5, "temperature": 6500}
 
     signals_router.SignalsRouter.handle_lighting_changed(window, dict(params))
     signals_router.SignalsRouter.handle_lighting_changed(window, dict(params))

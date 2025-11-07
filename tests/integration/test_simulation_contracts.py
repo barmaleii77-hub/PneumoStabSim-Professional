@@ -19,7 +19,7 @@ from src.ui.scene_bridge import SceneBridge
 from src.ui.services.visualization_service import VisualizationService
 
 
-def _initial_state_from_preset(preset) -> Dict[str, Dict[str, object]]:
+def _initial_state_from_preset(preset) -> dict[str, dict[str, object]]:
     return {
         "current": {
             "simulation": {

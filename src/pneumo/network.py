@@ -6,7 +6,8 @@ Manages interconnections between lines, receiver, and atmosphere
 import logging
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Dict, Mapping, Optional, Sequence, Tuple
+from typing import Dict, Optional, Tuple
+from collections.abc import Mapping, Sequence
 from .enums import Line, ThermoMode
 from .gas_state import (
     LineGasState,
@@ -76,7 +77,7 @@ class GasNetwork:
     utilities in :mod:`src.common.units`.
     """
 
-    lines: Dict[Line, LineGasState]  # Four diagonal lines
+    lines: dict[Line, LineGasState]  # Four diagonal lines
     tank: TankGasState  # Receiver tank
     system_ref: PneumaticSystem  # Reference to pneumatic system
     master_isolation_open: bool = False  # Master isolation valve state
@@ -132,7 +133,7 @@ class GasNetwork:
                 f"got {self.master_equalization_diameter}"
             )
 
-    def compute_line_volumes(self) -> Dict[Line, float]:
+    def compute_line_volumes(self) -> dict[Line, float]:
         """Compute current volumes for all lines from cylinder states
 
         Returns:
@@ -142,7 +143,7 @@ class GasNetwork:
         return {name: data["total_volume"] for name, data in system_volumes.items()}
 
     def update_pressures_with_explicit_volumes(
-        self, volumes: Dict[Line, float], thermo_mode: ThermoMode
+        self, volumes: dict[Line, float], thermo_mode: ThermoMode
     ) -> None:
         """Update line pressures using externally supplied volumes."""
 
@@ -172,7 +173,7 @@ class GasNetwork:
 
     def apply_valves_and_flows(
         self, dt: float, log: Optional[logging.Logger] = None
-    ) -> Dict[str, Dict[str, float]]:
+    ) -> dict[str, dict[str, float]]:
         """Apply valve flows for one time step
 
         Args:
@@ -183,7 +184,7 @@ class GasNetwork:
             raise ValueError(f"Time step must be positive: {dt}")
 
         # Process flows for each line
-        line_flows: Dict[Line, Dict[str, float]] = {
+        line_flows: dict[Line, dict[str, float]] = {
             line_name: {"flow_atmo": 0.0, "flow_tank": 0.0, "flow_leak": 0.0}
             for line_name in self.lines.keys()
         }
@@ -245,7 +246,7 @@ class GasNetwork:
 
         return {"lines": line_flows, "relief": relief_flows}
 
-    def _aggregate_diagonal(self, members: Sequence[Line]) -> Dict[str, float]:
+    def _aggregate_diagonal(self, members: Sequence[Line]) -> dict[str, float]:
         total_mass = 0.0
         total_volume = 0.0
         total_enthalpy = 0.0
@@ -328,7 +329,7 @@ class GasNetwork:
 
     def _apply_master_equalisation(
         self, dt: float, log: Optional[logging.Logger] = None
-    ) -> Tuple[str, float, float]:
+    ) -> tuple[str, float, float]:
         diameter = float(self.master_equalization_diameter)
         if diameter <= 0.0 or dt <= 0.0:
             return ("none", 0.0, 0.0)
@@ -520,7 +521,7 @@ class GasNetwork:
 
     def _apply_receiver_relief_valves(
         self, dt: float, log: Optional[logging.Logger] = None
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Apply receiver relief valve flows
 
         Args:
@@ -618,7 +619,7 @@ class GasNetwork:
 
         self._equalise_instantaneously(log)
 
-    def validate_invariants(self) -> Dict[str, any]:
+    def validate_invariants(self) -> dict[str, any]:
         """Validate all gas network invariants
 
         Returns:
@@ -659,9 +660,7 @@ class GasNetwork:
         # Check master isolation consistency
         if self.master_isolation_open:
             pressures = [line.p for line in self.lines.values()]
-            if (
-                len(set(f"{p:.0f}" for p in pressures)) > 1
-            ):  # Round to Pa for comparison
+            if len({f"{p:.0f}" for p in pressures}) > 1:  # Round to Pa for comparison
                 max_p_diff = max(pressures) - min(pressures)
                 if max_p_diff > 1000:  # > 1000 Pa difference
                     warnings.append(

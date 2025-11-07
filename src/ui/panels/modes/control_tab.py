@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Control tab for ModesPanel
 Вкладка управления симуляцией (Play/Pause/Stop/Reset)

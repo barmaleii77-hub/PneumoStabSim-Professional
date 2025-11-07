@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 """State manager for the pneumatic panel."""
 
 from __future__ import annotations
 
 import logging
 from copy import deepcopy
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+from collections.abc import Iterable
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
 
@@ -41,19 +41,19 @@ class PneumoStateManager:
 
     def __init__(
         self,
-        settings_manager: Optional[SettingsManager] = None,
+        settings_manager: SettingsManager | None = None,
     ) -> None:
         self._settings = settings_manager or get_settings_manager()
-        self._state: Dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
-        self._defaults: Dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
+        self._state: dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
+        self._defaults: dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
         self._storage_units_version: str = "si_v2"
         self._load_from_settings()
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
     def _convert_from_storage(
-        payload: Dict[str, Any], *, units_version: str = "si_v2"
-    ) -> Dict[str, Any]:
+        payload: dict[str, Any], *, units_version: str = "si_v2"
+    ) -> dict[str, Any]:
         converted = deepcopy(payload)
         version_token = (units_version or "").strip().lower() or "legacy"
         uses_si_units = version_token == "si_v2"
@@ -91,7 +91,7 @@ class PneumoStateManager:
         return converted
 
     @staticmethod
-    def _convert_to_storage(payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _convert_to_storage(payload: dict[str, Any]) -> dict[str, Any]:
         converted = deepcopy(payload)
         units = str(
             converted.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
@@ -116,7 +116,7 @@ class PneumoStateManager:
                 converted[key] = float(converted[key]) / MM_PER_M
         return converted
 
-    def export_storage_payload(self) -> Dict[str, Any]:
+    def export_storage_payload(self) -> dict[str, Any]:
         """Return a snapshot ready to persist in settings storage."""
 
         return self._convert_to_storage(self._state)
@@ -151,7 +151,7 @@ class PneumoStateManager:
         self._normalise_if_legacy()
 
     # ------------------------------------------------------------------- utils
-    def _normalise_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalise_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
         canonical = self._convert_to_storage(payload)
         # Treat the canonical snapshot as si_v2 storage to coerce types and
         # rescale values consistently (e.g. legacy mm -> m conversions).
@@ -201,7 +201,7 @@ class PneumoStateManager:
         return token or "legacy"
 
     # ------------------------------------------------------------------- access
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return deepcopy(self._state)
 
     def get_parameter(self, name: str, default: Any = None) -> Any:
@@ -225,7 +225,7 @@ class PneumoStateManager:
         clamped = clamp(volume, limits["min_m3"], limits["max_m3"])
         self._state["receiver_volume"] = clamped
 
-    def get_volume_limits(self) -> Dict[str, float]:
+    def get_volume_limits(self) -> dict[str, float]:
         return deepcopy(
             self._state.get(
                 "receiver_volume_limits", DEFAULT_PNEUMATIC["receiver_volume_limits"]
@@ -286,7 +286,7 @@ class PneumoStateManager:
         return float(self._state.get(name, DEFAULT_PNEUMATIC.get(name, 0.0)))
 
     def _clamp_pressure_value(
-        self, value: float, limits: Dict[str, float], units: str
+        self, value: float, limits: dict[str, float], units: str
     ) -> float:
         """Clamp *value* against *limits* respecting the active pressure units."""
 
@@ -350,7 +350,7 @@ class PneumoStateManager:
         if new_factor <= 0:
             return
 
-        def _convert_pressure_payload(payload: Dict[str, Any]) -> None:
+        def _convert_pressure_payload(payload: dict[str, Any]) -> None:
             payload_units = str(
                 payload.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
             )
@@ -441,7 +441,7 @@ class PneumoStateManager:
         self._state["leak_reference_area"] = clamp(value, limits["min"], limits["max"])
 
     # Validation --------------------------------------------------------
-    def validate_pneumatic(self) -> Tuple[list[str], list[str]]:
+    def validate_pneumatic(self) -> tuple[list[str], list[str]]:
         errors: list[str] = []
         warnings: list[str] = []
 
@@ -510,10 +510,10 @@ class PneumoStateManager:
         self._settings.save()
 
     # Utilities ---------------------------------------------------------
-    def update_from(self, updates: Dict[str, Any]) -> None:
+    def update_from(self, updates: dict[str, Any]) -> None:
         for key, value in updates.items():
             self._state[key] = value
 
-    def update_many(self, pairs: Iterable[Tuple[str, Any]]) -> None:
+    def update_many(self, pairs: Iterable[tuple[str, Any]]) -> None:
         for key, value in pairs:
             self._state[key] = value

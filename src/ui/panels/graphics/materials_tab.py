@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Materials Tab - вкладка настроек PBR материалов всех компонентов."""
 
 from __future__ import annotations
@@ -34,11 +33,11 @@ class MaterialsTab(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._logger = logging.getLogger(self.__class__.__name__)
-        self._controls: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
         self._updating_ui = False
         # Кэш состояний по каждому материалу
-        self._materials_state: Dict[str, Dict[str, Any]] = {}
-        self._current_key: Optional[str] = None
+        self._materials_state: dict[str, dict[str, Any]] = {}
+        self._current_key: str | None = None
         self._qml_root = Path(__file__).resolve().parents[4] / "assets" / "qml"
         self._material_labels = {
             "frame": "Рама",
@@ -240,7 +239,7 @@ class MaterialsTab(QWidget):
             pass
         return default
 
-    def _coerce_material_state(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def _coerce_material_state(self, state: dict[str, Any]) -> dict[str, Any]:
         """Нормализовать типы значений для совместимости со старыми пресетами"""
         normalized = dict(state) if isinstance(state, dict) else {}
         if "texture_path" in normalized:
@@ -261,7 +260,7 @@ class MaterialsTab(QWidget):
                 )
         return normalized
 
-    def _apply_controls_from_state(self, state: Dict[str, Any]) -> None:
+    def _apply_controls_from_state(self, state: dict[str, Any]) -> None:
         """Установить значения контролов из состояния (без эмита сигналов)"""
         if not isinstance(state, dict):
             return
@@ -436,7 +435,7 @@ class MaterialsTab(QWidget):
     def get_current_material_key(self) -> str:
         return self._material_selector.currentData()
 
-    def get_current_material_state(self) -> Dict[str, Any]:
+    def get_current_material_state(self) -> dict[str, Any]:
         return {
             "base_color": self._controls["base_color"].color().name(),
             "texture_path": self._normalize_texture_path(
@@ -462,7 +461,7 @@ class MaterialsTab(QWidget):
             "alpha_cutoff": self._controls["alpha_cutoff"].value(),
         }
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Вернуть payload только для текущего материала (для сигналов/UI)
         Формат: {"current_material": key, key: {..params..}}
         """
@@ -475,14 +474,14 @@ class MaterialsTab(QWidget):
             current_key: self.get_current_material_state(),
         }
 
-    def get_all_state(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_state(self) -> dict[str, dict[str, Any]]:
         """Вернуть состояние ВСЕХ материалов для сохранения/пресетов"""
         # Обновим кэш текущего
         cur_key = self.get_current_material_key()
         if cur_key:
             self._materials_state[cur_key] = self.get_current_material_state()
         # Возвращаем копию только известных ключей
-        result: Dict[str, Dict[str, Any]] = {}
+        result: dict[str, dict[str, Any]] = {}
         for key in self._material_labels.keys():
             if key in self._materials_state:
                 result[key] = dict(self._materials_state[key])
@@ -490,7 +489,7 @@ class MaterialsTab(QWidget):
         self._logger.debug("Returning cached state for %d materials", len(result))
         return result
 
-    def set_material_state(self, material_key: str, state: Dict[str, Any]):
+    def set_material_state(self, material_key: str, state: dict[str, Any]):
         # Обновляем кэш состояния
         if not isinstance(state, dict):
             return
@@ -499,7 +498,7 @@ class MaterialsTab(QWidget):
         if material_key == self.get_current_material_key():
             self._apply_controls_from_state(self._materials_state[material_key])
 
-    def set_state(self, state: Dict[str, Any]):
+    def set_state(self, state: dict[str, Any]):
         """Установить состояния нескольких материалов сразу (из SettingsManager)
         Ожидается словарь { material_key: {..params..}, ... }
         """
@@ -553,14 +552,14 @@ class MaterialsTab(QWidget):
             "Materials cache now tracks %d entries", len(self._materials_state)
         )
 
-    def get_controls(self) -> Dict[str, Any]:
+    def get_controls(self) -> dict[str, Any]:
         return self._controls
 
     def set_updating_ui(self, updating: bool) -> None:
         self._updating_ui = updating
 
     # ========== DISCOVERY & NORMALIZATION ==========
-    def _discover_texture_files(self) -> List[Tuple[str, str]]:
+    def _discover_texture_files(self) -> list[tuple[str, str]]:
         project_root = Path(__file__).resolve().parents[4]
         search_dirs = [
             project_root / "assets" / "textures",

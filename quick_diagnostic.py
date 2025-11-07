@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 PneumoStabSim Quick Diagnostic Tool
 Утилита для быстрой диагностики проблем с производительностью

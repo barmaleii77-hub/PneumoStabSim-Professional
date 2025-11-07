@@ -5,7 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 import math
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from collections.abc import Iterable, Mapping, Sequence
 
 from .metadata import TrainingPresetMetadata
 from .scenarios import SCENARIO_INDEX
@@ -70,10 +71,10 @@ class TrainingPreset:
             duration_minutes=0,
         )
     )
-    tags: Tuple[str, ...] = field(default_factory=tuple)
+    tags: tuple[str, ...] = field(default_factory=tuple)
     revision: str = "2025.1"
 
-    def to_qml_payload(self) -> Dict[str, Any]:
+    def to_qml_payload(self) -> dict[str, Any]:
         """Return a serialisable description consumed by QML."""
 
         return {
@@ -87,7 +88,7 @@ class TrainingPreset:
             "metadata": self.metadata.to_payload(),
         }
 
-    def to_summary(self) -> Dict[str, Any]:
+    def to_summary(self) -> dict[str, Any]:
         """Compact summary for logs and diagnostics."""
 
         return {
@@ -150,13 +151,13 @@ class TrainingPreset:
 
     def apply(
         self,
-        manager: "SettingsManager",
+        manager: SettingsManager,
         *,
         auto_save: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Apply the preset to the provided settings manager."""
 
-        updated_paths: Dict[str, Any] = {}
+        updated_paths: dict[str, Any] = {}
         for key, value in self.simulation.items():
             path = f"current.simulation.{key}"
             manager.set(path, float(value), auto_save=False)
@@ -180,15 +181,15 @@ class TrainingPresetLibrary:
         catalogue = list(presets or [])
         if not catalogue:
             catalogue = list(DEFAULT_PRESETS)
-        self._presets: Tuple[TrainingPreset, ...] = tuple(catalogue)
-        self._index: Dict[str, TrainingPreset] = {
+        self._presets: tuple[TrainingPreset, ...] = tuple(catalogue)
+        self._index: dict[str, TrainingPreset] = {
             preset.id: preset for preset in catalogue
         }
 
-    def list_presets(self) -> Tuple[TrainingPreset, ...]:
+    def list_presets(self) -> tuple[TrainingPreset, ...]:
         return self._presets
 
-    def describe_presets(self) -> List[Dict[str, Any]]:
+    def describe_presets(self) -> list[dict[str, Any]]:
         return [preset.to_qml_payload() for preset in self._presets]
 
     def get(self, preset_id: str) -> TrainingPreset | None:
@@ -209,21 +210,21 @@ class TrainingPresetLibrary:
 
     def apply(
         self,
-        manager: "SettingsManager",
+        manager: SettingsManager,
         preset_id: str,
         *,
         auto_save: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         preset = self.get(preset_id)
         if preset is None:
             raise KeyError(f"Unknown training preset '{preset_id}'")
         return preset.apply(manager, auto_save=auto_save)
 
-    def to_summary(self) -> List[Dict[str, Any]]:
+    def to_summary(self) -> list[dict[str, Any]]:
         return [preset.to_summary() for preset in self._presets]
 
 
-DEFAULT_PRESETS: Tuple[TrainingPreset, ...] = (
+DEFAULT_PRESETS: tuple[TrainingPreset, ...] = (
     TrainingPreset(
         id="baseline",
         label="Базовый запуск",

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 QML Primitives Duplication Diagnostic
 Диагностика дублирования примитивов в QML файлах
@@ -17,7 +16,7 @@ def analyze_qml_file(qml_path):
     print("=" * 60)
 
     try:
-        with open(qml_path, "r", encoding="utf-8") as f:
+        with open(qml_path, encoding="utf-8") as f:
             content = f.read()
     except Exception as e:
         print(f"❌ Ошибка чтения файла: {e}")

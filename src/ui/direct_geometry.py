@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Direct geometry usage - bypassing Property system completely
 """

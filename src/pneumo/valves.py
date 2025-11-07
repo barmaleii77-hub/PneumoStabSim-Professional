@@ -11,7 +11,8 @@ pressures so ``is_open()`` can be called with or without explicit arguments.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Mapping, Optional
+from typing import Optional
+from collections.abc import Mapping
 
 from .enums import CheckValveKind, ReliefValveKind
 from .types import ValidationResult
@@ -83,14 +84,14 @@ class CheckValve:
 
     def __init__(
         self,
-        kind: Optional[CheckValveKind] = None,
+        kind: CheckValveKind | None = None,
         *args,
-        p_upstream: Optional[float] = None,
-        p_downstream: Optional[float] = None,
-        delta_open_min: Optional[float] = None,
-        delta_open: Optional[float] = None,
-        d_eq: Optional[float] = None,
-        d_eff: Optional[float] = None,
+        p_upstream: float | None = None,
+        p_downstream: float | None = None,
+        delta_open_min: float | None = None,
+        delta_open: float | None = None,
+        d_eq: float | None = None,
+        d_eff: float | None = None,
         hyst: float = 0.0,
     ) -> None:
         if kind is not None and not isinstance(kind, CheckValveKind):
@@ -122,7 +123,7 @@ class CheckValve:
             if d_eq is None and d_eff is None:
                 d_eq = pos_d_eq
 
-        defaults: Optional[Mapping[str, float]] = None
+        defaults: Mapping[str, float] | None = None
         if delta_open_min is None and delta_open is None:
             defaults = _check_valve_defaults()
             delta_open_min = defaults["delta_open_pa"]
@@ -144,7 +145,7 @@ class CheckValve:
         self._is_open = False
 
     @staticmethod
-    def _coerce_positive(value: Optional[float], name: str) -> float:
+    def _coerce_positive(value: float | None, name: str) -> float:
         if value is None:
             raise ModelConfigError(f"Missing required parameter '{name}'")
         value = float(value)
@@ -160,8 +161,8 @@ class CheckValve:
 
     def is_open(
         self,
-        p_upstream: Optional[float] = None,
-        p_downstream: Optional[float] = None,
+        p_upstream: float | None = None,
+        p_downstream: float | None = None,
     ) -> bool:
         """Return the valve open state for the supplied pressures.
 
@@ -274,15 +275,15 @@ class ReliefValve:
 
     def __init__(
         self,
-        kind: Optional[ReliefValveKind] = None,
+        kind: ReliefValveKind | None = None,
         *,
-        p_tank: Optional[float] = None,
-        p_set: Optional[float] = None,
-        p_setpoint: Optional[float] = None,
-        hyst: Optional[float] = None,
-        hysteresis: Optional[float] = None,
-        d_eq: Optional[float] = None,
-        throttle_coeff: Optional[float] = None,
+        p_tank: float | None = None,
+        p_set: float | None = None,
+        p_setpoint: float | None = None,
+        hyst: float | None = None,
+        hysteresis: float | None = None,
+        d_eq: float | None = None,
+        throttle_coeff: float | None = None,
     ) -> None:
         self.kind = kind or ReliefValveKind.STIFFNESS
         self.p_set = self._coerce_positive(
@@ -314,7 +315,7 @@ class ReliefValve:
         self._is_open = False
 
     @staticmethod
-    def _coerce_positive(value: Optional[float], name: str) -> float:
+    def _coerce_positive(value: float | None, name: str) -> float:
         if value is None:
             raise ModelConfigError(f"Missing required parameter '{name}'")
         value = float(value)
@@ -328,7 +329,7 @@ class ReliefValve:
         self._p_tank = float(p_tank)
         return self.is_open()
 
-    def is_open(self, p_tank: Optional[float] = None) -> bool:
+    def is_open(self, p_tank: float | None = None) -> bool:
         """Evaluate whether the relief valve is open for the given pressure."""
 
         if p_tank is not None:
@@ -356,7 +357,7 @@ class ReliefValve:
             self._is_open = False
         return self._is_open
 
-    def calculate_flow(self, throttle_coeff: Optional[float] = None) -> float:
+    def calculate_flow(self, throttle_coeff: float | None = None) -> float:
         """Return a simplified relief flow estimate.
 
         The flow calculation is intentionally lightweight – it mirrors the

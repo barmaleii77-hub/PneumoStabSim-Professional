@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 QtQuick3D Path Fix Tool
 Diagnoses and fixes QtQuick3D plugin loading issues
@@ -45,7 +44,7 @@ def check_qtquick3d_installation():
             if qmldir_file.exists():
                 print("\n📋 СОДЕРЖИМОЕ qmldir:")
                 print("-" * 30)
-                with open(qmldir_file, "r") as f:
+                with open(qmldir_file) as f:
                     content = f.read()
                     print(content)
                 print("-" * 30)

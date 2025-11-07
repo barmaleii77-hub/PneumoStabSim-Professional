@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Cylinder dimensions tab - Вкладка размеров цилиндра
 Controls for pneumatic cylinder dimensions

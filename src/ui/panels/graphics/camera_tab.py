@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Camera Tab - вкладка настроек камеры
 Расширено: ручной режим, позиция/углы камеры, орбита, цель орбиты, мировые трансформации модели
@@ -35,7 +34,7 @@ class CameraTab(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._controls: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
         self._updating_ui: bool = False
         self._setup_ui()
 
@@ -403,7 +402,7 @@ class CameraTab(QWidget):
             payload["center_camera"] = True
         self.camera_changed.emit(payload)
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return {
             "fov": self._controls["fov"].value(),
             "near": self._controls["near"].value(),
@@ -442,7 +441,7 @@ class CameraTab(QWidget):
             "world_scale": self._controls["world_scale"].value(),
         }
 
-    def set_state(self, state: Dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any]) -> None:
         self._updating_ui = True
         try:
             from PySide6.QtWidgets import QCheckBox as _QCB
@@ -464,7 +463,7 @@ class CameraTab(QWidget):
         # После программной установки состояния — обновляем доступность контролов
         self._update_enabled_states()
 
-    def get_controls(self) -> Dict[str, Any]:
+    def get_controls(self) -> dict[str, Any]:
         return self._controls
 
     def set_updating_ui(self, updating: bool) -> None:

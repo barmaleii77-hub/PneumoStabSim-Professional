@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 ModesPanel state manager
 Управление состоянием панели режимов симуляции
@@ -20,15 +19,15 @@ class ModesStateManager:
 
     def __init__(self):
         """Инициализация с дефолтными значениями"""
-        self.parameters: Dict[str, Any] = copy.deepcopy(DEFAULT_MODES_PARAMS)
-        self.physics_options: Dict[str, Any] = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
+        self.parameters: dict[str, Any] = copy.deepcopy(DEFAULT_MODES_PARAMS)
+        self.physics_options: dict[str, Any] = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
         self._current_preset: int = 0  # Standard preset
 
-    def get_parameters(self) -> Dict[str, Any]:
+    def get_parameters(self) -> dict[str, Any]:
         """Получить копию параметров"""
         return copy.deepcopy(self.parameters)
 
-    def get_physics_options(self) -> Dict[str, Any]:
+    def get_physics_options(self) -> dict[str, Any]:
         """Получить копию опций физики"""
         return copy.deepcopy(self.physics_options)
 
@@ -56,7 +55,7 @@ class ModesStateManager:
         else:
             self.physics_options[name] = value
 
-    def apply_preset(self, preset_index: int) -> Dict[str, Any]:
+    def apply_preset(self, preset_index: int) -> dict[str, Any]:
         """Применить пресет и вернуть обновлённые параметры"""
         if preset_index not in MODE_PRESETS:
             preset_index = 0
@@ -100,7 +99,7 @@ class ModesStateManager:
             self._current_preset = 4
             self.parameters["mode_preset"] = MODE_PRESETS[4]["name"]
 
-    def validate_state(self) -> List[str]:
+    def validate_state(self) -> list[str]:
         """Валидация состояния
 
         Returns:
@@ -150,11 +149,11 @@ class ModesStateManager:
 
         return errors
 
-    def get_animation_parameters(self) -> Dict[str, Any]:
+    def get_animation_parameters(self) -> dict[str, Any]:
         """Получить параметры анимации для передачи в QML"""
         return get_animation_params(self.parameters)
 
-    def check_dependencies(self, param_name: str, value: Any) -> Dict[str, Any]:
+    def check_dependencies(self, param_name: str, value: Any) -> dict[str, Any]:
         """Проверка зависимостей между параметрами
 
         Returns:
@@ -199,7 +198,7 @@ class ModesStateManager:
         self.physics_options = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
         self._current_preset = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Сериализация состояния в словарь"""
         return {
             "parameters": self.get_parameters(),
@@ -207,7 +206,7 @@ class ModesStateManager:
             "preset_index": self._current_preset,
         }
 
-    def from_dict(self, state: Dict[str, Any]) -> None:
+    def from_dict(self, state: dict[str, Any]) -> None:
         """Десериализация состояния из словаря"""
         if "parameters" in state:
             self.parameters.update(state["parameters"])

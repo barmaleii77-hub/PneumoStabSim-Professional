@@ -59,7 +59,7 @@ def _load_geometry_panel() -> type[Any]:
     raise _GEOMETRY_ERROR
 
 
-def get_version_info() -> Dict[str, Any]:
+def get_version_info() -> dict[str, Any]:
     """Return diagnostic information about the geometry panel module."""
 
     try:

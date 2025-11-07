@@ -28,7 +28,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 from defusedxml import ElementTree as ET
 
@@ -255,7 +255,7 @@ def _run_command(
     append: bool = False,
     header: str | None = None,
 ) -> None:
-    printable = " ".join(shlex.quote(arg) for arg in command)
+    printable = shlex.join(command)
     print(f"[ci_tasks] $ {printable}")
 
     log_path: Path | None = None

@@ -16,7 +16,7 @@ from src.ui.qml_bridge import QMLBridge
 
 @pytest.mark.gui
 def test_pneumo_panel_emits_simulation_payload(
-    qtbot: "pytestqt.qtbot.QtBot", monkeypatch: pytest.MonkeyPatch
+    qtbot: pytestqt.qtbot.QtBot, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Changing receiver volume should surface simulation payload."""
 

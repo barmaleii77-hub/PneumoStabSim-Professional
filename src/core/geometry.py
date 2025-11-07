@@ -19,7 +19,8 @@ References:
 
 from dataclasses import dataclass
 import numpy as np
-from typing import Any, Mapping, Tuple
+from typing import Any, Tuple
+from collections.abc import Mapping
 
 from config.constants import (
     get_geometry_cylinder_constants,
@@ -297,7 +298,7 @@ def dist_point_segment(point: Point2, segment: Segment2) -> float:
     return norm(p - closest)
 
 
-def closest_point_on_segment(point: Point2, segment: Segment2) -> Tuple[Point2, float]:
+def closest_point_on_segment(point: Point2, segment: Segment2) -> tuple[Point2, float]:
     """Find closest point on segment to given point
 
     Returns:

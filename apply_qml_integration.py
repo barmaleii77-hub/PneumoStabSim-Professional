@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 QML Integration Script - FINAL VERSION
 Интегрирует все созданные QML модули в main.qml
@@ -37,7 +36,7 @@ class QMLIntegrator:
 
     def read_file(self) -> str:
         """Прочитать содержимое main.qml"""
-        with open(self.main_qml_path, "r", encoding="utf-8") as f:
+        with open(self.main_qml_path, encoding="utf-8") as f:
             return f.read()
 
     def write_file(self, content: str):

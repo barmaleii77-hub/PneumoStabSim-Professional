@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Инструменты трассировки Qt-сигналов."""
 
 from __future__ import annotations
@@ -7,7 +6,8 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
-from typing import Any, Callable, Deque, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Callable, Deque, List, Optional, Tuple
+from collections.abc import Iterable, Iterator
 
 from .logger_factory import LoggerProtocol, get_logger
 
@@ -29,7 +29,7 @@ class SignalTraceRecord:
     timestamp: datetime
     sender: str
     signal: str
-    args: Tuple[Any, ...]
+    args: tuple[Any, ...]
 
     def as_payload(self) -> dict[str, Any]:
         """Возвращает словарь, подходящий для передачи в QML/GUI."""
@@ -61,17 +61,17 @@ class SignalTracer:
         self,
         *,
         max_records: int = 500,
-        log: Optional[LoggerProtocol] = None,
+        log: LoggerProtocol | None = None,
     ) -> None:
         self._records: Deque[SignalTraceRecord] = deque(maxlen=max_records)
         self._log = log or logger
         self._lock = RLock()
-        self._sinks: List[Callable[[SignalTraceRecord], None]] = []
-        self._reset_hooks: List[Callable[[], None]] = []
-        self._connections: List[Tuple[Any, Callable[..., None]]] = []
+        self._sinks: list[Callable[[SignalTraceRecord], None]] = []
+        self._reset_hooks: list[Callable[[], None]] = []
+        self._connections: list[tuple[Any, Callable[..., None]]] = []
 
     @property
-    def records(self) -> Tuple[SignalTraceRecord, ...]:
+    def records(self) -> tuple[SignalTraceRecord, ...]:
         with self._lock:
             return tuple(self._records)
 
@@ -112,8 +112,8 @@ class SignalTracer:
         obj: Any,
         signal_name: str,
         *,
-        alias: Optional[str] = None,
-        formatter: Optional[Callable[[Tuple[Any, ...]], Tuple[Any, ...]]] = None,
+        alias: str | None = None,
+        formatter: Callable[[tuple[Any, ...]], tuple[Any, ...]] | None = None,
     ) -> Callable[[], None]:
         """Подписывается на сигнал Qt и возвращает функцию для отписки."""
 
@@ -132,7 +132,7 @@ class SignalTracer:
         alias_name = alias or signal_name
 
         def _handler(*args: Any) -> None:
-            processed_args: Tuple[Any, ...]
+            processed_args: tuple[Any, ...]
             if formatter is not None:
                 processed_args = tuple(formatter(tuple(args)))
             else:
@@ -194,11 +194,11 @@ class SignalTracer:
         obj: Any,
         signals: Iterable[str],
         *,
-        alias_prefix: Optional[str] = None,
-    ) -> List[Callable[[], None]]:
+        alias_prefix: str | None = None,
+    ) -> list[Callable[[], None]]:
         """Подписывается на несколько сигналов объекта."""
 
-        disposers: List[Callable[[], None]] = []
+        disposers: list[Callable[[], None]] = []
         for name in signals:
             alias = f"{alias_prefix}{name}" if alias_prefix else None
             disposers.append(self.attach(obj, name, alias=alias))
@@ -277,7 +277,7 @@ if HAS_QT:  # pragma: no cover - зависит от наличия PySide6
         traceAdded = Signal(dict)
         traceReset = Signal()
 
-        def __init__(self, tracer: SignalTracer, parent: Optional[QObject] = None):
+        def __init__(self, tracer: SignalTracer, parent: QObject | None = None):
             super().__init__(parent)
             self._tracer = tracer
             self._remove_sink = tracer.register_sink(self._emit_trace)

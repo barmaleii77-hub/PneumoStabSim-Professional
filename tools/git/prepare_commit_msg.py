@@ -16,7 +16,7 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 IGNORED_SOURCES = {"merge", "squash", "commit"}
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Миграция defaults.py → app_settings.json
 Переносим ВСЕ 244 параметра из кода в JSON файл
@@ -38,7 +37,7 @@ def migrate_defaults_to_json():
     # Загружаем текущий файл (если существует)
     if settings_file.exists():
         print(f"\n📁 Загружаем существующий файл: {settings_file}")
-        with open(settings_file, "r", encoding="utf-8") as f:
+        with open(settings_file, encoding="utf-8") as f:
             settings = json.load(f)
     else:
         print(f"\n📁 Создаём новый файл: {settings_file}")

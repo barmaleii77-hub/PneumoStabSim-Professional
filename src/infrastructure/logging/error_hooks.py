@@ -22,9 +22,9 @@ class ErrorHookManager:
     def install(
         self,
         *,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        qt_install_message_handler: Optional[QtInstaller] = None,
-    ) -> "ErrorHookManager":
+        loop: asyncio.AbstractEventLoop | None = None,
+        qt_install_message_handler: QtInstaller | None = None,
+    ) -> ErrorHookManager:
         if loop is not None:  # pragma: no cover - maintained for compatibility
             _ = loop
         if qt_install_message_handler is not None:
@@ -42,8 +42,8 @@ def install_error_hooks(
     logger: logging.Logger,
     json_log_path: Path | str,
     *,
-    loop: Optional[asyncio.AbstractEventLoop] = None,
-    qt_install_message_handler: Optional[QtInstaller] = None,
+    loop: asyncio.AbstractEventLoop | None = None,
+    qt_install_message_handler: QtInstaller | None = None,
 ) -> ErrorHookManager:
     manager = ErrorHookManager(logger=logger, json_path=Path(json_log_path))
     return manager.install(

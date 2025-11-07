@@ -203,7 +203,7 @@ class StateSync:
 
         try:
             # ✅ Берём полное состояние из публичного API панели
-            full_state: Dict[str, Any] = {}
+            full_state: dict[str, Any] = {}
             try:
                 if hasattr(window.graphics_panel, "collect_state"):
                     full_state = window.graphics_panel.collect_state() or {}

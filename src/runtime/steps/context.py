@@ -43,12 +43,12 @@ class PhysicsStepState:
     thermo_mode: ThermoMode
     receiver_volume: float
     receiver_mode: ReceiverVolumeMode
-    prev_piston_positions: Dict[Wheel, float]
-    wheel_states: Dict[Wheel, WheelState]
-    line_states: Dict[Line, LineState]
+    prev_piston_positions: dict[Wheel, float]
+    wheel_states: dict[Wheel, WheelState]
+    line_states: dict[Line, LineState]
     tank_state: TankState
-    last_road_inputs: Dict[str, float]
-    prev_road_inputs: Dict[str, float]
+    last_road_inputs: dict[str, float]
+    prev_road_inputs: dict[str, float]
     latest_frame_accel: np.ndarray
     prev_frame_velocities: np.ndarray
     performance: PerformanceMetrics

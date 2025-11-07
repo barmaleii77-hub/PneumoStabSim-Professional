@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Создание SharedMaterials.qml для централизованного управления материалами
 """

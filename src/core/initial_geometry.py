@@ -58,8 +58,8 @@ class InitialGeometry:
     L_tail: float
 
     # Rod positions (horizontal lever)
-    j_rod_left: Tuple[float, float, float]  # Left side
-    j_rod_right: Tuple[float, float, float]  # Right side
+    j_rod_left: tuple[float, float, float]  # Left side
+    j_rod_right: tuple[float, float, float]  # Right side
 
 
 def calculate_initial_piston_position(params: CylinderParams) -> float:
@@ -95,10 +95,10 @@ def calculate_initial_piston_position(params: CylinderParams) -> float:
 def calculate_initial_geometry(
     params: CylinderParams,
     lever_length: float | None = None,
-    j_arm_left: Tuple[float, float, float] | None = None,
-    j_arm_right: Tuple[float, float, float] | None = None,
-    j_tail_left: Tuple[float, float, float] | None = None,
-    j_tail_right: Tuple[float, float, float] | None = None,
+    j_arm_left: tuple[float, float, float] | None = None,
+    j_arm_right: tuple[float, float, float] | None = None,
+    j_tail_left: tuple[float, float, float] | None = None,
+    j_tail_right: tuple[float, float, float] | None = None,
 ) -> InitialGeometry:
     """
         Calculate complete initial geometry at neutral position

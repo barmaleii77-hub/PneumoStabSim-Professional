@@ -37,11 +37,11 @@ def qml_property(
     property_type: Any,
     *,
     notify: Any,
-) -> Callable[[Callable[["SignalTraceService"], _T_co]], _QmlProperty[_T_co]]:
+) -> Callable[[Callable[[SignalTraceService], _T_co]], _QmlProperty[_T_co]]:
     """Typed wrapper around :func:`QtCore.Property` for mypy."""
 
     def decorator(
-        getter: Callable[["SignalTraceService"], _T_co],
+        getter: Callable[[SignalTraceService], _T_co],
     ) -> _QmlProperty[_T_co]:
         return cast(
             _QmlProperty[_T_co],
@@ -77,7 +77,7 @@ class SignalTraceConfig:
     history_limit: int = 200
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any] | None) -> "SignalTraceConfig":
+    def from_dict(cls, data: dict[str, Any] | None) -> SignalTraceConfig:
         """Build a configuration instance from a raw dictionary."""
 
         if not isinstance(data, dict):
@@ -125,7 +125,7 @@ class SignalTraceConfig:
             history_limit=history_limit,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serialisable representation of the configuration."""
 
         return {
@@ -145,8 +145,8 @@ class SignalTraceService(QObject):
     def __init__(self) -> None:
         super().__init__()
         self._config = SignalTraceConfig()
-        self._subscriptions: Dict[str, Dict[str, Any]] = {}
-        self._history: List[Dict[str, Any]] = []
+        self._subscriptions: dict[str, dict[str, Any]] = {}
+        self._history: list[dict[str, Any]] = []
         self._lock = Lock()
         self._log_path = Path("logs") / "signal_trace.jsonl"
 
@@ -243,21 +243,21 @@ class SignalTraceService(QObject):
                 LOGGER.warning("Failed to create signal trace log directory: %s", exc)
         self._notify_listeners()
 
-    def update_from_settings(self, data: Dict[str, Any] | None) -> None:
+    def update_from_settings(self, data: dict[str, Any] | None) -> None:
         self.update_config(SignalTraceConfig.from_dict(data))
 
-    def _get_subscriptions(self) -> List[Dict[str, Any]]:
+    def _get_subscriptions(self) -> list[dict[str, Any]]:
         with self._lock:
             return [
                 self._subscription_summary(signal, data)
                 for signal, data in sorted(self._subscriptions.items())
             ]
 
-    subscriptions: ClassVar[_QmlProperty[List[Dict[str, Any]]]] = qml_property(
+    subscriptions: ClassVar[_QmlProperty[list[dict[str, Any]]]] = qml_property(
         _QVARIANT_PROPERTY_TYPE, notify=traceUpdated
     )(_get_subscriptions)
 
-    def _get_latest_values(self) -> Dict[str, Any]:
+    def _get_latest_values(self) -> dict[str, Any]:
         with self._lock:
             return {
                 signal: data.get("last_value")
@@ -265,15 +265,15 @@ class SignalTraceService(QObject):
                 if data.get("last_value") is not None
             }
 
-    latestValues: ClassVar[_QmlProperty[Dict[str, Any]]] = qml_property(
+    latestValues: ClassVar[_QmlProperty[dict[str, Any]]] = qml_property(
         _QVARIANT_PROPERTY_TYPE, notify=traceUpdated
     )(_get_latest_values)
 
-    def _get_history_entries(self) -> List[Dict[str, Any]]:
+    def _get_history_entries(self) -> list[dict[str, Any]]:
         with self._lock:
             return [entry.copy() for entry in self._history]
 
-    historyEntries: ClassVar[_QmlProperty[List[Dict[str, Any]]]] = qml_property(
+    historyEntries: ClassVar[_QmlProperty[list[dict[str, Any]]]] = qml_property(
         list, notify=traceUpdated
     )(_get_history_entries)
 
@@ -309,7 +309,7 @@ class SignalTraceService(QObject):
         )
         return include_match and not exclude_match
 
-    def _append_to_log(self, entry: Dict[str, Any]) -> None:
+    def _append_to_log(self, entry: dict[str, Any]) -> None:
         try:
             self._log_path.parent.mkdir(parents=True, exist_ok=True)
             with self._log_path.open("a", encoding="utf-8") as handle:
@@ -333,8 +333,8 @@ class SignalTraceService(QObject):
             return repr(value)
 
     def _subscription_summary(
-        self, signal_name: str, data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, signal_name: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         listeners = data.get("listeners", {})
         return {
             "signal": signal_name,
@@ -347,7 +347,7 @@ class SignalTraceService(QObject):
         }
 
 
-_signal_trace_service: Optional[SignalTraceService] = None
+_signal_trace_service: SignalTraceService | None = None
 
 
 def get_signal_trace_service() -> SignalTraceService:

@@ -55,7 +55,7 @@ ui_setup = _pkg_ui_setup
 menu_actions = _pkg_menu_actions
 
 
-def describe_modules() -> Dict[str, Any]:
+def describe_modules() -> dict[str, Any]:
     """Return diagnostic information about the exposed helper modules.
 
     The helper mirrors the structure used by historical tooling that enumerated

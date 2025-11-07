@@ -28,7 +28,8 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Iterable
 
 
 _PROFILE_PATHS: tuple[str, ...] = (
@@ -62,8 +63,8 @@ def _ensure_directory(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
 
-def _collect_sections(settings_manager: Any, paths: Iterable[str]) -> Dict[str, Any]:
-    result: Dict[str, Any] = {}
+def _collect_sections(settings_manager: Any, paths: Iterable[str]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
     for path in paths:
         section = settings_manager.get(path, {})
         # Nest the section under the last path component (e.g. "environment")
@@ -81,8 +82,8 @@ class ProfileSettingsManager:
     def __init__(
         self,
         settings_manager: Any,
-        profile_dir: Optional[Path] = None,
-        apply_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        profile_dir: Path | None = None,
+        apply_callback: Callable[[str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._settings_manager = settings_manager
         self._profile_dir = Path(profile_dir or Path.home() / ".pss" / "profiles")
@@ -93,7 +94,7 @@ class ProfileSettingsManager:
     def _path_for(self, name: str) -> Path:
         return self._profile_dir / f"{_slugify(name)}.json"
 
-    def _make_payload(self, name: str) -> Dict[str, Any]:
+    def _make_payload(self, name: str) -> dict[str, Any]:
         payload = _collect_sections(self._settings_manager, _PROFILE_PATHS)
         payload.setdefault("metadata", {})["profile_name"] = name
         return payload
@@ -156,8 +157,8 @@ class ProfileSettingsManager:
 
         return ProfileOperationResult(True, str(path))
 
-    def list_profiles(self) -> List[str]:
-        names: List[str] = []
+    def list_profiles(self) -> list[str]:
+        names: list[str] = []
         for file in sorted(self._profile_dir.glob("*.json")):
             display_name = _slugify(file.stem).replace("_", " ").title()
             try:

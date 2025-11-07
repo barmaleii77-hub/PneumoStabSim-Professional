@@ -12,7 +12,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, Mapping, Sequence
+from typing import Any, Dict
+from collections.abc import Iterable, Mapping, Sequence
 
 DEFAULT_BASELINE_PATH = Path("config/baseline/materials.json")
 _ALLOWED_ORIENTATIONS = {"z-up", "y-up"}
@@ -33,8 +34,8 @@ class MaterialDefinition:
     label_key: str | None = None
     extras: Mapping[str, Any] = field(default_factory=dict)
 
-    def to_payload(self) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
+    def to_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "id": self.id,
             "base_color": self.base_color,
             "roughness": self.roughness,
@@ -61,8 +62,8 @@ class TonemapPreset:
     display_order: float = 0.0
     extras: Mapping[str, Any] = field(default_factory=dict)
 
-    def to_qml_payload(self) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {
+    def to_qml_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "id": self.id,
             "mode": self.mode,
             "exposure": self.exposure,
@@ -130,7 +131,7 @@ class MaterialsBaseline:
     """Bundled access to all baseline segments."""
 
     version: int
-    materials: Dict[str, MaterialDefinition]
+    materials: dict[str, MaterialDefinition]
     tonemap_presets: tuple[TonemapPreset, ...]
     skyboxes: tuple[SkyboxOrientation, ...]
 
@@ -226,8 +227,8 @@ def _coerce_float(value: Any, *, field_name: str) -> float:
 
 def _normalise_materials(
     raw_materials: Mapping[str, Any],
-) -> Dict[str, MaterialDefinition]:
-    materials: Dict[str, MaterialDefinition] = {}
+) -> dict[str, MaterialDefinition]:
+    materials: dict[str, MaterialDefinition] = {}
     for key, value in raw_materials.items():
         if not isinstance(value, Mapping):
             raise BaselineLoadError(f"Material '{key}' must be an object")

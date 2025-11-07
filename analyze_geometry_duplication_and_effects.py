@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Анализ дублирования геометрии и проблем с эффектами в QML файлах
 Проверяет муар, дублирование цилиндров, HDR проблемы, эффекты
@@ -22,7 +21,7 @@ def analyze_qml_geometry_duplication():
         print("❌ main.qml не найден!")
         return
 
-    with open(main_qml, "r", encoding="utf-8") as f:
+    with open(main_qml, encoding="utf-8") as f:
         content = f.read()
 
     print("\n🎯 АНАЛИЗ ГЕОМЕТРИИ:")
@@ -227,7 +226,7 @@ def analyze_specific_geometry_issues():
 
     main_qml = Path("assets/qml/main.qml")
 
-    with open(main_qml, "r", encoding="utf-8") as f:
+    with open(main_qml, encoding="utf-8") as f:
         content = f.read()
 
     # Проверяем определение OptimizedSuspensionCorner

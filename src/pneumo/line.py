@@ -4,7 +4,8 @@ Connects cylinders with valve control
 """
 
 from dataclasses import dataclass
-from typing import Dict, Mapping, Tuple
+from typing import Dict, Tuple
+from collections.abc import Mapping
 
 from src.common.errors import ConnectionError
 
@@ -19,8 +20,8 @@ class PneumoLine:
     """Pneumatic line connecting two cylinder ports"""
 
     name: Line
-    endpoints: Tuple[
-        Tuple[Wheel, Port], Tuple[Wheel, Port]
+    endpoints: tuple[
+        tuple[Wheel, Port], tuple[Wheel, Port]
     ]  # ((wheel1, port1), (wheel2, port2))
     cv_atmo: CheckValve  # Check valve from atmosphere to line
     cv_tank: CheckValve  # Check valve from line to receiver tank
@@ -66,11 +67,11 @@ class PneumoLine:
 
     def compute_total_volume(
         self, cylinders: Mapping[Wheel, CylinderState]
-    ) -> Tuple[float, list[Dict[str, float]]]:
+    ) -> tuple[float, list[dict[str, float]]]:
         """Return the combined volume of the diagonal pair linked by the line."""
 
         total_volume = 0.0
-        contributions: list[Dict[str, float]] = []
+        contributions: list[dict[str, float]] = []
 
         for wheel, port in self.endpoints:
             try:

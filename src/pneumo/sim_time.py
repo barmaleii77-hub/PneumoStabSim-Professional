@@ -76,7 +76,7 @@ def run_gas_simulation(
     thermo_mode: ThermoMode,
     log_interval: Optional[float] = None,
     log: Optional[logging.Logger] = None,
-) -> Dict[str, list]:
+) -> dict[str, list]:
     """Run gas simulation for specified duration
 
     Args:

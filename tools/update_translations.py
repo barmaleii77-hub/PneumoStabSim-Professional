@@ -17,7 +17,8 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
+from collections.abc import Sequence
 
 from defusedxml import ElementTree as ET
 
@@ -47,16 +48,16 @@ def _decode_escaped(text: str) -> str:
 
 def gather_qml_catalogue(
     qml_root: Path,
-) -> Tuple[Dict[str, Dict[str, List[str]]], Set[str], Set[str]]:
+) -> tuple[dict[str, dict[str, list[str]]], set[str], set[str]]:
     """Scan QML files for ``qsTr`` and ``qsTrId`` usages.
 
     Returns a tuple consisting of a per-file inventory, the union of all
     ``qsTr`` source strings, and the union of all ``qsTrId`` identifiers.
     """
 
-    per_file: Dict[str, Dict[str, List[str]]] = {}
-    all_sources: Set[str] = set()
-    all_ids: Set[str] = set()
+    per_file: dict[str, dict[str, list[str]]] = {}
+    all_sources: set[str] = set()
+    all_ids: set[str] = set()
 
     for qml_path in sorted(qml_root.rglob("*.qml")):
         try:
@@ -72,8 +73,8 @@ def gather_qml_catalogue(
                         f"Failed to decode {qml_path}: {exc}"
                     ) from exc
 
-        sources: Set[str] = set()
-        ids: Set[str] = set()
+        sources: set[str] = set()
+        ids: set[str] = set()
 
         for pattern in (_QSTR_DOUBLE_RE, _QSTR_SINGLE_RE):
             for match in pattern.finditer(content):
@@ -95,7 +96,7 @@ def gather_qml_catalogue(
     return per_file, all_sources, all_ids
 
 
-def parse_ts_file(ts_path: Path) -> Dict[str, object]:
+def parse_ts_file(ts_path: Path) -> dict[str, object]:
     """Extract metadata and message information from a Qt ``.ts`` file."""
 
     tree = ET.parse(ts_path)
@@ -103,9 +104,9 @@ def parse_ts_file(ts_path: Path) -> Dict[str, object]:
 
     language = root.attrib.get("language") or ""
     contexts = []
-    sources: Set[str] = set()
-    ids: Set[str] = set()
-    unfinished: List[Dict[str, str]] = []
+    sources: set[str] = set()
+    ids: set[str] = set()
+    unfinished: list[dict[str, str]] = []
 
     for context_elem in root.findall("context"):
         context_name = context_elem.findtext("name", default="")
@@ -162,7 +163,7 @@ def parse_ts_file(ts_path: Path) -> Dict[str, object]:
     }
 
 
-def run_command(command: Sequence[str], cwd: Optional[Path] = None) -> None:
+def run_command(command: Sequence[str], cwd: Path | None = None) -> None:
     """Execute a subprocess and propagate failures with readable output."""
 
     try:
@@ -174,7 +175,7 @@ def run_command(command: Sequence[str], cwd: Optional[Path] = None) -> None:
         ) from exc
 
 
-def resolve_command(candidates: Sequence[str]) -> Optional[str]:
+def resolve_command(candidates: Sequence[str]) -> str | None:
     """Return the first available command from ``candidates``."""
 
     for candidate in candidates:
@@ -185,8 +186,8 @@ def resolve_command(candidates: Sequence[str]) -> Optional[str]:
 
 
 def ensure_tools(
-    lupdate_override: Optional[str], lrelease_override: Optional[str]
-) -> Tuple[str, str]:
+    lupdate_override: str | None, lrelease_override: str | None
+) -> tuple[str, str]:
     """Locate lupdate and lrelease executables."""
 
     if lupdate_override:
@@ -347,10 +348,10 @@ def build_reports(qml_catalogue, qml_sources, qml_ids, translation_summaries):
 
 
 def compute_translation_deltas(
-    translation_data: Dict[str, object],
-    qml_sources: Set[str],
-    qml_ids: Set[str],
-) -> Dict[str, object]:
+    translation_data: dict[str, object],
+    qml_sources: set[str],
+    qml_ids: set[str],
+) -> dict[str, object]:
     """Calculate missing/unused translation keys against the QML inventory."""
 
     sources_set = set(translation_data["sources"])  # type: ignore[index]
@@ -375,7 +376,7 @@ def compute_translation_deltas(
     return result
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check",
@@ -404,7 +405,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     qml_catalogue, qml_sources, qml_ids = gather_qml_catalogue(QML_ROOT)
 
-    translation_summaries: Dict[str, Dict[str, object]] = {}
+    translation_summaries: dict[str, dict[str, object]] = {}
     for ts_path in ts_files:
         translation_info = parse_ts_file(ts_path)
         summary = compute_translation_deltas(translation_info, qml_sources, qml_ids)
@@ -413,7 +414,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     build_reports(qml_catalogue, qml_sources, qml_ids, translation_summaries)
 
-    failures: List[str] = []
+    failures: list[str] = []
     for name, summary in translation_summaries.items():
         missing_sources = summary["missing_sources"]  # type: ignore[index]
         missing_ids = summary["missing_ids"]  # type: ignore[index]

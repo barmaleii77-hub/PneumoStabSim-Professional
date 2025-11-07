@@ -30,7 +30,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Iterable
 
 from src.core.settings_manager import (
     ProfileSettingsManager as _CoreProfileSettingsManager,
@@ -46,7 +47,7 @@ _DEFAULT_UNITS_VERSION = "si_v2"
 _MM_PER_M = 1000.0
 _ORBIT_PRESETS_PATH = Path("config/orbit_presets.json")
 
-_GEOMETRY_LINEAR_KEYS: Dict[str, None] = {
+_GEOMETRY_LINEAR_KEYS: dict[str, None] = {
     "wheelbase": None,
     "track": None,
     "frame_to_pivot": None,
@@ -67,7 +68,7 @@ _GEOMETRY_LINEAR_KEYS: Dict[str, None] = {
     "tail_rod_length_m": None,
 }
 
-_GEOMETRY_KEY_ALIASES: Dict[str, str] = {
+_GEOMETRY_KEY_ALIASES: dict[str, str] = {
     # Legacy millimetre keys promoted to explicit metre suffixes
     "frame_length_mm": "frame_length_m",
     "frame_length": "frame_length_m",
@@ -105,7 +106,7 @@ _GEOMETRY_KEY_ALIASES: Dict[str, str] = {
     "wheel_base": "wheelbase",
 }
 
-_GEOMETRY_MIRROR_KEYS: Dict[str, str] = {
+_GEOMETRY_MIRROR_KEYS: dict[str, str] = {
     # Maintain both the UI-facing ``lever_length`` and the visualisation
     # ``lever_length_m`` entries so that legacy payloads hydrate both code paths.
     "lever_length": "lever_length_m",
@@ -113,7 +114,7 @@ _GEOMETRY_MIRROR_KEYS: Dict[str, str] = {
 
 _CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
 
-_ENVIRONMENT_KEY_ALIASES: Dict[str, str] = {
+_ENVIRONMENT_KEY_ALIASES: dict[str, str] = {
     "ibl_background_enabled": "skybox_enabled",
     "iblbackgroundenabled": "skybox_enabled",
     "ibl_lighting_enabled": "ibl_enabled",
@@ -121,7 +122,7 @@ _ENVIRONMENT_KEY_ALIASES: Dict[str, str] = {
     "probe_brightness": "skybox_brightness",
 }
 
-_EFFECTS_KEY_ALIASES: Dict[str, str] = {
+_EFFECTS_KEY_ALIASES: dict[str, str] = {
     "tonemap_active": "tonemap_enabled",
     "tonemapenabled": "tonemap_enabled",
     "tonemap_mode_name": "tonemap_mode",
@@ -140,7 +141,7 @@ _EFFECTS_KEY_ALIASES: Dict[str, str] = {
     "bloom_hdr_maximum": "bloom_hdr_max",
 }
 
-_CAMERA_KEY_ALIASES: Dict[str, str] = {"manual_mode": "manual_camera"}
+_CAMERA_KEY_ALIASES: dict[str, str] = {"manual_mode": "manual_camera"}
 
 
 def _expand_path(path: Path | str) -> Path:
@@ -151,7 +152,7 @@ def _expand_path(path: Path | str) -> Path:
     return Path(expanded).expanduser()
 
 
-def _resolve_settings_file(settings_file: Optional[Path | str]) -> Path:
+def _resolve_settings_file(settings_file: Path | str | None) -> Path:
     if settings_file is not None:
         return _expand_path(settings_file)
 
@@ -166,7 +167,7 @@ def _deep_copy(data: Any) -> Any:
     return json.loads(json.dumps(data))
 
 
-def _deep_update(target: Dict[str, Any], source: Dict[str, Any]) -> None:
+def _deep_update(target: dict[str, Any], source: dict[str, Any]) -> None:
     """Recursively merge ``source`` into ``target``."""
 
     for key, value in source.items():
@@ -200,11 +201,11 @@ def _scale_mm_value(value: Any) -> tuple[Any, bool]:
 
 
 def _normalise_dict_keys(
-    payload: Dict[str, Any],
-    aliases: Dict[str, str],
+    payload: dict[str, Any],
+    aliases: dict[str, str],
 ) -> bool:
     changed = False
-    normalised: Dict[str, Any] = {}
+    normalised: dict[str, Any] = {}
 
     for raw_key, value in list(payload.items()):
         canonical = _camel_to_snake(raw_key)
@@ -248,7 +249,7 @@ else:
 
     class _SignalInstance:
         def __init__(self) -> None:
-            self._subscribers: List[Any] = []
+            self._subscribers: list[Any] = []
 
         def connect(self, callback: Any) -> None:
             if callback not in self._subscribers:
@@ -264,7 +265,7 @@ else:
 
     class _Signal:
         def __init__(self) -> None:
-            self._name: Optional[str] = None
+            self._name: str | None = None
 
         def __set_name__(self, owner: type, name: str) -> None:
             self._name = f"__signal_{name}"
@@ -313,10 +314,10 @@ class SettingsEventBus(QObject):
     settingChanged = Signal(dict)
     settingsBatchUpdated = Signal(dict)
 
-    def emit_setting_changed(self, payload: Dict[str, Any]) -> None:
+    def emit_setting_changed(self, payload: dict[str, Any]) -> None:
         self.settingChanged.emit(payload)
 
-    def emit_settings_batch(self, payload: Dict[str, Any]) -> None:
+    def emit_settings_batch(self, payload: dict[str, Any]) -> None:
         self.settingsBatchUpdated.emit(payload)
 
 
@@ -326,15 +327,15 @@ ProfileSettingsManager = _CoreProfileSettingsManager
 class SettingsManager:
     """Minimal settings manager tailored for the unit tests."""
 
-    def __init__(self, settings_file: Optional[Path | str] = None) -> None:
+    def __init__(self, settings_file: Path | str | None = None) -> None:
         self._settings_path = _resolve_settings_file(settings_file)
-        self._data: Dict[str, Any] = {}
-        self._defaults: Dict[str, Any] = {}
-        self._metadata: Dict[str, Any] = {}
-        self._extra: Dict[str, Any] = {}
+        self._data: dict[str, Any] = {}
+        self._defaults: dict[str, Any] = {}
+        self._metadata: dict[str, Any] = {}
+        self._extra: dict[str, Any] = {}
         self._original_units_version: str = _DEFAULT_UNITS_VERSION
         self._dirty: bool = False
-        self._orbit_presets: Dict[str, Any] | None = None
+        self._orbit_presets: dict[str, Any] | None = None
         self._access_control = get_access_control()
         self.load()
 
@@ -367,7 +368,7 @@ class SettingsManager:
 
     # ----------------------------------------------------------------- migration
 
-    def _convert_geometry_section(self, section: Dict[str, Any]) -> bool:
+    def _convert_geometry_section(self, section: dict[str, Any]) -> bool:
         changed = _normalise_dict_keys(section, _GEOMETRY_KEY_ALIASES)
 
         for key in _GEOMETRY_LINEAR_KEYS:
@@ -403,7 +404,7 @@ class SettingsManager:
 
         return changed
 
-    def _normalise_environment_section(self, section: Dict[str, Any]) -> bool:
+    def _normalise_environment_section(self, section: dict[str, Any]) -> bool:
         if not isinstance(section, dict):
             return False
         changed = _normalise_dict_keys(section, _ENVIRONMENT_KEY_ALIASES)
@@ -416,12 +417,12 @@ class SettingsManager:
                 changed = True
         return changed
 
-    def _normalise_effects_section(self, section: Dict[str, Any]) -> bool:
+    def _normalise_effects_section(self, section: dict[str, Any]) -> bool:
         if not isinstance(section, dict):
             return False
         return _normalise_dict_keys(section, _EFFECTS_KEY_ALIASES)
 
-    def _normalise_camera_section(self, section: Dict[str, Any]) -> bool:
+    def _normalise_camera_section(self, section: dict[str, Any]) -> bool:
         if not isinstance(section, dict):
             return False
         return _normalise_dict_keys(section, _CAMERA_KEY_ALIASES)
@@ -447,8 +448,8 @@ class SettingsManager:
                 changed = True
         return changed
 
-    def _assign_sections(self, payload: Dict[str, Any]) -> None:
-        def _section_payload(name: str) -> Dict[str, Any]:
+    def _assign_sections(self, payload: dict[str, Any]) -> None:
+        def _section_payload(name: str) -> dict[str, Any]:
             raw = payload.get(name)
             if isinstance(raw, dict):
                 return raw
@@ -593,7 +594,7 @@ class SettingsManager:
             )
 
         raw_payload = self._settings_path.read_text(encoding="utf-8")
-        payload: Dict[str, Any]
+        payload: dict[str, Any]
         try:
             payload = json.loads(raw_payload)
         except json.JSONDecodeError as exc:
@@ -631,7 +632,7 @@ class SettingsManager:
 
         self._metadata["last_modified"] = _last_modified_timestamp()
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "metadata": _deep_copy(self._metadata),
             "current": _deep_copy(self._data),
             "defaults_snapshot": _deep_copy(self._defaults),
@@ -653,7 +654,7 @@ class SettingsManager:
 
     # ----------------------------------------------------------------- orbit presets
 
-    def _load_orbit_presets(self) -> Dict[str, Any]:
+    def _load_orbit_presets(self) -> dict[str, Any]:
         path = _expand_path(_ORBIT_PRESETS_PATH)
         try:
             raw = path.read_text(encoding="utf-8")
@@ -705,7 +706,7 @@ class SettingsManager:
             except (TypeError, ValueError):
                 version_value = 0
 
-        manifest: Dict[str, Any] = {
+        manifest: dict[str, Any] = {
             "version": version_value,
             "default": payload.get("default"),
             "presets": presets,
@@ -713,12 +714,12 @@ class SettingsManager:
         }
         return manifest
 
-    def get_orbit_presets(self) -> Dict[str, Any]:
+    def get_orbit_presets(self) -> dict[str, Any]:
         if self._orbit_presets is None:
             self._orbit_presets = self._load_orbit_presets()
         return _deep_copy(self._orbit_presets)
 
-    def refresh_orbit_presets(self) -> Dict[str, Any]:
+    def refresh_orbit_presets(self) -> dict[str, Any]:
         self._orbit_presets = None
         return self.get_orbit_presets()
 
@@ -736,7 +737,7 @@ class SettingsManager:
         _settings_event_bus.emit_setting_changed(payload)
 
     def _notify_batch(
-        self, changes: List[_SettingsChange], summary: Dict[str, Any]
+        self, changes: list[_SettingsChange], summary: dict[str, Any]
     ) -> None:
         if _settings_event_bus is None or not changes:
             return
@@ -758,8 +759,8 @@ class SettingsManager:
 
     # Dotted-path helpers -----------------------------------------------------
     def _traverse(
-        self, root: Dict[str, Any], path: Iterable[str], create: bool
-    ) -> Dict[str, Any]:
+        self, root: dict[str, Any], path: Iterable[str], create: bool
+    ) -> dict[str, Any]:
         node = root
         for key in path:
             if key not in node:
@@ -940,7 +941,7 @@ class SettingsManager:
 
         changed = False
 
-        def _ensure_graphics_section() -> Dict[str, Any]:
+        def _ensure_graphics_section() -> dict[str, Any]:
             section = self._data.setdefault("graphics", {})
             if not isinstance(section, dict):
                 section = {}
@@ -981,13 +982,13 @@ class SettingsManager:
         return changed
 
     # Defaults ---------------------------------------------------------------
-    def get_all_defaults(self) -> Dict[str, Any]:
+    def get_all_defaults(self) -> dict[str, Any]:
         return _deep_copy(self._defaults)
 
     # Category helpers -------------------------------------------------------
     def get_category(
-        self, category: str, default: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, category: str, default: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """Return a deep copy of a category from the ``current`` section."""
 
         if not category:
@@ -1002,7 +1003,7 @@ class SettingsManager:
         return _deep_copy(default)
 
     def set_category(
-        self, category: str, payload: Dict[str, Any], *, auto_save: bool = True
+        self, category: str, payload: dict[str, Any], *, auto_save: bool = True
     ) -> None:
         """Replace a category inside the ``current`` section."""
 
@@ -1029,12 +1030,12 @@ class SettingsManager:
         )
 
     def reset_to_defaults(
-        self, *, category: Optional[str] = None, auto_save: bool = True
+        self, *, category: str | None = None, auto_save: bool = True
     ) -> None:
         """Reset ``current`` values to the defaults snapshot."""
 
         timestamp = _utc_now()
-        changes: List[_SettingsChange] = []
+        changes: list[_SettingsChange] = []
 
         if category is None:
             self._check_permission("current", intent="reset_all")
@@ -1083,12 +1084,12 @@ class SettingsManager:
                 self._notify_batch(changes, summary)
 
     def save_current_as_defaults(
-        self, *, category: Optional[str] = None, auto_save: bool = True
+        self, *, category: str | None = None, auto_save: bool = True
     ) -> None:
         """Persist the current values into the defaults snapshot."""
 
         timestamp = _utc_now()
-        changes: List[_SettingsChange] = []
+        changes: list[_SettingsChange] = []
 
         if category is None:
             self._check_permission("defaults_snapshot", intent="save_defaults_all")
@@ -1139,11 +1140,11 @@ class SettingsManager:
                 self._notify_batch(changes, summary)
 
 
-_settings_manager: Optional[SettingsManager] = None
-_settings_event_bus: Optional[SettingsEventBus] = None
+_settings_manager: SettingsManager | None = None
+_settings_event_bus: SettingsEventBus | None = None
 
 
-def get_settings_manager(settings_file: Optional[Path | str] = None) -> SettingsManager:
+def get_settings_manager(settings_file: Path | str | None = None) -> SettingsManager:
     global _settings_manager
     if _settings_manager is None or settings_file is not None:
         _settings_manager = SettingsManager(settings_file)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Анализ логов графики и событий Python↔QML.
 
@@ -25,7 +24,7 @@ LOGS_DIR = Path("logs/graphics")
 
 @dataclass
 class Event:
-    raw: Dict[str, Any]
+    raw: dict[str, Any]
 
     @property
     def type(self) -> str:
@@ -44,20 +43,20 @@ class Event:
         return bool(self.raw.get("applied_to_qml", False))
 
     @property
-    def error(self) -> Optional[str]:
+    def error(self) -> str | None:
         err = self.raw.get("error")
         return str(err) if err is not None else None
 
 
-def _latest_session_file(root: Path) -> Optional[Path]:
+def _latest_session_file(root: Path) -> Path | None:
     if not root.exists():
         return None
     files = sorted(root.glob("session_*.jsonl"))
     return files[-1] if files else None
 
 
-def _read_jsonl(path: Path) -> List[Event]:
-    items: List[Event] = []
+def _read_jsonl(path: Path) -> list[Event]:
+    items: list[Event] = []
     with path.open("r", encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
@@ -71,11 +70,11 @@ def _read_jsonl(path: Path) -> List[Event]:
     return items
 
 
-def analyze_session(path: Path) -> Dict[str, Any]:
+def analyze_session(path: Path) -> dict[str, Any]:
     events = _read_jsonl(path)
 
-    changes: List[Event] = [e for e in events if e.type == "parameter_change"]
-    updates: List[Event] = [e for e in events if e.type == "parameter_update"]
+    changes: list[Event] = [e for e in events if e.type == "parameter_change"]
+    updates: list[Event] = [e for e in events if e.type == "parameter_update"]
 
     total_changes = len(changes)
     total_updates = len(updates)
@@ -84,11 +83,11 @@ def analyze_session(path: Path) -> Dict[str, Any]:
     failed = sum(1 for e in updates if e.error)
 
     # Кандидаты на no-op: изменения, у которых нет последующего parameter_update для того же параметра
-    updates_by_param: Dict[str, int] = defaultdict(int)
+    updates_by_param: dict[str, int] = defaultdict(int)
     for u in updates:
         updates_by_param[u.parameter] += 1
 
-    no_op_candidates: List[str] = []
+    no_op_candidates: list[str] = []
     for c in changes:
         if updates_by_param.get(c.parameter, 0) == 0:
             no_op_candidates.append(c.parameter or "<unknown>")
@@ -105,9 +104,9 @@ def analyze_session(path: Path) -> Dict[str, Any]:
     }
 
     # Группировка по категориям
-    cat_changes: Dict[str, int] = defaultdict(int)
-    cat_updates: Dict[str, int] = defaultdict(int)
-    cat_failed: Dict[str, int] = defaultdict(int)
+    cat_changes: dict[str, int] = defaultdict(int)
+    cat_updates: dict[str, int] = defaultdict(int)
+    cat_failed: dict[str, int] = defaultdict(int)
 
     for c in changes:
         cat_changes[c.category] += 1
@@ -127,7 +126,7 @@ def analyze_session(path: Path) -> Dict[str, Any]:
     return result
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     target = _latest_session_file(LOGS_DIR)
     if target is None:
         print("⚠️  Логи не найдены: logs/graphics/session_*.jsonl")

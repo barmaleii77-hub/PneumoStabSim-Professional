@@ -7,7 +7,7 @@ import json
 import re
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"qml.*error", re.IGNORECASE),

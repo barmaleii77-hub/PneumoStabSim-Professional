@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Utilities for tracking the diagnostics profiler overlay state."""
 
 from __future__ import annotations
@@ -25,13 +24,13 @@ class ProfilerOverlayState:
     overlay_enabled: bool
     recorded_at: datetime
     source: str
-    scenario: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    scenario: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_payload(self) -> Dict[str, Any]:
+    def to_payload(self) -> dict[str, Any]:
         """Return a JSON-serialisable representation of the snapshot."""
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "overlayEnabled": bool(self.overlay_enabled),
             "recordedAt": self.recorded_at.isoformat(),
             "source": self.source,
@@ -44,12 +43,12 @@ class ProfilerOverlayState:
 
 
 _STATE_LOCK = Lock()
-_OVERLAY_STATE: Optional[ProfilerOverlayState] = None
+_OVERLAY_STATE: ProfilerOverlayState | None = None
 
 
 def _read_diagnostics_payload(
     manager: SettingsManager | None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if manager is None:
         return {}
     try:
@@ -114,7 +113,7 @@ def load_profiler_overlay_state(
 
 def get_profiler_overlay_defaults(
     settings_manager: SettingsManager | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Return diagnostics defaults ensuring the overlay flag reflects runtime state."""
 
     manager = settings_manager
@@ -171,8 +170,8 @@ def record_profiler_overlay(
     enabled: bool,
     *,
     source: str = "runtime",
-    scenario: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    scenario: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> ProfilerOverlayState:
     """Persist an overlay snapshot sourced from a runtime event."""
 
@@ -196,10 +195,10 @@ def record_profiler_overlay(
 
 def export_profiler_report(
     path: Path,
-    state: Optional[ProfilerOverlayState] = None,
+    state: ProfilerOverlayState | None = None,
     *,
-    scenario: Optional[str] = None,
-    extra: Optional[Dict[str, Any]] = None,
+    scenario: str | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> Path:
     """Write the profiler overlay snapshot to a JSON report."""
 

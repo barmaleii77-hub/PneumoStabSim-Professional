@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Geometry Panel - Refactored Coordinator (v1.0.0)
 Тонкий координатор с делегированием работы вкладкам

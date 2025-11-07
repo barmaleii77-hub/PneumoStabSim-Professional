@@ -14,12 +14,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
-    Iterable,
     List,
-    MutableMapping,
     Optional,
-    Sequence,
 )
+from collections.abc import Iterable, MutableMapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -57,10 +55,10 @@ except ModuleNotFoundError:  # pragma: no cover - executed when pyarrow is absen
 class NormalizedEvent:
     """Telemetry event normalised for analytics processing."""
 
-    record: "TelemetryRecord"
+    record: TelemetryRecord
     source: Path
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         payload = self.record.as_dict()
         payload["source"] = str(self.source)
         return payload
@@ -70,9 +68,9 @@ class NormalizedEvent:
 class TelemetryBundle:
     """Container for parsed telemetry events and parsing diagnostics."""
 
-    events: List[NormalizedEvent]
-    errors: List[str]
-    inventory: Dict[str, int]
+    events: list[NormalizedEvent]
+    errors: list[str]
+    inventory: dict[str, int]
 
     @property
     def event_count(self) -> int:
@@ -92,8 +90,8 @@ def _read_jsonl(path: Path) -> Iterable[str]:
 
 
 def load_events(source: Path, *, strict: bool = False) -> TelemetryBundle:
-    events: List[NormalizedEvent] = []
-    errors: List[str] = []
+    events: list[NormalizedEvent] = []
+    errors: list[str] = []
     inventory: MutableMapping[str, int] = defaultdict(int)
 
     if parse_event_dict is None:  # pragma: no cover - executed in limited envs
@@ -163,14 +161,14 @@ def export_parquet(bundle: TelemetryBundle, output: Path) -> Path:
     return output
 
 
-def build_aggregates(bundle: TelemetryBundle) -> Dict[str, Any]:
+def build_aggregates(bundle: TelemetryBundle) -> dict[str, Any]:
     per_channel = Counter(event.record.channel for event in bundle.events)
     per_event = Counter(event.record.event for event in bundle.events)
     per_day = Counter(
         event.record.timestamp.date().isoformat() for event in bundle.events
     )
     per_schema = Counter(event.record.schema_version for event in bundle.events)
-    events_by_channel: Dict[str, Counter[str]] = defaultdict(Counter)
+    events_by_channel: dict[str, Counter[str]] = defaultdict(Counter)
     for normalised in bundle.events:
         events_by_channel[normalised.record.channel][normalised.record.event] += 1
 
@@ -231,7 +229,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
     bundle = load_events(args.source, strict=args.strict)

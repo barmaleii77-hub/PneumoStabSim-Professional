@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Автоматическое применение рекомендаций по синхронизации QML и Python
 Добавляет недостающие свойства и обработчики
@@ -14,7 +13,7 @@ def backup_file(file_path):
     backup_path = file_path.with_suffix(
         file_path.suffix + f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     )
-    with open(file_path, "r", encoding="utf-8") as src:
+    with open(file_path, encoding="utf-8") as src:
         with open(backup_path, "w", encoding="utf-8") as dst:
             dst.write(src.read())
     print(f"✅ Создана резервная копия: {backup_path}")
@@ -25,7 +24,7 @@ def add_qml_properties(qml_file):
     """Добавить недостающие свойства в QML файл"""
     print(f"\n📝 Обновление {qml_file}...")
 
-    with open(qml_file, "r", encoding="utf-8") as f:
+    with open(qml_file, encoding="utf-8") as f:
         content = f.read()
 
     # Найти раздел COMPLETE GRAPHICS PROPERTIES
@@ -127,7 +126,7 @@ def update_qml_material_function(qml_file):
     """Обновить функцию applyMaterialUpdates в QML"""
     print("\n🔧 Обновление applyMaterialUpdates()...")
 
-    with open(qml_file, "r", encoding="utf-8") as f:
+    with open(qml_file, encoding="utf-8") as f:
         content = f.read()
 
     # Найти функцию applyMaterialUpdates
@@ -229,7 +228,7 @@ def update_qml_lighting_function(qml_file):
     """Обновить функцию applyLightingUpdates в QML"""
     print("\n💡 Обновление applyLightingUpdates()...")
 
-    with open(qml_file, "r", encoding="utf-8") as f:
+    with open(qml_file, encoding="utf-8") as f:
         content = f.read()
 
     # Найти функцию applyLightingUpdates
@@ -286,7 +285,7 @@ def update_python_material_emit(py_file):
     """Обновить emit_material_update в Python"""
     print("\n🐍 Обновление emit_material_update()...")
 
-    with open(py_file, "r", encoding="utf-8") as f:
+    with open(py_file, encoding="utf-8") as f:
         content = f.read()
 
     # Найти функцию emit_material_update

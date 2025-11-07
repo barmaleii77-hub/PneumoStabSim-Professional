@@ -36,7 +36,7 @@ def update_gas_state(state: PhysicsStepState) -> None:
     """Synchronise gas network with mechanical configuration."""
 
     line_volumes = state.pneumatic_system.get_line_volumes()
-    corrected_volumes: Dict[Line, float] = {}
+    corrected_volumes: dict[Line, float] = {}
     for line_name, volume_info in line_volumes.items():
         total_volume = float(volume_info.get("total_volume"))
         penetration_volume = _compute_penetration_volume(state, line_name)

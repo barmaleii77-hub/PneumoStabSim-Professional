@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Frame dimensions tab - Вкладка размеров рамы
 Controls for wheelbase and track width

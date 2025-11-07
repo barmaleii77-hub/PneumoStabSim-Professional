@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Анализатор логов PneumoStabSim
 Комплексный анализ всех типов логов с детальной статистикой и рекомендациями
@@ -109,8 +108,8 @@ class GraphicsLogAnalyzer:
             "by_parameter": defaultdict(int),
             "timeline": [],
         }
-        self.unsynced_events: List[Dict[str, Any]] = []
-        self.unsynced_summary: Dict[Tuple[str, str], Dict[str, int]] = defaultdict(
+        self.unsynced_events: list[dict[str, Any]] = []
+        self.unsynced_summary: dict[tuple[str, str], dict[str, int]] = defaultdict(
             lambda: {"pending": 0, "failed": 0}
         )
 
@@ -120,7 +119,7 @@ class GraphicsLogAnalyzer:
             return False
 
         try:
-            with open(self.log_file, "r", encoding="utf-8") as f:
+            with open(self.log_file, encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
                         try:
@@ -216,13 +215,13 @@ class GraphicsLogAnalyzer:
             return 0.0
         return (self.stats["synced"] / self.stats["total"]) * 100
 
-    def get_top_parameters(self, limit: int = 10) -> List[Tuple[str, int]]:
+    def get_top_parameters(self, limit: int = 10) -> list[tuple[str, int]]:
         """Возвращает топ измененных параметров"""
         return sorted(
             self.stats["by_parameter"].items(), key=lambda x: x[1], reverse=True
         )[:limit]
 
-    def get_category_distribution(self) -> Dict[str, float]:
+    def get_category_distribution(self) -> dict[str, float]:
         """Возвращает распределение по категориям в процентах"""
         total = self.stats["total"]
         if total == 0:
@@ -237,10 +236,10 @@ class GraphicsLogAnalyzer:
         limit: Optional[int] = None,
         include_pending: bool = True,
         include_failed: bool = True,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Возвращает список несинхронизированных событий."""
 
-        filtered: List[Dict[str, Any]] = []
+        filtered: list[dict[str, Any]] = []
         for event in self.unsynced_events:
             status = event.get("status")
             if status == "pending" and not include_pending:
@@ -252,10 +251,10 @@ class GraphicsLogAnalyzer:
                 break
         return filtered
 
-    def get_unsynced_summary(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_unsynced_summary(self, limit: Optional[int] = None) -> list[dict[str, Any]]:
         """Группирует несинхронизированные события по параметрам."""
 
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
         for (category, parameter), counts in self.unsynced_summary.items():
             total = counts["pending"] + counts["failed"]
             items.append(
@@ -279,7 +278,7 @@ class GraphicsLogAnalyzer:
     # ------------------------------------------------------------------
 
     def _register_unsynced_event(
-        self, event: Dict[str, Any], category: str, parameter: str, status: str
+        self, event: dict[str, Any], category: str, parameter: str, status: str
     ) -> None:
         """Сохраняет несинхронизированное событие для дальнейшего анализа."""
 
@@ -353,7 +352,7 @@ class IblLogAnalyzer:
             return False
 
         try:
-            with open(self.log_file, "r", encoding="utf-8") as f:
+            with open(self.log_file, encoding="utf-8") as f:
                 for line in f:
                     raw = line.strip()
                     if not raw or "|" not in raw:
@@ -430,7 +429,7 @@ class RunLogAnalyzer:
             return False
 
         try:
-            with open(self.log_file, "r", encoding="utf-8") as f:
+            with open(self.log_file, encoding="utf-8") as f:
                 lines = f.readlines()
 
             for line in lines:
@@ -477,7 +476,7 @@ class ErrorLogAnalyzer:
 
     def __init__(self, log_file: Path):
         self.log_file = log_file
-        self.entries: List[Dict[str, Any]] = []
+        self.entries: list[dict[str, Any]] = []
         self.stats = {
             "total": 0,
             "by_type": defaultdict(int),
@@ -492,7 +491,7 @@ class ErrorLogAnalyzer:
             return False
 
         try:
-            with open(self.log_file, "r", encoding="utf-8") as fh:
+            with open(self.log_file, encoding="utf-8") as fh:
                 for line in fh:
                     payload = line.strip()
                     if not payload:
@@ -510,10 +509,10 @@ class ErrorLogAnalyzer:
         self._recalculate_stats()
         return True
 
-    def _normalize_entry(self, raw: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_entry(self, raw: dict[str, Any]) -> dict[str, Any]:
         """Приводит запись к универсальному виду для отображения."""
 
-        entry: Dict[str, Any] = {
+        entry: dict[str, Any] = {
             "timestamp": raw.get("timestamp") or raw.get("time") or raw.get("ts"),
             "type": None,
             "message": None,
@@ -569,15 +568,15 @@ class ErrorLogAnalyzer:
             if entry.get("stack"):
                 stats["with_stack"] += 1
 
-    def get_recent(self, limit: int = 5) -> List[Dict[str, Any]]:
+    def get_recent(self, limit: int = 5) -> list[dict[str, Any]]:
         return self.entries[-limit:]
 
-    def get_top_types(self, limit: int = 5) -> List[Tuple[str, int]]:
+    def get_top_types(self, limit: int = 5) -> list[tuple[str, int]]:
         return sorted(
             self.stats["by_type"].items(), key=lambda item: item[1], reverse=True
         )[:limit]
 
-    def get_top_sources(self, limit: int = 5) -> List[Tuple[str, int]]:
+    def get_top_sources(self, limit: int = 5) -> list[tuple[str, int]]:
         return sorted(
             self.stats["by_source"].items(), key=lambda item: item[1], reverse=True
         )[:limit]

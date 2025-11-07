@@ -64,7 +64,7 @@ def _require_string(mapping: Mapping[str, Any], key: str, context: str) -> str:
 
 def _require_string_list(
     mapping: Mapping[str, Any], key: str, context: str
-) -> List[str]:
+) -> list[str]:
     if key not in mapping:
         raise SettingsValidationError(f"В секции {context} отсутствует параметр {key}")
     value = mapping[key]
@@ -72,7 +72,7 @@ def _require_string_list(
         raise SettingsValidationError(
             f"Параметр {key} в {context} должен быть непустым списком строк"
         )
-    result: List[str] = []
+    result: list[str] = []
     for item in value:
         if not isinstance(item, str):
             raise SettingsValidationError(
@@ -82,7 +82,7 @@ def _require_string_list(
     return result
 
 
-def _load_loop_defaults() -> Dict[str, Any]:
+def _load_loop_defaults() -> dict[str, Any]:
     integrator = get_physics_integrator_constants()
 
     solver = integrator.get("solver")
@@ -188,7 +188,7 @@ def _load_loop_defaults() -> Dict[str, Any]:
     }
 
 
-_LOOP_DEFAULTS: Dict[str, Any] = _load_loop_defaults()
+_LOOP_DEFAULTS: dict[str, Any] = _load_loop_defaults()
 
 
 def refresh_physics_loop_defaults() -> None:
@@ -226,7 +226,7 @@ class PhysicsLoopConfig:
     solver_primary: str = field(
         default_factory=lambda: str(_LOOP_DEFAULTS["solver_primary"])
     )
-    solver_fallbacks: Tuple[str, ...] = field(
+    solver_fallbacks: tuple[str, ...] = field(
         default_factory=lambda: tuple(_LOOP_DEFAULTS["solver_fallbacks"])
     )
     rtol: float = field(default_factory=lambda: float(_LOOP_DEFAULTS["solver_rtol"]))
@@ -475,7 +475,7 @@ class PhysicsLoop:
             # Surface the error to caller to avoid masking configuration issues
             raise
 
-    def step_physics_fixed(self, dt_real: float) -> Dict[str, Any]:
+    def step_physics_fixed(self, dt_real: float) -> dict[str, Any]:
         """Advance physics with fixed timestep, accumulating real time
 
         Args:
@@ -486,8 +486,8 @@ class PhysicsLoop:
         """
         self.time_accumulator += dt_real
         steps_taken = 0
-        results: List[IntegrationResult] = []
-        gas_logs: List[Dict[str, Any]] = []
+        results: list[IntegrationResult] = []
+        gas_logs: list[dict[str, Any]] = []
 
         # Take fixed physics steps
         while (
@@ -550,7 +550,7 @@ class PhysicsLoop:
 
     def _update_pneumatics_from_state(
         self, state: np.ndarray, *, apply_flows: bool
-    ) -> Dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         """Project body state to pneumatic system and gas network."""
 
         if self.system is None or self.gas is None:
@@ -582,7 +582,7 @@ class PhysicsLoop:
         self.gas.enforce_master_isolation(self.logger, dt=self.config.dt_physics)
         return flow_log
 
-    def _compute_lever_angles(self, state: np.ndarray) -> Dict[Wheel, float]:
+    def _compute_lever_angles(self, state: np.ndarray) -> dict[Wheel, float]:
         """Derive lever angles for all wheels from the rigid-body state."""
 
         if not hasattr(self.system, "cylinders"):
@@ -590,7 +590,7 @@ class PhysicsLoop:
 
         attachments = getattr(self.params, "attachment_points", {})
         Y, phi_z, theta_x = state[:3]
-        angles: Dict[Wheel, float] = {}
+        angles: dict[Wheel, float] = {}
 
         for wheel_enum, cylinder in self.system.cylinders.items():
             if not isinstance(wheel_enum, Wheel):
@@ -624,7 +624,7 @@ class PhysicsLoop:
 
         return angles
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get performance statistics"""
         total_steps = self.successful_steps + self.failed_steps
         denominator = max(total_steps, _LOOP_DEFAULTS["statistics_min_total_steps"])
@@ -655,7 +655,7 @@ def create_default_rigid_body() -> RigidBody3DOF:
             "Секция constants.physics.rigid_body.attachment_points_m должна быть объектом"
         )
 
-    attachments: Dict[str, Tuple[float, float]] = {}
+    attachments: dict[str, tuple[float, float]] = {}
     for wheel, entry in attachments_raw.items():
         if not isinstance(entry, Mapping):
             raise SettingsValidationError(

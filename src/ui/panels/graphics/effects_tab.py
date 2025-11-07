@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Effects tab with full Qt 6.10 ExtendedSceneEnvironment coverage."""
 
 from __future__ import annotations
@@ -28,11 +27,11 @@ class EffectsTab(QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
 
-        self._controls: Dict[str, Any] = {}
-        self._state: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
+        self._state: dict[str, Any] = {}
         self._updating_ui = False
 
-        self._dependencies: Dict[str, tuple[str, ...]] = {
+        self._dependencies: dict[str, tuple[str, ...]] = {
             "bloom.enabled": (
                 "bloom.intensity",
                 "bloom.threshold",
@@ -65,7 +64,7 @@ class EffectsTab(QWidget):
             ),
         }
 
-        self._state_key_map: Dict[str, str] = {
+        self._state_key_map: dict[str, str] = {
             "bloom.enabled": "bloom_enabled",
             "bloom.intensity": "bloom_intensity",
             "bloom.threshold": "bloom_threshold",
@@ -433,8 +432,8 @@ class EffectsTab(QWidget):
         self._state = payload
         self.effects_changed.emit(payload)
 
-    def get_state(self) -> Dict[str, Any]:
-        state: Dict[str, Any] = {}
+    def get_state(self) -> dict[str, Any]:
+        state: dict[str, Any] = {}
         for control_key, state_key in self._state_key_map.items():
             widget = self._controls.get(control_key)
             value: Any
@@ -456,7 +455,7 @@ class EffectsTab(QWidget):
             state["color_adjustments_active"] = active_value
         return state
 
-    def set_state(self, state: Dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any]) -> None:
         self._updating_ui = True
         for control in self._controls.values():
             try:

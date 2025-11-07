@@ -11,14 +11,15 @@ compatible with the expectations of :mod:`tests.unit.test_geometry_schema`.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
 
 class GeometryValidationError(ValueError):
     """Raised when supplied geometry settings are invalid."""
 
 
-_POSITIVE_FLOAT_FIELDS: Dict[str, float] = {
+_POSITIVE_FLOAT_FIELDS: dict[str, float] = {
     "wheelbase": 1e-6,
     "track": 1e-6,
     "frame_to_pivot": 1e-6,
@@ -47,9 +48,9 @@ _ALL_FIELDS = set(_POSITIVE_FLOAT_FIELDS) | _NON_NEGATIVE_FIELDS | _BOOLEAN_FIEL
 class GeometrySettings:
     """Container for validated geometry settings used by the tests."""
 
-    values: Dict[str, Any]
+    values: dict[str, Any]
 
-    def to_config_dict(self) -> Dict[str, Any]:
+    def to_config_dict(self) -> dict[str, Any]:
         return dict(self.values)
 
 
@@ -67,7 +68,7 @@ def validate_geometry_settings(payload: Mapping[str, Any]) -> GeometrySettings:
         missing_list = ", ".join(sorted(missing))
         raise GeometryValidationError(f"Missing required geometry keys: {missing_list}")
 
-    validated: Dict[str, Any] = {}
+    validated: dict[str, Any] = {}
 
     for field, minimum in _POSITIVE_FLOAT_FIELDS.items():
         value = _as_float(payload[field], field)

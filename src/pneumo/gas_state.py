@@ -58,7 +58,7 @@ class TankGasState:
     m: float
     mode: ReceiverVolumeMode
     gamma: float = GAMMA_AIR
-    V_prev: Optional[float] = None
+    V_prev: float | None = None
 
     def __post_init__(self) -> None:
         if self.V <= 0:
@@ -134,7 +134,7 @@ class LegacyGasState:
     pressure: float
     temperature: float
     volume: float
-    mass: Optional[float] = None
+    mass: float | None = None
     gas_constant: float = R_AIR
     gamma: float = GAMMA_AIR
 
@@ -171,7 +171,7 @@ class LegacyGasState:
         new_volume: float,
         *,
         mode: ThermoMode,
-        polytropic: Optional[PolytropicParameters] = None,
+        polytropic: PolytropicParameters | None = None,
     ) -> None:
         """Update the gas state for a volume change.
 
@@ -210,7 +210,7 @@ class LegacyGasState:
         raise ValueError(f"Unsupported thermo mode: {mode}")
 
     def add_mass(
-        self, delta_mass: float, inlet_temperature: Optional[float] = None
+        self, delta_mass: float, inlet_temperature: float | None = None
     ) -> None:
         """Add mass to the control volume preserving energy balance."""
 
@@ -354,7 +354,7 @@ def create_line_gas_state(
     T_initial: float,
     V_initial: float,
     *,
-    mass: Optional[float] = None,
+    mass: float | None = None,
 ) -> LineGasState:
     """Factory for line gas states used in tests and defaults."""
     if V_initial <= 0:

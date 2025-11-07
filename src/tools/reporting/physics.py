@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Dict
+from collections.abc import Iterable, Mapping
 
 import numpy as np
 
@@ -26,7 +27,7 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
     state = np.asarray(scene.state_vectors[state_name], dtype=float)
     axis = scene.axis_directions
 
-    kinematics: Dict[str, dict[str, Any]] = {}
+    kinematics: dict[str, dict[str, Any]] = {}
     for wheel in attachment_points:
         kinematics[wheel] = forces.compute_suspension_point_kinematics(
             wheel, state, attachment_points, axis

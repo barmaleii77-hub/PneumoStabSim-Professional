@@ -23,7 +23,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 # Попытка настроить безопасную кодировку вывода на консолях Windows
 try:  # pragma: no cover - платформа-зависимый защитный код

@@ -62,11 +62,11 @@ def _load_attachment_points(
     mapping: Mapping[str, Any],
     *,
     context: str,
-) -> Dict[str, Tuple[float, float]]:
+) -> dict[str, tuple[float, float]]:
     if not isinstance(mapping, Mapping):
         raise SettingsValidationError(f"Секция {context} должна быть объектом")
 
-    result: Dict[str, Tuple[float, float]] = {}
+    result: dict[str, tuple[float, float]] = {}
     for wheel in _WHEEL_ORDER:
         entry = mapping.get(wheel)
         if not isinstance(entry, Mapping):
@@ -83,7 +83,7 @@ def _load_attachment_points(
     return result
 
 
-def _rigid_body_defaults() -> Dict[str, Any]:
+def _rigid_body_defaults() -> dict[str, Any]:
     context = "constants.physics.rigid_body"
     raw = get_physics_rigid_body_constants()
     attachment_map = _load_attachment_points(
@@ -105,7 +105,7 @@ def _rigid_body_defaults() -> Dict[str, Any]:
     }
 
 
-def _suspension_defaults() -> Dict[str, float]:
+def _suspension_defaults() -> dict[str, float]:
     const_context = "constants.physics.suspension"
     raw_constants = get_physics_suspension_constants()
     values = {
@@ -143,8 +143,8 @@ def _suspension_defaults() -> Dict[str, float]:
 
 
 _VERTICAL_AXIS: np.ndarray
-_RIGID_BODY_DEFAULTS: Dict[str, Any]
-_SUSPENSION_SETTINGS: Dict[str, float]
+_RIGID_BODY_DEFAULTS: dict[str, Any]
+_SUSPENSION_SETTINGS: dict[str, float]
 
 
 def _refresh_cached_defaults() -> None:
@@ -201,7 +201,7 @@ def _default_load_sum_reference() -> float:
     return float(_RIGID_BODY_DEFAULTS["load_sum_reference"])
 
 
-def _default_attachment_points() -> Dict[str, Tuple[float, float]]:
+def _default_attachment_points() -> dict[str, tuple[float, float]]:
     attachments = _RIGID_BODY_DEFAULTS["attachment_points"]
     return {wheel: (float(x), float(z)) for wheel, (x, z) in attachments.items()}
 
@@ -218,7 +218,7 @@ class RigidBody3DOF:
     )  # Gravitational acceleration (m/s^2)
 
     # Suspension attachment points in body frame (x_i, z_i)
-    attachment_points: Dict[str, Tuple[float, float]] = field(
+    attachment_points: dict[str, tuple[float, float]] = field(
         default_factory=_default_attachment_points
     )
 
@@ -236,7 +236,7 @@ class RigidBody3DOF:
     load_sum_tolerance_scale: float = field(default_factory=_default_load_sum_scale)
     load_sum_min_reference: float = field(default_factory=_default_load_sum_reference)
 
-    _static_wheel_loads: Dict[Wheel, float] = field(init=False, repr=False)
+    _static_wheel_loads: dict[Wheel, float] = field(init=False, repr=False)
     _static_total_load: float = field(init=False, repr=False)
     _static_pitch_moment: float = field(init=False, repr=False)
     _static_roll_moment: float = field(init=False, repr=False)
@@ -244,7 +244,7 @@ class RigidBody3DOF:
     def __post_init__(self) -> None:
         """Initialise geometry defaults and normalise static loads."""
 
-        points: Dict[str, Tuple[float, float]] = {}
+        points: dict[str, tuple[float, float]] = {}
         for name, coords in self.attachment_points.items():
             if not isinstance(coords, (tuple, list)) or len(coords) != 2:
                 raise ValueError(f"Attachment point '{name}' must be a pair (x, z)")
@@ -269,7 +269,7 @@ class RigidBody3DOF:
 
         target_sum = -self.M * self.g
         provided = dict(self.static_wheel_loads or {})
-        resolved: Dict[Wheel, float] = {}
+        resolved: dict[Wheel, float] = {}
 
         for wheel in Wheel:
             load = None
@@ -343,7 +343,7 @@ class RigidBody3DOF:
         return self._static_roll_moment
 
     @property
-    def static_wheel_load_map(self) -> Dict[Wheel, float]:
+    def static_wheel_load_map(self) -> dict[Wheel, float]:
         """Expose a copy of the normalised static wheel loads."""
 
         return dict(self._static_wheel_loads)
@@ -433,7 +433,7 @@ def _resolve_line_pressure(system: Any, gas: Any, wheel: Wheel, port: Port) -> f
 
 def assemble_forces(
     system: Any, gas: Any, y: np.ndarray, params: RigidBody3DOF
-) -> Tuple[np.ndarray, float, float]:
+) -> tuple[np.ndarray, float, float]:
     """Assemble forces and moments from suspension system
 
     Args:
@@ -623,7 +623,7 @@ def create_initial_conditions(
     return np.array([heave, roll, pitch, heave_rate, roll_rate, pitch_rate])
 
 
-def validate_state(y: np.ndarray, params: RigidBody3DOF) -> Tuple[bool, str]:
+def validate_state(y: np.ndarray, params: RigidBody3DOF) -> tuple[bool, str]:
     """Validate state vector for physical reasonableness
 
     Args:

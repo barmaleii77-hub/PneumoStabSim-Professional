@@ -16,7 +16,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Sequence, TextIO
+from typing import TextIO
+from collections.abc import Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRACE_ROOT = PROJECT_ROOT / "reports" / "quality" / "launch_traces"

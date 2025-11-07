@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Terminal and Encoding Diagnostic Tool
 Comprehensive check for terminal capabilities, encoding support, and compatibility

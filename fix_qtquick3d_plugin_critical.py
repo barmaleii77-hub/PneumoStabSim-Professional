@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: QtQuick3D plugin "qquick3dplugin" not found
 Основано на анализе логов app.py от 2025-01-05

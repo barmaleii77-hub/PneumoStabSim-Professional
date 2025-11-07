@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Rich range slider widget used throughout the geometry panel.
 
 The widget exposes both live updates (``valueChanged``) and debounced updates
@@ -444,7 +443,7 @@ class RangeSlider(QWidget):
 
         return self._accessible_role
 
-    def accessibilityShortcuts(self) -> List[AccessibilityShortcut]:
+    def accessibilityShortcuts(self) -> list[AccessibilityShortcut]:
         """Return the shortcuts exposed by the widget."""
 
         return list(self._shortcut_metadata)

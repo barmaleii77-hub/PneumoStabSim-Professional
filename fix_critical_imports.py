@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Автоматическое исправление критических ошибок импортов в проекте PneumoStabSim
 Fixes critical import errors in PneumoStabSim project
@@ -22,7 +21,7 @@ def fix_relative_imports(file_path: Path) -> bool:
     print(f"🔧 Проверяем файл: {file_path}")
 
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             original_content = f.read()
 
         content = original_content
@@ -163,7 +162,7 @@ if str(src_path) not in sys.path:
             continue
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Проверяем, есть ли уже исправление sys.path
@@ -229,7 +228,7 @@ def fix_physics_force_calculation():
             continue
 
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             original_content = content

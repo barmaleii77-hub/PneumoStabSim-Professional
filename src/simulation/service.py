@@ -26,7 +26,7 @@ class TrainingPresetService(SimulationService):
         self,
         *,
         orchestrator: SettingsOrchestrator,
-        library: Optional[TrainingPresetLibrary] = None,
+        library: TrainingPresetLibrary | None = None,
         tolerance: float = 1e-9,
     ) -> None:
         self._orchestrator = orchestrator
@@ -60,8 +60,8 @@ class TrainingPresetService(SimulationService):
         }
         return self._library.resolve_active_id(payload, tolerance=self._tolerance)
 
-    def _build_updates(self, preset: TrainingPreset) -> Dict[str, Any]:
-        updates: Dict[str, Any] = {}
+    def _build_updates(self, preset: TrainingPreset) -> dict[str, Any]:
+        updates: dict[str, Any] = {}
         for key, value in preset.simulation.items():
             updates[f"current.simulation.{key}"] = float(value)
         for key, value in preset.pneumatic.items():

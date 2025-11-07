@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ПОСТОЯННЫЙ ЛАУНЧЕР PneumoStabSim с исправлением QtQuick3D
 Этот файл ГАРАНТИРУЕТ правильную работу QtQuick3D при каждом запуске

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Reusable accordion panel primitives with undo/redo orchestration."""
 
 from __future__ import annotations
@@ -7,7 +6,8 @@ import logging
 import math
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional
+from typing import Any, Callable, Dict, Optional
+from collections.abc import Iterable, Mapping
 
 try:  # pragma: no cover - structlog is optional at runtime
     import structlog
@@ -29,7 +29,7 @@ from src.common.settings_manager import get_settings_manager
 from src.ui.parameter_slider import ParameterSlider
 
 
-def _build_logger(channel: str, *, panel: Optional[str] = None):
+def _build_logger(channel: str, *, panel: str | None = None):
     """Return a logger compatible with structlog bindings."""
 
     if structlog is not None:
@@ -67,12 +67,12 @@ class SliderFieldSpec:
     unit: str = ""
     allow_range_edit: bool = True
     default: float = 0.0
-    settings_key: Optional[str] = None
+    settings_key: str | None = None
     read_only: bool = False
     emit_signal: bool = True
-    to_settings: Optional[Callable[[float], float]] = None
-    from_settings: Optional[Callable[[float], float]] = None
-    telemetry_key: Optional[str] = None
+    to_settings: Callable[[float], float] | None = None
+    from_settings: Callable[[float], float] | None = None
+    telemetry_key: str | None = None
     resets_preset: bool = True
 
     def __post_init__(self) -> None:
@@ -88,7 +88,7 @@ class PanelPreset:
     label: str
     values: Mapping[str, float]
     description: str = ""
-    telemetry_key: Optional[str] = None
+    telemetry_key: str | None = None
 
 
 @dataclass(slots=True)
@@ -108,7 +108,7 @@ class PanelUndoController(QObject):
     undoAvailabilityChanged = Signal(bool)
     redoAvailabilityChanged = Signal(bool)
 
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._undo_stack: list[_UndoCommand] = []
         self._redo_stack: list[_UndoCommand] = []
@@ -210,9 +210,9 @@ class SettingsBackedAccordionPanel(QWidget):
     def __init__(
         self,
         settings_section: str,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         *,
-        preset_settings_key: Optional[str] = None,
+        preset_settings_key: str | None = None,
         custom_preset_id: str = "custom",
     ) -> None:
         super().__init__(parent)
@@ -226,13 +226,13 @@ class SettingsBackedAccordionPanel(QWidget):
         self._logger = _build_logger(
             "diagnostics.ui.panels.accordion", panel=panel_name
         )
-        self._field_specs: Dict[str, SliderFieldSpec] = {}
-        self._field_widgets: Dict[str, ParameterSlider] = {}
-        self._field_values: Dict[str, float] = {}
+        self._field_specs: dict[str, SliderFieldSpec] = {}
+        self._field_widgets: dict[str, ParameterSlider] = {}
+        self._field_values: dict[str, float] = {}
         self._preset_settings_key = preset_settings_key
         self._custom_preset_id = custom_preset_id
-        self._presets: Dict[str, PanelPreset] = {}
-        self._preset_model: list[Dict[str, str]] = []
+        self._presets: dict[str, PanelPreset] = {}
+        self._preset_model: list[dict[str, str]] = []
         self._preset_telemetry_key = f"{self._settings_section}.preset"
         self._active_preset_id: str = custom_preset_id
         self._applying_preset = False
@@ -251,7 +251,7 @@ class SettingsBackedAccordionPanel(QWidget):
         return self._undo_controller
 
     @Property("QVariantList", notify=presetsChanged)
-    def presetModel(self) -> list[Dict[str, Any]]:  # pragma: no cover - Qt binding
+    def presetModel(self) -> list[dict[str, Any]]:  # pragma: no cover - Qt binding
         return [dict(item) for item in self._preset_model]
 
     @Property(str, notify=activePresetChanged)
@@ -361,7 +361,7 @@ class SettingsBackedAccordionPanel(QWidget):
             self.on_field_value_changed(spec, value)
 
     def _apply_value_from_command(
-        self, key: str, payload: tuple[float, Optional[str]], source: str
+        self, key: str, payload: tuple[float, str | None], source: str
     ) -> None:
         value, preset_id = payload
         spec = self._field_specs[key]
@@ -414,7 +414,7 @@ class SettingsBackedAccordionPanel(QWidget):
     def on_field_value_changed(self, spec: SliderFieldSpec, value: float) -> None:
         """Hook for subclasses to respond to slider updates."""
 
-    def get_parameters(self) -> Dict[str, float]:
+    def get_parameters(self) -> dict[str, float]:
         """Return a snapshot of registered field values."""
 
         return dict(self._field_values)
@@ -484,11 +484,11 @@ class SettingsBackedAccordionPanel(QWidget):
         self,
         presets: Iterable[PanelPreset],
         *,
-        telemetry_key: Optional[str] = None,
+        telemetry_key: str | None = None,
     ) -> None:
         """Register preset definitions available for the panel."""
 
-        preset_map: Dict[str, PanelPreset] = {}
+        preset_map: dict[str, PanelPreset] = {}
         for preset in presets:
             preset_map[preset.preset_id] = preset
         self._presets = preset_map
@@ -538,14 +538,14 @@ class SettingsBackedAccordionPanel(QWidget):
         self._apply_preset_from_command(next_payload, source)
 
     # ----------------------------------------------------------------- helpers
-    def _prepare_preset_values(self, preset: PanelPreset) -> Dict[str, float]:
-        values: Dict[str, float] = {}
+    def _prepare_preset_values(self, preset: PanelPreset) -> dict[str, float]:
+        values: dict[str, float] = {}
         for field_key, spec in self._field_specs.items():
             candidate_keys = [spec.key]
             if spec.settings_key and spec.settings_key not in candidate_keys:
                 candidate_keys.append(spec.settings_key)
 
-            resolved: Optional[float] = None
+            resolved: float | None = None
             for candidate in candidate_keys:
                 if candidate not in preset.values:
                     continue
@@ -568,7 +568,7 @@ class SettingsBackedAccordionPanel(QWidget):
         return values
 
     def _resolve_initial_preset_state(self) -> None:
-        preset_from_settings: Optional[str] = None
+        preset_from_settings: str | None = None
         if self._preset_settings_key:
             path = f"current.{self._settings_section}.{self._preset_settings_key}"
             stored = self._settings.get(path, self._custom_preset_id)
@@ -609,7 +609,7 @@ class SettingsBackedAccordionPanel(QWidget):
         return True
 
     def _apply_preset_from_command(
-        self, payload: tuple[Mapping[str, float], Optional[str]], reason: str
+        self, payload: tuple[Mapping[str, float], str | None], reason: str
     ) -> None:
         values, preset_id = payload
         self._applying_preset = True
@@ -676,7 +676,7 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
 
     parameter_changed = Signal(str, float)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(
             settings_section="geometry",
             parent=parent,

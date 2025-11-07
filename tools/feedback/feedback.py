@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Система обратной связи
 """
@@ -79,7 +78,7 @@ class FeedbackSystem:
             self._update_control_plan(area, step, status, duration)
 
     def _update_control_plan(self, area: str, step: str, status: str, duration: float):
-        with open(self.control_plan_path, "r", encoding="utf-8") as f:
+        with open(self.control_plan_path, encoding="utf-8") as f:
             plan = json.load(f)
 
         step_info = {

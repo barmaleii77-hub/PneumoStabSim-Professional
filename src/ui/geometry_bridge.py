@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Geometry-to-3D bridge module.
 
 This module converts 2D suspension geometry to 3D visualization coordinates and
@@ -10,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
 import numpy as np
 from PySide6.QtCore import QObject, Property, Signal
@@ -37,14 +37,14 @@ class GeometryTo3DConverter(QObject):
         self,
         geometry: GeometryParams,
         *,
-        settings_manager: Optional[Any] = None,
+        settings_manager: Any | None = None,
     ) -> None:
         """Initialize geometry bridge converter."""
         super().__init__()
         self.geometry = geometry
         self._settings_manager = settings_manager or get_settings_manager()
         self._logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
-        self._visual_constants: Dict[str, Any] = {}
+        self._visual_constants: dict[str, Any] = {}
 
         defaults = self._load_geometry_defaults()
 
@@ -110,7 +110,7 @@ class GeometryTo3DConverter(QObject):
     # Helpers
     # ------------------------------------------------------------------
 
-    def _load_geometry_defaults(self) -> Dict[str, Any]:
+    def _load_geometry_defaults(self) -> dict[str, Any]:
         """Load geometry defaults from :class:`SettingsManager`."""
         if self._settings_manager is None:
             return {}
@@ -207,7 +207,7 @@ class GeometryTo3DConverter(QObject):
             self._tail_rod_length = value
             self.geometryChanged.emit()
 
-    def get_frame_params(self) -> Dict[str, float]:
+    def get_frame_params(self) -> dict[str, float]:
         """Get frame parameters for3D visualization in meters."""
         return {
             "beamSize": self._frame_beam_size,
@@ -222,8 +222,8 @@ class GeometryTo3DConverter(QObject):
         self,
         corner: str,
         lever_angle_rad: float,
-        cylinder_state: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+        cylinder_state: Any | None = None,
+    ) -> dict[str, Any]:
         """Convert2D kinematics to3D coordinates for one corner."""
         # Determine side and position
         is_left = corner.endswith("l")
@@ -324,14 +324,14 @@ class GeometryTo3DConverter(QObject):
 
     def get_all_corners_3d(
         self,
-        lever_angles: Optional[Dict[str, float]] = None,
-        cylinder_states: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Dict[str, Any]]:
+        lever_angles: dict[str, float] | None = None,
+        cylinder_states: dict[str, Any] | None = None,
+    ) -> dict[str, dict[str, Any]]:
         if lever_angles is None:
             lever_angles = {"fl": 0.0, "fr": 0.0, "rl": 0.0, "rr": 0.0}
         if cylinder_states is None:
             cylinder_states = {}
-        corners: Dict[str, Dict[str, Any]] = {}
+        corners: dict[str, dict[str, Any]] = {}
         for corner in ["fl", "fr", "rl", "rr"]:
             angle = lever_angles.get(corner, 0.0)
             cyl_state = cylinder_states.get(corner)
@@ -344,13 +344,13 @@ class GeometryTo3DConverter(QObject):
         self,
         corner: str,
         lever_angle_rad: float,
-        cylinder_state: Optional[Any] = None,
-    ) -> Dict[str, Any]:
+        cylinder_state: Any | None = None,
+    ) -> dict[str, Any]:
         """Alias maintained for legacy callers expecting the old API name."""
 
         return self.convert_to_3d(corner, lever_angle_rad, cylinder_state)
 
-    def update_from_simulation(self, sim_state: Dict[str, Any]) -> Dict[str, Any]:
+    def update_from_simulation(self, sim_state: dict[str, Any]) -> dict[str, Any]:
         lever_angles = sim_state.get("lever_angles", {})
         if not lever_angles:
             lever_angles = {
@@ -383,7 +383,7 @@ class GeometryTo3DConverter(QObject):
         }
 
     def update_user_parameters(
-        self, params: Dict[str, float], persist: bool = False
+        self, params: dict[str, float], persist: bool = False
     ) -> None:
         if "frameLength" in params and params["frameLength"] != self._frame_length:
             self.frameLength = params["frameLength"]
@@ -429,7 +429,7 @@ class GeometryTo3DConverter(QObject):
         )
         manager.save()
 
-    def export_geometry_params(self) -> Dict[str, Any]:
+    def export_geometry_params(self) -> dict[str, Any]:
         return {
             "frameLength": self._frame_length,
             "frameHeight": self._frame_height,
@@ -443,10 +443,10 @@ class GeometryTo3DConverter(QObject):
 def create_geometry_converter(
     *,
     geometry: GeometryParams | None = None,
-    settings_manager: Optional[Any] = None,
-    wheelbase: Optional[float] = None,
-    lever_length: Optional[float] = None,
-    cylinder_diameter: Optional[float] = None,
+    settings_manager: Any | None = None,
+    wheelbase: float | None = None,
+    lever_length: float | None = None,
+    cylinder_diameter: float | None = None,
 ) -> GeometryTo3DConverter:
     """Return a ready-to-use :class:`GeometryTo3DConverter` instance."""
 

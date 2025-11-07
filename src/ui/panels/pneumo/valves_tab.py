@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Valve configuration tab."""
 
 from __future__ import annotations

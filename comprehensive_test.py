@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 PneumoStabSim Professional - Комплексный интеграционный тест
 Comprehensive Integration Test Suite для всех систем проекта
@@ -54,7 +53,7 @@ class ComprehensiveTestSuite:
     """Комплексный набор тестов для PneumoStabSim Professional"""
 
     def __init__(self):
-        self.results: List[TestResult] = []
+        self.results: list[TestResult] = []
         self.start_time = time.time()
 
     def log_result(self, name: str, success: bool, message: str, duration: float = 0.0):
@@ -484,7 +483,7 @@ class ComprehensiveTestSuite:
             self.log_result("Application Startup", False, f"Error: {e}", duration)
             return False
 
-    def generate_report(self) -> Dict:
+    def generate_report(self) -> dict:
         """Генерация финального отчета"""
         total_time = time.time() - self.start_time
 

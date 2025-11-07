@@ -32,7 +32,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any
+from collections.abc import Iterable, Mapping
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env.cipilot"

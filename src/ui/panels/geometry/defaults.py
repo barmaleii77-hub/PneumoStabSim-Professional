@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Geometry panel default values and presets.
 
 This module must not introduce hard-coded geometry defaults. Instead we source
@@ -21,7 +20,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[4]
 _SETTINGS_FILE = _REPO_ROOT / "config" / "app_settings.json"
 
 
-def _load_geometry_defaults() -> Dict[str, Any]:
+def _load_geometry_defaults() -> dict[str, Any]:
     """Load geometry defaults from the application settings file.
 
     If the configuration is unavailable or malformed we fall back to the
@@ -52,7 +51,7 @@ def _load_geometry_defaults() -> Dict[str, Any]:
         )
         return _LEGACY_DEFAULT_GEOMETRY.copy()
 
-    result: Dict[str, Any] = dict(geometry_defaults)
+    result: dict[str, Any] = dict(geometry_defaults)
 
     mesh_defaults = (
         defaults_snapshot.get("graphics", {}).get("quality", {}).get("mesh", {})
@@ -72,7 +71,7 @@ def _load_geometry_defaults() -> Dict[str, Any]:
 # cannot be read. Keeping them private ensures call sites only use
 # ``DEFAULT_GEOMETRY`` which is populated from the live configuration whenever
 # possible.
-_LEGACY_DEFAULT_GEOMETRY: Dict[str, Any] = {
+_LEGACY_DEFAULT_GEOMETRY: dict[str, Any] = {
     "wheelbase": 3.2,
     "track": 1.6,
     "frame_height_m": 0.65,
@@ -99,13 +98,13 @@ _LEGACY_DEFAULT_GEOMETRY: Dict[str, Any] = {
 }
 
 
-DEFAULT_GEOMETRY: Dict[str, Any] = _load_geometry_defaults()
+DEFAULT_GEOMETRY: dict[str, Any] = _load_geometry_defaults()
 
 # =============================================================================
 # GEOMETRY PRESETS
 # =============================================================================
 
-GEOMETRY_PRESETS: Dict[str, Dict[str, Any]] = {
+GEOMETRY_PRESETS: dict[str, dict[str, Any]] = {
     "standard_truck": {
         "name": "Стандартный грузовик",
         "wheelbase": 3.2,
@@ -159,7 +158,7 @@ PRESET_INDEX_MAP = {
 # PARAMETER CONSTRAINTS
 # =============================================================================
 
-PARAMETER_LIMITS: Dict[str, Dict[str, float]] = {
+PARAMETER_LIMITS: dict[str, dict[str, float]] = {
     "wheelbase": {"min": 2.0, "max": 4.0, "step": 0.001, "decimals": 3},
     "track": {"min": 1.0, "max": 2.5, "step": 0.001, "decimals": 3},
     "frame_to_pivot": {"min": 0.3, "max": 1.0, "step": 0.001, "decimals": 3},
@@ -179,7 +178,7 @@ PARAMETER_LIMITS: Dict[str, Dict[str, float]] = {
 # PARAMETER METADATA
 # =============================================================================
 
-PARAMETER_METADATA: Dict[str, Dict[str, str]] = {
+PARAMETER_METADATA: dict[str, dict[str, str]] = {
     "wheelbase": {
         "title": "База (колёсная)",
         "units": "м",
@@ -265,7 +264,7 @@ PARAMETER_METADATA: Dict[str, Dict[str, str]] = {
 # =============================================================================
 
 
-def get_preset(preset_key: str) -> Dict[str, Any]:
+def get_preset(preset_key: str) -> dict[str, Any]:
     """Get preset by key
 
     Args:
@@ -277,7 +276,7 @@ def get_preset(preset_key: str) -> Dict[str, Any]:
     return GEOMETRY_PRESETS.get(preset_key, {})
 
 
-def get_preset_by_index(index: int) -> Dict[str, Any]:
+def get_preset_by_index(index: int) -> dict[str, Any]:
     """Get preset by combo box index
 
     Args:
@@ -290,7 +289,7 @@ def get_preset_by_index(index: int) -> Dict[str, Any]:
     return get_preset(preset_key)
 
 
-def get_parameter_limits(param_name: str) -> Dict[str, float]:
+def get_parameter_limits(param_name: str) -> dict[str, float]:
     """Get parameter limits
 
     Args:
@@ -304,7 +303,7 @@ def get_parameter_limits(param_name: str) -> Dict[str, float]:
     )
 
 
-def get_parameter_metadata(param_name: str) -> Dict[str, str]:
+def get_parameter_metadata(param_name: str) -> dict[str, str]:
     """Get parameter metadata
 
     Args:

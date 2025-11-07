@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Sequence, Tuple
+from typing import Tuple
+from collections.abc import Sequence
 
 __all__ = ["discover_hdr_files"]
 
-_SUPPORTED_PATTERNS: Tuple[str, ...] = ("*.hdr", "*.exr")
+_SUPPORTED_PATTERNS: tuple[str, ...] = ("*.hdr", "*.exr")
 
 
 def _resolve(path: Path) -> Path:

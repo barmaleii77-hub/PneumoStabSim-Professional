@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Simulation tab for ModesPanel
 Вкладка выбора режима симуляции и пресетов

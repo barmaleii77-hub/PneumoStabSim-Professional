@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Модуль логирования изменений графических параметров
 Записывает все изменения на панели графики и их соответствия в QML
@@ -22,8 +21,8 @@ class GraphicsChangeEvent:
     old_value: Any
     new_value: Any
     category: str  # lighting, material, environment, quality, camera, effects
-    panel_state: Dict[str, Any]
-    qml_state: Optional[Dict[str, Any]] = None
+    panel_state: dict[str, Any]
+    qml_state: Optional[dict[str, Any]] = None
     applied_to_qml: bool = False
     error: Optional[str] = None
 
@@ -77,8 +76,8 @@ class GraphicsLogger:
         old_value: Any,
         new_value: Any,
         category: str,
-        panel_state: Dict[str, Any],
-        qml_state: Optional[Dict[str, Any]] = None,
+        panel_state: dict[str, Any],
+        qml_state: Optional[dict[str, Any]] = None,
         applied_to_qml: bool = False,
         error: Optional[str] = None,
     ) -> GraphicsChangeEvent:
@@ -137,7 +136,7 @@ class GraphicsLogger:
     def log_qml_update(
         self,
         event: GraphicsChangeEvent,
-        qml_state: Optional[Dict[str, Any]] = None,
+        qml_state: Optional[dict[str, Any]] = None,
         success: bool = True,
         error: Optional[str] = None,
     ):
@@ -186,7 +185,7 @@ class GraphicsLogger:
         """Получить последние N изменений"""
         return list(self.events_buffer)[-count:]
 
-    def analyze_qml_sync(self) -> Dict[str, Any]:
+    def analyze_qml_sync(self) -> dict[str, Any]:
         """
         Анализировать синхронизацию Python-QML
 
@@ -278,8 +277,8 @@ class GraphicsLogger:
         return output_file
 
     def compare_states(
-        self, panel_state: Dict[str, Any], qml_state: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, panel_state: dict[str, Any], qml_state: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Сравнить состояния панели и QML
 

@@ -62,8 +62,8 @@ class ServiceContainer:
     """Minimalistic dependency injection container keyed by service type."""
 
     def __init__(self) -> None:
-        self._factories: Dict[type[Any], FactoryType[Any]] = {}
-        self._instances: Dict[type[Any], Any] = {}
+        self._factories: dict[type[Any], FactoryType[Any]] = {}
+        self._instances: dict[type[Any], Any] = {}
         self._resolution_stack: list[type[Any]] = []
 
     # ------------------------------------------------------------------ register

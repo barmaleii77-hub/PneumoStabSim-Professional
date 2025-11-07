@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Qt Quick 3D Custom Geometry - Following Qt Documentation Exactly
 Based on official Qt documentation and examples

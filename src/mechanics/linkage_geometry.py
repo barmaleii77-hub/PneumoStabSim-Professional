@@ -23,10 +23,10 @@ from dataclasses import dataclass
 import math
 from typing import Tuple
 
-TwoVector = Tuple[float, float]
+TwoVector = tuple[float, float]
 
 
-def _ensure_pair(point: Tuple[float, float], name: str) -> Tuple[float, float]:
+def _ensure_pair(point: tuple[float, float], name: str) -> tuple[float, float]:
     if len(point) != 2:
         raise ValueError(f"{name} must contain two coordinates (x, y)")
     x, y = float(point[0]), float(point[1])
@@ -69,7 +69,7 @@ class SuspensionLinkage:
         rod_joint: TwoVector,
         cylinder_tail: TwoVector,
         cylinder_body_length: float,
-    ) -> "SuspensionLinkage":
+    ) -> SuspensionLinkage:
         """Create a specification from millimetre values."""
 
         factor = 1e-3
@@ -160,7 +160,7 @@ class SuspensionLinkage:
         y_current = self.pivot[1] + self.lever_length * math.sin(angle)
         return y_current - y_neutral
 
-    def free_end_amplitude_limits(self) -> Tuple[float, float]:
+    def free_end_amplitude_limits(self) -> tuple[float, float]:
         neg = self.free_end_amplitude(direction=-1)
         pos = self.free_end_amplitude(direction=1)
         return (neg, pos)

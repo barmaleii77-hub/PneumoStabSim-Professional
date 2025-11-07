@@ -14,10 +14,10 @@ class ScenarioDescriptor:
     label: str
     difficulty: str
     summary: str
-    metrics: Tuple[str, ...]
+    metrics: tuple[str, ...]
 
 
-SCENARIO_INDEX: Dict[str, ScenarioDescriptor] = {
+SCENARIO_INDEX: dict[str, ScenarioDescriptor] = {
     "flat-track": ScenarioDescriptor(
         id="flat-track",
         label="Ровная дорога",

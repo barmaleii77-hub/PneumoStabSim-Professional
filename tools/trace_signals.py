@@ -8,7 +8,8 @@ import json
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable, List
+from typing import Any, List
+from collections.abc import Iterable
 
 
 def parse_args() -> argparse.Namespace:
@@ -79,7 +80,7 @@ def format_payload(payload: Any, *, max_len: int = 160) -> str:
     return text
 
 
-def print_entries(entries: List[dict[str, Any]], limit: int) -> None:
+def print_entries(entries: list[dict[str, Any]], limit: int) -> None:
     if limit > 0:
         entries = entries[-limit:]
     for entry in entries:
@@ -100,7 +101,7 @@ def main() -> None:
     args = parse_args()
     since_ts = parse_timestamp(args.since)
 
-    filtered: List[dict[str, Any]] = []
+    filtered: list[dict[str, Any]] = []
     for entry in iter_entries(args.file):
         if args.signal and args.signal not in entry.get("signal", ""):
             continue

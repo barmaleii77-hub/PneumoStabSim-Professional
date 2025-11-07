@@ -35,8 +35,8 @@ class WheelState:
     vol_head_max: float = 0.0
     vol_rod_min: float = 0.0
     vol_rod_max: float = 0.0
-    lever_angle_min: Optional[float] = None
-    lever_angle_max: Optional[float] = None
+    lever_angle_min: float | None = None
+    lever_angle_max: float | None = None
 
     # Joint coordinates
     joint_x: float = 0.0  # Joint X coordinate (m)
@@ -68,12 +68,12 @@ class LineState:
     temperature: float = 0.0  # Temperature (K)
     mass: float = 0.0  # Gas mass (kg)
     volume: float = 0.0  # Total volume (m3)
-    pressure_min: Optional[float] = None
-    pressure_max: Optional[float] = None
-    volume_min: Optional[float] = None
-    volume_max: Optional[float] = None
-    temperature_min: Optional[float] = None
-    temperature_max: Optional[float] = None
+    pressure_min: float | None = None
+    pressure_max: float | None = None
+    volume_min: float | None = None
+    volume_max: float | None = None
+    temperature_min: float | None = None
+    temperature_max: float | None = None
 
     # Valve states and flows
     cv_atmo_open: bool = False  # Atmosphere check valve open
@@ -90,10 +90,10 @@ class TankState:
     temperature: float = 0.0  # Temperature (K)
     mass: float = 0.0  # Gas mass (kg)
     volume: float = 0.0  # Volume (m3)
-    pressure_min: Optional[float] = None
-    pressure_max: Optional[float] = None
-    volume_min: Optional[float] = None
-    volume_max: Optional[float] = None
+    pressure_min: float | None = None
+    pressure_max: float | None = None
+    volume_min: float | None = None
+    volume_max: float | None = None
 
     # Relief valve states
     relief_min_open: bool = False  # Min pressure relief open
@@ -168,10 +168,10 @@ class StateSnapshot:
     frame: FrameState = field(default_factory=FrameState)
 
     # Wheel/suspension states
-    wheels: Dict[Wheel, WheelState] = field(default_factory=dict)
+    wheels: dict[Wheel, WheelState] = field(default_factory=dict)
 
     # Pneumatic line states
-    lines: Dict[Line, LineState] = field(default_factory=dict)
+    lines: dict[Line, LineState] = field(default_factory=dict)
 
     # Tank state
     tank: TankState = field(default_factory=TankState)
@@ -193,13 +193,13 @@ class StateSnapshot:
             for line in [Line.A1, Line.B1, Line.A2, Line.B2]:
                 self.lines[line] = LineState(line=line)
 
-    def get_wheel_positions(self) -> Dict[str, np.ndarray]:
+    def get_wheel_positions(self) -> dict[str, np.ndarray]:
         """Get wheel positions as numpy arrays for rendering
 
         Returns:
         Dictionary mapping wheel names to3D positions
         """
-        positions: Dict[str, np.ndarray] = {}
+        positions: dict[str, np.ndarray] = {}
 
         for wheel, state in self.wheels.items():
             # Convert to string keys for easier access

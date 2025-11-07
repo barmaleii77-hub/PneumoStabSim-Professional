@@ -9,31 +9,31 @@ from src.ui.environment_schema import validate_scene_settings
 
 
 class _StubBridge:
-    calls: List[Tuple[str, Dict[str, Any]]] = []
-    queue_calls: List[Tuple[str, Dict[str, Any]]] = []
-    logs: List[Tuple[str, Dict[str, Any], bool]] = []
+    calls: list[tuple[str, dict[str, Any]]] = []
+    queue_calls: list[tuple[str, dict[str, Any]]] = []
+    logs: list[tuple[str, dict[str, Any], bool]] = []
     invoke_result: bool = True
 
     @staticmethod
-    def invoke_qml_function(window, name: str, payload: Dict[str, Any]) -> bool:
+    def invoke_qml_function(window, name: str, payload: dict[str, Any]) -> bool:
         _StubBridge.calls.append((name, dict(payload)))
         return _StubBridge.invoke_result
 
     @staticmethod
-    def queue_update(_window, category: str, payload: Dict[str, Any]) -> None:
+    def queue_update(_window, category: str, payload: dict[str, Any]) -> None:
         if payload:
             _StubBridge.queue_calls.append((category, dict(payload)))
 
     @staticmethod
     def _log_graphics_change(
-        window, category: str, payload: Dict[str, Any], applied: bool
+        window, category: str, payload: dict[str, Any], applied: bool
     ) -> None:
         _StubBridge.logs.append((category, dict(payload), applied))
 
 
 class _StubLogger:
     def __init__(self) -> None:
-        self.records: List[Tuple[str, Tuple[Any, ...]]] = []
+        self.records: list[tuple[str, tuple[Any, ...]]] = []
 
     def warning(self, message: str, *args: Any, **_kwargs: Any) -> None:
         self.records.append(("warning", (message, *args)))
@@ -42,9 +42,9 @@ class _StubLogger:
 class _StubWindow:
     def __init__(self) -> None:
         self.logger = _StubLogger()
-        self.saved_updates: List[Tuple[str, Dict[str, Any]]] = []
+        self.saved_updates: list[tuple[str, dict[str, Any]]] = []
 
-    def _apply_settings_update(self, path: str, payload: Dict[str, Any]) -> None:
+    def _apply_settings_update(self, path: str, payload: dict[str, Any]) -> None:
         self.saved_updates.append((path, dict(payload)))
 
 
@@ -57,7 +57,7 @@ def _patch_qml_bridge(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(signals_router, "QMLBridge", _StubBridge)
 
 
-def _scene_payload() -> Dict[str, Any]:
+def _scene_payload() -> dict[str, Any]:
     return {
         "scale_factor": 2.5,
         "exposure": 3.75,
@@ -68,7 +68,7 @@ def _scene_payload() -> Dict[str, Any]:
     }
 
 
-def _effects_payload() -> Dict[str, Any]:
+def _effects_payload() -> dict[str, Any]:
     return {
         "bloom": {"enabled": True, "intensity": 0.6},
         "tonemap_mode": "aces",

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ФИНАЛЬНЫЙ ОТЧЕТ: Тест оптимизированной графической системы PneumoStabSim
 Complete performance and functionality analysis of optimized graphics system
@@ -25,7 +24,7 @@ def generate_final_report():
         return False
 
     # Читаем содержимое
-    with open(qml_file, "r", encoding="utf-8") as f:
+    with open(qml_file, encoding="utf-8") as f:
         qml_content = f.read()
 
     print(f"📄 QML файл: {qml_file.name}")

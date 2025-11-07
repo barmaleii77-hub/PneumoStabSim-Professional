@@ -20,7 +20,7 @@ from src.ui.qml_bridge import QMLBridge
     [0.05, -0.07],
 )
 def test_geometry_panel_queues_payload_matches_bridge_schema(
-    qtbot: "pytestqt.qtbot.QtBot", monkeypatch: pytest.MonkeyPatch, delta: float
+    qtbot: pytestqt.qtbot.QtBot, monkeypatch: pytest.MonkeyPatch, delta: float
 ) -> None:
     """Ensure geometry slider edits push bridge-ready payloads."""
 

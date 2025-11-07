@@ -22,7 +22,8 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 try:  # pragma: no cover - import guard for graceful CLI degradation
     from jsonschema import Draft202012Validator

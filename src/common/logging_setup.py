@@ -12,7 +12,8 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
+from collections.abc import Mapping
 from datetime import UTC, datetime
 import traceback
 

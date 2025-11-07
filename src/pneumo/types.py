@@ -31,7 +31,7 @@ class LineConnection(TypedDict):
     """Complete line connection specification"""
 
     line: Line
-    endpoints: Tuple[ConnectionEndpoint, ConnectionEndpoint]
+    endpoints: tuple[ConnectionEndpoint, ConnectionEndpoint]
 
 
 class Validatable(Protocol):
@@ -45,7 +45,7 @@ class Validatable(Protocol):
 class GeometryProvider(Protocol):
     """Protocol for objects that provide geometric calculations"""
 
-    def compute_position(self, angle: float) -> Tuple[float, float]:
+    def compute_position(self, angle: float) -> tuple[float, float]:
         """Compute position based on angle"""
         ...
 

@@ -22,7 +22,7 @@ import argparse
 import shutil
 import sys
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 
 
 COMPACT_REPORT_HISTORY_FLAG = "--report-history"

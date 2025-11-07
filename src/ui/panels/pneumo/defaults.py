@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Default values and limits for the pneumatic panel."""
 
 from __future__ import annotations
@@ -15,7 +14,7 @@ PRESSURE_UNIT_FACTORS = {
     "МПа": 1_000_000.0,
 }
 
-DEFAULT_PNEUMATIC: Dict[str, Any] = {
+DEFAULT_PNEUMATIC: dict[str, Any] = {
     "pressure_units": "бар",
     "volume_mode": "MANUAL",
     "receiver_volume": 0.02,  # м³

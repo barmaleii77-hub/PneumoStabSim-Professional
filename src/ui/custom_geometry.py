@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Custom 3D Sphere Geometry for Qt Quick 3D
 Generates procedural sphere mesh

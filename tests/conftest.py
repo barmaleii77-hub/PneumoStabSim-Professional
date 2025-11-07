@@ -4,7 +4,8 @@ import inspect
 import os
 import sys
 from pathlib import Path
-from typing import Callable, Mapping
+from typing import Callable
+from collections.abc import Mapping
 
 import importlib.util
 

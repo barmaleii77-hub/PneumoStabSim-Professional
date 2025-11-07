@@ -9,12 +9,9 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Iterable,
-    Iterator,
-    Mapping,
-    MutableMapping,
     Optional,
 )
+from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 
 import jsonschema
 import yaml
@@ -31,7 +28,7 @@ class AssertionDefinition:
     target: str
     expected: Any
     tolerance: float
-    source: Optional[str]
+    source: str | None
 
 
 @dataclass(frozen=True)
@@ -105,8 +102,8 @@ def _validate(instance: Mapping[str, Any], schema_name: str) -> None:
 
 def _coerce_attachment_points(
     raw: Mapping[str, Iterable[float]],
-) -> Dict[str, tuple[float, float]]:
-    result: Dict[str, tuple[float, float]] = {}
+) -> dict[str, tuple[float, float]]:
+    result: dict[str, tuple[float, float]] = {}
     for key, values in raw.items():
         coords = tuple(float(v) for v in values)
         if len(coords) != 2:
@@ -119,8 +116,8 @@ def _coerce_attachment_points(
 
 def _coerce_axis_directions(
     raw: Mapping[str, Iterable[float]],
-) -> Dict[str, tuple[float, float, float]]:
-    result: Dict[str, tuple[float, float, float]] = {}
+) -> dict[str, tuple[float, float, float]]:
+    result: dict[str, tuple[float, float, float]] = {}
     for key, values in raw.items():
         coords = tuple(float(v) for v in values)
         if len(coords) != 3:
@@ -133,8 +130,8 @@ def _coerce_axis_directions(
 
 def _coerce_state_vectors(
     raw: Mapping[str, Iterable[float]],
-) -> Dict[str, tuple[float, ...]]:
-    result: Dict[str, tuple[float, ...]] = {}
+) -> dict[str, tuple[float, ...]]:
+    result: dict[str, tuple[float, ...]] = {}
     for name, values in raw.items():
         vector = tuple(float(v) for v in values)
         if len(vector) != 6:
@@ -145,10 +142,10 @@ def _coerce_state_vectors(
     return result
 
 
-def _coerce_pneumatic_block(raw: Mapping[str, Any]) -> Dict[str, Any]:
+def _coerce_pneumatic_block(raw: Mapping[str, Any]) -> dict[str, Any]:
     """Convert pneumatic parameters to numeric heavy structures."""
 
-    converted: Dict[str, Any] = {"pressures": {}, "springs": {}, "dampers": {}}
+    converted: dict[str, Any] = {"pressures": {}, "springs": {}, "dampers": {}}
 
     pressures = raw.get("pressures", {})
     for wheel, payload in pressures.items():

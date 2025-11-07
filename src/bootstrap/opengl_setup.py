@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """OpenGL 4.5+ Surface Format Configuration"""
 
 from __future__ import annotations

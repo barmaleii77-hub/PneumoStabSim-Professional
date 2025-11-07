@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Bootstrap package helpers with defensive dependency loading."""
 
 from __future__ import annotations
@@ -18,7 +17,7 @@ __all__ = [
 ]
 
 _SafeImportQt = Callable[
-    [Callable[[str], None], Callable[[str], None]], Tuple[Any, Any, Any, Any]
+    [Callable[[str], None], Callable[[str], None]], tuple[Any, Any, Any, Any]
 ]
 
 
@@ -27,7 +26,7 @@ def _missing_numpy_stub(original_error: ModuleNotFoundError) -> _SafeImportQt:
 
     def _stub(
         _: Callable[[str], None], __: Callable[[str], None]
-    ) -> Tuple[Any, Any, Any, Any]:
+    ) -> tuple[Any, Any, Any, Any]:
         message = (
             "NumPy is required for PneumoStabSim but is not installed. "
             "Install the Python dependencies via 'make uv-sync' or "

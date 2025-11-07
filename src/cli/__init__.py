@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Модуль CLI (Command Line Interface) - обработка аргументов командной строки.
 """

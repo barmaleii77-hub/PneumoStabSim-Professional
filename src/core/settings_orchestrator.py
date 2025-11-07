@@ -17,8 +17,8 @@ class SettingsOrchestrator(SettingsOrchestratorProtocol):
     def __init__(
         self,
         *,
-        settings_manager: Optional[sm.SettingsManager] = None,
-        event_bus: Optional[sm.SettingsEventBus] = None,
+        settings_manager: sm.SettingsManager | None = None,
+        event_bus: sm.SettingsEventBus | None = None,
     ) -> None:
         self._manager = settings_manager or sm.get_settings_manager()
         self._event_bus = event_bus or sm.get_settings_event_bus()
@@ -31,7 +31,7 @@ class SettingsOrchestrator(SettingsOrchestratorProtocol):
     def _install_event_listeners(self) -> None:
         assert self._event_bus is not None  # nosec - guarded by caller
 
-        def _forward(payload: Dict[str, Any]) -> None:
+        def _forward(payload: dict[str, Any]) -> None:
             for callback in list(self._callbacks):
                 callback(dict(payload))
 
@@ -54,7 +54,7 @@ class SettingsOrchestrator(SettingsOrchestratorProtocol):
 
     # ----------------------------------------------------------------- protocol
     def snapshot(self, paths: Sequence[str]) -> Mapping[str, Any]:
-        payload: Dict[str, Any] = {}
+        payload: dict[str, Any] = {}
         for path in paths:
             payload[path] = self._manager.get(path, {})
         return payload

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 PneumoStabSim-Professional Environment Setup Script
 Скрипт для автоматической настройки окружения разработки
@@ -20,7 +19,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional
 
-QT_ENV_DEFAULTS: Dict[str, str] = {
+QT_ENV_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
     "QT_QUICK_BACKEND": "software",
     "QT_PLUGIN_PATH": "",
@@ -37,7 +36,7 @@ QT_SOURCES_DIR = Path.home() / "qt_sources"
 
 
 @lru_cache(maxsize=1)
-def _detect_qt_environment() -> Dict[str, str]:
+def _detect_qt_environment() -> dict[str, str]:
     """Возвращает рекомендуемые переменные окружения Qt."""
 
     environment = dict(QT_ENV_DEFAULTS)
@@ -109,7 +108,7 @@ class EnvironmentSetup:
         self.python_version = self._detect_python_version()
         self.qt_sdk_version = qt_sdk_version
         self.venv_path = self.project_root / ".venv"
-        self._venv_python_cmd: Optional[List[str]] = None
+        self._venv_python_cmd: Optional[list[str]] = None
         self._venv_python_announced = False
         self._root_warning_shown = False
 
@@ -131,10 +130,10 @@ class EnvironmentSetup:
             self.logger.log(f" • {key}={value}")
         self.logger.log("=" * 60)
 
-    def _find_python(self) -> List[str]:
+    def _find_python(self) -> list[str]:
         """Находит предпочтительный интерпретатор Python3.13 (fallback 3.11)."""
 
-        python_candidates: List[List[str]] = [
+        python_candidates: list[list[str]] = [
             ["py", "-3.13"],
             ["python3.13"],
             ["py", "-3.11"],
@@ -180,7 +179,7 @@ class EnvironmentSetup:
         except Exception:
             return sys.version_info[:3]
 
-    def _detect_pip_extra_args(self) -> List[str]:
+    def _detect_pip_extra_args(self) -> list[str]:
         """Возвращает дополнительные флаги pip для безопасного запуска от root."""
 
         geteuid = getattr(os, "geteuid", None)
@@ -219,14 +218,14 @@ class EnvironmentSetup:
             self._venv_python_announced = True
         return True
 
-    def _pip_command(self, *args: str) -> List[str]:
+    def _pip_command(self, *args: str) -> list[str]:
         """Формирует команду pip с учётом дополнительных флагов."""
 
         launcher = self._resolve_pip_launcher()
         command = [*launcher, *args]
         return command
 
-    def _resolve_pip_launcher(self) -> List[str]:
+    def _resolve_pip_launcher(self) -> list[str]:
         if self._venv_python_cmd is None and self.venv_path.exists():
             venv_python, _ = self._venv_executables()
             if venv_python.exists():
@@ -477,7 +476,7 @@ class EnvironmentSetup:
         self.logger.log("🔍 Проверка целостности файлов зависимостей...")
         try:
             # Получаем список всех файлов в requirements.txt
-            with open(requirements_file, "r", encoding="utf-8") as f:
+            with open(requirements_file, encoding="utf-8") as f:
                 lines = f.readlines()
 
             # Фильтруем только строки с зависимостями (без комментариев и пустых строк)
@@ -593,7 +592,7 @@ class EnvironmentSetup:
             except Exception:
                 self.logger.log(f"  ❓ {package}: ошибка проверки")
 
-    def _split_paths(self, value: str) -> List[str]:
+    def _split_paths(self, value: str) -> list[str]:
         """Разбивает строку путей по разделителю ОС с учётом ручных ';'."""
 
         if not value:
@@ -605,17 +604,17 @@ class EnvironmentSetup:
             parts = [part.strip() for part in value.split(os.pathsep) if part.strip()]
 
         seen: set[str] = set()
-        unique_parts: List[str] = []
+        unique_parts: list[str] = []
         for part in parts:
             if part not in seen:
                 seen.add(part)
                 unique_parts.append(part)
         return unique_parts
 
-    def _qml_import_paths(self) -> List[str]:
+    def _qml_import_paths(self) -> list[str]:
         """Формирует список путей QML (включая каталоги проекта)."""
 
-        qml_paths: List[str] = []
+        qml_paths: list[str] = []
 
         detected_paths = self.qt_environment.get("QML2_IMPORT_PATH", "")
         qml_paths.extend(self._split_paths(detected_paths))

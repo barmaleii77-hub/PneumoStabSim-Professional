@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Пред-аудит проекта перед микрошагами UI
 """
@@ -362,7 +361,7 @@ def main():
     control_plan_path = Path("reports/feedback/CONTROL_PLAN.json")
     if control_plan_path.exists():
         try:
-            with open(control_plan_path, "r", encoding="utf-8") as f:
+            with open(control_plan_path, encoding="utf-8") as f:
                 plan = json.load(f)
 
             step_info = {

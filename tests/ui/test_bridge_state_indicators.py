@@ -53,21 +53,21 @@ class _DummyBridge(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._geometry: Dict[str, Any] = {}
-        self._simulation: Dict[str, Any] = {}
+        self._geometry: dict[str, Any] = {}
+        self._simulation: dict[str, Any] = {}
 
     @Property("QVariantMap")
-    def geometry(self) -> Dict[str, Any]:  # pragma: no cover - accessed from QML
+    def geometry(self) -> dict[str, Any]:  # pragma: no cover - accessed from QML
         return dict(self._geometry)
 
     @Property("QVariantMap")
-    def simulation(self) -> Dict[str, Any]:  # pragma: no cover - accessed from QML
+    def simulation(self) -> dict[str, Any]:  # pragma: no cover - accessed from QML
         return dict(self._simulation)
 
     def prime_state(
         self,
-        geometry: Dict[str, Any],
-        simulation: Dict[str, Any],
+        geometry: dict[str, Any],
+        simulation: dict[str, Any],
     ) -> None:
         self._geometry = dict(geometry)
         self._simulation = dict(simulation)
@@ -75,10 +75,10 @@ class _DummyBridge(QObject):
     def push_updates(
         self,
         *,
-        geometry: Dict[str, Any] | None = None,
-        simulation: Dict[str, Any] | None = None,
+        geometry: dict[str, Any] | None = None,
+        simulation: dict[str, Any] | None = None,
     ) -> None:
-        updates: Dict[str, Dict[str, Any]] = {}
+        updates: dict[str, dict[str, Any]] = {}
         if geometry is not None:
             self._geometry = dict(geometry)
             self.geometryChanged.emit(dict(geometry))
@@ -91,7 +91,7 @@ class _DummyBridge(QObject):
             self.updatesDispatched.emit(updates)
 
 
-def _example_geometry_state() -> Dict[str, Any]:
+def _example_geometry_state() -> dict[str, Any]:
     return {
         "controlArms": {"frontLeft": 1.0},
         "knuckles": {"frontRight": 1.0},
@@ -99,7 +99,7 @@ def _example_geometry_state() -> Dict[str, Any]:
     }
 
 
-def _example_simulation_state() -> Dict[str, Any]:
+def _example_simulation_state() -> dict[str, Any]:
     return {
         "levers": {"front_left": 1.2, "front_right": -0.8},
         "pistons": {"front_left": 0.05, "front_right": 0.04},

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 КРИТИЧЕСКИЙ ФИКС: Убираем z: 1000 из CameraController
 Это блокирует рендеринг View3D!

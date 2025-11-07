@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Property-based geometry approach - ensuring proper lifetime management
 """

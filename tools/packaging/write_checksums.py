@@ -6,7 +6,7 @@ import argparse
 import hashlib
 import os
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 SUPPORTED_EXTENSIONS: tuple[str, ...] = (".zip", ".tar.gz", ".whl")
 

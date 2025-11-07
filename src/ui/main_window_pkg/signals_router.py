@@ -11,7 +11,8 @@ from __future__ import annotations
 import copy
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Callable, Dict, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional
+from collections.abc import Mapping
 
 from importlib import import_module, util
 
@@ -49,7 +50,7 @@ def _make_preset_id(name: str, index: int) -> str:
     return collapsed or f"preset_{index}"
 
 
-_PRESET_LOOKUP: Dict[str, tuple[int, Dict[str, Any]]] = {}
+_PRESET_LOOKUP: dict[str, tuple[int, dict[str, Any]]] = {}
 for _preset_index, _preset_payload in MODE_PRESETS.items():
     preset_index = int(_preset_index)
     preset_name = str(_preset_payload.get("name", ""))
@@ -103,10 +104,10 @@ class SignalsRouter:
 
     @staticmethod
     def _normalise_environment_payload(
-        window: "MainWindow",
-        params: Dict[str, Any],
-        env_payload: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        window: MainWindow,
+        params: dict[str, Any],
+        env_payload: dict[str, Any],
+    ) -> dict[str, Any]:
         """Ensure HDR sources are normalised before dispatching to QML.
 
         The UI may report the selected HDRI through several legacy keys. We
@@ -168,17 +169,17 @@ class SignalsRouter:
 
     @staticmethod
     def _apply_environment_aliases(
-        params: Dict[str, Any], env_payload: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        params: dict[str, Any], env_payload: dict[str, Any]
+    ) -> dict[str, Any]:
         """Augment payload with nested keys documented for environment updates."""
 
-        def _first_mapping(*candidates: Any) -> Dict[str, Any] | None:
+        def _first_mapping(*candidates: Any) -> dict[str, Any] | None:
             for candidate in candidates:
                 if isinstance(candidate, Mapping):
                     return dict(candidate)
             return None
 
-        def _setdefault(target: Dict[str, Any], key: str, value: Any) -> None:
+        def _setdefault(target: dict[str, Any], key: str, value: Any) -> None:
             if value is None:
                 return
             if key not in target:
@@ -268,7 +269,7 @@ class SignalsRouter:
                 if target_key in env_payload:
                     params.setdefault(target_key, env_payload[target_key])
 
-            ssao_patch: Dict[str, Any] = {}
+            ssao_patch: dict[str, Any] = {}
             if "enabled" in ambient_section:
                 ssao_patch["enabled"] = ambient_section["enabled"]
             if "strength" in ambient_section:
@@ -314,8 +315,8 @@ class SignalsRouter:
         return candidate == ""
 
     @staticmethod
-    def _sanitize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
-        cleaned: Dict[str, Any] = {}
+    def _sanitize_camera_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+        cleaned: dict[str, Any] = {}
         for key, value in payload.items():
             if value is None:
                 continue
@@ -328,8 +329,8 @@ class SignalsRouter:
         return cleaned
 
     @staticmethod
-    def _normalize_camera_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
-        normalized: Dict[str, Any] = {}
+    def _normalize_camera_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+        normalized: dict[str, Any] = {}
         for key, value in payload.items():
             if isinstance(value, Mapping):
                 nested = SignalsRouter._normalize_camera_payload(value)
@@ -345,10 +346,10 @@ class SignalsRouter:
         return normalized
 
     @staticmethod
-    def _normalize_quality_payload(params: Mapping[str, Any]) -> Dict[str, Any]:
+    def _normalize_quality_payload(params: Mapping[str, Any]) -> dict[str, Any]:
         """Convert graphics quality payload into QML-friendly types."""
 
-        def coerce_bool(value: Any) -> Optional[bool]:
+        def coerce_bool(value: Any) -> bool | None:
             if value is None:
                 return None
             if isinstance(value, bool):
@@ -363,7 +364,7 @@ class SignalsRouter:
                     return False
             return bool(value)
 
-        def coerce_int(value: Any) -> Optional[int]:
+        def coerce_int(value: Any) -> int | None:
             if value is None:
                 return None
             if isinstance(value, bool):
@@ -376,7 +377,7 @@ class SignalsRouter:
                 return None
             return int(round(numeric))
 
-        def coerce_float(value: Any) -> Optional[float]:
+        def coerce_float(value: Any) -> float | None:
             if value is None:
                 return None
             if isinstance(value, bool):
@@ -389,12 +390,12 @@ class SignalsRouter:
                 return None
             return numeric
 
-        def coerce_str(value: Any) -> Optional[str]:
+        def coerce_str(value: Any) -> str | None:
             if value is None:
                 return None
             return str(value)
 
-        normalized: Dict[str, Any] = {}
+        normalized: dict[str, Any] = {}
 
         antialiasing = (
             params.get("antialiasing") if isinstance(params, Mapping) else None
@@ -473,7 +474,7 @@ class SignalsRouter:
 
         mesh = params.get("mesh")
         if isinstance(mesh, Mapping):
-            mesh_payload: Dict[str, Any] = {}
+            mesh_payload: dict[str, Any] = {}
             segments = coerce_int(
                 mesh.get("cylinderSegments", mesh.get("cylinder_segments"))
             )
@@ -487,7 +488,7 @@ class SignalsRouter:
 
         shadows = params.get("shadowSettings", params.get("shadows"))
         if isinstance(shadows, Mapping):
-            shadow_payload: Dict[str, Any] = {}
+            shadow_payload: dict[str, Any] = {}
             enabled = coerce_bool(shadows.get("enabled"))
             if enabled is not None:
                 shadow_payload["enabled"] = enabled
@@ -529,10 +530,10 @@ class SignalsRouter:
         return normalized
 
     @staticmethod
-    def _strip_camera_commands(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    def _strip_camera_commands(payload: Mapping[str, Any]) -> dict[str, Any]:
         """Remove command-style keys that should not be persisted."""
 
-        cleaned: Dict[str, Any] = {}
+        cleaned: dict[str, Any] = {}
         for key, value in payload.items():
             if key in SignalsRouter._CAMERA_COMMAND_KEYS:
                 continue
@@ -587,12 +588,12 @@ class SignalsRouter:
         return True
 
     @staticmethod
-    def _build_simulation_payload(snapshot: "StateSnapshot") -> Dict[str, Any]:
+    def _build_simulation_payload(snapshot: StateSnapshot) -> dict[str, Any]:
         if snapshot is None:
             return {}
 
-        levers: Dict[str, float] = {}
-        pistons: Dict[str, float] = {}
+        levers: dict[str, float] = {}
+        pistons: dict[str, float] = {}
         for wheel_enum, state in snapshot.wheels.items():
             corner = SignalsRouter._WHEEL_KEY_MAP.get(wheel_enum)
             if not corner:
@@ -600,7 +601,7 @@ class SignalsRouter:
             levers[corner] = float(state.lever_angle)
             pistons[corner] = float(state.piston_position)
 
-        lines: Dict[str, Dict[str, Any]] = {}
+        lines: dict[str, dict[str, Any]] = {}
         for line_enum, line_state in snapshot.lines.items():
             lines[line_enum.value] = {
                 "pressure": float(line_state.pressure),
@@ -656,7 +657,7 @@ class SignalsRouter:
 
     @staticmethod
     def _queue_simulation_update(
-        window: "MainWindow", snapshot: Optional["StateSnapshot"]
+        window: MainWindow, snapshot: StateSnapshot | None
     ) -> None:
         if snapshot is None:
             return
@@ -787,7 +788,7 @@ class SignalsRouter:
     # Signal Handlers - Graphics
     # ------------------------------------------------------------------
     @staticmethod
-    def handle_lighting_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_lighting_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle lighting changes from GraphicsPanel
 
         Args:
@@ -809,7 +810,7 @@ class SignalsRouter:
         window._apply_settings_update("graphics.lighting", params)
 
     @staticmethod
-    def handle_material_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_material_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle material changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
@@ -826,7 +827,7 @@ class SignalsRouter:
         window._apply_settings_update("graphics.materials", params)
 
     @staticmethod
-    def handle_environment_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_environment_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle environment changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
@@ -837,7 +838,7 @@ class SignalsRouter:
 
     @staticmethod
     def _dispatch_environment_update(
-        window: MainWindow, params: Dict[str, Any]
+        window: MainWindow, params: dict[str, Any]
     ) -> None:
         if not isinstance(params, dict):
             return
@@ -899,7 +900,7 @@ class SignalsRouter:
         window._apply_settings_update("graphics.environment", params)
 
     @staticmethod
-    def handle_quality_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_quality_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle quality changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
@@ -920,7 +921,7 @@ class SignalsRouter:
         window._apply_settings_update("graphics.quality", params)
 
     @staticmethod
-    def handle_camera_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_camera_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle camera changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
@@ -954,7 +955,7 @@ class SignalsRouter:
             window._apply_settings_update("graphics.camera", stripped)
 
     @staticmethod
-    def handle_effects_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_effects_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle effects changes from GraphicsPanel"""
         if not isinstance(params, dict):
             return
@@ -964,7 +965,7 @@ class SignalsRouter:
         )
 
     @staticmethod
-    def _dispatch_effects_update(window: MainWindow, params: Dict[str, Any]) -> None:
+    def _dispatch_effects_update(window: MainWindow, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
 
@@ -980,7 +981,7 @@ class SignalsRouter:
         window._apply_settings_update("graphics.effects", params)
 
     @staticmethod
-    def handle_scene_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_scene_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle scene changes from GraphicsPanel."""
 
         if not isinstance(params, dict):
@@ -1005,7 +1006,7 @@ class SignalsRouter:
         window._apply_settings_update("graphics.scene", validated)
 
     @staticmethod
-    def handle_preset_applied(window: MainWindow, full_state: Dict[str, Any]) -> None:
+    def handle_preset_applied(window: MainWindow, full_state: dict[str, Any]) -> None:
         """Handle graphics preset application
 
         Args:
@@ -1033,13 +1034,13 @@ class SignalsRouter:
         else:
             env_payload = {}
 
-        def _coerce_payload(value: Any) -> Dict[str, Any]:
+        def _coerce_payload(value: Any) -> dict[str, Any]:
             if isinstance(value, Mapping):
                 return dict(value)
             return {}
 
         # Queue all categories as batch
-        updates: list[tuple[str, Dict[str, Any]]] = []
+        updates: list[tuple[str, dict[str, Any]]] = []
         updates.append(("environment", env_payload))
         updates.append(("lighting", _coerce_payload(full_state.get("lighting", {}))))
         updates.append(("materials", _coerce_payload(full_state.get("materials", {}))))
@@ -1068,14 +1069,14 @@ class SignalsRouter:
         window._apply_settings_update("graphics", full_state)
 
     @staticmethod
-    def handle_animation_changed(window: MainWindow, params: Dict[str, Any]) -> None:
+    def handle_animation_changed(window: MainWindow, params: dict[str, Any]) -> None:
         """Handle animation changes from ModesPanel"""
         if not isinstance(params, dict):
             return
 
-        qml_payload: Dict[str, Any] = {}
-        settings_payload: Dict[str, Any] = {}
-        modes_payload: Dict[str, Any] = {}
+        qml_payload: dict[str, Any] = {}
+        settings_payload: dict[str, Any] = {}
+        modes_payload: dict[str, Any] = {}
 
         modes_key_map = {
             "amplitude": "amplitude",
@@ -1233,7 +1234,7 @@ class SignalsRouter:
             return
 
         _, preset = entry
-        modes_updates: Dict[str, Any] = {
+        modes_updates: dict[str, Any] = {
             "mode_preset": key,
         }
 
@@ -1245,7 +1246,7 @@ class SignalsRouter:
         if thermo_mode:
             modes_updates["thermo_mode"] = str(thermo_mode)
 
-        physics_payload: Dict[str, bool] = {}
+        physics_payload: dict[str, bool] = {}
         for option in DEFAULT_PHYSICS_OPTIONS.keys():
             if option in preset:
                 physics_payload[option] = bool(preset[option])
@@ -1298,7 +1299,7 @@ class SignalsRouter:
         if not isinstance(payload, Mapping):
             return
 
-        physics_updates: Dict[str, bool] = {}
+        physics_updates: dict[str, bool] = {}
         for key in DEFAULT_PHYSICS_OPTIONS.keys():
             if key in payload:
                 physics_updates[key] = bool(payload[key])
@@ -1340,7 +1341,7 @@ class SignalsRouter:
             "diagonal_coupling_dia",
             "atmo_temp",
         }
-        pneumatic_updates: Dict[str, Any] = {}
+        pneumatic_updates: dict[str, Any] = {}
         for key in numeric_keys:
             if key not in payload:
                 continue
@@ -1409,7 +1410,7 @@ class SignalsRouter:
             "max_steps_per_frame": int,
             "max_frame_time": float,
         }
-        simulation_updates: Dict[str, Any] = {}
+        simulation_updates: dict[str, Any] = {}
         for key, caster in numeric_map.items():
             if key not in payload:
                 continue
@@ -1443,7 +1444,7 @@ class SignalsRouter:
             return
 
         numeric_keys = {"dead_zone_head_m3", "dead_zone_rod_m3"}
-        cylinder_updates: Dict[str, float] = {}
+        cylinder_updates: dict[str, float] = {}
         for key in numeric_keys:
             if key not in payload:
                 continue
@@ -1480,7 +1481,7 @@ class SignalsRouter:
             window: MainWindow instance
             snapshot: Current simulation state
         """
-        latest_snapshot: Optional[StateSnapshot] = snapshot
+        latest_snapshot: StateSnapshot | None = snapshot
 
         try:
             if (
@@ -1556,7 +1557,7 @@ class SignalsRouter:
         """
         cmd = (command or "").lower()
 
-        animation_toggle: Optional[bool] = None
+        animation_toggle: bool | None = None
 
         if cmd == "start":
             window.is_simulation_running = True
@@ -1616,7 +1617,7 @@ class SignalsRouter:
             return value
 
     @staticmethod
-    def _clone_payload(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    def _clone_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
         """Create a detached copy of a mapping payload."""
 
         base = dict(payload)
@@ -1628,7 +1629,7 @@ class SignalsRouter:
             }
 
     @staticmethod
-    def _merge_payload(target: Dict[str, Any], updates: Mapping[str, Any]) -> None:
+    def _merge_payload(target: dict[str, Any], updates: Mapping[str, Any]) -> None:
         """Recursively merge ``updates`` into ``target``."""
 
         for key, value in updates.items():
@@ -1672,10 +1673,10 @@ class SignalsRouter:
         return left == right
 
     @staticmethod
-    def _get_last_payloads(window: "MainWindow") -> Dict[str, Any]:
+    def _get_last_payloads(window: MainWindow) -> dict[str, Any]:
         """Return the map tracking the last dispatched payload per category."""
 
-        payloads: Dict[str, Any] | None = getattr(
+        payloads: dict[str, Any] | None = getattr(
             window, "_last_dispatched_payloads", None
         )
         if payloads is None:
@@ -1685,7 +1686,7 @@ class SignalsRouter:
 
     @staticmethod
     def _should_emit_update(
-        window: "MainWindow", category: str, payload: Mapping[str, Any]
+        window: MainWindow, category: str, payload: Mapping[str, Any]
     ) -> bool:
         """Return ``True`` when the payload differs from cached state."""
 
@@ -1715,7 +1716,7 @@ class SignalsRouter:
 
     @staticmethod
     def _record_dispatched_payload(
-        window: "MainWindow", category: str, payload: Mapping[str, Any]
+        window: MainWindow, category: str, payload: Mapping[str, Any]
     ) -> None:
         """Cache the last payload dispatched for ``category``."""
 
@@ -1724,10 +1725,10 @@ class SignalsRouter:
 
     @staticmethod
     def _schedule_debounced_update(
-        window: "MainWindow",
+        window: MainWindow,
         category: str,
-        payload: Dict[str, Any],
-        dispatcher: Callable[["MainWindow", Dict[str, Any]], None],
+        payload: dict[str, Any],
+        dispatcher: Callable[[MainWindow, dict[str, Any]], None],
     ) -> None:
         delay = SignalsRouter._DEBOUNCE_DELAYS_MS.get(category)
         if (
@@ -1744,7 +1745,7 @@ class SignalsRouter:
             dispatcher(window, payload)
             return
 
-        registry: Dict[str, Dict[str, Any]] | None = getattr(
+        registry: dict[str, dict[str, Any]] | None = getattr(
             window, "_qml_debounce_registry", None
         )
         if registry is None:
@@ -1787,8 +1788,8 @@ class SignalsRouter:
             dispatcher(window, payload)
 
     @staticmethod
-    def _flush_debounced_update(window: "MainWindow", category: str) -> None:
-        registry: Dict[str, Dict[str, Any]] | None = getattr(
+    def _flush_debounced_update(window: MainWindow, category: str) -> None:
+        registry: dict[str, dict[str, Any]] | None = getattr(
             window, "_qml_debounce_registry", None
         )
         if not registry:
@@ -1813,7 +1814,7 @@ class SignalsRouter:
     # Settings helpers (Python → QML synchronisation)
     # ------------------------------------------------------------------
     @staticmethod
-    def _get_settings_category(window: "MainWindow", category: str) -> Dict[str, Any]:
+    def _get_settings_category(window: MainWindow, category: str) -> dict[str, Any]:
         manager = getattr(window, "settings_manager", None)
         if manager is None:
             return {}
@@ -1826,7 +1827,7 @@ class SignalsRouter:
         return dict(payload)
 
     @staticmethod
-    def _get_settings_path(window: "MainWindow", path: str) -> Dict[str, Any]:
+    def _get_settings_path(window: MainWindow, path: str) -> dict[str, Any]:
         manager = getattr(window, "settings_manager", None)
         if manager is None:
             return {}
@@ -1839,12 +1840,12 @@ class SignalsRouter:
         return dict(payload)
 
     @staticmethod
-    def _push_modes_state(window: "MainWindow") -> None:
+    def _push_modes_state(window: MainWindow) -> None:
         payload = SignalsRouter._get_settings_category(window, "modes")
         QMLBridge.invoke_qml_function(window, "applyModesSettings", dict(payload))
 
     @staticmethod
-    def _push_pneumatic_state(window: "MainWindow") -> None:
+    def _push_pneumatic_state(window: MainWindow) -> None:
         source = SignalsRouter._consume_update_source(window, "pneumatic")
         if source == "qml" and getattr(window, "pneumo_panel", None) is not None:
             return
@@ -1852,19 +1853,19 @@ class SignalsRouter:
         QMLBridge.invoke_qml_function(window, "applyPneumaticSettings", dict(payload))
 
     @staticmethod
-    def _push_simulation_state(window: "MainWindow") -> None:
+    def _push_simulation_state(window: MainWindow) -> None:
         payload = SignalsRouter._get_settings_category(window, "simulation")
         QMLBridge.invoke_qml_function(window, "applySimulationSettings", dict(payload))
 
     @staticmethod
-    def _push_cylinder_state(window: "MainWindow") -> None:
+    def _push_cylinder_state(window: MainWindow) -> None:
         payload = SignalsRouter._get_settings_path(
             window, "current.constants.geometry.cylinder"
         )
         QMLBridge.invoke_qml_function(window, "applyCylinderSettings", dict(payload))
 
     @staticmethod
-    def _push_animation_panel(window: "MainWindow") -> None:
+    def _push_animation_panel(window: MainWindow) -> None:
         manager = getattr(window, "settings_manager", None)
         if manager is None:
             return
@@ -1877,7 +1878,7 @@ class SignalsRouter:
         QMLBridge.invoke_qml_function(window, "applyAnimationSettings", dict(payload))
 
     @staticmethod
-    def _mark_update_source(window: "MainWindow", category: str, source: str) -> None:
+    def _mark_update_source(window: MainWindow, category: str, source: str) -> None:
         if not category or not source:
             return
         registry = getattr(window, SignalsRouter._UPDATE_SOURCE_ATTR, None)
@@ -1887,7 +1888,7 @@ class SignalsRouter:
         registry[category] = source
 
     @staticmethod
-    def _consume_update_source(window: "MainWindow", category: str) -> Optional[str]:
+    def _consume_update_source(window: MainWindow, category: str) -> str | None:
         registry = getattr(window, SignalsRouter._UPDATE_SOURCE_ATTR, None)
         if not isinstance(registry, dict):
             return None

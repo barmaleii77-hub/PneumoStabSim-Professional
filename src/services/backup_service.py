@@ -18,7 +18,8 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence, cast
+from typing import cast
+from collections.abc import Iterable, Iterator, Sequence
 
 from src.diagnostics.logger_factory import get_logger
 

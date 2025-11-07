@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Comprehensive Qt Quick 3D Effects Discovery Tool
 Определяет, какие эффекты действительно доступны в текущей версии Qt

@@ -8,7 +8,7 @@ import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 ERROR_PATTERN = re.compile(r"\b(error|fatal|fail(?:ed)?)\b", re.IGNORECASE)
 WARNING_PATTERN = re.compile(r"\b(warn(?:ing)?)\b", re.IGNORECASE)

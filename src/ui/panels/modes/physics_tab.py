@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Physics tab for ModesPanel
 Вкладка опций физических компонентов

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 БЫСТРОЕ ИСПРАВЛЕНИЕ на основе логов app.py
 Проблема: module "QtQuick3D" plugin "qquick3dplugin" not found

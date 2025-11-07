@@ -199,7 +199,7 @@ def create_test_preset(
         raise ValueError(f"Unknown test type: {test_type}")
 
 
-def get_all_presets() -> Dict[str, Preset]:
+def get_all_presets() -> dict[str, Preset]:
     """Get dictionary of all available presets
 
     Returns:
@@ -255,7 +255,7 @@ def get_preset_by_name(name: str) -> Optional[Preset]:
     return presets.get(name)
 
 
-def list_preset_names() -> List[str]:
+def list_preset_names() -> list[str]:
     """Get list of all preset names
 
     Returns:
@@ -264,7 +264,7 @@ def list_preset_names() -> List[str]:
     return list(get_all_presets().keys())
 
 
-def get_presets_by_category() -> Dict[str, List[str]]:
+def get_presets_by_category() -> dict[str, list[str]]:
     """Get presets organized by category
 
     Returns:

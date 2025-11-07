@@ -45,7 +45,7 @@ def analyze_startup():
         # Читаем лог
         print("\n3. Анализ логов...")
 
-        with open(log_file, "r", encoding="utf-8", errors="replace") as f:
+        with open(log_file, encoding="utf-8", errors="replace") as f:
             content = f.read()
 
         lines = content.split("\n")

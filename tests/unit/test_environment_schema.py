@@ -40,8 +40,8 @@ def _baseline_environment() -> dict:
     return validate_environment_settings(env)
 
 
-def _build_minimal_environment_payload() -> Dict[str, Any]:
-    payload: Dict[str, Any] = {}
+def _build_minimal_environment_payload() -> dict[str, Any]:
+    payload: dict[str, Any] = {}
     for definition in ENVIRONMENT_PARAMETERS:
         if definition.value_type == "bool":
             payload[definition.key] = False

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Graphics panel - lighting configuration tab
 Вкладка настройки освещения
@@ -34,7 +33,7 @@ class LightingTab(QWidget):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._controls: Dict[str, Any] = {}
+        self._controls: dict[str, Any] = {}
         self._updating_ui = False
 
         # ✅ НОВОЕ: State из SettingsManager
@@ -578,7 +577,7 @@ class LightingTab(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
 
-        presets: Dict[str, Dict[str, Any]] = {
+        presets: dict[str, dict[str, Any]] = {
             "☀️ Дневной свет": {
                 "key": {
                     "brightness": 1.6,
@@ -738,15 +737,15 @@ class LightingTab(QWidget):
         update = {group: {key: value}}
         self.lighting_changed.emit(update)
 
-    def _apply_lighting_preset(self, preset: Dict[str, Any], name: str) -> None:
+    def _apply_lighting_preset(self, preset: dict[str, Any], name: str) -> None:
         self._state = copy.deepcopy(preset)
         self.lighting_changed.emit(preset)
         self.preset_applied.emit(f"Освещение: {name}")
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         return copy.deepcopy(self._state)
 
-    def set_state(self, state: Dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any]) -> None:
         self._updating_ui = True
         try:
             self._state = copy.deepcopy(state)
@@ -766,7 +765,7 @@ class LightingTab(QWidget):
         finally:
             self._updating_ui = False
 
-    def get_controls(self) -> Dict[str, Any]:
+    def get_controls(self) -> dict[str, Any]:
         return self._controls
 
     def set_updating_ui(self, updating: bool) -> None:

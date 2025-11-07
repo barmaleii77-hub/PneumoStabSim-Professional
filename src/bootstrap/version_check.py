@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Runtime Python version guard with sensible minimum and warnings."""
 
 import sys

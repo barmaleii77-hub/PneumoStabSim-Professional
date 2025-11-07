@@ -99,9 +99,9 @@ def test_telemetry_bridge_streams_flow_metrics(qapp) -> None:
     bridge = TelemetryDataBridge(max_samples=32)
     bridge.setActiveMetrics(["flow.inflow", "flow.outflow", "flow.tank_relief"])
 
-    samples: list[Dict[str, Any]] = []
+    samples: list[dict[str, Any]] = []
 
-    def _capture(payload: Dict[str, Any]) -> None:
+    def _capture(payload: dict[str, Any]) -> None:
         samples.append({key: value for key, value in payload.items()})
 
     bridge.sampleAppended.connect(_capture)
@@ -136,7 +136,7 @@ class _StubAccessControl:
     def can_modify(self, target: str) -> bool:
         return target.endswith("camera")
 
-    def describe_access_profile(self) -> Dict[str, Any]:
+    def describe_access_profile(self) -> dict[str, Any]:
         return dict(self._profile)
 
 

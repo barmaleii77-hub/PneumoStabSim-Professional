@@ -15,7 +15,7 @@ from src.ui.qml_bridge import QMLBridge
 
 class _FakeStatusBar:
     def __init__(self) -> None:
-        self.messages: List[Tuple[str, int]] = []
+        self.messages: list[tuple[str, int]] = []
 
     def showMessage(self, message: str, timeout: int) -> None:  # noqa: N802 - Qt style
         self.messages.append((message, timeout))
@@ -23,7 +23,7 @@ class _FakeStatusBar:
 
 class _FakeQmlRoot:
     def __init__(self) -> None:
-        self.properties: Dict[str, Any] = {}
+        self.properties: dict[str, Any] = {}
 
     def setProperty(self, name: str, value: Any) -> bool:  # noqa: N802 - Qt style
         self.properties[name] = value
@@ -32,7 +32,7 @@ class _FakeQmlRoot:
 
 class _FakeGraphicsPanel:
     def __init__(self) -> None:
-        self.state: Dict[str, Dict[str, Any]] = {
+        self.state: dict[str, dict[str, Any]] = {
             "lighting": {"exposure": 1.0, "shadowsEnabled": True},
             "environment": {"ibl_source": "studio.hdr"},
             "scene": {
@@ -47,14 +47,14 @@ class _FakeGraphicsPanel:
             "effects": {"bloom": {"enabled": True, "intensity": 0.75}},
         }
 
-    def collect_state(self) -> Dict[str, Dict[str, Any]]:
+    def collect_state(self) -> dict[str, dict[str, Any]]:
         return self.state
 
 
 class _FakeGraphicsLogger:
     def __init__(self) -> None:
-        self.log_change_calls: List[Dict[str, Any]] = []
-        self.mark_calls: List[Tuple[str, Any]] = []
+        self.log_change_calls: list[dict[str, Any]] = []
+        self.mark_calls: list[tuple[str, Any]] = []
 
     def log_change(
         self,
@@ -63,8 +63,8 @@ class _FakeGraphicsLogger:
         old_value: Any,
         new_value: Any,
         category: str,
-        panel_state: Dict[str, Any],
-        qml_state: Dict[str, Any] | None = None,
+        panel_state: dict[str, Any],
+        qml_state: dict[str, Any] | None = None,
         applied_to_qml: bool = False,
         error: str | None = None,
     ) -> SimpleNamespace:
@@ -93,7 +93,7 @@ class _FakeWindow:
         self.logger = logging.getLogger("tests.integration.stabilizer_sync")
         self.graphics_panel = _FakeGraphicsPanel()
         self._qml_root_object = _FakeQmlRoot()
-        self._last_batched_updates: Dict[str, Any] | None = None
+        self._last_batched_updates: dict[str, Any] | None = None
         self.status_bar = _FakeStatusBar()
         self._suppress_qml_feedback = False
 

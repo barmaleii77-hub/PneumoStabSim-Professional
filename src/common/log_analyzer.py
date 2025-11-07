@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Комплексный анализатор логов PneumoStabSim
 Объединяет все типы анализов в единую систему
@@ -23,11 +22,11 @@ class LogAnalysisResult:
     """Результат анализа логов"""
 
     def __init__(self):
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
-        self.info: List[str] = []
-        self.metrics: Dict[str, float] = {}
-        self.recommendations: List[str] = []
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
+        self.info: list[str] = []
+        self.metrics: dict[str, float] = {}
+        self.recommendations: list[str] = []
         self.status: str = "unknown"  # ok, warning, error
 
     def is_ok(self) -> bool:
@@ -60,7 +59,7 @@ class LogAnalysisResult:
         self.recommendations.append(message)
 
     # --- NEW helpers for structured errors ---
-    def add_collapsed_errors(self, errors: List[str]):
+    def add_collapsed_errors(self, errors: list[str]):
         """Добавляет набор конкретных ошибок (уникализируя по сообщению)."""
         for e in errors:
             self.add_error(e)
@@ -71,9 +70,9 @@ class UnifiedLogAnalyzer:
 
     def __init__(self, logs_dir: Path = Path("logs")):
         self.logs_dir = logs_dir
-        self.results: Dict[str, LogAnalysisResult] = {}
+        self.results: dict[str, LogAnalysisResult] = {}
 
-    def analyze_all(self) -> Dict[str, LogAnalysisResult]:
+    def analyze_all(self) -> dict[str, LogAnalysisResult]:
         """Запускает полный анализ всех логов"""
 
         # Основной лог
@@ -103,7 +102,7 @@ class UnifiedLogAnalyzer:
             return result
 
         try:
-            with open(run_log, "r", encoding="utf-8") as f:
+            with open(run_log, encoding="utf-8") as f:
                 lines = f.readlines()
 
             errors = [line for line in lines if ERROR_MARKER.search(line)]
@@ -115,7 +114,7 @@ class UnifiedLogAnalyzer:
 
             if errors:
                 # Полный разбор ошибок с группировкой одинаковых сообщений без таймстемпов
-                norm_errors: Dict[str, List[str]] = defaultdict(list)
+                norm_errors: dict[str, list[str]] = defaultdict(list)
                 ts_re = re.compile(r"^\s*\d{4}-\d{2}-\d{2}[^ ]*\s+")
                 for line in errors:
                     base = ts_re.sub("", line).strip()
@@ -212,7 +211,7 @@ class UnifiedLogAnalyzer:
 
         try:
             events = []
-            with open(latest_session, "r", encoding="utf-8") as f:
+            with open(latest_session, encoding="utf-8") as f:
                 for line in f:
                     if line.strip():
                         try:
@@ -315,7 +314,7 @@ class UnifiedLogAnalyzer:
         latest_ibl = ibl_logs[0]
 
         try:
-            with open(latest_ibl, "r", encoding="utf-8") as f:
+            with open(latest_ibl, encoding="utf-8") as f:
                 lines = [ln.strip() for ln in f.readlines() if ln.strip()]
 
             # Базовые подсчёты
@@ -674,7 +673,7 @@ def run_full_diagnostics(logs_dir: Path = Path("logs")) -> bool:
     return results.get("summary", LogAnalysisResult()).status != "error"
 
 
-def quick_diagnostics(logs_dir: Path = Path("logs")) -> Dict[str, any]:
+def quick_diagnostics(logs_dir: Path = Path("logs")) -> dict[str, any]:
     """
     Быстрая диагностика - только ключевые метрики
 

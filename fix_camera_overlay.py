@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 fix_camera_overlay.py
 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Перемещает CameraController из View3D наружу как overlay

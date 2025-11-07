@@ -48,7 +48,7 @@ from src.common.settings_manager import get_settings_manager  # ✅ SettingsMana
 class MainWindow(QMainWindow):
     """Главное окно приложения с Qt Quick3D (RHI/Direct3D) + SettingsManager"""
 
-    QML_UPDATE_METHODS: Dict[str, tuple[str, ...]] = {
+    QML_UPDATE_METHODS: dict[str, tuple[str, ...]] = {
         "geometry": ("applyGeometryUpdates", "updateGeometry"),
         "animation": (
             "applyAnimationUpdates",
@@ -132,13 +132,13 @@ class MainWindow(QMainWindow):
             raise
 
         # QML update system
-        self._qml_update_queue: Dict[str, Dict[str, Any]] = {}
-        self._qml_method_support: Dict[tuple[str, bool], bool] = {}
+        self._qml_update_queue: dict[str, dict[str, Any]] = {}
+        self._qml_method_support: dict[tuple[str, bool], bool] = {}
         self._qml_flush_timer = QTimer()
         self._qml_flush_timer.setSingleShot(True)
         self._qml_flush_timer.timeout.connect(self._flush_qml_updates)
         self._qml_pending_property_supported: Optional[bool] = None
-        self._last_batched_updates: Optional[Dict[str, Any]] = None
+        self._last_batched_updates: Optional[dict[str, Any]] = None
 
         # UI
         self._setup_central()
@@ -414,7 +414,7 @@ class MainWindow(QMainWindow):
     # ---------- SettingsManager-based UI restore/save ----------
     def _restore_ui_from_json(self) -> None:
         try:
-            ui_state: Dict[str, Any] = (
+            ui_state: dict[str, Any] = (
                 self.settings_manager.get("ui.main_window", {}) or {}
             )
             geom_b64 = ui_state.get("geometry")
@@ -446,7 +446,7 @@ class MainWindow(QMainWindow):
 
     def _save_ui_to_json(self) -> None:
         try:
-            ui_state: Dict[str, Any] = {
+            ui_state: dict[str, Any] = {
                 "geometry": self.saveGeometry().toBase64().data().decode("utf-8"),
                 "window_state": self.saveState().toBase64().data().decode("utf-8"),
             }
@@ -519,7 +519,7 @@ class MainWindow(QMainWindow):
             self.graphics_panel.preset_applied.connect(self._on_preset_applied)
 
     # ---------- QML update batching ----------
-    def _queue_qml_update(self, category: str, payload: Dict[str, Any]) -> None:
+    def _queue_qml_update(self, category: str, payload: dict[str, Any]) -> None:
         """Добавить обновление в очередь QML"""
         if not isinstance(payload, dict):
             return
@@ -527,7 +527,7 @@ class MainWindow(QMainWindow):
         self._qml_flush_timer.start(50)  # Батчим через50мс
 
     @Slot(dict)
-    def _on_geometry_changed_qml(self, geometry_params: Dict[str, Any]) -> None:
+    def _on_geometry_changed_qml(self, geometry_params: dict[str, Any]) -> None:
         if not isinstance(geometry_params, dict):
             return
         if self._qml_root_object and self._invoke_qml_function(
@@ -557,7 +557,7 @@ class MainWindow(QMainWindow):
                 if self._invoke_qml_function(method_name, payload):
                     break
 
-    def _push_batched_updates(self, updates: Dict[str, Any]) -> bool:
+    def _push_batched_updates(self, updates: dict[str, Any]) -> bool:
         if not updates or not self._qml_root_object:
             return False
         try:
@@ -578,7 +578,7 @@ class MainWindow(QMainWindow):
             return False
 
     def _invoke_qml_function(
-        self, method_name: str, payload: Optional[Dict[str, Any]] = None
+        self, method_name: str, payload: Optional[dict[str, Any]] = None
     ) -> bool:
         if not self._qml_root_object:
             return False
@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
             return False
 
     @Slot(dict)
-    def _on_qml_batch_ack(self, summary: Dict[str, Any]) -> None:
+    def _on_qml_batch_ack(self, summary: dict[str, Any]) -> None:
         try:
             if hasattr(self, "status_bar"):
                 self.status_bar.showMessage("Обновления применены в сцене", 1500)
@@ -612,49 +612,49 @@ class MainWindow(QMainWindow):
 
     # ---------- Panel signals → QML ----------
     @Slot(dict)
-    def _on_lighting_changed(self, params: Dict[str, Any]) -> None:
+    def _on_lighting_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyLightingUpdates", params):
             self._queue_qml_update("lighting", params)
 
     @Slot(dict)
-    def _on_material_changed(self, params: Dict[str, Any]) -> None:
+    def _on_material_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyMaterialUpdates", params):
             self._queue_qml_update("materials", params)
 
     @Slot(dict)
-    def _on_environment_changed(self, params: Dict[str, Any]) -> None:
+    def _on_environment_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyEnvironmentUpdates", params):
             self._queue_qml_update("environment", params)
 
     @Slot(dict)
-    def _on_quality_changed(self, params: Dict[str, Any]) -> None:
+    def _on_quality_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyQualityUpdates", params):
             self._queue_qml_update("quality", params)
 
     @Slot(dict)
-    def _on_camera_changed(self, params: Dict[str, Any]) -> None:
+    def _on_camera_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyCameraUpdates", params):
             self._queue_qml_update("camera", params)
 
     @Slot(dict)
-    def _on_effects_changed(self, params: Dict[str, Any]) -> None:
+    def _on_effects_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyEffectsUpdates", params):
             self._queue_qml_update("effects", params)
 
     @Slot(dict)
-    def _on_preset_applied(self, full_state: Dict[str, Any]) -> None:
+    def _on_preset_applied(self, full_state: dict[str, Any]) -> None:
         if not isinstance(full_state, dict):
             return
         for cat in (
@@ -668,7 +668,7 @@ class MainWindow(QMainWindow):
             self._queue_qml_update(cat, full_state.get(cat, {}))
 
     @Slot(dict)
-    def _on_animation_changed(self, params: Dict[str, Any]) -> None:
+    def _on_animation_changed(self, params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
         if not self._invoke_qml_function("applyAnimationUpdates", params):
@@ -781,7 +781,7 @@ class MainWindow(QMainWindow):
         try:
             if not self.graphics_panel:
                 return
-            pending: Dict[str, Any] = (
+            pending: dict[str, Any] = (
                 self.graphics_panel.collect_state()
                 if hasattr(self.graphics_panel, "collect_state")
                 else {}

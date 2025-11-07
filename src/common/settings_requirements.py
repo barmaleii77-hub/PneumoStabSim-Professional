@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Iterable, Tuple
+from typing import Tuple
+from collections.abc import Iterable
 
 
-NUMERIC_SIMULATION_KEYS: Tuple[str, ...] = (
+NUMERIC_SIMULATION_KEYS: tuple[str, ...] = (
     "physics_dt",
     "render_vsync_hz",
     "max_steps_per_frame",
     "max_frame_time",
 )
 
-NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = (
+NUMERIC_PNEUMATIC_KEYS: tuple[str, ...] = (
     "receiver_volume",
     "cv_atmo_dp",
     "cv_tank_dp",
@@ -31,19 +32,19 @@ NUMERIC_PNEUMATIC_KEYS: Tuple[str, ...] = (
     "leak_reference_area",
 )
 
-BOOL_PNEUMATIC_KEYS: Tuple[str, ...] = ("master_isolation_open",)
+BOOL_PNEUMATIC_KEYS: tuple[str, ...] = ("master_isolation_open",)
 
-STRING_PNEUMATIC_KEYS: Tuple[str, ...] = (
+STRING_PNEUMATIC_KEYS: tuple[str, ...] = (
     "volume_mode",
     "thermo_mode",
 )
 
-RECEIVER_VOLUME_LIMIT_KEYS: Tuple[str, ...] = (
+RECEIVER_VOLUME_LIMIT_KEYS: tuple[str, ...] = (
     "min_m3",
     "max_m3",
 )
 
-REQUIRED_CURRENT_SECTIONS: Tuple[str, ...] = (
+REQUIRED_CURRENT_SECTIONS: tuple[str, ...] = (
     "current.simulation",
     "current.pneumatic",
     "current.geometry",
@@ -54,8 +55,7 @@ REQUIRED_CURRENT_SECTIONS: Tuple[str, ...] = (
 def iter_all_required_paths() -> Iterable[str]:
     """Перечислить все обязательные пути в current.*"""
 
-    for section in REQUIRED_CURRENT_SECTIONS:
-        yield section
+    yield from REQUIRED_CURRENT_SECTIONS
 
     for key in NUMERIC_SIMULATION_KEYS:
         yield f"current.simulation.{key}"

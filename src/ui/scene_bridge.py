@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Iterable
 
 from PySide6.QtCore import QObject, Property, Signal
 
@@ -30,10 +31,10 @@ class SceneBridge(QObject):
 
     def __init__(
         self,
-        parent: Optional[QObject] = None,
+        parent: QObject | None = None,
         *,
         visualization_service: VisualizationService | None = None,
-        settings_manager: Optional[SettingsManager] = None,
+        settings_manager: SettingsManager | None = None,
         signal_trace_service: SignalTraceService | None = None,
     ) -> None:
         super().__init__(parent)
@@ -71,51 +72,51 @@ class SceneBridge(QObject):
     # Qt Properties
     # ------------------------------------------------------------------
     @Property("QVariantMap", notify=geometryChanged)
-    def geometry(self) -> Dict[str, Any]:
+    def geometry(self) -> dict[str, Any]:
         return dict(self._service.state_for("geometry"))
 
     @Property("QVariantMap", notify=cameraChanged)
-    def camera(self) -> Dict[str, Any]:
+    def camera(self) -> dict[str, Any]:
         return dict(self._service.state_for("camera"))
 
     @Property("QVariantMap", notify=lightingChanged)
-    def lighting(self) -> Dict[str, Any]:
+    def lighting(self) -> dict[str, Any]:
         return dict(self._service.state_for("lighting"))
 
     @Property("QVariantMap", notify=environmentChanged)
-    def environment(self) -> Dict[str, Any]:
+    def environment(self) -> dict[str, Any]:
         return dict(self._service.state_for("environment"))
 
     @Property("QVariantMap", notify=qualityChanged)
-    def quality(self) -> Dict[str, Any]:
+    def quality(self) -> dict[str, Any]:
         return dict(self._service.state_for("quality"))
 
     @Property("QVariantMap", notify=sceneChanged)
-    def scene(self) -> Dict[str, Any]:
+    def scene(self) -> dict[str, Any]:
         return dict(self._service.state_for("scene"))
 
     @Property("QVariantMap", notify=materialsChanged)
-    def materials(self) -> Dict[str, Any]:
+    def materials(self) -> dict[str, Any]:
         return dict(self._service.state_for("materials"))
 
     @Property("QVariantMap", notify=effectsChanged)
-    def effects(self) -> Dict[str, Any]:
+    def effects(self) -> dict[str, Any]:
         return dict(self._service.state_for("effects"))
 
     @Property("QVariantMap", notify=animationChanged)
-    def animation(self) -> Dict[str, Any]:
+    def animation(self) -> dict[str, Any]:
         return dict(self._service.state_for("animation"))
 
     @Property("QVariantMap", notify=threeDChanged)
-    def threeD(self) -> Dict[str, Any]:
+    def threeD(self) -> dict[str, Any]:
         return dict(self._service.state_for("threeD"))
 
     @Property("QVariantMap", notify=renderChanged)
-    def render(self) -> Dict[str, Any]:
+    def render(self) -> dict[str, Any]:
         return dict(self._service.state_for("render"))
 
     @Property("QVariantMap", notify=simulationChanged)
-    def simulation(self) -> Dict[str, Any]:
+    def simulation(self) -> dict[str, Any]:
         return dict(self._service.state_for("simulation"))
 
     @Property(QObject, constant=True)
@@ -123,7 +124,7 @@ class SceneBridge(QObject):
         return self._signal_trace
 
     @Property("QVariantMap", notify=updatesDispatched)
-    def latestUpdates(self) -> Dict[str, Any]:
+    def latestUpdates(self) -> dict[str, Any]:
         return {
             key: dict(value) for key, value in self._service.latest_updates().items()
         }
@@ -131,7 +132,7 @@ class SceneBridge(QObject):
     # ------------------------------------------------------------------
     # Update API
     # ------------------------------------------------------------------
-    def dispatch_updates(self, updates: Dict[str, Any]) -> bool:
+    def dispatch_updates(self, updates: dict[str, Any]) -> bool:
         """Push a batch of category updates and emit the relevant signals."""
 
         sanitized = self._service.dispatch_updates(updates)
@@ -140,7 +141,7 @@ class SceneBridge(QObject):
         self._emit_updates(sanitized)
         return True
 
-    def update_category(self, key: str, payload: Dict[str, Any]) -> bool:
+    def update_category(self, key: str, payload: dict[str, Any]) -> bool:
         """Update a single category."""
 
         return self.dispatch_updates({key: payload})
@@ -155,7 +156,7 @@ class SceneBridge(QObject):
                 signal.emit({})
         self.updatesDispatched.emit({})
 
-    def refresh_orbit_presets(self) -> Dict[str, Any]:
+    def refresh_orbit_presets(self) -> dict[str, Any]:
         """Reload orbit presets via the service and broadcast camera updates."""
 
         manifest = self._service.refresh_orbit_presets()
@@ -171,7 +172,7 @@ class SceneBridge(QObject):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _emit_updates(self, updates: Dict[str, Dict[str, Any]]) -> None:
+    def _emit_updates(self, updates: dict[str, dict[str, Any]]) -> None:
         payload = {}
         for key, value in updates.items():
             signal = self._signal_map.get(key)

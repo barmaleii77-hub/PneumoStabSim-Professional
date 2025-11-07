@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 """Refactored pneumatic panel coordinator."""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, Mapping
+from typing import Any, Callable, Dict
+from collections.abc import Mapping
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -180,7 +180,7 @@ class PneumoPanel(QWidget):
         self.valves_tab.update_from_state()
         self.receiver_tab.update_from_state()
 
-    def collect_state(self) -> Dict[str, Any]:
+    def collect_state(self) -> dict[str, Any]:
         """Return parameters converted to storage (SI) units."""
 
         return self.state_manager.export_storage_payload()

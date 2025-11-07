@@ -12,7 +12,8 @@ in a controlled manner during automated test runs.
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Mapping, Tuple
+from typing import Any, Dict, Tuple
+from collections.abc import Iterable, Mapping
 
 import math
 import numpy as np
@@ -62,7 +63,7 @@ def _load_vertical_axis() -> NDArray[np.float64]:
     return _normalise_axis(vertical)
 
 
-def _load_suspension_defaults() -> Dict[str, Any]:
+def _load_suspension_defaults() -> dict[str, Any]:
     mapping = get_physics_suspension_constants()
     required_scalars: Mapping[str, str] = {
         "spring_constant": "k_spring",
@@ -73,7 +74,7 @@ def _load_suspension_defaults() -> Dict[str, Any]:
         "cylinder_rod_area_m2": "A_rod",
     }
 
-    result: Dict[str, Any] = {}
+    result: dict[str, Any] = {}
     for source_key, target_key in required_scalars.items():
         value = mapping.get(source_key)
         if not isinstance(value, (int, float)):
@@ -92,9 +93,9 @@ def _load_suspension_defaults() -> Dict[str, Any]:
     return result
 
 
-def _load_validation_limits() -> Dict[str, float]:
+def _load_validation_limits() -> dict[str, float]:
     mapping = get_physics_validation_constants()
-    limits: Dict[str, float] = {}
+    limits: dict[str, float] = {}
     for key in ("max_force_n", "max_moment_n_m"):
         value = mapping.get(key)
         if not isinstance(value, (int, float)):
@@ -153,9 +154,9 @@ def compute_axis_velocity(
 def compute_suspension_point_kinematics(
     wheel_name: str,
     y: ArrayLike,
-    attachment_points: Dict[str, Tuple[float, float]],
+    attachment_points: dict[str, tuple[float, float]],
     axis_directions: Mapping[str, Iterable[float]],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Compute kinematic state for a suspension point
 
     Args:
@@ -301,9 +302,9 @@ def compute_damper_force(v_axis: float, c_damper: float, F_min: float) -> float:
 
 
 def project_forces_to_vertical_and_moments(
-    suspension_states: Dict[str, Dict],
-    attachment_points: Dict[str, Tuple[float, float]],
-) -> Tuple[np.ndarray, float, float]:
+    suspension_states: dict[str, dict],
+    attachment_points: dict[str, tuple[float, float]],
+) -> tuple[np.ndarray, float, float]:
     """Project suspension forces to vertical components and compute moments
 
     Args:
@@ -381,8 +382,8 @@ def get_body_angular_velocity_from_euler_rates(
 
 
 def validate_force_calculation(
-    forces: np.ndarray, moments: Tuple[float, float]
-) -> Tuple[bool, str]:
+    forces: np.ndarray, moments: tuple[float, float]
+) -> tuple[bool, str]:
     """Validate computed forces and moments for reasonableness
 
     Args:
@@ -433,7 +434,7 @@ DEFAULT_SUSPENSION_PARAMS = {
 
 def create_test_suspension_state(
     wheel_name: str, F_cyl: float = 0.0, F_spring: float = 0.0, F_damper: float = 0.0
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Create test suspension state for validation
 
     Args:

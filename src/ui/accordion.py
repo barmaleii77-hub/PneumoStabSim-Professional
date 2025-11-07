@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Accordion Widget - Collapsible sections for parameters
 Replaces dock widgets with classic accordion layout

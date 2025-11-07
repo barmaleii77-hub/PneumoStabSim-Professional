@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Анализатор размеров файлов проекта
 Помогает выявить файлы, требующие рефакторинга
@@ -43,7 +42,7 @@ class FileStats:
 def count_lines(file_path: Path) -> int:
     """Подсчитать строки в файле"""
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             return len(f.readlines())
     except Exception:
         return 0
@@ -59,9 +58,9 @@ def get_file_size_kb(file_path: Path) -> float:
 
 def analyze_directory(
     directory: Path,
-    extensions: List[str] = [".py"],
-    exclude_patterns: List[str] = ["__pycache__", "venv", ".git", "build", "dist"],
-) -> List[FileStats]:
+    extensions: list[str] = [".py"],
+    exclude_patterns: list[str] = ["__pycache__", "venv", ".git", "build", "dist"],
+) -> list[FileStats]:
     """Анализировать директорию на предмет больших файлов
 
     Args:
@@ -72,7 +71,7 @@ def analyze_directory(
     Returns:
         Список статистики файлов, отсортированный по убыванию размера
     """
-    stats: List[FileStats] = []
+    stats: list[FileStats] = []
 
     for root, dirs, files in os.walk(directory):
         # Исключаем ненужные директории
@@ -93,7 +92,7 @@ def analyze_directory(
     return stats
 
 
-def print_report(stats: List[FileStats], top_n: int = 20):
+def print_report(stats: list[FileStats], top_n: int = 20):
     """Вывести отчёт о файлах"""
     print("=" * 100)
     print("📊 АНАЛИЗ РАЗМЕРОВ ФАЙЛОВ ПРОЕКТА")
@@ -149,7 +148,7 @@ def print_report(stats: List[FileStats], top_n: int = 20):
     print()
 
 
-def export_json(stats: List[FileStats], output_path: Path):
+def export_json(stats: list[FileStats], output_path: Path):
     """Экспортировать статистику в JSON"""
     data = {
         "timestamp": str(Path.cwd()),

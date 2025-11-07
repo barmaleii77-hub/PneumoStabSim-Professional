@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 ModesPanel defaults and presets
 Значения по умолчанию и предустановки панели режимов симуляции
@@ -10,7 +9,7 @@ from typing import Dict, Any
 # DEFAULT VALUES
 # ===============================================================
 
-DEFAULT_MODES_PARAMS: Dict[str, Any] = {
+DEFAULT_MODES_PARAMS: dict[str, Any] = {
     # Simulation modes
     "sim_type": "KINEMATICS",
     "thermo_mode": "ISOTHERMAL",
@@ -31,7 +30,7 @@ DEFAULT_MODES_PARAMS: Dict[str, Any] = {
     "smoothing_easing": "OutCubic",
 }
 
-DEFAULT_PHYSICS_OPTIONS: Dict[str, Any] = {
+DEFAULT_PHYSICS_OPTIONS: dict[str, Any] = {
     "include_springs": True,
     "include_dampers": True,
     "include_pneumatics": True,
@@ -44,7 +43,7 @@ DEFAULT_PHYSICS_OPTIONS: Dict[str, Any] = {
 # MODE PRESETS
 # ===============================================================
 
-MODE_PRESETS: Dict[int, Dict[str, Any]] = {
+MODE_PRESETS: dict[int, dict[str, Any]] = {
     0: {  # Стандартный
         "name": "Стандартный",
         "sim_type": "KINEMATICS",
@@ -106,7 +105,7 @@ PRESET_NAMES = [preset["name"] for preset in MODE_PRESETS.values()]
 # PARAMETER RANGES
 # ===============================================================
 
-PARAMETER_RANGES: Dict[str, Dict[str, float]] = {
+PARAMETER_RANGES: dict[str, dict[str, float]] = {
     "amplitude": {
         "min": 0.0,
         "max": 0.2,
@@ -196,7 +195,7 @@ WHEEL_NAMES = {
 # ===============================================================
 
 
-def get_preset(preset_index: int) -> Dict[str, Any]:
+def get_preset(preset_index: int) -> dict[str, Any]:
     """Получить пресет по индексу"""
     return MODE_PRESETS.get(preset_index, MODE_PRESETS[4])
 
@@ -209,7 +208,7 @@ def validate_parameter(param_name: str, value: float) -> float:
     return value
 
 
-def get_animation_params(parameters: Dict[str, Any]) -> Dict[str, Any]:
+def get_animation_params(parameters: dict[str, Any]) -> dict[str, Any]:
     """Извлечь параметры анимации из общего словаря"""
     return {
         "amplitude": parameters.get("amplitude", 0.05),

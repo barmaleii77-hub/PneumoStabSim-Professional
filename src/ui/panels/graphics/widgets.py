@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Graphics panel widgets - reusable UI components
 Виджеты панели графики - переиспользуемые компоненты UI
@@ -10,7 +9,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from collections.abc import Iterable, Sequence
 from urllib.parse import unquote, urlparse
 
 from PySide6.QtCore import Qt, Signal, Slot
