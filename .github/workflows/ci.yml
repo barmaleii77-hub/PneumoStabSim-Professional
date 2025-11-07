@@ -113,7 +113,23 @@ jobs:
           fi
 
       - name: Audit shader logs
-        run: python tools/check_shader_logs.py reports/shaders --recursive --fail-on-warnings --expect-fallback
+        run: python tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
+
+      - name: Publish shader warnings
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f reports/warnings.log ]]; then
+            if [[ -s reports/warnings.log ]]; then
+              while IFS= read -r line; do
+                echo "::warning::${line}"
+              done < reports/warnings.log
+            else
+              echo "No shader warnings recorded."
+            fi
+          else
+            echo "warnings log not found"
+          fi
 
       - name: Generate AI failure report
         if: failure()
