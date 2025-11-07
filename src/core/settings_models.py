@@ -35,6 +35,7 @@ class Metadata(_StrictModel):
     total_parameters: int
     description: str
     operational_imperatives: list[str]
+    environment_slider_ranges: dict[str, "SliderRange"]
     legacy: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -381,6 +382,7 @@ class GraphicsSettings(_StrictModel):
     materials: MaterialsSettings
     effects: EffectsSettings
     scene: SceneSettings
+    environment_ranges: dict[str, SliderRange]
 
 
 class AnimationSettings(_StrictModel):
