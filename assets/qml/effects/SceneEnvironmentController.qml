@@ -142,6 +142,46 @@ ExtendedSceneEnvironment {
     property string qualityPreset: qualityProfiles.defaultKey
     property string activeQualityPreset: qualityProfiles.defaultKey
     property bool _applyingQualityPreset: false
+    property bool tonemapActive: effectsBoolDefault("tonemapActive", "tonemap_enabled", false)
+    property string tonemapModeName: effectsStringDefault("tonemapModeName", "tonemap_mode", "filmic")
+    property bool _tonemapModeGuard: false
+
+    onTonemapActiveChanged: {
+        var value = !!tonemapActive
+        try {
+            if (root.setProperty) {
+                if (!root.property || root.property("tonemapActive") !== value)
+                    root.setProperty("tonemapActive", value)
+                if (!root.property || root.property("tonemapEnabled") !== value)
+                    root.setProperty("tonemapEnabled", value)
+            }
+        } catch (error) {
+            console.debug("SceneEnvironmentController: unable to sync tonemapEnabled", error)
+        }
+        try {
+            mirrorHostProperty("tonemapActive", value)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapActive failed", error)
+        }
+    }
+
+    onTonemapModeNameChanged: {
+        if (_tonemapModeGuard)
+            return
+        var canonical = canonicalTonemapModeName(tonemapModeName)
+        if (canonical !== tonemapModeName) {
+            _tonemapModeGuard = true
+            tonemapModeName = canonical
+            _tonemapModeGuard = false
+            return
+        }
+        _syncTonemapModeFromName(canonical)
+        try {
+            mirrorHostProperty("tonemapModeName", canonical)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapModeName failed", error)
+        }
+    }
 
     onQualityPresetChanged: {
         if (_applyingQualityPreset)
@@ -533,6 +573,13 @@ ExtendedSceneEnvironment {
         return value === undefined ? fallback : value
     }
 
+    function effectsStringDefault(primaryKey, secondaryKey, fallback) {
+        if (!root.contextEffectsDefaults)
+            return fallback
+        var value = stringFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
+        return value === undefined ? fallback : value
+    }
+
     function _cloneContextPayload(payload) {
         if (!payload || typeof payload !== "object")
             return null
@@ -607,6 +654,137 @@ ExtendedSceneEnvironment {
         return undefined
     }
 
+    function _hasEnvironmentProperty(propertyName) {
+        if (!propertyName)
+            return false
+        try {
+            if (root.hasOwnProperty && root.hasOwnProperty(propertyName))
+                return root[propertyName] !== undefined
+        } catch (error) {
+            // fall back to generic lookup
+        }
+        try {
+            return root[propertyName] !== undefined
+        } catch (error) {
+            return false
+        }
+    }
+
+    function _updateBufferRequirements() {
+        if (!root.sceneBridge)
+            return
+        var updater = root.sceneBridge.updateBufferRequirements
+        if (typeof updater === "function") {
+            try {
+                updater(root.temporalAAEnabled)
+            } catch (error) {
+                console.debug("SceneEnvironmentController: buffer requirement sync failed", error)
+            }
+        }
+    }
+
+    function canonicalTonemapModeName(value) {
+        if (value === undefined || value === null)
+            value = "filmic"
+        var normalized = String(value).trim().toLowerCase()
+        if (!normalized.length)
+            normalized = "filmic"
+        if (normalized === "disabled" || normalized === "off")
+            return "none"
+        if (normalized === "aces_filmic" || normalized === "aces filmic")
+            return "aces"
+        switch (normalized) {
+        case "filmic":
+        case "aces":
+        case "reinhard":
+        case "gamma":
+        case "linear":
+        case "none":
+            return normalized
+        default:
+            return "filmic"
+        }
+    }
+
+    function tonemapModeEnumForName(name) {
+        if (!SceneEnvironment)
+            return undefined
+        var normalized = canonicalTonemapModeName(name)
+        switch (normalized) {
+        case "filmic":
+            return sceneEnvironmentEnum("TonemapModeFilmic")
+        case "aces":
+            var aces = sceneEnvironmentEnum("TonemapModeAces")
+            if (aces !== undefined)
+                return aces
+            return sceneEnvironmentEnum("TonemapModeFilmic")
+        case "reinhard":
+            return sceneEnvironmentEnum("TonemapModeReinhard", "TonemapModeLinear")
+        case "gamma":
+            var gamma = sceneEnvironmentEnum("TonemapModeGamma")
+            if (gamma !== undefined)
+                return gamma
+            return sceneEnvironmentEnum("TonemapModeLinear")
+        case "linear":
+            return sceneEnvironmentEnum("TonemapModeLinear")
+        case "none":
+            var noneValue = sceneEnvironmentEnum("TonemapModeNone")
+            if (noneValue !== undefined)
+                return noneValue
+            return sceneEnvironmentEnum("TonemapModeLinear")
+        }
+        return sceneEnvironmentEnum("TonemapModeFilmic")
+    }
+
+    function _syncTonemapModeFromName(name) {
+        var modeValue = tonemapModeEnumForName(name)
+        if (modeValue === undefined)
+            return
+        try {
+            if (root.tonemapMode !== undefined && root.tonemapMode !== modeValue)
+                root.tonemapMode = modeValue
+        } catch (error) {
+            console.debug("SceneEnvironmentController: tonemapMode assignment failed", error)
+        }
+    }
+
+    function assignTonemapModeProperty(value) {
+        if (value === undefined || value === null)
+            return
+        var canonical = canonicalTonemapModeName(value)
+        if (tonemapModeName !== canonical) {
+            tonemapModeName = canonical
+        } else {
+            _syncTonemapModeFromName(canonical)
+            try {
+                mirrorHostProperty("tonemapModeName", canonical)
+            } catch (error) {
+                console.debug("SceneEnvironmentController: mirror tonemapModeName failed", error)
+            }
+        }
+    }
+
+    function setTonemapEnabledFlag(enabled) {
+        var value = !!enabled
+        if (tonemapActive !== value) {
+            tonemapActive = value
+            return
+        }
+        try {
+            if (root.setProperty) {
+                if (!root.property || root.property("tonemapEnabled") !== value)
+                    root.setProperty("tonemapEnabled", value)
+            }
+        } catch (error) {
+            console.debug("SceneEnvironmentController: unable to set tonemapEnabled", error)
+        }
+        try {
+            mirrorHostProperty("tonemapActive", value)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapActive failed", error)
+        }
+    }
+
     function _applySceneBridgeState() {
         if (!root.sceneBridge)
             return
@@ -678,6 +856,112 @@ ExtendedSceneEnvironment {
             if (payload)
                 root._applyEffectsPayload(payload)
         }
+    }
+
+    function applyQualityPayload(params) {
+        if (!params)
+            return
+
+        var nested = []
+        if (params.antialiasing && typeof params.antialiasing === "object")
+            nested.push(params.antialiasing)
+        if (params.quality && typeof params.quality === "object")
+            nested.push(params.quality)
+
+        for (var i = 0; i < nested.length; ++i)
+            applyQualityPayload(nested[i])
+
+        var presetValue = stringFromKeys(params, "qualityPreset", "preset")
+        if (presetValue !== undefined) {
+            var canonical = String(presetValue)
+            if (qualityProfiles && typeof qualityProfiles.canonicalKey === "function") {
+                var normalized = qualityProfiles.canonicalKey(presetValue)
+                if (normalized)
+                    canonical = normalized
+            }
+            if (qualityPreset !== canonical)
+                qualityPreset = canonical
+            activeQualityPreset = canonical
+        }
+
+        var primaryMode = stringFromKeys(params, "aaPrimaryMode", "aa_primary_mode")
+        if (primaryMode !== undefined)
+            aaPrimaryMode = primaryMode
+
+        var qualityLevel = stringFromKeys(params, "aaQualityLevel", "aa_quality_level")
+        if (qualityLevel !== undefined)
+            aaQualityLevel = qualityLevel
+
+        var postMode = stringFromKeys(params, "aaPostMode", "aa_post_mode")
+        if (postMode !== undefined)
+            aaPostMode = postMode
+
+        var taaFlag = boolFromKeys(params, "taaEnabled", "taa_enabled")
+        if (taaFlag !== undefined)
+            taaEnabled = taaFlag
+
+        var taaStrengthValue = numberFromKeys(params, "taaStrength", "taa_strength")
+        if (taaStrengthValue !== undefined)
+            taaStrength = taaStrengthValue
+
+        var taaAdaptiveFlag = boolFromKeys(params, "taaMotionAdaptive", "taa_motion_adaptive")
+        if (taaAdaptiveFlag !== undefined)
+            taaMotionAdaptive = taaAdaptiveFlag
+
+        var fxaaFlag = boolFromKeys(params, "fxaaEnabled", "fxaa_enabled")
+        if (fxaaFlag !== undefined)
+            fxaaEnabled = fxaaFlag
+
+        var specularFlag = boolFromKeys(params, "specularAAEnabled", "specular_aa")
+        if (specularFlag !== undefined)
+            specularAAEnabled = specularFlag
+
+        var ditheringFlag = boolFromKeys(params, "ditheringEnabled", "dithering")
+        if (ditheringFlag !== undefined)
+            ditheringEnabled = ditheringFlag
+
+        var scaleValue = numberFromKeys(params, "sceneScaleFactor", "render_scale")
+        if (scaleValue !== undefined)
+            sceneScaleFactor = scaleValue
+    }
+
+    function applyQualityPresetInternal(name) {
+        var requested = name
+        if (qualityProfiles && typeof qualityProfiles.canonicalKey === "function") {
+            var canonical = qualityProfiles.canonicalKey(name)
+            if (canonical)
+                requested = canonical
+        }
+
+        if (!requested)
+            requested = String(name || "").trim().toLowerCase()
+
+        if (!requested)
+            return false
+
+        var preset = null
+        if (qualityProfiles && typeof qualityProfiles.presetFor === "function")
+            preset = qualityProfiles.presetFor(requested)
+
+        if (!preset)
+            return false
+
+        _applyingQualityPreset = true
+        try {
+            if (qualityPreset !== requested)
+                qualityPreset = requested
+            activeQualityPreset = requested
+
+            if (preset.antialiasing && typeof preset.antialiasing === "object")
+                applyQualityPayload(preset.antialiasing)
+            if (preset.environment && typeof preset.environment === "object")
+                applyEnvironmentPayload(preset.environment)
+            if (preset.effects && typeof preset.effects === "object")
+                applyEffectsPayload(preset.effects)
+        } finally {
+            _applyingQualityPreset = false
+        }
+        return true
     }
 
     Component.onCompleted: {
@@ -1225,7 +1509,7 @@ ExtendedSceneEnvironment {
         setTonemapEnabledFlag(tonemapActiveKey)
     var tonemapModeKey = stringFromKeys(params, "tonemapModeName", "tonemap_mode")
     if (tonemapModeKey !== undefined)
-        tonemapModeName = tonemapModeKey
+        assignTonemapModeProperty(tonemapModeKey)
     var tonemapExposureKey = numberFromKeys(params, "tonemapExposure", "tonemap_exposure")
     if (tonemapExposureKey !== undefined)
         tonemapExposure = tonemapExposureKey
@@ -1238,7 +1522,7 @@ ExtendedSceneEnvironment {
         if (tonemap.enabled !== undefined)
             setTonemapEnabledFlag(tonemap.enabled)
         if (tonemap.mode)
-            tonemapModeName = String(tonemap.mode)
+            assignTonemapModeProperty(tonemap.mode)
         if (tonemap.exposure !== undefined)
             tonemapExposure = Number(tonemap.exposure)
         if (tonemap.white_point !== undefined)
