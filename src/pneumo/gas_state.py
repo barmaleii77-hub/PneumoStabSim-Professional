@@ -5,7 +5,6 @@ Gas state helpers for pneumatic simulation tests and runtime.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .enums import Line, ReceiverVolumeMode
 from .thermo import PolytropicParameters, ThermoMode

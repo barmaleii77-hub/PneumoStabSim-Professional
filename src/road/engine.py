@@ -4,7 +4,7 @@ Provides RoadInput class with get_wheel_excitation(t) method
 """
 
 import numpy as np
-from typing import Optional, Any
+from typing import Any
 from scipy.interpolate import interp1d
 import warnings
 
@@ -31,12 +31,12 @@ class RoadInput:
     def __init__(self):
         """Initialize empty road input engine"""
         self.is_configured = False
-        self.config: Optional[RoadConfig] = None
+        self.config: RoadConfig | None = None
 
         # Generated profile data
-        self.time_base: Optional[np.ndarray] = None
-        self.wheel_profiles: Optional[dict[str, np.ndarray]] = None
-        self.interpolators: Optional[dict[str, interp1d]] = None
+        self.time_base: np.ndarray | None = None
+        self.wheel_profiles: dict[str, np.ndarray] | None = None
+        self.interpolators: dict[str, interp1d] | None = None
 
         # Timing parameters
         self.duration: float = 0.0
@@ -76,7 +76,7 @@ class RoadInput:
 
         self.is_configured = True
 
-    def prime(self, duration: Optional[float] = None) -> None:
+    def prime(self, duration: float | None = None) -> None:
         """Generate road profiles and prepare interpolators
 
         Args:

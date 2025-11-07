@@ -10,7 +10,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 INSTALL_SCRIPT_SH = "https://astral.sh/uv/install.sh"
 INSTALL_SCRIPT_PS = "https://astral.sh/uv/install.ps1"

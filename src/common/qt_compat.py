@@ -11,7 +11,8 @@ dispatching used by the settings event bus and the signal trace service.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Optional, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from collections.abc import Callable
 
 if TYPE_CHECKING:  # pragma: no cover - typing support only
     from PySide6.QtCore import Property, QObject, Signal, Slot

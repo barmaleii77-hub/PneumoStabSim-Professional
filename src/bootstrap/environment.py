@@ -8,7 +8,7 @@ Qt Quick 3D, включая пути к QML-модулям и плагинам.
 import os
 import sys
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 from collections.abc import Iterable
 
 

@@ -13,7 +13,7 @@ rigid body model.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
+from collections.abc import Mapping
 
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel

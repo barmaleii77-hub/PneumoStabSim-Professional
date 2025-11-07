@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import Any, TypeVar
 
 from src.common.event_logger import EventLogger
 from src.common.settings_manager import ProfileSettingsManager, SettingsManager

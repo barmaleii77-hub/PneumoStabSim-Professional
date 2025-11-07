@@ -7,7 +7,7 @@ import math
 import sys
 import time
 from dataclasses import replace
-from typing import Optional, Any
+from typing import Any
 import numpy as np
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, Qt
@@ -33,7 +33,6 @@ from .sync import (
 # Измененные импорты на абсолютные пути
 from src.physics.odes import RigidBody3DOF, create_initial_conditions
 from src.physics.integrator import (
-    step_dynamics,
     create_default_rigid_body,
 )
 from src.physics.forces import project_forces_to_vertical_and_moments
@@ -53,10 +52,10 @@ from src.pneumo.gas_state import (
 )
 from src.pneumo.network import GasNetwork
 from src.pneumo.thermo import PolytropicParameters
-from src.road.engine import RoadInput, create_road_input_from_preset
+from src.road.engine import create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
 from config.constants import get_pneumo_relief_thresholds
-from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
+from src.common.units import KELVIN_0C, PA_ATM
 from src.app.config_defaults import create_default_system_configuration
 from src.runtime.steps import (
     PhysicsStepState,
@@ -106,10 +105,10 @@ class PhysicsWorker(QObject):
         self.step_counter = 0
 
         # Physics objects (will be initialized in configure)
-        self.rigid_body: Optional[RigidBody3DOF] = None
-        self.road_input: Optional[Any] = None  # Changed type hint
-        self.pneumatic_system: Optional[Any] = None
-        self.gas_network: Optional[Any] = None
+        self.rigid_body: RigidBody3DOF | None = None
+        self.road_input: Any | None = None  # Changed type hint
+        self.pneumatic_system: Any | None = None
+        self.gas_network: Any | None = None
 
         # Current physics state
         self.physics_state: np.ndarray = np.zeros(6)  # [Y, φz, θx, dY, dφz, dθx]
@@ -147,11 +146,11 @@ class PhysicsWorker(QObject):
         self._lever_config = LeverDynamicsConfig()
 
         # Threading objects (created in target thread)
-        self.physics_timer: Optional[QTimer] = None
+        self.physics_timer: QTimer | None = None
 
         # Performance monitoring
         self.performance = PerformanceMetrics()
-        self.timing_accumulator: Optional[TimingAccumulator] = None
+        self.timing_accumulator: TimingAccumulator | None = None
         self.step_time_samples = []
 
         # Thread safety
@@ -450,10 +449,10 @@ class PhysicsWorker(QObject):
 
     def configure(
         self,
-        dt_phys: Optional[float] = None,
-        vsync_render_hz: Optional[float] = None,
-        max_steps_per_frame: Optional[int] = None,
-        max_frame_time: Optional[float] = None,
+        dt_phys: float | None = None,
+        vsync_render_hz: float | None = None,
+        max_steps_per_frame: int | None = None,
+        max_frame_time: float | None = None,
     ):
         """Configure physics parameters"""
         if isinstance(dt_phys, (int, float)) and not isinstance(dt_phys, bool):
@@ -503,7 +502,7 @@ class PhysicsWorker(QObject):
                 self.settings_manager.get("defaults_snapshot.pneumatic", {}) or {}
             )
 
-            def _resolve_numeric(data: dict[str, Any], key: str) -> Optional[float]:
+            def _resolve_numeric(data: dict[str, Any], key: str) -> float | None:
                 value = data.get(key)
                 if isinstance(value, bool) or not isinstance(value, (int, float)):
                     return None
@@ -856,9 +855,9 @@ class PhysicsWorker(QObject):
 
         mode_enum = self._resolve_receiver_mode(mode_token)
 
-        receiver_pressure: Optional[float] = None
-        receiver_temperature: Optional[float] = None
-        pneumatic_tank_volume: Optional[float] = None
+        receiver_pressure: float | None = None
+        receiver_temperature: float | None = None
+        pneumatic_tank_volume: float | None = None
         if self.pneumatic_system is not None:
             try:
                 receiver_state = getattr(self.pneumatic_system, "receiver", None)
@@ -893,9 +892,9 @@ class PhysicsWorker(QObject):
                     exc_info=True,
                 )
 
-        tank_pressure: Optional[float] = None
-        tank_mass: Optional[float] = None
-        tank_temperature: Optional[float] = None
+        tank_pressure: float | None = None
+        tank_mass: float | None = None
+        tank_temperature: float | None = None
         if self.gas_network is not None:
             try:
                 tank_state = getattr(self.gas_network, "tank", None)
@@ -1138,7 +1137,7 @@ class PhysicsWorker(QObject):
         # Return zero excitation as fallback
         return {"LF": 0.0, "RF": 0.0, "LR": 0.0, "RR": 0.0}
 
-    def _create_state_snapshot(self) -> Optional[StateSnapshot]:
+    def _create_state_snapshot(self) -> StateSnapshot | None:
         """Create current state snapshot"""
         try:
             snapshot = StateSnapshot()
@@ -1212,7 +1211,7 @@ class PhysicsWorker(QObject):
             )
             return None
 
-    def _resolve_receiver_mode(self, mode: Optional[str] = None) -> ReceiverVolumeMode:
+    def _resolve_receiver_mode(self, mode: str | None = None) -> ReceiverVolumeMode:
         raw_mode = (mode or self.receiver_volume_mode or "MANUAL").strip().upper()
         mapping = {
             "MANUAL": ReceiverVolumeMode.NO_RECALC,
@@ -1490,7 +1489,7 @@ class SimulationManager(QObject):
                     exc_info=True,
                 )
 
-    def get_latest_state(self) -> Optional[StateSnapshot]:
+    def get_latest_state(self) -> StateSnapshot | None:
         """Get latest state snapshot without blocking"""
         return self.state_queue.get_nowait()
 

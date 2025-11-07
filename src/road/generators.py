@@ -5,7 +5,7 @@ Implements deterministic and stochastic road excitation patterns
 
 import numpy as np
 from scipy import signal
-from typing import Optional, Any
+from typing import Any
 
 from .types import Iso8608Class, ISO8608_PARAMETERS, CorrelationSpec
 
@@ -228,7 +228,7 @@ def generate_iso8608_profile(
     duration: float,
     velocity: float,
     iso_class: Iso8608Class,
-    correlation: Optional[CorrelationSpec] = None,
+    correlation: CorrelationSpec | None = None,
     resample_hz: float = 1000.0,
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """Generate ISO8608 stochastic road profile

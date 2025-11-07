@@ -18,8 +18,9 @@ import importlib.util
 import json
 import platform
 from pathlib import Path
-from typing import Any, Callable, Optional, Protocol
-from collections.abc import Iterable, Sequence
+from typing import Any, Protocol
+from collections.abc import Callable
+from collections.abc import Sequence
 
 from src.diagnostics.logger_factory import configure_logging, get_logger
 

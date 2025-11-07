@@ -9,7 +9,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 
 def _configure_qt_environment() -> None:

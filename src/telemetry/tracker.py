@@ -12,7 +12,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any
 from collections.abc import Mapping
 
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger

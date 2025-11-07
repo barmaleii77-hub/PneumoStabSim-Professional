@@ -8,7 +8,7 @@ import math
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -234,7 +234,7 @@ class PhysicsLoopConfig:
     solver_max_step_divisor: float = field(
         default_factory=lambda: float(_LOOP_DEFAULTS["solver_max_step_divisor"])
     )
-    max_step: Optional[float] = None
+    max_step: float | None = None
     thermo_mode: ThermoMode = field(
         default_factory=lambda: _LOOP_DEFAULTS["thermo_mode"]
     )
@@ -266,10 +266,10 @@ def step_dynamics(
     params: RigidBody3DOF,
     system: Any,
     gas: Any,
-    method: Optional[str] = None,
-    rtol: Optional[float] = None,
-    atol: Optional[float] = None,
-    max_step: Optional[float] = None,
+    method: str | None = None,
+    rtol: float | None = None,
+    atol: float | None = None,
+    max_step: float | None = None,
 ) -> IntegrationResult:
     """Perform one integration step of 3-DOF dynamics
 

@@ -7,7 +7,6 @@ Geometry configuration panel - РУССКИЙ ИНТЕРФЕЙС
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 from collections.abc import Mapping
 
 from PySide6.QtWidgets import (

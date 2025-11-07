@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from .environment import setup_qtquick3d_environment, configure_qt_environment
 from .terminal import configure_terminal_encoding

@@ -12,7 +12,8 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 from types import ModuleType
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
+from collections.abc import Callable
 
 _SENTINEL_MODULE = "_pneumostabsim_headless_singleton"
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Mapping
 
 import numpy as np

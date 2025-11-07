@@ -15,7 +15,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 
@@ -47,10 +47,10 @@ class ApplicationRunner:
         self.Qt = Qt
         self.QTimer = QTimer
 
-        self.app_instance: Optional[Any] = None
-        self.window_instance: Optional[Any] = None
-        self.app_logger: Optional[logging.Logger] = None
-        self.error_hook_manager: Optional[ErrorHookManager] = None
+        self.app_instance: Any | None = None
+        self.window_instance: Any | None = None
+        self.app_logger: logging.Logger | None = None
+        self.error_hook_manager: ErrorHookManager | None = None
 
         self.use_qml_3d_schema: bool = True
         self.use_legacy_ui: bool = False
@@ -58,9 +58,9 @@ class ApplicationRunner:
         self.safe_runtime_requested: bool = False
         self.safe_cli_mode: bool = False
         self._is_headless: bool = False
-        self._headless_reason: Optional[str] = None
+        self._headless_reason: str | None = None
         self._surface_format_configured: bool = False
-        self._safe_exit_timer: Optional[Any] = None
+        self._safe_exit_timer: Any | None = None
 
     @staticmethod
     def _gather_startup_environment_snapshot() -> dict[str, str]:
@@ -342,7 +342,7 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.debug(f"Qt: {message}")
 
-    def setup_logging(self, verbose_console: bool = False) -> Optional[logging.Logger]:
+    def setup_logging(self, verbose_console: bool = False) -> logging.Logger | None:
         """
         Настройка логирования - ВСЕГДА активно.
 

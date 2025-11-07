@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from collections.abc import Iterable, Mapping
 
 __all__ = [

@@ -21,7 +21,6 @@ import dis
 import inspect
 from functools import lru_cache
 from types import CodeType, FrameType
-from typing import Optional
 from collections.abc import Sequence
 
 _INSPECT_UNWRAP_CALLERS = frozenset({"unwrap", "get_annotations"})

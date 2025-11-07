@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QFrame,
 )
 from PySide6.QtCore import Qt, Signal
-from typing import Optional, Callable
+from collections.abc import Callable
 
 
 class ParameterSlider(QWidget):
@@ -40,7 +40,7 @@ class ParameterSlider(QWidget):
         decimals: int = 2,
         unit: str = "",
         allow_range_edit: bool = True,
-        validator: Optional[Callable[[float, float, float], bool]] = None,
+        validator: Callable[[float, float, float], bool] | None = None,
         parent=None,
     ):
         """

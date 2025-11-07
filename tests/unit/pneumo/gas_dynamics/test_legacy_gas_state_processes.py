@@ -1,7 +1,7 @@
 """Parametrised regression tests for legacy gas state thermodynamics."""
 
 import math
-from typing import Callable
+from collections.abc import Callable
 
 import pytest
 

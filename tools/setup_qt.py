@@ -17,7 +17,7 @@ import platform
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 from collections.abc import Iterable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]

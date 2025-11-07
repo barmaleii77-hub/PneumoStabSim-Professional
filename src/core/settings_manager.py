@@ -28,7 +28,8 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 from collections.abc import Iterable
 
 

@@ -11,7 +11,8 @@ from __future__ import annotations
 import copy
 import logging
 import math
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
 from collections.abc import Mapping
 
 from importlib import import_module, util
@@ -32,7 +33,7 @@ else:  # pragma: no cover - executed only on headless environments
     QTimer = None
     QObject = None
 
-from ...pneumo.enums import Line, Wheel
+from ...pneumo.enums import Wheel
 from ..panels.modes.defaults import (
     DEFAULT_PHYSICS_OPTIONS,
     MODE_PRESETS,

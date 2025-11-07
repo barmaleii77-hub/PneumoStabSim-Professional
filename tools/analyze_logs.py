@@ -17,7 +17,7 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 LOGS_DIR = Path("logs/graphics")
 

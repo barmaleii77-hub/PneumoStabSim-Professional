@@ -12,7 +12,7 @@ forces from the actual chamber pressures.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.pneumo.cylinder import CylinderSpec, CylinderState
 from src.pneumo.geometry import LeverGeom, CylinderGeom

@@ -20,7 +20,6 @@ import logging
 import json
 import numpy as np  # NEW: For calculations
 from pathlib import Path
-from typing import Optional
 
 # NO OpenGL imports - using Qt Quick3D instead
 from src.ui.charts import ChartWidget
@@ -74,7 +73,7 @@ class MainWindow(QMainWindow):
             raise
 
         # Current snapshot
-        self.current_snapshot: Optional[StateSnapshot] = None
+        self.current_snapshot: StateSnapshot | None = None
         self.is_simulation_running = False
 
         # NEW: Geometry converter for Python↔QML integration
@@ -84,14 +83,14 @@ class MainWindow(QMainWindow):
         print("✅ GeometryBridge created for Python↔QML integration")
 
         # Panels references (temporarily disabled)
-        self.geometry_panel: Optional[GeometryPanel] = None
-        self.pneumo_panel: Optional[PneumoPanel] = None
-        self.modes_panel: Optional[ModesPanel] = None
-        self.road_panel: Optional[RoadPanel] = None
-        self.chart_widget: Optional[ChartWidget] = None
+        self.geometry_panel: GeometryPanel | None = None
+        self.pneumo_panel: PneumoPanel | None = None
+        self.modes_panel: ModesPanel | None = None
+        self.road_panel: RoadPanel | None = None
+        self.chart_widget: ChartWidget | None = None
 
         # Qt Quick3D view reference
-        self._qquick_widget: Optional[QQuickWidget] = None  # ? ��������
+        self._qquick_widget: QQuickWidget | None = None  # ? ��������
         self._qml_root_object = None
 
         print("MainWindow: Building UI...")

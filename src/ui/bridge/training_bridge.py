@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any
+from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Property, Signal, Slot
 

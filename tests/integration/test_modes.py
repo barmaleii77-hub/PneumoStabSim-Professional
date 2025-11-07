@@ -4,7 +4,7 @@ import builtins
 import os
 import sys
 from types import SimpleNamespace
-from typing import Callable
+from collections.abc import Callable
 
 import pytest
 

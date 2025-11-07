@@ -9,7 +9,7 @@ import sys
 import os
 import locale
 import subprocess
-from typing import Callable
+from collections.abc import Callable
 
 
 def configure_terminal_encoding(log_warning: Callable[[str], None]) -> None:

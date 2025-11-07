@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from datetime import UTC, datetime
 from collections import defaultdict
-from typing import Optional, Any, Union
+from typing import Any
 import re
 
 # ============================================================================
@@ -62,7 +62,7 @@ def colored(text: str, color: str, bold: bool = False) -> str:
 # ============================================================================
 
 
-def find_latest_log(log_dir: Path, pattern: str) -> Optional[Path]:
+def find_latest_log(log_dir: Path, pattern: str) -> Path | None:
     """Находит самый свежий лог-файл по паттерну"""
     logs = list(log_dir.glob(pattern))
     if not logs:
@@ -183,7 +183,7 @@ class GraphicsLogAnalyzer:
             if applied:
                 self.stats["synced"] += 1
             else:
-                qml_state_applied: Optional[bool] = None
+                qml_state_applied: bool | None = None
                 if isinstance(qml_state, dict):
                     qml_state_applied = qml_state.get("applied")
 
@@ -233,7 +233,7 @@ class GraphicsLogAnalyzer:
 
     def get_unsynced_events(
         self,
-        limit: Optional[int] = None,
+        limit: int | None = None,
         include_pending: bool = True,
         include_failed: bool = True,
     ) -> list[dict[str, Any]]:
@@ -251,7 +251,7 @@ class GraphicsLogAnalyzer:
                 break
         return filtered
 
-    def get_unsynced_summary(self, limit: Optional[int] = None) -> list[dict[str, Any]]:
+    def get_unsynced_summary(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Группирует несинхронизированные события по параметрам."""
 
         items: list[dict[str, Any]] = []
@@ -460,7 +460,7 @@ class RunLogAnalyzer:
             print(f"❌ Ошибка анализа run.log: {e}")
             return False
 
-    def _extract_time(self, line: str) -> Optional[str]:
+    def _extract_time(self, line: str) -> str | None:
         """Извлекает время из строки лога"""
         match = re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", line)
         return match.group(0) if match else None
@@ -592,7 +592,7 @@ class LogAnalyzer:
 
     DEFAULT_SUBDIRS = ("graphics", "ibl", "errors")
 
-    def __init__(self, logs_dir: Optional[Union[str, Path]] = None):
+    def __init__(self, logs_dir: str | Path | None = None):
         """Инициализирует анализатор и подготавливает структуру логов.
 
         Args:
@@ -602,7 +602,7 @@ class LogAnalyzer:
         """
 
         env_override = os.getenv("PNEUMOSTABSIM_LOGS_DIR")
-        base_dir: Union[str, Path]
+        base_dir: str | Path
         if logs_dir is not None:
             base_dir = logs_dir
         elif env_override:

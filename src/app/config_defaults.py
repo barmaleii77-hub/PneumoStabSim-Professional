@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Type, TypeVar
+from typing import Any, TypeVar
 from collections.abc import Mapping
 
 from config.constants import (
