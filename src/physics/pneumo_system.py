@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Mapping
 
+from typing import Dict, Tuple
+
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
@@ -54,11 +56,15 @@ class PneumaticSystem:
         # not need to be recomputed every frame.
         self._max_head_volume: dict[Wheel, float] = {}
         self._max_rod_volume: dict[Wheel, float] = {}
+        self._line_lookup: Dict[Tuple[Wheel, Port], Line] = {}
         for wheel, cylinder in self._structure.cylinders.items():
             geom = cylinder.spec.geometry
             half_travel = geom.L_travel_max / 2.0
             self._max_head_volume[wheel] = cylinder.vol_head(-half_travel)
             self._max_rod_volume[wheel] = cylinder.vol_rod(half_travel)
+        for line_name, line in self._structure.lines.items():
+            for endpoint_wheel, endpoint_port in line.endpoints:
+                self._line_lookup[(endpoint_wheel, endpoint_port)] = line_name
 
         self._last_update: PneumaticUpdate | None = None
 
@@ -90,11 +96,7 @@ class PneumaticSystem:
     # Runtime aggregation
     # ------------------------------------------------------------------
     def _line_for_endpoint(self, wheel: Wheel, port: Port) -> Line | None:
-        for line_name, line in self.lines.items():
-            for endpoint_wheel, endpoint_port in line.endpoints:
-                if endpoint_wheel == wheel and endpoint_port == port:
-                    return line_name
-        return None
+        return self._line_lookup.get((wheel, port))
 
     @staticmethod
     def _normalise(vector: tuple[float, float, float]) -> tuple[float, float, float]:

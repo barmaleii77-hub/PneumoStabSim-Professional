@@ -1083,6 +1083,13 @@ class PhysicsWorker(QObject):
                 wheel_state.force_pneumatic = pneumo_update.wheel_forces.get(
                     wheel, wheel_state.force_pneumatic
                 )
+                head_pressure, rod_pressure = pneumo_update.pressures.get(
+                    wheel, (None, None)
+                )
+                if head_pressure is not None:
+                    wheel_state.pressure_head = head_pressure
+                if rod_pressure is not None:
+                    wheel_state.pressure_rod = rod_pressure
 
                 axis = pneumo_update.axis_directions.get(wheel)
                 if axis is not None:
