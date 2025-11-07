@@ -2,6 +2,7 @@ module components
 
 singleton DepthTextureActivator 1.0 DepthTextureActivator.qml
 IblProbeLoader 1.0 IblProbeLoader.qml
+AssetsLoader 1.0 AssetsLoader.qml
 ProfileManagerControls 1.0 ProfileManagerControls.qml
 SignalTraceIndicator 1.0 SignalTraceIndicator.qml
 SignalTracePanel 1.0 SignalTracePanel.qml
