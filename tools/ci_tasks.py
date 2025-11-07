@@ -475,7 +475,8 @@ def _finalise_coverage_reports() -> Path | None:
         "coverage",
         "json",
         "--pretty-print",
-        f"--output={COVERAGE_JSON_PATH}",
+        "-o",
+        str(COVERAGE_JSON_PATH),
     ]
     _run_command(
         json_command,

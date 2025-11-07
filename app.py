@@ -17,9 +17,9 @@ for candidate in _PATH_CANDIDATES:
         sys.path.insert(0, candidate)
 
 
-from src.cli.arguments import create_bootstrap_parser
-from src.diagnostics.logger_factory import get_logger
-from src.ui.startup import bootstrap_graphics_environment
+from src.cli.arguments import create_bootstrap_parser  # noqa: E402
+from src.diagnostics.logger_factory import get_logger  # noqa: E402
+from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 
 
 bootstrap_parser = create_bootstrap_parser()
@@ -83,13 +83,13 @@ except Exception:
 # Bootstrap Phase1: Environment & Terminal
 # =============================================================================
 
-from src.diagnostics.warnings import log_warning, log_error
-from src.bootstrap.environment import (
+from src.diagnostics.warnings import log_warning, log_error  # noqa: E402
+from src.bootstrap.environment import (  # noqa: E402
     setup_qtquick3d_environment,
     configure_qt_environment,
 )
-from src.bootstrap.terminal import configure_terminal_encoding
-from src.bootstrap.version_check import check_python_compatibility
+from src.bootstrap.terminal import configure_terminal_encoding  # noqa: E402
+from src.bootstrap.version_check import check_python_compatibility  # noqa: E402
 
 # Настройка окружения перед импортом Qt
 qtquick3d_setup_ok, qtquick3d_error = setup_qtquick3d_environment(log_error)
