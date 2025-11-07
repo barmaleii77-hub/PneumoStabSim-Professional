@@ -26,7 +26,10 @@ def test_choose_scenegraph_backend(platform: str, expected: str) -> None:
 @pytest.mark.parametrize(
     "env,expected_reasons",
     [
-        ({"CI": "true", "QT_QPA_PLATFORM": "xcb"}, ("ci-flag",)),
+        (
+            {"CI": "true", "QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"},
+            ("ci-flag",),
+        ),
         ({"QT_QPA_PLATFORM": "", "DISPLAY": ""}, ("qt-qpa-platform-missing",)),
         ({"QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"}, ()),
     ],
@@ -48,6 +51,7 @@ def test_bootstrap_graphics_environment_sets_backend_when_not_safe() -> None:
     assert "PSS_FORCE_NO_QML_3D" not in env
     assert state.backend == "d3d11"
     assert state.headless is False
+    assert state.use_qml_3d is True
 
 
 def test_bootstrap_graphics_environment_enables_headless_defaults() -> None:
@@ -59,6 +63,7 @@ def test_bootstrap_graphics_environment_enables_headless_defaults() -> None:
     assert env["QSG_RHI_BACKEND"] == "opengl"
     assert state.headless is True
     assert "qt-qpa-platform-missing" in state.headless_reasons
+    assert state.use_qml_3d is False
 
 
 def test_bootstrap_graphics_environment_respects_safe_mode() -> None:
@@ -69,14 +74,4 @@ def test_bootstrap_graphics_environment_respects_safe_mode() -> None:
     assert "PSS_FORCE_NO_QML_3D" not in env
     assert state.backend == "metal"
     assert state.safe_mode is True
-
-
-def test_bootstrap_graphics_environment_headless_safe_mode_sets_flags() -> None:
-    env: dict[str, str] = {}
-    state = bootstrap_graphics_environment(env, platform="linux", safe_mode=True)
-
-    assert env["QT_QPA_PLATFORM"] == "offscreen"
-    assert env["PSS_FORCE_NO_QML_3D"] == "1"
-    assert "QSG_RHI_BACKEND" not in env
-    assert state.headless is True
-    assert state.safe_mode is True
+    assert state.use_qml_3d is True

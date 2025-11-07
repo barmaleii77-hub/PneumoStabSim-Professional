@@ -114,6 +114,8 @@ GRAPHICS_BOOTSTRAP_STATE = bootstrap_graphics_environment(
     safe_mode=SAFE_GRAPHICS_MODE_REQUESTED or SAFE_RUNTIME_MODE_REQUESTED,
 )
 
+BOOTSTRAP_USE_QML_3D = GRAPHICS_BOOTSTRAP_STATE.use_qml_3d
+
 _BOOTSTRAP_LOGGER.info(
     "graphics-backend-prepared",
     platform=sys.platform,
@@ -124,6 +126,7 @@ _BOOTSTRAP_LOGGER.info(
     qt_qpa_platform=os.environ.get("QT_QPA_PLATFORM"),
     legacy_requested=LEGACY_MODE_REQUESTED,
     safe_runtime=SAFE_RUNTIME_MODE_REQUESTED,
+    use_qml_3d=BOOTSTRAP_USE_QML_3D,
 )
 
 
@@ -181,6 +184,7 @@ def main() -> int:
         force_disable_reasons.append("safe-cli")
 
     setattr(args, "bootstrap_headless", GRAPHICS_BOOTSTRAP_STATE.headless)
+    setattr(args, "bootstrap_use_qml_3d", BOOTSTRAP_USE_QML_3D)
     setattr(args, "force_disable_qml_3d", bool(force_disable_reasons))
     setattr(args, "force_disable_qml_3d_reasons", tuple(force_disable_reasons))
     setattr(
