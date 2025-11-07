@@ -339,6 +339,7 @@ Effect {
     property var shaderSanitizationWarnings: ({})
     property var shaderVariantSelectionCache: ({})
     property var shaderVariantMissingWarnings: ({})
+    property var shaderStatusCache: ({})
 
     onUseGlesShadersChanged: {
         console.log("🎚️ FogEffect: shader profile toggled ->", useGlesShaders
@@ -913,6 +914,15 @@ Effect {
             console.debug("FogEffect: unable to read shader status", shaderId, error)
             return
         }
+
+        var cacheKey = shaderId || "unknown"
+        var cachedStatuses = shaderStatusCache
+        if (cachedStatuses && cachedStatuses[cacheKey] === status)
+            return
+        if (!cachedStatuses || typeof cachedStatuses !== "object")
+            cachedStatuses = ({})
+        cachedStatuses[cacheKey] = status
+        shaderStatusCache = cachedStatuses
         // qmllint disable missing-property
         if (shaderItem === fogFragmentShader) {
             if (status === Shader.Error) {
@@ -948,7 +958,9 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
                 console.debug("FogEffect: shader log handler unavailable for fog.vert")
         }
-        // NOTE: direct onStatusChanged handler removed for compatibility; see Connections below
+        // qmllint disable unqualified
+        onStatusChanged: fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert")
+        // qmllint enable unqualified
     }
 
     Shader {
@@ -977,7 +989,9 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog.frag")
         }
-        // NOTE: direct onStatusChanged handler removed for compatibility; see Connections below
+        // qmllint disable unqualified
+        onStatusChanged: fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag")
+        // qmllint enable unqualified
     }
 
     Shader {
@@ -990,7 +1004,9 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFallbackShader, "fog_fallback.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog_fallback.frag")
         }
-        // NOTE: direct onStatusChanged handler removed for compatibility; see Connections below
+        // qmllint disable unqualified
+        onStatusChanged: fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag")
+        // qmllint enable unqualified
     }
 
     // Compatible signal hookups (Qt versions lacking Shader.statusChanged)

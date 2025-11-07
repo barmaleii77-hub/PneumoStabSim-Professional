@@ -33,6 +33,10 @@ import "../diagnostics/LogBridge.js" as Diagnostics
     property bool postProcessingBypassed: false
     property string postProcessingBypassReason: ""
     property var postProcessingEffectBackup: []
+    property bool simpleFallbackActive: false
+    property string simpleFallbackReason: ""
+    signal simpleFallbackRequested(string reason)
+    signal simpleFallbackRecovered()
     readonly property var emptyDefaultsObject: Object.freeze({})
     readonly property var emptyGeometryDefaults: emptyDefaultsObject
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
@@ -517,6 +521,7 @@ signal animationToggled(bool running)
         var previousActive = postProcessingBypassed
         postProcessingBypassed = !!active
         postProcessingBypassReason = postProcessingBypassed ? normalizedReason : ""
+        updateSimpleFallbackState(postProcessingBypassed, postProcessingBypassReason)
 
         if (!sceneView) {
             console.warn("[SimulationRoot] Unable to toggle post-processing bypass; sceneView is not set", active, normalizedReason)
@@ -555,10 +560,37 @@ signal animationToggled(bool running)
         }
     }
 
+    function updateSimpleFallbackState(active, reason) {
+        var normalizedReason = reason && reason.length ? reason : qsTr("Rendering pipeline failure")
+        if (active) {
+            var reasonChanged = simpleFallbackReason !== normalizedReason
+            if (!simpleFallbackActive) {
+                simpleFallbackActive = true
+                simpleFallbackReason = normalizedReason
+                console.warn("[SimulationRoot] Simplified rendering requested ->", normalizedReason)
+                simpleFallbackRequested(normalizedReason)
+            } else if (reasonChanged) {
+                simpleFallbackReason = normalizedReason
+                console.warn("[SimulationRoot] Simplified rendering reason updated ->", normalizedReason)
+                simpleFallbackRequested(normalizedReason)
+            }
+        } else {
+            if (simpleFallbackActive) {
+                simpleFallbackActive = false
+                simpleFallbackReason = ""
+                console.log("[SimulationRoot] Simplified rendering fallback cleared")
+                simpleFallbackRecovered()
+            } else if (simpleFallbackReason.length) {
+                simpleFallbackReason = ""
+            }
+        }
+    }
+
     Connections {
         id: postEffectsSignals
         target: root.postEffects
         enabled: !!target
+        ignoreUnknownSignals: true
 
         function onEffectCompilationError(effectId, message) {
             var resolvedMessage = message
@@ -588,6 +620,14 @@ signal animationToggled(bool running)
             if (!target || !target.effectsBypass)
                 return
             root.applyPostProcessingBypass(true, reason)
+        }
+
+        function onSimplifiedRenderingRequested(reason) {
+            root.updateSimpleFallbackState(true, reason)
+        }
+
+        function onSimplifiedRenderingRecovered() {
+            root.updateSimpleFallbackState(false, "")
         }
     }
 

@@ -28,6 +28,8 @@ Item {
     property bool telemetryPanelVisible: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
+    property bool simpleFallbackActive: false
+    property string simpleFallbackReason: ""
 
     // ---------------------------------------------------------
     // Environment defaults mirrored from SceneEnvironmentController
@@ -423,10 +425,17 @@ Item {
         }
         onStatusChanged: {
             if (status === Loader.Error) {
-                console.error("Failed to load SimulationRoot:", errorString())
-                fallbackLoader.active = true
+                var loadError = errorString()
+                console.error("Failed to load SimulationRoot:", loadError)
+                var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
+                simpleFallbackReason = normalizedReason
+                if (!simpleFallbackActive)
+                    console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
+                simpleFallbackActive = true
             }
             if (status === Loader.Ready) {
+                if (item)
+                    item.visible = !simpleFallbackActive
                 _flushQueuedBatches()
             }
         }
@@ -437,6 +446,36 @@ Item {
             if (item && item.animationToggled) {
                 item.animationToggled.connect(root.animationToggled)
             }
+            if (item)
+                item.visible = !root.simpleFallbackActive
+        }
+    }
+
+    Connections {
+        target: simulationLoader.item
+        ignoreUnknownSignals: true
+
+        function onSimpleFallbackRequested(reason) {
+            var normalized = reason && reason.length ? reason : "Rendering pipeline failure"
+            if (!root.simpleFallbackActive) {
+                console.warn("[main.qml] Simplified rendering fallback activated:", normalized)
+            } else if (root.simpleFallbackReason !== normalized) {
+                console.warn("[main.qml] Simplified rendering reason updated:", normalized)
+            }
+            root.simpleFallbackReason = normalized
+            root.simpleFallbackActive = true
+            if (simulationLoader.item)
+                simulationLoader.item.visible = false
+        }
+
+        function onSimpleFallbackRecovered() {
+            if (!root.simpleFallbackActive)
+                return
+            root.simpleFallbackActive = false
+            root.simpleFallbackReason = ""
+            if (simulationLoader.item)
+                simulationLoader.item.visible = true
+            console.log("[main.qml] Simplified rendering fallback cleared")
         }
     }
 
@@ -444,7 +483,7 @@ Item {
         id: fallbackLoader
         objectName: "fallbackLoader"
         anchors.fill: parent
-        active: !root.hasSceneBridge
+        active: !root.hasSceneBridge || root.simpleFallbackActive
         sourceComponent: SimulationFallbackRoot {}
         onStatusChanged: {
             if (status === Loader.Ready) {
