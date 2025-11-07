@@ -35,28 +35,40 @@ def _compute_penetration_volume(state: PhysicsStepState, line_name: Line) -> flo
 def update_gas_state(state: PhysicsStepState) -> None:
     """Synchronise gas network with mechanical configuration."""
 
-    line_volumes = state.pneumatic_system.get_line_volumes()
-    corrected_volumes: Dict[Line, float] = {}
-    for line_name, volume_info in line_volumes.items():
-        total_volume = float(volume_info.get("total_volume"))
-        penetration_volume = _compute_penetration_volume(state, line_name)
-        corrected_volumes[line_name] = max(total_volume - penetration_volume, 1e-9)
+    solver = getattr(state.pneumatic_system, "solve_gas_state", None)
+    if callable(solver):
+        result = solver(
+            thermo_mode=state.thermo_mode,
+            master_isolation_open=state.master_isolation_open,
+            receiver_volume=state.receiver_volume,
+            receiver_mode=state.receiver_mode,
+            dt=state.dt,
+            logger=state.logger,
+        )
+    else:
+        line_volumes = state.pneumatic_system.get_line_volumes()
+        corrected_volumes: Dict[Line, float] = {}
+        for line_name, volume_info in line_volumes.items():
+            total_volume = float(volume_info.get("total_volume"))
+            penetration_volume = _compute_penetration_volume(state, line_name)
+            corrected_volumes[line_name] = max(total_volume - penetration_volume, 1e-9)
 
-    state.gas_network.master_isolation_open = state.master_isolation_open
-    state.gas_network.update_pressures_with_explicit_volumes(
-        corrected_volumes, state.thermo_mode
-    )
-
-    state.gas_network.tank.mode = state.receiver_mode
-    if abs(state.gas_network.tank.V - state.receiver_volume) > 1e-9:
-        apply_instant_volume_change(
-            state.gas_network.tank,
-            state.receiver_volume,
-            gamma=state.gas_network.tank.gamma,
+        state.gas_network.master_isolation_open = state.master_isolation_open
+        state.gas_network.update_pressures_with_explicit_volumes(
+            corrected_volumes, state.thermo_mode
         )
 
-    state.gas_network.apply_valves_and_flows(state.dt, state.logger)
-    state.gas_network.enforce_master_isolation(state.logger, dt=state.dt)
+        state.gas_network.tank.mode = state.receiver_mode
+        if abs(state.gas_network.tank.V - state.receiver_volume) > 1e-9:
+            apply_instant_volume_change(
+                state.gas_network.tank,
+                state.receiver_volume,
+                gamma=state.gas_network.tank.gamma,
+            )
+
+        state.gas_network.apply_valves_and_flows(state.dt, state.logger)
+        state.gas_network.enforce_master_isolation(state.logger, dt=state.dt)
+        result = None
 
     for line_name, gas_state in state.gas_network.lines.items():
         line_state = state.line_states[line_name]
@@ -83,3 +95,12 @@ def update_gas_state(state: PhysicsStepState) -> None:
     state.tank_state.temperature = tank_state.T
     state.tank_state.mass = tank_state.m
     state.tank_state.volume = tank_state.V
+
+    if result is not None:
+        for wheel, force in result.wheel_forces.items():
+            try:
+                state.wheel_states[wheel].force_pneumatic = force
+            except KeyError:
+                continue
+        for wheel, piston in result.piston_positions.items():
+            state.prev_piston_positions[wheel] = piston

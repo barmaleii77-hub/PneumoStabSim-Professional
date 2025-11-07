@@ -4,6 +4,7 @@ PneumoStabSim - Pneumatic Stabilizer Simulator
 Main application entry point - MODULAR VERSION v4.9.5
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -26,6 +27,11 @@ bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv
 
 SAFE_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
+HEADLESS_SAFE_REQUESTED = bool(getattr(bootstrap_args, "safe", False))
+
+if HEADLESS_SAFE_REQUESTED:
+    # Mark the intent early so bootstrap helpers can respect headless execution.
+    os.environ.setdefault("PSS_SAFE_HEADLESS", "1")
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
     from src.bootstrap.environment_check import (

@@ -1394,6 +1394,87 @@ class SignalsRouter:
                     "Failed to emit receiver volume update: %s", exc
                 )
 
+        geometry_changed = bool(
+            {"receiver_diameter", "receiver_length"} & pneumatic_updates.keys()
+        )
+        panel_state_manager = None
+        panel = getattr(window, "pneumo_panel", None)
+        if panel is not None:
+            panel_state_manager = getattr(panel, "state_manager", None)
+
+        volume_mode = None
+        if panel_state_manager is not None and hasattr(
+            panel_state_manager, "get_volume_mode"
+        ):
+            try:
+                volume_mode = str(panel_state_manager.get_volume_mode()).upper()
+            except Exception:
+                volume_mode = None
+        if volume_mode is None:
+            manager = getattr(window, "settings_manager", None)
+            if manager is not None:
+                try:
+                    volume_mode = str(
+                        manager.get("current.pneumatic.volume_mode", "MANUAL")
+                    ).upper()
+                except Exception:
+                    volume_mode = None
+
+        if geometry_changed and volume_mode == "GEOMETRIC":
+            new_volume: float | None = None
+            try:
+                if panel_state_manager is not None and hasattr(
+                    panel_state_manager, "refresh_geometric_volume"
+                ):
+                    new_volume = float(panel_state_manager.refresh_geometric_volume())
+                else:
+                    from src.ui.panels.pneumo.state_manager import (
+                        PneumoStateManager,
+                    )
+
+                    manager = getattr(window, "settings_manager", None)
+                    current = {}
+                    if manager is not None:
+                        try:
+                            current = manager.get("current.pneumatic", {}) or {}
+                        except Exception:
+                            current = {}
+
+                    diameter = pneumatic_updates.get("receiver_diameter")
+                    if diameter is None:
+                        diameter = current.get("receiver_diameter")
+                    length = pneumatic_updates.get("receiver_length")
+                    if length is None:
+                        length = current.get("receiver_length")
+                    if diameter is not None and length is not None:
+                        new_volume = float(
+                            PneumoStateManager.calculate_geometric_volume(
+                                float(diameter), float(length)
+                            )
+                        )
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to recompute geometric receiver volume: %s", exc
+                )
+                new_volume = None
+
+            if new_volume is not None:
+                SignalsRouter.logger.info(
+                    "Receiver geometry updated — recalculated volume: %.6f m^3",
+                    new_volume,
+                )
+                window._apply_settings_update(
+                    "pneumatic", {"receiver_volume": float(new_volume)}
+                )
+                try:
+                    bus = window.simulation_manager.state_bus
+                    bus.set_receiver_volume.emit(float(new_volume), "GEOMETRIC")
+                except Exception as exc:
+                    SignalsRouter.logger.debug(
+                        "Failed to emit receiver volume update after geometry change: %s",
+                        exc,
+                    )
+
     @staticmethod
     def handle_simulation_settings_changed(
         window: MainWindow, payload: Mapping[str, Any]

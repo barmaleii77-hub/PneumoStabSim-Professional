@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Mapping, Optional
+import math
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -598,6 +599,7 @@ class GeometryPanel(QWidget):
                 self._get_fast_geometry_update(param_name, value)
             )
         self._mark_custom_on_user_change()
+        self._apply_geometry_corrections(param_name)
 
     def _handle_rod_diameter_update(
         self, param_name: str, value: float, *, live: bool
@@ -690,6 +692,123 @@ class GeometryPanel(QWidget):
         payload["rod_diameter_mm"] = rod_diameter_front * 1000.0
 
         return payload
+
+    def _apply_geometry_corrections(self, source_param: str) -> None:
+        """Enforce dependent geometry constraints and emit warnings when clamping."""
+
+        track = float(self.parameters.get("track", 0.0) or 0.0)
+        track_half = max(track / 2.0, 1e-6)
+        frame_to_pivot = float(self.parameters.get("frame_to_pivot", 0.0) or 0.0)
+        lever_length = float(self.parameters.get("lever_length", 0.0) or 0.0)
+        stroke = float(self.parameters.get("stroke_m", 0.0) or 0.0)
+        cyl_body = float(self.parameters.get("cylinder_length", 0.0) or 0.0)
+        rod_length = float(self.parameters.get("piston_rod_length_m", 0.0) or 0.0)
+        rod_position = float(self.parameters.get("rod_position", 0.0) or 0.0)
+
+        adjustments: list[tuple[str, float, str]] = []
+
+        # Frame-to-pivot cannot exceed half track; adjust lever length accordingly.
+        if source_param in {"frame_to_pivot", "track"}:
+            new_frame_to_pivot = min(frame_to_pivot, track_half)
+            if not math.isclose(
+                new_frame_to_pivot, frame_to_pivot, rel_tol=1e-6, abs_tol=1e-6
+            ):
+                adjustments.append(
+                    (
+                        "frame_to_pivot",
+                        new_frame_to_pivot,
+                        f"WARNING: frame_to_pivot clamped to {new_frame_to_pivot:.3f} m (track/2)",
+                    )
+                )
+                frame_to_pivot = new_frame_to_pivot
+            new_lever = max(track_half - frame_to_pivot, 0.0)
+            if not math.isclose(new_lever, lever_length, rel_tol=1e-6, abs_tol=1e-6):
+                adjustments.append(
+                    (
+                        "lever_length",
+                        new_lever,
+                        "WARNING: lever_length adjusted to maintain diagonal geometry",
+                    )
+                )
+                lever_length = new_lever
+
+        # Lever length cannot exceed half track; adjust frame-to-pivot accordingly.
+        elif source_param == "lever_length":
+            new_lever = min(lever_length, track_half)
+            if not math.isclose(new_lever, lever_length, rel_tol=1e-6, abs_tol=1e-6):
+                adjustments.append(
+                    (
+                        "lever_length",
+                        new_lever,
+                        f"WARNING: lever_length clamped to {new_lever:.3f} m (track/2)",
+                    )
+                )
+                lever_length = new_lever
+            new_frame_to_pivot = max(track_half - lever_length, 0.0)
+            if not math.isclose(
+                new_frame_to_pivot, frame_to_pivot, rel_tol=1e-6, abs_tol=1e-6
+            ):
+                adjustments.append(
+                    (
+                        "frame_to_pivot",
+                        new_frame_to_pivot,
+                        "WARNING: frame_to_pivot adjusted to preserve lever reach",
+                    )
+                )
+                frame_to_pivot = new_frame_to_pivot
+
+        # Suspension travel must fit within the available stroke.
+        max_susp_travel = 2.0 * max(lever_length, 0.0)
+        if stroke < max_susp_travel:
+            adjustments.append(
+                (
+                    "stroke_m",
+                    max_susp_travel,
+                    "WARNING: stroke increased to cover full suspension travel",
+                )
+            )
+            stroke = max_susp_travel
+
+        # Rod length must exceed cylinder body to avoid over-extension.
+        min_rod_length = cyl_body * 1.1 if cyl_body > 0 else rod_length
+        if rod_length < min_rod_length:
+            adjustments.append(
+                (
+                    "piston_rod_length_m",
+                    min_rod_length,
+                    "WARNING: piston rod length extended to maintain safety margin",
+                )
+            )
+            rod_length = min_rod_length
+
+        # Clamp rod position to avoid singular configurations.
+        clamped_position = float(min(max(rod_position, 0.1), 0.9))
+        if not math.isclose(clamped_position, rod_position, rel_tol=1e-6, abs_tol=1e-6):
+            adjustments.append(
+                (
+                    "rod_position",
+                    clamped_position,
+                    "WARNING: rodPosition clamped to [0.1, 0.9]",
+                )
+            )
+
+        if not adjustments:
+            return
+
+        self._resolving_conflict = True
+        try:
+            for name, new_value, message in adjustments:
+                self.parameters[name] = new_value
+                self._persist_parameter(name, new_value)
+                self._set_parameter_value(name, new_value)
+                self.logger.warning(message)
+        finally:
+            self._resolving_conflict = False
+
+        self.geometry_updated.emit(self.parameters.copy())
+        for name, new_value, _ in adjustments:
+            self.parameter_changed.emit(name, new_value)
+            self.geometry_changed.emit(self._get_fast_geometry_update(name, new_value))
 
     def _set_parameter_value(self, param_name: str, value: float) -> None:
         mapping = {

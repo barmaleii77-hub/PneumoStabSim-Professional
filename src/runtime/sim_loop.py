@@ -52,6 +52,7 @@ from src.pneumo.gas_state import (
 )
 from src.pneumo.network import GasNetwork
 from src.pneumo.thermo import PolytropicParameters
+from src.physics.pneumo_system import PneumaticSystem as PneumaticSystemSolver
 from src.road.engine import RoadInput, create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
 from config.constants import get_pneumo_relief_thresholds
@@ -505,6 +506,8 @@ class PhysicsWorker(QObject):
             leak_coefficient = _resolve_positive("leak_coefficient")
             leak_reference_area = _resolve_positive("leak_reference_area")
             diagonal_coupling_diameter = _resolve_positive("diagonal_coupling_dia")
+            dead_zone_head = _resolve_positive("dead_zone_head_m3")
+            dead_zone_rod = _resolve_positive("dead_zone_rod_m3")
 
             relief_defaults = get_pneumo_relief_thresholds()
             relief_min_threshold = _get_pressure_setting(
@@ -525,14 +528,14 @@ class PhysicsWorker(QObject):
                 mode=receiver_mode,
             )
 
-            self.pneumatic_system = create_standard_diagonal_system(
+            structure = create_standard_diagonal_system(
                 cylinder_specs=config_defaults["cylinder_specs"],
                 line_configs=config_defaults["line_configs"],
                 receiver=receiver_state,
                 master_isolation_open=self.master_isolation_open,
             )
 
-            line_volumes = self.pneumatic_system.get_line_volumes()
+            line_volumes = structure.get_line_volumes()
             line_states: Dict[Line, Any] = {}
             for line_name, volume_info in line_volumes.items():
                 if (
@@ -561,10 +564,10 @@ class PhysicsWorker(QObject):
                 mode=receiver_mode,
             )
 
-            self.gas_network = GasNetwork(
+            gas_network = GasNetwork(
                 lines=line_states,
                 tank=tank_state,
-                system_ref=self.pneumatic_system,
+                system_ref=structure,
                 master_isolation_open=self.master_isolation_open,
                 ambient_temperature=ambient_temperature,
                 relief_min_threshold=relief_min_threshold,
@@ -578,6 +581,16 @@ class PhysicsWorker(QObject):
                 leak_coefficient=leak_coefficient,
                 leak_reference_area=leak_reference_area,
                 master_equalization_diameter=diagonal_coupling_diameter,
+            )
+
+            self.gas_network = gas_network
+            self.pneumatic_system = PneumaticSystemSolver(
+                structure,
+                gas_network,
+                dead_zone_fraction=0.01,
+                dead_zone_head=dead_zone_head or None,
+                dead_zone_rod=dead_zone_rod or None,
+                logger=self.logger,
             )
 
             self.master_equalization_diameter = diagonal_coupling_diameter
@@ -780,6 +793,11 @@ class PhysicsWorker(QObject):
             try:
                 self.pneumatic_system.receiver.mode = mode_enum
                 self.pneumatic_system.receiver.apply_instant_volume_change(volume)
+                if hasattr(self.pneumatic_system, "tank"):
+                    try:
+                        self.pneumatic_system.tank.V = float(volume)
+                    except Exception:
+                        pass
             except Exception as exc:
                 self.logger.warning(f"Failed to update receiver state: {exc}")
 
@@ -791,6 +809,9 @@ class PhysicsWorker(QObject):
                     volume,
                     gamma=self.gas_network.tank.gamma,
                 )
+                self._latest_tank_state.volume = float(self.gas_network.tank.V)
+                self._latest_tank_state.pressure = float(self.gas_network.tank.p)
+                self._latest_tank_state.mass = float(self.gas_network.tank.m)
             except Exception as exc:
                 self.logger.warning(f"Failed to update gas network tank volume: {exc}")
 

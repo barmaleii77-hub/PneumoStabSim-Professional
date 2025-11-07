@@ -19,6 +19,11 @@ def _add_mode_arguments(parser: argparse.ArgumentParser) -> None:
         help="Allow Qt to auto-select the graphics backend (no forced OpenGL)",
     )
     parser.add_argument(
+        "--safe",
+        action="store_true",
+        help="Run without creating the Qt Quick 3D scene (headless safe mode)",
+    )
+    parser.add_argument(
         "--legacy",
         action="store_true",
         help="Launch the legacy Qt Widgets interface without loading QML",
@@ -80,6 +85,7 @@ Examples:
   py app.py --verbose          # Verbose console output
   py app.py --diag             # Run post-run diagnostics to console
   py app.py --safe-mode        # Allow Qt to choose the graphics backend
+  py app.py --safe             # Skip 3D scene initialisation and exit headlessly
   py app.py --legacy           # Launch legacy Qt Widgets UI (no QML)
         """,
     )
