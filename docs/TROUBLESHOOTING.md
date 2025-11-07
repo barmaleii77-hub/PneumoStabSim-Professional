@@ -1,8 +1,67 @@
 # PneumoStabSim - Troubleshooting Guide
 
-## ?? Common Issues and Solutions
+## ✅ Common Issues and Solutions
 
 This guide covers common problems you might encounter and their solutions.
+
+---
+
+## 🚦 Rendering Backends
+
+### Windows (D3D11)
+- **Проблема:** чёрное окно, отсутствует рендеринг.
+  - Проверьте консоль: `python app.py --debug | findstr "rhi"` — ожидается
+    `backend: D3D11`.
+  - Если загружается ANGLE/OpenGL, явно задайте:
+    ```powershell
+    $env:QSG_RHI_BACKEND="d3d11"
+    python app.py
+    ```
+  - При работе через RDP включите `QT_QPA_PLATFORM=offscreen` и запустите
+    `python app.py --safe` для smoke-проверки.
+- **Падения драйвера:** добавьте `--legacy`, чтобы переключить Qt Quick на
+  OpenGL и исключить зависимость от D3D11.
+
+### macOS (Metal)
+- **Симптомы:** окно создаётся, но сцена пустая, лог содержит `rhi: backend: metal`.
+  - Убедитесь, что приложение запущено из активного GUI-сеанса.
+  - Для headless-запусков используйте `QT_QPA_PLATFORM=minimal` и
+    `QT_MAC_WANTS_LAYER=1`, после чего выполните `python app.py --safe`.
+  - Если требуется принудительный OpenGL (например, под Rosetta), установите
+    `QSG_RHI_BACKEND=opengl` либо запускайте `python app.py --legacy`.
+
+### Linux (OpenGL / Mesa)
+- **Симптомы:** краши с `Could not initialize GLX` или `EGL`.
+  - Используйте программный стек:
+    ```sh
+    export QT_QPA_PLATFORM=offscreen
+    export QT_QUICK_BACKEND=software
+    export QSG_RHI_BACKEND=opengl
+    export LIBGL_ALWAYS_SOFTWARE=1
+    python app.py --safe
+    ```
+  - В десктопном режиме убедитесь, что установлен `mesa-vulkan-drivers` либо
+    пропишите `MESA_GL_VERSION_OVERRIDE=4.1` для поддержки Qt Quick 3D.
+- **Сцена черная в Wayland:** запустите с `QT_QPA_PLATFORM=xcb` либо используйте
+  XWayland (`QT_QPA_PLATFORM=wayland` + `--legacy`).
+
+### Общие советы
+- Проверяйте `reports/tests/shader_logs_summary.json` после `make check` — файл
+  фиксирует, какие шейдеры упали в fallback.
+- При необходимости регистрируйте окружение через `python tools/environment/qt_report.py`.
+
+---
+
+## 🖥️ Headless / CI Recipes
+- Экспортируйте `QT_QPA_PLATFORM=offscreen` и запускайте `python app.py --safe` —
+  это эквивалентно smoke-проверке GitHub Actions.
+- Для проверки совместимости шейдеров добавьте `--legacy`, чтобы задействовать
+  OpenGL без RHI.
+- В GitHub Actions используется `scripts/xvfb_wrapper.sh make check`, который
+  создаёт виртуальный дисплей и включён в `docs/CI.md`.
+- Если в логах встречается `QXcbConnection: Could not connect to display`,
+  убедитесь, что установлены `xvfb`, `xauth`, `mesa-utils` и заданы переменные
+  выше до импорта PySide6.
 
 ---
 
