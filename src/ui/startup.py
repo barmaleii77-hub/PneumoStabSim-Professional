@@ -51,12 +51,16 @@ def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str
     if _is_truthy(env.get("CI")):
         reasons.append("ci-flag")
 
-    qt_qpa = (env.get("QT_QPA_PLATFORM") or "").strip().lower()
+    qt_qpa_raw = env.get("QT_QPA_PLATFORM")
+    qt_qpa = (qt_qpa_raw or "").strip().lower()
     has_display = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
-    if qt_qpa in {"offscreen", "minimal", "minimalgl", "vkkhrdisplay"}:
-        reasons.append(f"qt-qpa-platform:{qt_qpa}")
-    elif not qt_qpa and not has_display:
+
+    if not qt_qpa:
         reasons.append("qt-qpa-platform-missing")
+    elif qt_qpa in {"offscreen", "minimal", "minimalgl", "vkkhrdisplay"}:
+        reasons.append(f"qt-qpa-platform:{qt_qpa}")
+    elif not has_display:
+        reasons.append("no-display-server")
 
     return bool(reasons), tuple(reasons)
 
@@ -69,6 +73,7 @@ class GraphicsEnvironmentDecision:
     headless: bool
     headless_reasons: tuple[str, ...]
     safe_mode: bool
+    use_qml_3d: bool
 
 
 def bootstrap_graphics_environment(
@@ -78,6 +83,8 @@ def bootstrap_graphics_environment(
 
     backend = choose_scenegraph_backend(platform)
     headless, reasons = detect_headless_environment(env)
+
+    use_qml_3d = not headless
 
     if headless:
         env["QT_QPA_PLATFORM"] = "offscreen"
@@ -93,6 +100,7 @@ def bootstrap_graphics_environment(
         headless=headless,
         headless_reasons=reasons,
         safe_mode=safe_mode,
+        use_qml_3d=use_qml_3d,
     )
 
 
