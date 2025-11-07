@@ -10,7 +10,7 @@ from src.ui.main_window_pkg.ui_setup import (
     UISetup,
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _assert_case_sensitive(path: Path) -> None:
