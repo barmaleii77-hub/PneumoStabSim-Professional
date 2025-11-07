@@ -63,7 +63,7 @@ ExtendedSceneEnvironment {
             return
         _warningCache[cacheKey] = true
 
-        var fallbackText = fallback === undefined ? "<undefined>" : fallback
+        var fallbackText = fallback === undefined ? "<undefined>" : String(fallback)
         var message = "Missing graphics." + section + "." + keyName + " (" + reason + "); using " + fallbackText
         console.warn("RealismEnvironment:", message)
 
@@ -97,16 +97,26 @@ ExtendedSceneEnvironment {
     }
 
     function _number(section, keys, fallback) {
+        var fallbackValue = fallback
+        if (!isFinite(fallbackValue)) {
+            console.error(
+                        "RealismEnvironment:",
+                        "Invalid numeric fallback for",
+                        section + "." + _primaryKey(keys) + ":",
+                        fallbackValue,
+                        "- using 0 instead")
+            fallbackValue = 0
+        }
         var value = _valueFromSection(section, keys)
         if (value === undefined) {
-            _warn(section, keys, "missing", fallback)
-            return fallback
+            _warn(section, keys, "missing", fallbackValue)
+            return Number(fallbackValue)
         }
         var numeric = Number(value)
         if (isFinite(numeric))
             return numeric
-        _warn(section, keys, "invalid", fallback)
-        return fallback
+        _warn(section, keys, "invalid", fallbackValue)
+        return Number(fallbackValue)
     }
 
     function _string(section, keys, fallback) {
