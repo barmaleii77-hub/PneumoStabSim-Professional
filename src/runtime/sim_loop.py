@@ -858,6 +858,7 @@ class PhysicsWorker(QObject):
 
         receiver_pressure: Optional[float] = None
         receiver_temperature: Optional[float] = None
+        pneumatic_tank_volume: Optional[float] = None
         if self.pneumatic_system is not None:
             try:
                 receiver_state = getattr(self.pneumatic_system, "receiver", None)
@@ -867,6 +868,24 @@ class PhysicsWorker(QObject):
                 receiver_state.apply_instant_volume_change(volume)
                 receiver_pressure = getattr(receiver_state, "p", None)
                 receiver_temperature = getattr(receiver_state, "T", None)
+
+                pneumo_tank = getattr(self.pneumatic_system, "tank", None)
+                if pneumo_tank is not None:
+                    try:
+                        pneumo_tank.mode = mode_enum
+                        if hasattr(pneumo_tank, "apply_instant_volume_change"):
+                            pneumo_tank.apply_instant_volume_change(volume)
+                        elif hasattr(pneumo_tank, "set_volume"):
+                            pneumo_tank.set_volume(volume)
+                        else:
+                            setattr(pneumo_tank, "V", volume)
+                        pneumatic_tank_volume = getattr(pneumo_tank, "V", None)
+                    except Exception as tank_exc:
+                        self.logger.warning(
+                            "WARNING: failed to update pneumatic tank volume",
+                            error=str(tank_exc),
+                            exc_info=True,
+                        )
             except Exception as exc:
                 self.logger.warning(
                     "WARNING: failed to update receiver state",
@@ -919,6 +938,7 @@ class PhysicsWorker(QObject):
             tank_temperature_k=tank_temperature,
             receiver_pressure_pa=receiver_pressure,
             receiver_temperature_k=receiver_temperature,
+            pneumatic_tank_volume_m3=pneumatic_tank_volume,
         )
 
     @Slot(float)
