@@ -86,8 +86,6 @@ class MaterialsTab(QWidget):
         texture_widget = FileCyclerWidget(self)
         texture_widget.set_resolution_roots([self._qml_root])
         texture_widget.set_items(self._texture_items)
-        if self._texture_items:
-            texture_widget.set_current_data(self._texture_items[0][1], emit=False)
         texture_widget.currentChanged.connect(
             lambda path: self._on_texture_changed(path)
         )
@@ -351,10 +349,6 @@ class MaterialsTab(QWidget):
             self._logger.debug(
                 "Applied %d/%d material controls", applied_count, len(st)
             )
-            texture_ctrl = self._controls.get("texture_path")
-            if isinstance(texture_ctrl, FileCyclerWidget):
-                if not texture_ctrl.current_path() and texture_ctrl.first_path():
-                    texture_ctrl.set_current_data(texture_ctrl.first_path(), emit=False)
         finally:
             for control in self._controls.values():
                 try:

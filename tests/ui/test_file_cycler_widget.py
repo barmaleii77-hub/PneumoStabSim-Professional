@@ -63,6 +63,33 @@ def test_file_cycler_missing_path_shows_indicator_and_warning(
 
 
 @pytest.mark.gui
+def test_file_cycler_keeps_missing_selection_when_items_refresh(
+    qapp,
+    qtbot,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    widget = FileCyclerWidget()
+    qtbot.addWidget(widget)
+
+    monkeypatch.setattr(
+        "PySide6.QtWidgets.QMessageBox.warning",
+        lambda *args, **kwargs: None,
+    )
+
+    widget.set_items([("First", "first.png")])
+    widget.set_current_data("missing.png", emit=False)
+    widget.set_items([("First", "first.png"), ("Second", "second.png")])
+
+    widget.show()
+    qapp.processEvents()
+
+    assert widget.current_path() == "missing.png"
+    assert widget.is_missing()
+    indicator = widget.findChild(QLabel, "fileCyclerMissingIndicator")
+    assert indicator is not None and indicator.isVisible()
+
+
+@pytest.mark.gui
 def test_file_cycler_user_confirms_new_path_clears_warning(
     qapp,
     qtbot,

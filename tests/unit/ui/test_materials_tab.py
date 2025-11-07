@@ -1,4 +1,7 @@
+from copy import deepcopy
+
 import pytest
+from PySide6.QtCore import Qt
 
 pytest.importorskip(
     "PySide6.QtWidgets",
@@ -94,3 +97,68 @@ def test_coerce_color_accepts_normalised_tuple(qapp):
     coerced_255 = tab._coerce_color(rgb_255)  # noqa: SLF001 - test helper
 
     assert coerced_255 == "#4080ff"
+
+
+@pytest.mark.gui
+def test_materials_tab_preserves_missing_texture_until_user_confirms(
+    qapp,
+    qtbot,
+    materials_payload,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tab = MaterialsTab()
+    qtbot.addWidget(tab)
+
+    monkeypatch.setattr(
+        "PySide6.QtWidgets.QMessageBox.warning",
+        lambda *args, **kwargs: None,
+    )
+
+    textures = [("One", "one.png"), ("Two", "two.png")]
+    texture_widget = tab.get_controls()["texture_path"]
+    texture_widget.set_items(textures)
+
+    payload = deepcopy(materials_payload)
+    payload["frame"]["texture_path"] = "missing.png"
+    tab.set_state(payload)
+
+    tab.show()
+    qapp.processEvents()
+
+    assert texture_widget.current_path() == "missing.png"
+    assert texture_widget.is_missing()
+
+    cached = tab.get_all_state()
+    assert cached["frame"]["texture_path"] == "missing.png"
+
+    qtbot.mouseClick(texture_widget._next_btn, Qt.LeftButton)  # type: ignore[attr-defined]
+    qapp.processEvents()
+
+    assert texture_widget.current_path() == "one.png"
+    assert not texture_widget.is_missing()
+
+    updated = tab.get_all_state()
+    assert updated["frame"]["texture_path"] == "one.png"
+
+
+@pytest.mark.gui
+def test_materials_tab_empty_texture_does_not_autoselect(
+    qapp,
+    qtbot,
+    materials_payload,
+) -> None:
+    tab = MaterialsTab()
+    qtbot.addWidget(tab)
+
+    textures = [("One", "one.png"), ("Two", "two.png")]
+    texture_widget = tab.get_controls()["texture_path"]
+    texture_widget.set_items(textures)
+
+    payload = deepcopy(materials_payload)
+    payload["frame"]["texture_path"] = ""
+    tab.set_state(payload)
+
+    assert texture_widget.current_path() == ""
+
+    cached = tab.get_all_state()
+    assert cached["frame"]["texture_path"] == ""
