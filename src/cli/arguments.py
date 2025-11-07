@@ -53,7 +53,9 @@ def _add_main_arguments(
     """Register the main CLI arguments for the application."""
 
     parser.add_argument(
-        "--test-mode", action="store_true", help="Test mode (auto-close 5s)"
+        "--test-mode",
+        action="store_true",
+        help="Test mode (auto-close 5s; safe bootstrap alias: --safe)",
     )
     parser.add_argument("--verbose", action="store_true", help="Enable console logging")
     parser.add_argument(
@@ -103,7 +105,19 @@ def parse_arguments(argv: Iterable[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments passed to the application."""
 
     parser = _create_argument_parser(include_bootstrap=True)
-    return parser.parse_args(None if argv is None else list(argv))
+    namespace = parser.parse_args(None if argv is None else list(argv))
+
+    safe_requested = bool(getattr(namespace, "safe", False))
+    if safe_requested:
+        setattr(namespace, "test_mode", True)
+
+    setattr(
+        namespace,
+        "safe_cli_mode",
+        bool(getattr(namespace, "safe", False) or getattr(namespace, "test_mode", False)),
+    )
+
+    return namespace
 
 
 __all__ = ["create_bootstrap_parser", "parse_arguments"]

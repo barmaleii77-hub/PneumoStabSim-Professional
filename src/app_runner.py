@@ -56,6 +56,7 @@ class ApplicationRunner:
         self.use_legacy_ui: bool = False
         self.safe_mode_requested: bool = False
         self.safe_runtime_requested: bool = False
+        self.safe_cli_mode: bool = False
         self._is_headless: bool = False
         self._headless_reason: Optional[str] = None
         self._surface_format_configured: bool = False
@@ -146,6 +147,18 @@ class ApplicationRunner:
             else:
                 print(
                     "ℹ️ Safe mode active — relying on Qt runtime to choose the scene graph backend"
+                )
+            return
+
+        if self.safe_cli_mode:
+            if self.app_logger:
+                self.app_logger.info(
+                    "Safe CLI mode active — skipping forced OpenGL surface format",
+                    extra={"reason": "cli-safe"},
+                )
+            else:
+                print(
+                    "ℹ️ Safe CLI mode active — relying on Qt runtime to choose the scene graph backend"
                 )
             return
 
@@ -470,6 +483,17 @@ class ApplicationRunner:
 
     def create_main_window(self) -> None:
         """Создание и отображение главного окна."""
+        if self.safe_runtime_requested and self.safe_cli_mode:
+            if self.app_logger:
+                self.app_logger.info(
+                    "Safe CLI mode active — skipping MainWindow instantiation",
+                    extra={"reason": "cli-safe"},
+                )
+            else:
+                print("ℹ️ Safe CLI mode: skipping MainWindow creation; exiting shortly.")
+            self.window_instance = None
+            return
+
         if self.safe_runtime_requested:
             if self.app_logger:
                 self.app_logger.info(
@@ -801,19 +825,24 @@ class ApplicationRunner:
         )
         self.window_instance._auto_close_timer.start(5000)
 
-    def _activate_safe_runtime_mode(self) -> None:
-        """Schedule a graceful exit when safe runtime mode is requested."""
+    def _schedule_safe_exit(
+        self,
+        *,
+        reason: str,
+        log_message: str,
+        console_message: str,
+        timer_ms: int = 0,
+    ) -> None:
+        """Schedule a graceful Qt shutdown without showing the main window."""
 
         app_instance = getattr(self, "app_instance", None)
         if app_instance is None:
             return
 
         if self.app_logger:
-            self.app_logger.info(
-                "Safe runtime mode: exiting without showing UI (offscreen/headless)"
-            )
+            self.app_logger.info(log_message, extra={"reason": reason})
         else:
-            print("ℹ️ Safe runtime mode: exiting without creating GUI components")
+            print(console_message)
 
         timer = self.QTimer(app_instance)
         timer.setSingleShot(True)
@@ -821,13 +850,23 @@ class ApplicationRunner:
         def _quit_app() -> None:
             if self.app_logger:
                 self.app_logger.info(
-                    "Safe runtime mode timer triggered — closing application"
+                    "Safe shutdown timer triggered", extra={"reason": reason}
                 )
             app_instance.exit(0)
 
         timer.timeout.connect(_quit_app)
-        timer.start(1000)
+        timer.start(timer_ms)
         self._safe_exit_timer = timer
+
+    def _activate_safe_runtime_mode(self) -> None:
+        """Schedule a graceful exit when safe runtime mode is requested."""
+
+        self._schedule_safe_exit(
+            reason="safe-runtime",
+            log_message="Safe runtime mode: exiting without showing UI (offscreen/headless)",
+            console_message="ℹ️ Safe runtime mode: exiting without creating GUI components",
+            timer_ms=0,
+        )
 
     def run(self, args: argparse.Namespace) -> int:
         """
@@ -856,9 +895,14 @@ class ApplicationRunner:
             self.app_logger = self.setup_logging(verbose_console=args.verbose)
 
             self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
+            self.safe_cli_mode = bool(
+                getattr(args, "safe_cli_mode", False)
+            )
             self.safe_runtime_requested = bool(
                 getattr(args, "safe_runtime", False) or getattr(args, "safe", False)
             )
+            if self.safe_cli_mode:
+                self.safe_runtime_requested = True
             self.use_legacy_ui = bool(getattr(args, "legacy", False))
             force_disable_qml_3d = bool(getattr(args, "force_disable_qml_3d", False))
             disable_reasons = tuple(getattr(args, "force_disable_qml_3d_reasons", ()))
@@ -867,6 +911,7 @@ class ApplicationRunner:
                 self.use_legacy_ui
                 or force_disable_qml_3d
                 or self.safe_runtime_requested
+                or self.safe_cli_mode
             ):
                 self.use_qml_3d_schema = False
 
@@ -879,9 +924,15 @@ class ApplicationRunner:
                         "Safe mode enabled — Qt backend auto-selection active"
                     )
                 if self.safe_runtime_requested:
-                    self.app_logger.info(
-                        "Safe runtime mode enabled — UI will not be shown"
-                    )
+                    if self.safe_cli_mode and not getattr(args, "safe", False):
+                        self.app_logger.info(
+                            "Safe CLI mode enabled — UI will not be shown",
+                            extra={"reason": "cli-safe"},
+                        )
+                    else:
+                        self.app_logger.info(
+                            "Safe runtime mode enabled — UI will not be shown"
+                        )
                 if self.use_legacy_ui:
                     self.app_logger.info("Legacy UI mode requested from CLI")
                 if force_disable_qml_3d and not self.use_legacy_ui:
@@ -895,7 +946,12 @@ class ApplicationRunner:
                 reason_label = ", ".join(disable_reasons) or "bootstrap"
                 print(f"⚠️ Qt Quick 3D disabled ({reason_label})")
             elif self.safe_runtime_requested:
-                print("ℹ️ Safe runtime mode enabled — graphical scene disabled")
+                if self.safe_cli_mode and not getattr(args, "safe", False):
+                    print(
+                        "ℹ️ Safe CLI mode enabled — graphical scene will not be initialised"
+                    )
+                else:
+                    print("ℹ️ Safe runtime mode enabled — graphical scene disabled")
 
             self._log_startup_environment()
 
@@ -906,7 +962,19 @@ class ApplicationRunner:
             if not self.safe_runtime_requested:
                 self.create_main_window()
             else:
-                self._activate_safe_runtime_mode()
+                if self.safe_cli_mode and not getattr(args, "safe", False):
+                    self._schedule_safe_exit(
+                        reason="cli-safe",
+                        log_message=(
+                            "Safe CLI mode: exiting after bootstrap without loading main.qml"
+                        ),
+                        console_message=(
+                            "ℹ️ Safe CLI mode: exiting without loading main.qml"
+                        ),
+                        timer_ms=0,
+                    )
+                else:
+                    self._activate_safe_runtime_mode()
 
             print("✅ Ready!")
             print("=" * 60 + "\n")
