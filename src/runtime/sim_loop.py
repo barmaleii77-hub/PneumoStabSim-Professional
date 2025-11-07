@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 import numpy as np
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, Qt
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, QCoreApplication
 
 from .state import (
     StateSnapshot,
@@ -120,6 +120,8 @@ class PhysicsWorker(QObject):
         self.receiver_volume: float = 0.0
         self.receiver_volume_mode: str = ""
         self._volume_limits: tuple[float, float] = (0.0, 0.0)
+        self.dead_zone_head_m3: float = 0.0
+        self.dead_zone_rod_m3: float = 0.0
 
         # Cached state for snapshot creation
         self._latest_wheel_states: Dict[Wheel, WheelState] = {
@@ -233,6 +235,8 @@ class PhysicsWorker(QObject):
                 "polytropic_exchange_area",
                 "leak_coefficient",
                 "leak_reference_area",
+                "dead_zone_head_m3",
+                "dead_zone_rod_m3",
             )
             RECEIVER_VOLUME_LIMIT_KEYS = ("min_m3", "max_m3")
             STRING_PNEUMATIC_KEYS = ("volume_mode", "thermo_mode")
@@ -283,6 +287,8 @@ class PhysicsWorker(QObject):
                 raise RuntimeError(
                     f"Receiver volume {self.receiver_volume} outside limits {self._volume_limits}"
                 )
+            self.dead_zone_head_m3 = pneumatic_numbers.get("dead_zone_head_m3", 0.0)
+            self.dead_zone_rod_m3 = pneumatic_numbers.get("dead_zone_rod_m3", 0.0)
 
             pneumatic_strings = {
                 key: _require_str("pneumatic", key) for key in STRING_PNEUMATIC_KEYS
@@ -525,14 +531,14 @@ class PhysicsWorker(QObject):
                 mode=receiver_mode,
             )
 
-            self.pneumatic_system = create_standard_diagonal_system(
+            structure = create_standard_diagonal_system(
                 cylinder_specs=config_defaults["cylinder_specs"],
                 line_configs=config_defaults["line_configs"],
                 receiver=receiver_state,
                 master_isolation_open=self.master_isolation_open,
             )
 
-            line_volumes = self.pneumatic_system.get_line_volumes()
+            line_volumes = structure.get_line_volumes()
             line_states: Dict[Line, Any] = {}
             for line_name, volume_info in line_volumes.items():
                 if (
@@ -561,10 +567,10 @@ class PhysicsWorker(QObject):
                 mode=receiver_mode,
             )
 
-            self.gas_network = GasNetwork(
+            gas_network = GasNetwork(
                 lines=line_states,
                 tank=tank_state,
-                system_ref=self.pneumatic_system,
+                system_ref=structure,
                 master_isolation_open=self.master_isolation_open,
                 ambient_temperature=ambient_temperature,
                 relief_min_threshold=relief_min_threshold,
@@ -581,6 +587,39 @@ class PhysicsWorker(QObject):
             )
 
             self.master_equalization_diameter = diagonal_coupling_diameter
+
+            self.gas_network = gas_network
+
+            head_fraction = 0.0
+            rod_fraction = 0.0
+            try:
+                sample_wheel = next(iter(structure.cylinders))
+                sample_cylinder = structure.cylinders[sample_wheel]
+                geom = sample_cylinder.spec.geometry
+                half_travel = geom.L_travel_max / 2.0
+                max_head_volume = sample_cylinder.vol_head(-half_travel)
+                max_rod_volume = sample_cylinder.vol_rod(half_travel)
+                if max_head_volume > 0.0:
+                    head_fraction = min(
+                        1.0, max(self.dead_zone_head_m3 / max_head_volume, 0.0)
+                    )
+                if max_rod_volume > 0.0:
+                    rod_fraction = min(
+                        1.0, max(self.dead_zone_rod_m3 / max_rod_volume, 0.0)
+                    )
+            except StopIteration:
+                pass
+
+            from src.physics.pneumo_system import (
+                PneumaticSystem as RuntimePneumaticSystem,
+            )
+
+            self.pneumatic_system = RuntimePneumaticSystem(
+                structure,
+                self.gas_network,
+                dead_zone_head_fraction=head_fraction,
+                dead_zone_rod_fraction=rod_fraction,
+            )
 
             self._latest_tank_state = TankState(
                 pressure=tank_state.p,
@@ -791,10 +830,25 @@ class PhysicsWorker(QObject):
                     volume,
                     gamma=self.gas_network.tank.gamma,
                 )
+                self._latest_tank_state.volume = self.gas_network.tank.V
+                self._latest_tank_state.pressure = self.gas_network.tank.p
+                self._latest_tank_state.mass = self.gas_network.tank.m
             except Exception as exc:
                 self.logger.warning(f"Failed to update gas network tank volume: {exc}")
 
-        self.logger.info(f"Receiver volume set: {volume:.3f}m? (mode: {mode})")
+        self.logger.info(
+            "Receiver volume updated",
+            extra={
+                "volume_m3": float(volume),
+                "mode": mode,
+                "tank_pressure_pa": getattr(self.gas_network.tank, "p", float("nan"))
+                if self.gas_network
+                else None,
+                "tank_mass_kg": getattr(self.gas_network.tank, "m", float("nan"))
+                if self.gas_network
+                else None,
+            },
+        )
 
     @Slot(float)
     def set_physics_dt(self, dt: float):
@@ -853,7 +907,7 @@ class PhysicsWorker(QObject):
                     self.stop_simulation()
 
         except Exception as e:
-            self.logger.error(f"Physics step failed: {e}")
+            self.logger.exception("Physics step failed")
             self.error_occurred.emit(f"Physics step error: {str(e)}")
             self.stop_simulation()
 
@@ -900,6 +954,36 @@ class PhysicsWorker(QObject):
         self._latest_frame_accel = step_state.latest_frame_accel
         self._prev_frame_velocities = step_state.prev_frame_velocities
         self._last_road_inputs = dict(step_state.last_road_inputs)
+
+        try:
+            lever_angles_snapshot = {
+                wheel: float(step_state.wheel_states[wheel].lever_angle)
+                for wheel in Wheel
+            }
+            pneumo_update = self.pneumatic_system.update(
+                lever_angles_snapshot,
+                self.master_isolation_open,
+                step_state.thermo_mode,
+            )
+        except Exception as pneumo_exc:
+            self.logger.debug(
+                "Pneumatic runtime update failed: %s", pneumo_exc, exc_info=True
+            )
+        else:
+            for wheel, volumes in pneumo_update.chamber_volumes.items():
+                try:
+                    wheel_state = self._latest_wheel_states[wheel]
+                    wheel_state.vol_head = volumes[0]
+                    wheel_state.vol_rod = volumes[1]
+                except Exception:
+                    continue
+            self.logger.debug(
+                "Pneumatic frame forces",
+                extra={
+                    "force_left_N": pneumo_update.left_force,
+                    "force_right_N": pneumo_update.right_force,
+                },
+            )
 
         # Update simulation time and step counter
         self.simulation_time += self.dt_physics
@@ -1284,6 +1368,12 @@ class SimulationManager(QObject):
         """Handle physics error"""
         self.logger.error(f"Physics error: {error_msg}")
         self.state_bus.physics_error.emit(error_msg)
+        app = QCoreApplication.instance()
+        if app is not None:
+            self.logger.error(
+                "Physics error propagated to application — requesting exit"
+            )
+            app.exit(1)
 
     @Slot()
     def _on_thread_started(self):

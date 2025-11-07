@@ -17,6 +17,7 @@ from .integrator import (
     create_default_rigid_body,
     IntegrationResult,
 )
+from .pneumo_system import PneumaticSystem, PneumaticUpdate
 
 __all__ = [
     "RigidBody3DOF",
@@ -33,4 +34,6 @@ __all__ = [
     "PhysicsLoopConfig",
     "create_default_rigid_body",
     "IntegrationResult",
+    "PneumaticSystem",
+    "PneumaticUpdate",
 ]
