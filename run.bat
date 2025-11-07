@@ -21,6 +21,7 @@ echo.
 rem Detect optional launch modes before configuring graphics backend
 set PSS_SAFE_MODE=0
 set PSS_LEGACY_MODE=0
+set "PSS_BACKEND_LABEL=OpenGL RHI (forced for advanced effects)"
 for %%I in (%*) do (
     if /I "%%~I"=="--safe-mode" set PSS_SAFE_MODE=1
     if /I "%%~I"=="--legacy" set PSS_LEGACY_MODE=1
@@ -29,11 +30,17 @@ for %%I in (%*) do (
 if "%PSS_SAFE_MODE%"=="0" (
     rem Force OpenGL RHI backend for consistent shader feature set
     set QSG_RHI_BACKEND=opengl
+    echo [i] Standard mode active — forcing OpenGL scene graph backend for full feature support.
 ) else (
     rem Safe mode: allow Qt to choose the most compatible backend (DirectX on Windows)
     set QSG_RHI_BACKEND=
+    set QSG_OPENGL_VERSION=
+    set QT_OPENGL=
+    set "PSS_BACKEND_LABEL=auto (Qt runtime default)"
     echo [i] Safe mode detected — Qt will auto-select the scene graph backend.
 )
+
+echo [i] Scene graph backend configuration: %PSS_BACKEND_LABEL%
 
 if "%PSS_LEGACY_MODE%"=="1" (
     echo [i] Legacy UI mode requested — QML loading will be skipped.

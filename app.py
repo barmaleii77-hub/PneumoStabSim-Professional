@@ -25,6 +25,7 @@ _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 
 SAFE_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
+LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
 
 if bootstrap_args.env_check or bootstrap_args.env_report:
     from src.bootstrap.environment_check import (
@@ -92,7 +93,21 @@ if not qtquick3d_setup_ok:
 
 configure_terminal_encoding(log_warning)
 check_python_compatibility(log_warning, log_error)
-configure_qt_environment(safe_mode=SAFE_MODE_REQUESTED)
+
+
+def _log_scenegraph_backend(message: str) -> None:
+    """Emit Qt scene graph backend selection during bootstrap."""
+
+    print(f"ℹ️ {message}")
+
+
+configure_qt_environment(
+    safe_mode=SAFE_MODE_REQUESTED,
+    log=_log_scenegraph_backend,
+)
+
+if LEGACY_MODE_REQUESTED:
+    print("ℹ️ Legacy UI mode requested — QML loading will be skipped after bootstrap.")
 
 # =============================================================================
 # Bootstrap Phase2: Qt Import
