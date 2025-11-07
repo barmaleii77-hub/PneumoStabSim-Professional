@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from copy import deepcopy
 from typing import Any, Optional
 from collections.abc import Iterable
@@ -286,22 +287,80 @@ class PneumoStateManager:
         return float(self._state.get(name, DEFAULT_PNEUMATIC.get(name, 0.0)))
 
     def _clamp_pressure_value(
-        self, value: float, limits: dict[str, float], units: str
+        self,
+        value: float,
+        limits: dict[str, float],
+        units: str,
+        *,
+        parameter_name: str,
     ) -> float:
         """Clamp *value* against *limits* respecting the active pressure units."""
 
         base_units = DEFAULT_PNEUMATIC["pressure_units"]
         try:
             value_base = convert_pressure_value(value, units, base_units)
-        except Exception:
-            value_base = float(value)
+        except Exception as exc:
+            LOGGER.warning(
+                "Failed to convert %s using units '%s'; treating value as raw",
+                parameter_name,
+                units,
+                exc_info=exc,
+            )
+            try:
+                value_base = float(value)
+            except (TypeError, ValueError):
+                value_base = float(limits["min"])
 
         clamped_base = clamp(value_base, limits["min"], limits["max"])
-        return convert_pressure_value(clamped_base, base_units, units)
+        result_units = convert_pressure_value(clamped_base, base_units, units)
+
+        if not math.isclose(value_base, clamped_base, rel_tol=1e-9, abs_tol=1e-9):
+            try:
+                original_value = float(value)
+            except (TypeError, ValueError):
+                original_value = value_base
+            LOGGER.warning(
+                "%s adjusted from %.3f %s to %.3f %s to respect bounds %.3f..%.3f %s",
+                parameter_name,
+                original_value,
+                units,
+                result_units,
+                units,
+                limits["min"],
+                limits["max"],
+                base_units,
+            )
+
+        return result_units
+
+    def _log_pressure_adjustment(
+        self,
+        parameter_name: str,
+        previous_value: float,
+        new_value: float,
+        units: str,
+        reason: str,
+    ) -> None:
+        if math.isclose(previous_value, new_value, rel_tol=1e-9, abs_tol=1e-9):
+            return
+        LOGGER.warning(
+            "%s adjusted from %.3f %s to %.3f %s (%s)",
+            parameter_name,
+            previous_value,
+            units,
+            new_value,
+            units,
+            reason,
+        )
 
     def set_pressure_drop(self, name: str, value_bar: float) -> None:
         units = self.get_pressure_units()
-        value = self._clamp_pressure_value(value_bar, PRESSURE_DROP_LIMITS, units)
+        value = self._clamp_pressure_value(
+            value_bar,
+            PRESSURE_DROP_LIMITS,
+            units,
+            parameter_name=f"pressure_drop.{name}",
+        )
         self._state[name] = value
 
     def get_relief_pressure(self, name: str) -> float:
@@ -309,8 +368,69 @@ class PneumoStateManager:
 
     def set_relief_pressure(self, name: str, value_bar: float) -> None:
         units = self.get_pressure_units()
-        value = self._clamp_pressure_value(value_bar, RELIEF_PRESSURE_LIMITS, units)
-        self._state[name] = value
+        parameter_name = f"relief_pressure.{name}"
+        value = self._clamp_pressure_value(
+            value_bar,
+            RELIEF_PRESSURE_LIMITS,
+            units,
+            parameter_name=parameter_name,
+        )
+
+        adjusted_value = value
+
+        def _ensure_upper_bound(target: float, bound: float, reason: str) -> float:
+            if bound > 0.0 and target > bound + 1e-12:
+                self._log_pressure_adjustment(
+                    parameter_name, target, bound, units, reason
+                )
+                return bound
+            return target
+
+        def _ensure_lower_bound(target: float, bound: float, reason: str) -> float:
+            if target + 1e-12 < bound:
+                self._log_pressure_adjustment(
+                    parameter_name, target, bound, units, reason
+                )
+                return bound
+            return target
+
+        if name == "relief_min_pressure":
+            stiff = self.get_relief_pressure("relief_stiff_pressure")
+            safety = self.get_relief_pressure("relief_safety_pressure")
+            adjusted_value = _ensure_upper_bound(
+                adjusted_value,
+                stiff,
+                "must not exceed relief_stiff_pressure",
+            )
+            adjusted_value = _ensure_upper_bound(
+                adjusted_value,
+                safety,
+                "must not exceed relief_safety_pressure",
+            )
+        elif name == "relief_stiff_pressure":
+            minimum = self.get_relief_pressure("relief_min_pressure")
+            safety = self.get_relief_pressure("relief_safety_pressure")
+            adjusted_value = _ensure_lower_bound(
+                adjusted_value,
+                minimum,
+                "must not fall below relief_min_pressure",
+            )
+            adjusted_value = _ensure_upper_bound(
+                adjusted_value,
+                safety,
+                "must not exceed relief_safety_pressure",
+            )
+        elif name == "relief_safety_pressure":
+            minimum = self.get_relief_pressure("relief_min_pressure")
+            stiff = self.get_relief_pressure("relief_stiff_pressure")
+            required_minimum = max(minimum, stiff)
+            adjusted_value = _ensure_lower_bound(
+                adjusted_value,
+                required_minimum,
+                "must be >= max(relief_min_pressure, relief_stiff_pressure)",
+            )
+
+        self._state[name] = adjusted_value
 
     # Diameters ---------------------------------------------------------
     def get_valve_diameter(self, name: str) -> float:

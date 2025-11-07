@@ -1,5 +1,9 @@
 import QtQuick
 import QtQuick3D
+import "../components"
+// qmllint disable import
+
+pragma ComponentBehavior: Bound
 
 /*
  * SharedMaterials - Централизованное управление материалами
@@ -376,8 +380,13 @@ QtObject {
 // TEXTURE RESOURCES
 // ===============================================================
 
-readonly property Texture frameBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.frameTexturePath)
+readonly property AssetsLoader frameBaseColorTexture: AssetsLoader {
+    assetName: "materials.frame.baseColor"
+    primarySource: root.resolveTextureSource(root.frameTexturePath)
+    fallbackDescriptor: "generated://frame-texture"
+    fallbackStartColor: root.frameBaseColor
+    fallbackEndColor: Qt.darker(root.frameBaseColor, 1.35)
+    fallbackLabel: qsTr("Frame")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -385,8 +394,13 @@ readonly property Texture frameBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture leverBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.leverTexturePath)
+readonly property AssetsLoader leverBaseColorTexture: AssetsLoader {
+    assetName: "materials.lever.baseColor"
+    primarySource: root.resolveTextureSource(root.leverTexturePath)
+    fallbackDescriptor: "generated://lever-texture"
+    fallbackStartColor: root.leverBaseColor
+    fallbackEndColor: Qt.darker(root.leverBaseColor, 1.35)
+    fallbackLabel: qsTr("Lever")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -394,8 +408,13 @@ readonly property Texture leverBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture tailRodBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.tailRodTexturePath)
+readonly property AssetsLoader tailRodBaseColorTexture: AssetsLoader {
+    assetName: "materials.tailRod.baseColor"
+    primarySource: root.resolveTextureSource(root.tailRodTexturePath)
+    fallbackDescriptor: "generated://tail-rod-texture"
+    fallbackStartColor: root.tailRodBaseColor
+    fallbackEndColor: Qt.darker(root.tailRodBaseColor, 1.35)
+    fallbackLabel: qsTr("Tail rod")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -403,8 +422,13 @@ readonly property Texture tailRodBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture cylinderBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.cylinderTexturePath)
+readonly property AssetsLoader cylinderBaseColorTexture: AssetsLoader {
+    assetName: "materials.cylinder.baseColor"
+    primarySource: root.resolveTextureSource(root.cylinderTexturePath)
+    fallbackDescriptor: "generated://cylinder-texture"
+    fallbackStartColor: root.cylinderBaseColor
+    fallbackEndColor: Qt.darker(root.cylinderBaseColor, 1.35)
+    fallbackLabel: qsTr("Cylinder")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -412,8 +436,13 @@ readonly property Texture cylinderBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture pistonBodyBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.pistonBodyTexturePath)
+readonly property AssetsLoader pistonBodyBaseColorTexture: AssetsLoader {
+    assetName: "materials.pistonBody.baseColor"
+    primarySource: root.resolveTextureSource(root.pistonBodyTexturePath)
+    fallbackDescriptor: "generated://piston-body-texture"
+    fallbackStartColor: root.pistonBodyBaseColor
+    fallbackEndColor: Qt.darker(root.pistonBodyBaseColor, 1.35)
+    fallbackLabel: qsTr("Piston body")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -421,8 +450,13 @@ readonly property Texture pistonBodyBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture pistonRodBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.pistonRodTexturePath)
+readonly property AssetsLoader pistonRodBaseColorTexture: AssetsLoader {
+    assetName: "materials.pistonRod.baseColor"
+    primarySource: root.resolveTextureSource(root.pistonRodTexturePath)
+    fallbackDescriptor: "generated://piston-rod-texture"
+    fallbackStartColor: root.pistonRodBaseColor
+    fallbackEndColor: Qt.darker(root.pistonRodBaseColor, 1.35)
+    fallbackLabel: qsTr("Piston rod")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -430,8 +464,13 @@ readonly property Texture pistonRodBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture jointTailBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.jointTailTexturePath)
+readonly property AssetsLoader jointTailBaseColorTexture: AssetsLoader {
+    assetName: "materials.jointTail.baseColor"
+    primarySource: root.resolveTextureSource(root.jointTailTexturePath)
+    fallbackDescriptor: "generated://joint-tail-texture"
+    fallbackStartColor: root.jointTailBaseColor
+    fallbackEndColor: Qt.darker(root.jointTailBaseColor, 1.35)
+    fallbackLabel: qsTr("Joint tail")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear
@@ -439,8 +478,13 @@ readonly property Texture jointTailBaseColorTexture: Texture {
     tilingModeVertical: Texture.ClampToEdge
 }
 
-readonly property Texture jointArmBaseColorTexture: Texture {
-    source: root.resolveTextureSource(root.jointArmTexturePath)
+readonly property AssetsLoader jointArmBaseColorTexture: AssetsLoader {
+    assetName: "materials.jointArm.baseColor"
+    primarySource: root.resolveTextureSource(root.jointArmTexturePath)
+    fallbackDescriptor: "generated://joint-arm-texture"
+    fallbackStartColor: root.jointArmBaseColor
+    fallbackEndColor: Qt.darker(root.jointArmBaseColor, 1.35)
+    fallbackLabel: qsTr("Joint arm")
     generateMipmaps: true
     minFilter: Texture.Linear
     magFilter: Texture.Linear

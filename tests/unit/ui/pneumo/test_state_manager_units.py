@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
-from src.ui.panels.pneumo.defaults import convert_pressure_value
+from src.ui.panels.pneumo.defaults import PRESSURE_DROP_LIMITS, convert_pressure_value
 from src.ui.panels.pneumo.state_manager import PneumoStateManager
 
 
@@ -193,3 +195,68 @@ def test_set_relief_pressure_honours_current_units():
     assert pytest.approx(2.5, rel=1e-9) == manager.get_relief_pressure(
         "relief_min_pressure"
     )
+
+
+def test_set_pressure_drop_outside_limits_logs_and_clamps(caplog):
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    caplog.set_level(logging.WARNING)
+    manager.set_pressure_drop("cv_atmo_dp", 5.0)
+
+    assert pytest.approx(
+        PRESSURE_DROP_LIMITS["max"], rel=1e-9
+    ) == manager.get_pressure_drop("cv_atmo_dp")
+    assert any(
+        "pressure_drop.cv_atmo_dp" in record.message for record in caplog.records
+    ), "Expected clamp warning for cv_atmo_dp"
+
+
+def test_relief_min_pressure_exceeding_stiff_is_reduced(caplog):
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    caplog.set_level(logging.WARNING)
+    manager.set_relief_pressure("relief_min_pressure", 60.0)
+
+    stiff_value = manager.get_relief_pressure("relief_stiff_pressure")
+    assert pytest.approx(stiff_value, rel=1e-9) == manager.get_relief_pressure(
+        "relief_min_pressure"
+    )
+    assert any(
+        "relief_pressure.relief_min_pressure" in record.message
+        and "relief_stiff_pressure" in record.message
+        for record in caplog.records
+    ), "Expected warning about exceeding stiff relief pressure"
+
+
+def test_relief_stiff_pressure_respects_bounds(caplog):
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    caplog.set_level(logging.WARNING)
+    manager.set_relief_pressure("relief_stiff_pressure", 0.5)
+
+    min_value = manager.get_relief_pressure("relief_min_pressure")
+    assert pytest.approx(min_value, rel=1e-9) == manager.get_relief_pressure(
+        "relief_stiff_pressure"
+    )
+    assert any(
+        "relief_pressure.relief_stiff_pressure" in record.message
+        and "relief_min_pressure" in record.message
+        for record in caplog.records
+    ), "Expected warning about falling below relief_min_pressure"
+
+
+def test_relief_safety_pressure_not_below_active_bounds(caplog):
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    caplog.set_level(logging.WARNING)
+    manager.set_relief_pressure("relief_safety_pressure", 5.0)
+
+    stiff_value = manager.get_relief_pressure("relief_stiff_pressure")
+    assert pytest.approx(stiff_value, rel=1e-9) == manager.get_relief_pressure(
+        "relief_safety_pressure"
+    )
+    assert any(
+        "relief_pressure.relief_safety_pressure" in record.message
+        and "max(relief_min_pressure, relief_stiff_pressure)" in record.message
+        for record in caplog.records
+    ), "Expected warning about safety pressure falling below dependent bounds"
