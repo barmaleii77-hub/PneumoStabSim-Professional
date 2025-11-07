@@ -198,7 +198,7 @@ Pane {
         } catch (error) {
             console.warn("⚠️ SimulationPanel: spin assignment failed for", logKey, "→", finalValue, error)
             if (scale !== 1) {
-                var scaledFallback = _asScaledInt(Math.round(numeric), scale)
+                var scaledFallback = _asScaledInt(numeric, scale)
                 if (scaledFallback !== finalValue) {
                     try {
                         spin.value = scaledFallback
