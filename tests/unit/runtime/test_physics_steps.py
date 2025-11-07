@@ -1,4 +1,5 @@
 import logging
+from dataclasses import replace
 from typing import Dict
 
 import numpy as np
@@ -29,6 +30,7 @@ from src.runtime.steps import (
     integrate_body,
     update_gas_state,
 )
+from src.runtime.steps.context import LeverDynamicsConfig
 from src.runtime.sync import PerformanceMetrics
 
 
@@ -143,11 +145,22 @@ def step_state() -> PhysicsStepState:
         line_states={line: LineState(line) for line in Line},
         tank_state=TankState(),
         last_road_inputs={key: 0.0 for key in ("LF", "RF", "LR", "RR")},
+        prev_road_inputs={key: 0.0 for key in ("LF", "RF", "LR", "RR")},
         latest_frame_accel=np.zeros(3),
         prev_frame_velocities=np.zeros(3),
         performance=PerformanceMetrics(),
         logger=logging.getLogger("physics-step-test"),
         get_line_pressure=_make_line_pressure_getter(system, gas_network),
+        lever_config=LeverDynamicsConfig(
+            include_springs=True,
+            include_dampers=True,
+            include_pneumatics=True,
+            spring_constant=50_000.0,
+            damper_coefficient=2_000.0,
+            damper_threshold=50.0,
+            spring_rest_position=0.0,
+            lever_inertia=50.0 * lever.L_lever * lever.L_lever,
+        ),
     )
 
     return state
@@ -156,6 +169,7 @@ def step_state() -> PhysicsStepState:
 def test_compute_kinematics_updates_wheel_state(step_state: PhysicsStepState) -> None:
     road_inputs = {"LF": 0.01, "RF": -0.005, "LR": 0.0, "RR": 0.002}
 
+    step_state.prev_road_inputs = dict(step_state.last_road_inputs)
     compute_kinematics(step_state, road_inputs)
 
     assert step_state.last_road_inputs["LF"] == pytest.approx(0.01)
@@ -163,6 +177,7 @@ def test_compute_kinematics_updates_wheel_state(step_state: PhysicsStepState) ->
     assert not np.isclose(front_left.x, 0.0)
     wheel_state = step_state.wheel_states[Wheel.LP]
     assert wheel_state.lever_angle != 0.0
+    assert wheel_state.lever_angular_velocity != 0.0
     assert step_state.prev_piston_positions[Wheel.LP] == pytest.approx(
         wheel_state.piston_position
     )
@@ -170,6 +185,7 @@ def test_compute_kinematics_updates_wheel_state(step_state: PhysicsStepState) ->
 
 def test_update_gas_state_syncs_line_states(step_state: PhysicsStepState) -> None:
     road_inputs = {"LF": 0.01, "RF": -0.005, "LR": 0.0, "RR": 0.002}
+    step_state.prev_road_inputs = dict(step_state.last_road_inputs)
     compute_kinematics(step_state, road_inputs)
 
     update_gas_state(step_state)
@@ -190,6 +206,7 @@ def test_update_gas_state_syncs_line_states(step_state: PhysicsStepState) -> Non
 
 def test_integrate_body_advances_state(step_state: PhysicsStepState) -> None:
     road_inputs = {"LF": 0.01, "RF": -0.005, "LR": 0.0, "RR": 0.002}
+    step_state.prev_road_inputs = dict(step_state.last_road_inputs)
     compute_kinematics(step_state, road_inputs)
     update_gas_state(step_state)
 
@@ -199,3 +216,52 @@ def test_integrate_body_advances_state(step_state: PhysicsStepState) -> None:
     assert step_state.performance.integration_failures == 0
     assert not np.allclose(step_state.physics_state, initial_state)
     assert step_state.latest_frame_accel.shape == (3,)
+
+
+def test_free_oscillation_without_damping(step_state: PhysicsStepState) -> None:
+    step_state.lever_config = replace(
+        step_state.lever_config,
+        include_dampers=False,
+        include_pneumatics=False,
+        damper_coefficient=0.0,
+    )
+
+    wheel_state = step_state.wheel_states[Wheel.LP]
+    wheel_state.lever_angle = 0.12
+    wheel_state.lever_angular_velocity = 0.0
+
+    zero_inputs = {key: 0.0 for key in ("LF", "RF", "LR", "RR")}
+    angles: list[float] = []
+    for _ in range(120):
+        step_state.prev_road_inputs = dict(step_state.last_road_inputs)
+        compute_kinematics(step_state, zero_inputs)
+        angles.append(step_state.wheel_states[Wheel.LP].lever_angle)
+
+    assert any(angle < 0.0 for angle in angles[10:])
+    max_amp = max(abs(angle) for angle in angles)
+    min_amp = min(abs(angle) for angle in angles if abs(angle) > 1e-6)
+    assert max_amp < 0.2
+    assert min_amp > 0.04
+
+
+def test_free_oscillation_with_damping(step_state: PhysicsStepState) -> None:
+    step_state.lever_config = replace(
+        step_state.lever_config,
+        include_pneumatics=False,
+        include_dampers=True,
+        damper_coefficient=6_000.0,
+    )
+
+    wheel_state = step_state.wheel_states[Wheel.LP]
+    wheel_state.lever_angle = 0.12
+    wheel_state.lever_angular_velocity = 0.0
+
+    zero_inputs = {key: 0.0 for key in ("LF", "RF", "LR", "RR")}
+    last_angles: list[float] = []
+    for _ in range(160):
+        step_state.prev_road_inputs = dict(step_state.last_road_inputs)
+        compute_kinematics(step_state, zero_inputs)
+        last_angles.append(step_state.wheel_states[Wheel.LP].lever_angle)
+
+    assert abs(last_angles[-1]) < 0.12
+    assert abs(last_angles[-1]) < 0.12 * 0.6

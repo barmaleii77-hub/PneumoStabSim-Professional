@@ -130,9 +130,7 @@ def test_environment_tab_missing_range_triggers_warning(qapp, monkeypatch):
     assert "Используются значения по умолчанию" in message
 
 
-def test_environment_tab_uses_metadata_ranges_when_current_missing(
-    qapp, monkeypatch
-):
+def test_environment_tab_uses_metadata_ranges_when_current_missing(qapp, monkeypatch):
     base_manager = get_settings_manager()
     partial_ranges = {
         key: {

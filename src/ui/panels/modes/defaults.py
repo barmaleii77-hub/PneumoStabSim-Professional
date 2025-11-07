@@ -31,10 +31,13 @@ DEFAULT_MODES_PARAMS: Dict[str, Any] = {
     "smoothing_easing": "OutCubic",
 }
 
-DEFAULT_PHYSICS_OPTIONS: Dict[str, bool] = {
+DEFAULT_PHYSICS_OPTIONS: Dict[str, Any] = {
     "include_springs": True,
     "include_dampers": True,
     "include_pneumatics": True,
+    "spring_constant": 50_000.0,
+    "damper_coefficient": 2_000.0,
+    "lever_inertia_multiplier": 1.0,
 }
 
 # ===============================================================
@@ -49,6 +52,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "include_springs": True,
         "include_dampers": True,
         "include_pneumatics": True,
+        "spring_constant": 50_000.0,
+        "damper_coefficient": 2_000.0,
+        "lever_inertia_multiplier": 1.0,
         "description": "Базовый режим с кинематикой и всеми компонентами",
     },
     1: {  # Только кинематика
@@ -58,6 +64,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "include_springs": False,
         "include_dampers": False,
         "include_pneumatics": False,
+        "spring_constant": 50_000.0,
+        "damper_coefficient": 2_000.0,
+        "lever_inertia_multiplier": 1.0,
         "description": "Чистая геометрическая кинематика без физики",
     },
     2: {  # Полная динамика
@@ -67,6 +76,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "include_springs": True,
         "include_dampers": True,
         "include_pneumatics": True,
+        "spring_constant": 55_000.0,
+        "damper_coefficient": 2_200.0,
+        "lever_inertia_multiplier": 1.1,
         "description": "Полная динамическая модель с адиабатической пневматикой",
     },
     3: {  # Тест пневматики
@@ -76,6 +88,9 @@ MODE_PRESETS: Dict[int, Dict[str, Any]] = {
         "include_springs": False,
         "include_dampers": False,
         "include_pneumatics": True,
+        "spring_constant": 50_000.0,
+        "damper_coefficient": 2_000.0,
+        "lever_inertia_multiplier": 1.0,
         "description": "Изолированный тест пневматической системы",
     },
     4: {  # Пользовательский

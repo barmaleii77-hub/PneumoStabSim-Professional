@@ -185,7 +185,10 @@
       "physics": {
         "include_springs": true,
         "include_dampers": true,
-        "include_pneumatics": true
+        "include_pneumatics": true,
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0,
+        "lever_inertia_multiplier": 1.0
       }
     },
     "graphics": {
@@ -1382,7 +1385,10 @@
       "physics": {
         "include_springs": true,
         "include_dampers": true,
-        "include_pneumatics": true
+        "include_pneumatics": true,
+        "spring_constant": 50000.0,
+        "damper_coefficient": 2000.0,
+        "lever_inertia_multiplier": 1.0
       }
     },
     "graphics": {

@@ -1585,12 +1585,27 @@
         "include_pneumatics": {
           "title": "Include Pneumatics",
           "type": "boolean"
+        },
+        "spring_constant": {
+          "title": "Spring Constant",
+          "type": "number"
+        },
+        "damper_coefficient": {
+          "title": "Damper Coefficient",
+          "type": "number"
+        },
+        "lever_inertia_multiplier": {
+          "title": "Lever Inertia Multiplier",
+          "type": "number"
         }
       },
       "required": [
         "include_springs",
         "include_dampers",
-        "include_pneumatics"
+        "include_pneumatics",
+        "spring_constant",
+        "damper_coefficient",
+        "lever_inertia_multiplier"
       ],
       "title": "ModesPhysicsSettings",
       "type": "object"
