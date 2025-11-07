@@ -4,8 +4,8 @@ Runs in dedicated QThread with QTimer for precise timing
 """
 
 import math
+import sys
 import time
-import logging
 from dataclasses import replace
 from typing import Optional, Dict, Any
 import numpy as np
@@ -66,6 +66,8 @@ from src.runtime.steps import (
 )
 from src.runtime.steps.context import LeverDynamicsConfig
 
+from src.diagnostics.logger_factory import LoggerProtocol, get_logger
+
 # Settings manager (используем абсолютный импорт, т.к. общий модуль)
 from src.common.settings_manager import get_settings_manager
 
@@ -86,7 +88,9 @@ class PhysicsWorker(QObject):
         super().__init__(parent)
 
         # Logging and settings access
-        self.logger = logging.getLogger(__name__)
+        self.logger: LoggerProtocol = get_logger("runtime.physics").bind(
+            component="PhysicsWorker"
+        )
         self.settings_manager = get_settings_manager()
 
         # Physics configuration (loaded from settings file)
@@ -158,14 +162,13 @@ class PhysicsWorker(QObject):
         self._apply_timing_configuration()
 
         self.logger.info(
-            "PhysicsWorker settings: dt=%.6fs, vsync=%.1fHz, max_steps=%d, max_frame_time=%.3fs, "
-            "receiver=%.3fm³ (%s mode)",
-            self.dt_physics,
-            self.vsync_render_hz,
-            self.max_steps_per_frame,
-            self.max_frame_time,
-            self.receiver_volume,
-            self.receiver_volume_mode,
+            "PhysicsWorker initialised",
+            dt_seconds=self.dt_physics,
+            vsync_hz=self.vsync_render_hz,
+            max_steps_per_frame=self.max_steps_per_frame,
+            max_frame_time=self.max_frame_time,
+            receiver_volume_m3=self.receiver_volume,
+            receiver_mode=self.receiver_volume_mode,
         )
 
     def _load_initial_settings(self) -> None:
@@ -429,7 +432,11 @@ class PhysicsWorker(QObject):
                 integrator_method=integrator_method,
             )
         except Exception as exc:
-            self.logger.critical(f"Failed to load physics settings: {exc}")
+            self.logger.error(
+                "ERROR: failed to load physics settings",
+                error=str(exc),
+                exc_info=True,
+            )
             raise
 
     def _apply_timing_configuration(self) -> None:
@@ -669,12 +676,16 @@ class PhysicsWorker(QObject):
                 raise RuntimeError("Failed to initialize all physics dependencies")
 
             self.logger.info(
-                "Physics objects initialized successfully with preset '%s'",
-                preset_name,
+                "Physics objects initialised successfully",
+                preset=preset_name,
             )
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize physics objects: {e}")
+            self.logger.error(
+                "ERROR: failed to initialise physics objects",
+                error=str(e),
+                exc_info=True,
+            )
             raise
 
     @Slot()
@@ -685,7 +696,7 @@ class PhysicsWorker(QObject):
             return
 
         if self.is_running:
-            self.logger.warning("Simulation already running")
+            self.logger.warning("WARNING: simulation already running")
             return
 
         # Create timer in this thread (will be moved to physics thread)
@@ -736,10 +747,11 @@ class PhysicsWorker(QObject):
             self.logger.info("Physics simulation остановлена")
 
         except Exception as e:
-            self.logger.error(f"Ошибка остановки physics simulation: {e}")
-            import traceback
-
-            traceback.print_exc()
+            self.logger.error(
+                "ERROR: failed to stop physics simulation",
+                error=str(e),
+                exc_info=True,
+            )
 
         # В любом случае помечаем как остановленную
         self.is_running = False
@@ -768,7 +780,11 @@ class PhysicsWorker(QObject):
             self.logger.info("Принудительная очистка PhysicsWorker завершена")
 
         except Exception as e:
-            self.logger.error(f"Ошибка принудительной очистки: {e}")
+            self.logger.error(
+                "ERROR: physics worker force_cleanup failed",
+                error=str(e),
+                exc_info=True,
+            )
 
     def __del__(self):
         """Деструктор - финальная очистка"""
@@ -853,7 +869,9 @@ class PhysicsWorker(QObject):
                 receiver_temperature = getattr(receiver_state, "T", None)
             except Exception as exc:
                 self.logger.warning(
-                    "Failed to update receiver state: %s", exc, exc_info=exc
+                    "WARNING: failed to update receiver state",
+                    error=str(exc),
+                    exc_info=True,
                 )
 
         tank_pressure: Optional[float] = None
@@ -887,22 +905,20 @@ class PhysicsWorker(QObject):
                         latest_state.temperature = float(tank_temperature)
             except Exception as exc:
                 self.logger.warning(
-                    "Failed to update gas network tank volume: %s",
-                    exc,
-                    exc_info=exc,
+                    "WARNING: failed to update gas network tank volume",
+                    error=str(exc),
+                    exc_info=True,
                 )
 
         self.logger.info(
             "Receiver volume updated",
-            extra={
-                "volume_m3": float(volume),
-                "mode": mode_token,
-                "tank_pressure_pa": tank_pressure,
-                "tank_mass_kg": tank_mass,
-                "tank_temperature_k": tank_temperature,
-                "receiver_pressure_pa": receiver_pressure,
-                "receiver_temperature_k": receiver_temperature,
-            },
+            volume_m3=float(volume),
+            mode=mode_token,
+            tank_pressure_pa=tank_pressure,
+            tank_mass_kg=tank_mass,
+            tank_temperature_k=tank_temperature,
+            receiver_pressure_pa=receiver_pressure,
+            receiver_temperature_k=receiver_temperature,
         )
 
     @Slot(float)
@@ -934,6 +950,8 @@ class PhysicsWorker(QObject):
             return
 
         step_start_time = time.perf_counter()
+        step_logger = self.logger.bind(step=self.step_counter)
+        steps_to_take = 0
 
         try:
             # Use timing accumulator to determine number of steps
@@ -961,9 +979,15 @@ class PhysicsWorker(QObject):
                     self.error_occurred.emit("Too many invalid state snapshots")
                     self.stop_simulation()
 
-        except Exception as e:
-            self.logger.exception("Physics step failed")
-            self.error_occurred.emit(f"Physics step error: {str(e)}")
+        except Exception as exc:
+            elapsed = time.perf_counter() - step_start_time
+            step_logger.exception(
+                "ERROR: physics step failed",
+                error=str(exc),
+                elapsed_s=elapsed,
+                steps_requested=steps_to_take,
+            )
+            self.error_occurred.emit(f"Physics step error: {exc}")
             self.stop_simulation()
 
     def _execute_physics_step(self):
@@ -1021,8 +1045,10 @@ class PhysicsWorker(QObject):
                 step_state.thermo_mode,
             )
         except Exception as pneumo_exc:
-            self.logger.debug(
-                "Pneumatic runtime update failed: %s", pneumo_exc, exc_info=True
+            self.logger.warning(
+                "WARNING: pneumatic runtime update failed",
+                error=str(pneumo_exc),
+                exc_info=True,
             )
         else:
             suspension_states: dict[
@@ -1054,8 +1080,10 @@ class PhysicsWorker(QObject):
                         )
                     )
                 except Exception as exc:
-                    self.logger.debug(
-                        "Failed to project pneumatic forces: %s", exc, exc_info=True
+                    self.logger.warning(
+                        "WARNING: failed to project pneumatic forces",
+                        error=str(exc),
+                        exc_info=True,
                     )
                 else:
                     self._latest_vertical_forces = vertical_forces
@@ -1067,10 +1095,8 @@ class PhysicsWorker(QObject):
                     )
             self.logger.debug(
                 "Pneumatic frame forces",
-                extra={
-                    "force_left_N": pneumo_update.left_force,
-                    "force_right_N": pneumo_update.right_force,
-                },
+                force_left_N=pneumo_update.left_force,
+                force_right_N=pneumo_update.right_force,
             )
 
         # Update simulation time and step counter
@@ -1083,7 +1109,11 @@ class PhysicsWorker(QObject):
             try:
                 return self.road_input.get_wheel_excitation(self.simulation_time)
             except Exception as e:
-                self.logger.warning(f"Road input error: {e}")
+                self.logger.warning(
+                    "WARNING: road input error",
+                    error=str(e),
+                    exc_info=True,
+                )
 
         # Return zero excitation as fallback
         return {"LF": 0.0, "RF": 0.0, "LR": 0.0, "RR": 0.0}
@@ -1155,7 +1185,11 @@ class PhysicsWorker(QObject):
             return snapshot
 
         except Exception as e:
-            self.logger.error(f"Failed to create state snapshot: {e}")
+            self.logger.error(
+                "ERROR: failed to create state snapshot",
+                error=str(e),
+                exc_info=True,
+            )
             return None
 
     def _resolve_receiver_mode(self, mode: Optional[str] = None) -> ReceiverVolumeMode:
@@ -1195,8 +1229,9 @@ class PhysicsWorker(QObject):
         lookup = alias_map.get(preset.lower(), preset)
         if get_preset_by_name(lookup) is None:
             self.logger.warning(
-                "Unknown road preset '%s', falling back to 'test_sine'",
-                lookup,
+                "WARNING: unknown road preset, falling back to default",
+                requested=preset,
+                fallback="test_sine",
             )
             lookup = "test_sine"
         return lookup
@@ -1242,7 +1277,9 @@ class SimulationManager(QObject):
         self._connect_signals()
 
         # Logging
-        self.logger = logging.getLogger(__name__)
+        self.logger: LoggerProtocol = get_logger("runtime.simulation_manager").bind(
+            component="SimulationManager"
+        )
 
     def _connect_signals(self):
         """Connect signals between components"""
@@ -1317,14 +1354,20 @@ class SimulationManager(QObject):
                         self.physics_worker.force_cleanup()
                     except Exception as e:
                         self.logger.warning(
-                            f"Ошибка принудительной очистки worker: {e}"
+                            "WARNING: worker force_cleanup failed",
+                            error=str(e),
+                            exc_info=True,
                         )
 
                 # 2. Отправить сигнал остановки
                 try:
                     self.state_bus.stop_simulation.emit()
                 except Exception as e:
-                    self.logger.warning(f"Ошибка отправки сигнала остановки: {e}")
+                    self.logger.warning(
+                        "WARNING: failed to emit stop_simulation signal",
+                        error=str(e),
+                        exc_info=True,
+                    )
 
                 # 3. Дать короткое время на корректную остановку (50мс)
                 import time
@@ -1338,15 +1381,13 @@ class SimulationManager(QObject):
                 # 5. Ждать завершения максимум 2 секунды
                 if not self.physics_thread.wait(2000):
                     self.logger.warning(
-                        "Physics thread не завершился за 2 секунды, принудительное завершение..."
+                        "WARNING: physics thread did not stop within grace period"
                     )
                     self.physics_thread.terminate()
 
                     # Дать полсекунды на принудительное завершение
                     if not self.physics_thread.wait(500):
-                        self.logger.error(
-                            "Physics thread не удалось завершить даже принудительно!"
-                        )
+                        self.logger.error("ERROR: physics thread termination failed")
                     else:
                         self.logger.info("Physics thread завершен принудительно")
                 else:
@@ -1356,10 +1397,11 @@ class SimulationManager(QObject):
                 self.logger.info("Physics thread уже остановлен")
 
         except Exception as e:
-            self.logger.error(f"Ошибка при остановке simulation manager: {e}")
-            import traceback
-
-            traceback.print_exc()
+            self.logger.error(
+                "ERROR: failed to stop simulation manager",
+                error=str(e),
+                exc_info=True,
+            )
 
             # В случае ошибки все равно пытаемся принудительно завершить
             try:
@@ -1389,7 +1431,11 @@ class SimulationManager(QObject):
 
             self.logger.info("Принудительное завершение SimulationManager выполнено")
         except Exception as e:
-            self.logger.error(f"Ошибка принудительного завершения: {e}")
+            self.logger.error(
+                "ERROR: simulation manager force_shutdown failed",
+                error=str(e),
+                exc_info=True,
+            )
 
     def cleanup(self):
         """Очистка ресурсов симуляции (вызывается при закрытии приложения)
@@ -1409,13 +1455,19 @@ class SimulationManager(QObject):
             self.logger.info("Очистка SimulationManager завершена успешно")
 
         except Exception as e:
-            self.logger.error(f"Ошибка при очистке SimulationManager: {e}")
+            self.logger.error(
+                "ERROR: failed to cleanup SimulationManager",
+                error=str(e),
+                exc_info=True,
+            )
             # Принудительная очистка в случае ошибки
             try:
                 self.force_shutdown()
             except Exception as cleanup_error:
                 self.logger.error(
-                    f"Критическая ошибка при принудительной очистке: {cleanup_error}"
+                    "ERROR: critical failure during force_cleanup",
+                    error=str(cleanup_error),
+                    exc_info=True,
                 )
 
     def get_latest_state(self) -> Optional[StateSnapshot]:
@@ -1444,12 +1496,20 @@ class SimulationManager(QObject):
         try:
             self.state_queue.put_nowait(snapshot)
         except Exception as queue_error:
-            self.logger.error(f"Error handling state ready: {queue_error}")
+            self.logger.error(
+                "ERROR: failed to enqueue state snapshot",
+                error=str(queue_error),
+                exc_info=True,
+            )
         else:
             try:
                 self.state_bus.state_ready.emit(snapshot)
             except Exception as emit_error:
-                self.logger.error(f"Error re-emitting state snapshot: {emit_error}")
+                self.logger.error(
+                    "ERROR: failed to emit state snapshot",
+                    error=str(emit_error),
+                    exc_info=True,
+                )
 
         # Always record the snapshot for export/diagnostics.
         self._snapshot_buffer.append(snapshot)
@@ -1457,12 +1517,18 @@ class SimulationManager(QObject):
     @Slot(str)
     def _on_physics_error(self, error_msg):
         """Handle physics error"""
-        self.logger.error(f"Physics error: {error_msg}")
+        formatted = f"ERROR: physics error: {error_msg}"
+        self.logger.error(
+            "ERROR: physics worker reported failure",
+            error_message=error_msg,
+        )
+        sys.stderr.write(formatted + "\n")
+        sys.stderr.flush()
         self.state_bus.physics_error.emit(error_msg)
         app = QCoreApplication.instance()
         if app is not None:
             self.logger.error(
-                "Physics error propagated to application — requesting exit"
+                "ERROR: requesting application shutdown due to physics error"
             )
             app.exit(1)
 
