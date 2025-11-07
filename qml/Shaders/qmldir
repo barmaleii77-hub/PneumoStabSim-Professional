@@ -1,0 +1,3 @@
+module PneumoStabSim.Shaders
+FlowShader 1.0 FlowShader.qml
+ManagedShaderEffect 1.0 ManagedShaderEffect.qml

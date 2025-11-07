@@ -109,7 +109,15 @@ Environment payload (вложенный)
 
 - `PostEffects.qml` фиксирует постоянные ошибки компиляции fallback-шейдеров через флаг `effectsBypass`, сохраняя причину в `effectsBypassReason` в формате `<effectId>: <сообщение>` и временно отключая проблемный эффект, чтобы не блокировать отрисовку. 【F:assets/qml/effects/PostEffects.qml†L17-L114】【F:assets/qml/effects/PostEffects.qml†L663-L724】【F:assets/qml/effects/PostEffects.qml†L1004-L1068】
 - `SimulationRoot.qml` слушает эти изменения: при активном bypass он очищает `View3D.effects`, кеширует предыдущую цепочку эффектов и оставляет сцену видимой без пост-обработки, а после успешной перекомпиляции восстанавливает сохранённый список. 【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L24-L205】
+- При фатальных сбоях компиляции, когда даже fallback-шейдер не запускается, `PostEffects.qml` дополнительно инициирует упрощённый режим визуализации через сигнал `simplifiedRenderingRequested`. `SimulationRoot.qml` транслирует запрос наружу (`simpleFallbackRequested`), а `main.qml` активирует `SimulationFallbackRoot` и скрывает 3D-сцену до восстановления (`simplifiedRenderingRecovered`). 【F:assets/qml/effects/PostEffects.qml†L17-L119】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L14-L119】【F:assets/qml/main.qml†L21-L126】
 - Интеграционный тест воспроизводит отказ шейдера и подтверждает переход в fail-safe режим без потери кадра, а также восстановление исходных эффектов и причины в UI. 【F:tests/ui/test_post_effects_bypass_fail_safe.py†L1-L94】
+
+### ShaderEffect с резервным режимом
+
+- Для QML-компонентов на базе `ShaderEffect` добавлен единый миксин `ManagedShaderEffect.qml`, который кэширует статус компиляции, регистрирует предупреждения через `window.registerShaderWarning` (если доступно) и автоматически инициирует `simplifiedFallbackRequested` при ошибке. 【F:qml/Shaders/ManagedShaderEffect.qml†L1-L149】
+- Новая реализация `FlowShader.qml` наследует миксин, содержит анимированный фрагментный шейдер для визуализации потока и при `status === ShaderEffect.Error` логирует причину, активирует упрощённый режим и снимает флаг после `ShaderEffect.Compiled`. 【F:qml/Shaders/FlowShader.qml†L1-L48】
+- UI-тест `test_flow_shader_fallback.py` эмулирует смену статуса через `__applyStatusForTesting`, проверяя переход в fallback и последующее восстановление. 【F:tests/ui/test_flow_shader_fallback.py†L1-L77】
+- Задача `tools.ci_tasks.task_shaders` запускает `tools/validate_shaders.py --emit-qsb`, а затем `tools/check_shader_logs.py` (с детализированным выводом предупреждений) для анализа артефактов. Таск добавлен в `verify`, чтобы пайплайн фиксировал предупреждения и падал на критических ошибках. 【F:tools/ci_tasks.py†L598-L639】【F:tools/check_shader_logs.py†L1-L128】
 
 ## FogEffect v4.9.5 — компиляция шейдеров и fallback
 

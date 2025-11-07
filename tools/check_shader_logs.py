@@ -42,6 +42,36 @@ def _parse_lines(
     return errors, warnings, fallback
 
 
+def _print_detailed_entries(summary: list[dict[str, object]]) -> None:
+    """Stream individual warning and fallback messages to the console."""
+
+    for item in summary:
+        source = item.get("source", "<unknown>")
+        for entry in item.get("warnings", []) or []:
+            line = entry.get("line", 0)
+            message = entry.get("message", "")
+            print(
+                f"[check_shader_logs] WARNING {source}:{line}: {message}",
+                file=sys.stdout,
+            )
+
+        for entry in item.get("fallbackEvents", []) or []:
+            line = entry.get("line", 0)
+            message = entry.get("message", "")
+            print(
+                f"[check_shader_logs] FALLBACK {source}:{line}: {message}",
+                file=sys.stdout,
+            )
+
+        for entry in item.get("errors", []) or []:
+            line = entry.get("line", 0)
+            message = entry.get("message", "")
+            print(
+                f"[check_shader_logs] ERROR {source}:{line}: {message}",
+                file=sys.stderr,
+            )
+
+
 def analyse_shader_log(path: Path) -> dict[str, object]:
     """Return a structured summary for an individual shader log."""
 
@@ -140,6 +170,8 @@ def main() -> None:
     total_warnings = sum(item["warning_count"] for item in summary)
     total_fallback_logs = sum(1 for item in summary if item.get("isFallbackLog"))
     total_fallback_events = sum(item.get("fallback_count", 0) for item in summary)
+
+    _print_detailed_entries(summary)
 
     print(
         "Analysed {count} shader log(s): {errors} error(s), {warnings} warning(s), "

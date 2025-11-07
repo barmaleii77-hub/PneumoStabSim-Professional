@@ -882,6 +882,43 @@ def task_security() -> None:
     )
 
 
+def task_shaders() -> None:
+    reports_dir = PROJECT_ROOT / "reports" / "shaders"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    validate_command = [
+        sys.executable,
+        "tools/validate_shaders.py",
+        "--emit-qsb",
+        "--reports-dir",
+        str(reports_dir),
+    ]
+    _run_command(
+        validate_command,
+        task_name="validate-shaders",
+        log_name="validate_shaders.log",
+    )
+
+    summary_path = PROJECT_ROOT / "reports" / "tests" / "shader_logs_summary.json"
+    log_command = [
+        sys.executable,
+        "tools/check_shader_logs.py",
+        str(reports_dir),
+        "--recursive",
+        "--output",
+        str(summary_path),
+        "--expect-fallback",
+    ]
+    if _env_flag("CI_FAIL_ON_SHADER_WARNINGS", default=False):
+        log_command.append("--fail-on-warnings")
+
+    _run_command(
+        log_command,
+        task_name="shader-log-audit",
+        log_name="shader_logs_audit.log",
+    )
+
+
 def task_verify() -> None:
     """Run linting, type-checking and tests sequentially."""
 
@@ -889,6 +926,7 @@ def task_verify() -> None:
     task_typecheck()
     task_qml_lint()
     task_security()
+    task_shaders()
     task_test()
     task_post_analysis()
 

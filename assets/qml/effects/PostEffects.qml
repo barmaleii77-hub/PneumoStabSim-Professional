@@ -15,6 +15,8 @@ Item {
 
     signal effectCompilationError(var effectId, string errorLog)
     signal effectCompilationRecovered(var effectId)
+    signal simplifiedRenderingRequested(string reason)
+    signal simplifiedRenderingRecovered()
 
     // Structured diagnostics (opt-in from Python)
     property bool diagnosticsLoggingEnabled: false
@@ -23,6 +25,9 @@ Item {
     property bool effectsBypass: false
     property string effectsBypassReason: ""
     property var persistentEffectFailures: ({})
+    property bool simplifiedFallbackActive: false
+    property string simplifiedFallbackReason: ""
+    property var shaderStatusCache: ({})
 
     onEffectsBypassChanged: {
         if (effectsBypass) {
@@ -112,6 +117,35 @@ Item {
         }
         if (effectsBypassReason !== reason)
             effectsBypassReason = reason
+        updateSimplifiedFallbackState(active, reason)
+    }
+
+    function updateSimplifiedFallbackState(active, reason) {
+        var normalizedReason = reason && reason.length
+                ? reason
+                : qsTr("Rendering pipeline failure")
+        if (active) {
+            var reasonChanged = simplifiedFallbackReason !== normalizedReason
+            if (!simplifiedFallbackActive) {
+                simplifiedFallbackActive = true
+                simplifiedFallbackReason = normalizedReason
+                console.warn("⚠️ PostEffects: requesting simplified rendering fallback ->", normalizedReason)
+                simplifiedRenderingRequested(normalizedReason)
+            } else if (reasonChanged) {
+                simplifiedFallbackReason = normalizedReason
+                console.warn("⚠️ PostEffects: simplified rendering reason updated ->", normalizedReason)
+                simplifiedRenderingRequested(normalizedReason)
+            }
+        } else {
+            if (simplifiedFallbackActive) {
+                simplifiedFallbackActive = false
+                simplifiedFallbackReason = ""
+                console.log("✅ PostEffects: simplified rendering fallback cleared")
+                simplifiedRenderingRecovered()
+            } else if (simplifiedFallbackReason.length) {
+                simplifiedFallbackReason = ""
+            }
+        }
     }
 
     function setEffectPersistentFailure(effectId, active, reason) {
@@ -736,6 +770,14 @@ Item {
             console.debug("PostEffects: unable to read shader status", effectId, shaderId, error)
             return
         }
+        var cacheKey = effectId + "::" + shaderId
+        var cachedStatuses = shaderStatusCache
+        if (cachedStatuses && cachedStatuses[cacheKey] === status)
+            return
+        if (!cachedStatuses || typeof cachedStatuses !== "object")
+            cachedStatuses = ({})
+        cachedStatuses[cacheKey] = status
+        shaderStatusCache = cachedStatuses
         // qmllint disable missing-property
         if (status === Shader.Error) {
             var message = shaderCompilationMessage(shaderItem)

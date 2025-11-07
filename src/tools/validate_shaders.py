@@ -89,6 +89,15 @@ class ShaderFile:
 
 ValidationErrors = list[str]
 
+
+@dataclass(slots=True)
+class ShaderValidationReport:
+    """Container describing the outcome of shader validation."""
+
+    errors: list[str]
+    warnings: list[str]
+
+
 QSB_ENV_VARIABLE = "QSB_COMMAND"
 
 
@@ -581,6 +590,7 @@ def _run_qsb(
     qsb_command: Sequence[str],
     reports_dir: Path | None,
     errors: ValidationErrors,
+    warnings: list[str],
 ) -> None:
     # Qt Shader Baker cannot compile GLSL ES 3.0 sources to SPIR-V without
     # raising the version to 3.10+, which our runtime deliberately avoids to
@@ -621,7 +631,7 @@ def _run_qsb(
 
     if completed.returncode == 0:
         for warning in _extract_shader_warnings(stdout, stderr):
-            errors.append(
+            warnings.append(
                 f"{_relative(shader.path, shader_root)}: shader warning: {warning}"
             )
 
@@ -677,6 +687,7 @@ def validate_shaders(
     """
 
     errors: ValidationErrors = []
+    warnings: list[str] = []
 
     if not shader_root.exists():
         return [f"Shader directory does not exist: {shader_root}"]
@@ -729,11 +740,11 @@ def validate_shaders(
 
         for shader in files:
             try:
-                _run_qsb(shader, shader_root, command, reports_dir, errors)
+                _run_qsb(shader, shader_root, command, reports_dir, errors, warnings)
             except QsbEnvironmentError as exc:
-                return [str(exc)]
+                return ShaderValidationReport(errors=[str(exc)], warnings=warnings)
 
-    return errors
+    return ShaderValidationReport(errors=errors, warnings=warnings)
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -776,18 +787,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     if reports_dir is None and args.emit_qsb:
         reports_dir = DEFAULT_REPORTS_ROOT
     try:
-        errors = validate_shaders(shader_root, reports_dir=reports_dir)
+        result = validate_shaders(shader_root, reports_dir=reports_dir)
     except ShaderValidationUnavailableError as exc:
         print(f"[validate_shaders] WARNING: {exc}", file=sys.stderr)
         return 0
 
-    if errors:
-        for message in errors:
+    if result.errors:
+        for message in result.errors:
             print(f"[validate_shaders] ERROR: {message}", file=sys.stderr)
         return 1
 
+    for warning in result.warnings:
+        print(f"[validate_shaders] WARNING: {warning}", file=sys.stderr)
+
     if not args.quiet:
-        print(f"Shader validation OK: {_relative(shader_root, PROJECT_ROOT)}")
+        var_summary = ""
+        if result.warnings:
+            var_summary = f" (warnings: {len(result.warnings)})"
+        print(
+            f"Shader validation OK{var_summary}: {_relative(shader_root, PROJECT_ROOT)}"
+        )
     return 0
 
 

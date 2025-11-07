@@ -139,11 +139,13 @@ def test_validate_shaders_success(tmp_path: Path) -> None:
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert errors == []
+    assert result.errors == []
+    assert result.warnings == []
+    assert result.warnings == []
 
 
 def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
@@ -173,11 +175,11 @@ def test_validate_shaders_invokes_qsb_profiles_and_logs(tmp_path: Path) -> None:
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert errors == []
+    assert result.errors == []
     assert capture.exists()
 
     invocations = [
@@ -245,11 +247,12 @@ def test_validate_shaders_flags_warning_output(tmp_path: Path) -> None:
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert errors == [
+    assert result.errors == []
+    assert result.warnings == [
         "effects/bloom.frag: shader warning: Warning: precision lowered to OpenGL ES 3.0",
         "effects/bloom_fallback.frag: shader warning: Warning: precision lowered to OpenGL ES 3.0",
     ]
@@ -269,11 +272,11 @@ def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
         "#version 450 core\nvoid qt_customMain() {}\n",
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert any("missing GLES variant" in message for message in errors)
+    assert any("missing GLES variant" in message for message in result.errors)
 
 
 def test_validate_shaders_reports_missing_fallback_es_variant(tmp_path: Path) -> None:
@@ -293,11 +296,11 @@ def test_validate_shaders_reports_missing_fallback_es_variant(tmp_path: Path) ->
         shader_root, "effects/dof_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert any("missing fallback ES variant" in message for message in errors)
+    assert any("missing fallback ES variant" in message for message in result.errors)
 
 
 def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
@@ -317,11 +320,11 @@ def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
         shader_root, "effects/dof_es.frag", "#version 100 es\nvoid qt_customMain() {}\n"
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert any("expected '#version 300 es'" in message for message in errors)
+    assert any("expected '#version 300 es'" in message for message in result.errors)
 
 
 def test_validate_shaders_reports_bom_whitespace_and_comments(tmp_path: Path) -> None:
@@ -371,18 +374,21 @@ def test_validate_shaders_reports_bom_whitespace_and_comments(tmp_path: Path) ->
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
     assert (
         "effects/bloom.frag: leading UTF-8 byte-order mark; remove it so '#version' is the first bytes"
-        in errors
+        in result.errors
     )
-    assert "effects/fog.vert: leading whitespace before '#version' directive" in errors
+    assert (
+        "effects/fog.vert: leading whitespace before '#version' directive"
+        in result.errors
+    )
     assert (
         "effects/sky.vert: unexpected content before '#version' directive (starts with '// comment')"
-        in errors
+        in result.errors
     )
 
 
@@ -402,12 +408,12 @@ def test_validate_shaders_propagates_qsb_failure(tmp_path: Path) -> None:
         "#version 450 core\nvoid qt_customMain() {}\n",
     )
 
-    errors = validate_shaders.validate_shaders(
+    result = validate_shaders.validate_shaders(
         shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
     )
 
-    assert any("qsb failed" in message for message in errors)
-    assert any("fatal: syntax error" in message for message in errors)
+    assert any("qsb failed" in message for message in result.errors)
+    assert any("fatal: syntax error" in message for message in result.errors)
 
 
 def test_validate_shaders_raises_when_shared_library_missing(tmp_path: Path) -> None:
