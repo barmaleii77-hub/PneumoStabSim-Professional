@@ -17,10 +17,12 @@ This guide covers common problems you might encounter and their solutions.
     $env:QSG_RHI_BACKEND="d3d11"
     python app.py
     ```
-  - При работе через RDP включите `QT_QPA_PLATFORM=offscreen` и запустите
-    `python app.py --safe` для smoke-проверки.
+  - Smoke-проверку выполняйте через `python app.py --safe` — он не открывает
+    окно и гарантирует корректное завершение даже в RDP.
+  - Для удалённых сессий добавьте `QT_QPA_PLATFORM=offscreen` перед запуском.
 - **Падения драйвера:** добавьте `--legacy`, чтобы переключить Qt Quick на
-  OpenGL и исключить зависимость от D3D11.
+  OpenGL и исключить зависимость от D3D11. Комбинация `--legacy --safe`
+  обеспечивает headless smoke-тест без взаимодействия с драйвером.
 
 ### macOS (Metal)
 - **Симптомы:** окно создаётся, но сцена пустая, лог содержит `rhi: backend: metal`.
@@ -29,6 +31,7 @@ This guide covers common problems you might encounter and their solutions.
     `QT_MAC_WANTS_LAYER=1`, после чего выполните `python app.py --safe`.
   - Если требуется принудительный OpenGL (например, под Rosetta), установите
     `QSG_RHI_BACKEND=opengl` либо запускайте `python app.py --legacy`.
+  - Диагностику окружения можно собрать через `python app.py --safe --env-report metal-env.md`.
 
 ### Linux (OpenGL / Mesa)
 - **Симптомы:** краши с `Could not initialize GLX` или `EGL`.
@@ -42,8 +45,11 @@ This guide covers common problems you might encounter and their solutions.
     ```
   - В десктопном режиме убедитесь, что установлен `mesa-vulkan-drivers` либо
     пропишите `MESA_GL_VERSION_OVERRIDE=4.1` для поддержки Qt Quick 3D.
-- **Сцена черная в Wayland:** запустите с `QT_QPA_PLATFORM=xcb` либо используйте
+- **Сцена чёрная в Wayland:** запустите с `QT_QPA_PLATFORM=xcb` либо используйте
   XWayland (`QT_QPA_PLATFORM=wayland` + `--legacy`).
+- **Проверка логов:** `python tools/environment/qt_report.py` собирает информацию
+  о найденных GLX/EGL-библиотеках и помогает подтвердить, что `offscreen`
+  активировался до импорта PySide6.
 
 ### Общие советы
 - Проверяйте `reports/tests/shader_logs_summary.json` после `make check` — файл
@@ -62,6 +68,9 @@ This guide covers common problems you might encounter and their solutions.
 - Если в логах встречается `QXcbConnection: Could not connect to display`,
   убедитесь, что установлены `xvfb`, `xauth`, `mesa-utils` и заданы переменные
   выше до импорта PySide6.
+- Для детальной диагностики сформируйте отчёт окружения:
+  `QT_QPA_PLATFORM=offscreen python app.py --safe --env-report ci-env.md` — файл
+  прикладывайте к тикетам о headless-сбоях.
 
 ---
 
