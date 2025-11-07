@@ -50,6 +50,7 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
    На macOS допускается `QT_QPA_PLATFORM=minimal` в паре с `QT_MAC_WANTS_LAYER=1`,
    если требуется инициализировать Metal без окон. Для Windows RDP-сессий
    достаточно `QT_QPA_PLATFORM=offscreen` + `QSG_RHI_BACKEND=d3d11`.
+   Для диагностики сохраните снимок окружения: `python app.py --safe --env-report ci-env.md`.
 2. **Smoke-проверка** — `python app.py --safe` (alias: `--test-mode`). Скрипт
    выполняет импорт Qt, прогоняет диагностические проверки и завершает процесс
    без инициализации QML сцены.
