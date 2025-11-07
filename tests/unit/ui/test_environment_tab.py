@@ -52,6 +52,10 @@ def test_environment_tab_applies_custom_slider_ranges(qapp, monkeypatch):
         def get(self, path, default=None):
             if path == "graphics.environment_ranges":
                 return deepcopy(self._ranges)
+            if path == "metadata.environment_slider_ranges":
+                return None
+            if path == "defaults_snapshot.graphics.environment_ranges":
+                return None
             return self._base.get(path, default)
 
     monkeypatch.setattr(
@@ -121,4 +125,71 @@ def test_environment_tab_missing_range_triggers_warning(qapp, monkeypatch):
     assert slider._max == pytest.approx(default_range.maximum)
     assert slider._step == pytest.approx(default_range.step)
     assert captured
-    assert "skybox_brightness" in captured[0]
+    message = "\n".join(captured)
+    assert "skybox_brightness" in message
+    assert "Используются значения по умолчанию" in message
+
+
+def test_environment_tab_uses_metadata_ranges_when_current_missing(
+    qapp, monkeypatch
+):
+    base_manager = get_settings_manager()
+    partial_ranges = {
+        key: {
+            "min": value.minimum,
+            "max": value.maximum,
+            "step": value.step,
+        }
+        for key, value in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
+    }
+    partial_ranges.pop("skybox_brightness")
+
+    metadata_ranges = {
+        key: {
+            "min": value.minimum,
+            "max": value.maximum,
+            "step": value.step,
+        }
+        for key, value in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
+    }
+    metadata_ranges["skybox_brightness"] = {"min": 0.2, "max": 4.0, "step": 0.2}
+
+    class _StubManager:
+        def __init__(self, base, ranges, metadata):
+            self._base = base
+            self._ranges = deepcopy(ranges)
+            self._metadata = deepcopy(metadata)
+
+        def get(self, path, default=None):
+            if path == "graphics.environment_ranges":
+                return deepcopy(self._ranges)
+            if path == "metadata.environment_slider_ranges":
+                return deepcopy(self._metadata)
+            if path == "defaults_snapshot.graphics.environment_ranges":
+                return None
+            return self._base.get(path, default)
+
+    monkeypatch.setattr(
+        environment_tab_module,
+        "get_settings_manager",
+        lambda: _StubManager(base_manager, partial_ranges, metadata_ranges),
+    )
+
+    captured: list[str] = []
+
+    def _capture_warning(parent, title, text):
+        captured.append(text)
+        return None
+
+    monkeypatch.setattr(environment_tab_module.QMessageBox, "warning", _capture_warning)
+
+    tab = EnvironmentTab()
+    slider = tab.get_controls()["ibl.skybox_brightness"]
+
+    assert slider._min == pytest.approx(0.2)
+    assert slider._max == pytest.approx(4.0)
+    assert slider._step == pytest.approx(0.2)
+    assert captured
+    message = "\n".join(captured)
+    assert "metadata.environment_slider_ranges" in message
+    assert "skybox_brightness" in message
