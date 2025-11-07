@@ -251,7 +251,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            height: parent.height / 2
+            height: Math.round(parent.height / 2)
             color: "rgba(255, 255, 255, 0.1)"
             radius: 10
         }
@@ -269,25 +269,25 @@ Item {
             }
 
             Text {
-                text: "• Animated frame & cylinders"
+                text: " Animated frame & cylinders"
                 color: "#aaaaaa"
                 font.pixelSize: 11
             }
 
             Text {
-                text: "• 4 Wheels with depth effect"
+                text: " 4 Wheels with depth effect"
                 color: "#aaaaaa"
                 font.pixelSize: 11
             }
 
             Text {
-                text: "• Breathing pneumatic system"
+                text: " Breathing pneumatic system"
                 color: "#aaaaaa"
                 font.pixelSize: 11
             }
 
             Text {
-                text: "• Gradient & shadow effects"
+                text: " Gradient & shadow effects"
                 color: "#aaaaaa"
                 font.pixelSize: 11
             }

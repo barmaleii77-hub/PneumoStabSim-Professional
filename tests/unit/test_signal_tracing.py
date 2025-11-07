@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from src.common.signal_trace import SignalTraceConfig
 from src.diagnostics.signal_tracing import (
     HAS_QT,
     MissingSignalError,
@@ -109,3 +110,18 @@ def test_bridge_requires_qt_environment() -> None:
         pytest.skip("PySide6 available in environment; bridge can be instantiated")
     with pytest.raises(SignalTracingError):
         SignalTracerBridge(tracer)
+
+
+@pytest.mark.unit
+class TestSignalTraceConfig:
+    def test_history_limit_rounds_float(self) -> None:
+        config = SignalTraceConfig.from_dict({"history_limit": 12.6})
+        assert config.history_limit == 13
+
+    def test_history_limit_rounds_string_float(self) -> None:
+        config = SignalTraceConfig.from_dict({"history_limit": "45.2"})
+        assert config.history_limit == 45
+
+    def test_history_limit_minimum_is_one(self) -> None:
+        config = SignalTraceConfig.from_dict({"history_limit": 0.2})
+        assert config.history_limit == 1

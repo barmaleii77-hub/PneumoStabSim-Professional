@@ -63,7 +63,13 @@ Control {
                 required property string sender
                 required property var args
 
-                width: ListView.view.width
+                width: {
+                    const view = ListView.view
+                    const fallbackParent = parent && parent.width !== undefined ? parent.width : 0
+                    const baseWidth = view && view.width !== undefined ? view.width : fallbackParent
+                    const numericWidth = Number(baseWidth)
+                    return isNaN(numericWidth) ? 0 : Math.round(numericWidth)
+                }
                 color: index % 2 === 0 ? Qt.rgba(0.14, 0.14, 0.18, 0.9)
                                         : Qt.rgba(0.16, 0.16, 0.2, 0.9)
                 radius: 4

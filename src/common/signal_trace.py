@@ -103,10 +103,10 @@ class SignalTraceConfig:
             )
 
         if isinstance(history_candidate, (int, float)):
-            history_limit = int(history_candidate)
+            history_limit = int(round(float(history_candidate)))
         elif isinstance(history_candidate, str):
             try:
-                history_limit = int(history_candidate)
+                history_limit = int(round(float(history_candidate)))
             except ValueError:
                 history_limit = 200
 
