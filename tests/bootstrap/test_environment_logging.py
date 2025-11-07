@@ -69,3 +69,21 @@ def test_startup_environment_message_contains_required_keys(
         assert any(
             part.startswith(f"{key}=") for part in log_message.split(" | ")
         ), f"log message missing key {key}"
+
+
+def test_format_startup_environment_message_has_all_required_keys() -> None:
+    """Ensure the standalone formatter exposes every expected environment field."""
+
+    snapshot = {
+        "platform": "linux",
+        "QT_QPA_PLATFORM": "xcb",
+        "QSG_RHI_BACKEND": "vulkan",
+        "QT_PLUGIN_PATH": "/opt/qt/plugins",
+        "PySide6": "6.7.0",
+    }
+
+    formatted = ApplicationRunner._format_startup_environment_message(snapshot)
+
+    assert formatted.startswith("STARTUP_ENVIRONMENT"), formatted
+    for key, value in snapshot.items():
+        assert f"{key}={value}" in formatted, f"Formatted output missing {key}={value}: {formatted}"
