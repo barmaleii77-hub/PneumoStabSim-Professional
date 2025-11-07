@@ -627,6 +627,14 @@ def task_lint() -> None:
 
     format_cmd = [sys.executable, "-m", "ruff", "format", "--check", *existing_targets]
     check_cmd = [sys.executable, "-m", "ruff", "check", *existing_targets]
+    flake8_cmd = [
+        sys.executable,
+        "-m",
+        "flake8",
+        "--exit-zero",
+        "--format=%(path)s:%(row)d:%(col)d:%(code)s:%(text)s",
+        *existing_targets,
+    ]
 
     try:
         _run_command(format_cmd, task_name="ruff-format", log_name="ruff_format.log")
@@ -635,6 +643,12 @@ def task_lint() -> None:
             "Ruff formatting violations detected; fix them before running lint"
         ) from exc
     _run_command(check_cmd, task_name="ruff-check", log_name="ruff_check.log")
+
+    _run_command(
+        flake8_cmd,
+        task_name="flake8",
+        log_name="flake8.log",
+    )
 
 
 def task_typecheck() -> None:

@@ -105,6 +105,8 @@ jobs:
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
       - name: Run make check
+        id: make-check
+        continue-on-error: true
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
             bash scripts/xvfb_wrapper.sh make check
@@ -114,6 +116,10 @@ jobs:
 
       - name: Audit shader logs
         run: python tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
+
+      - name: Aggregate analyser warnings
+        if: always()
+        run: python -m tools.quality.emit_pr_annotations
 
       - name: Publish collected warnings
         if: always()
@@ -202,3 +208,7 @@ jobs:
             reports/tests/**
             logs/**
           if-no-files-found: warn
+
+      - name: Fail if make check failed
+        if: steps.make-check.conclusion == 'failure'
+        run: exit 1
