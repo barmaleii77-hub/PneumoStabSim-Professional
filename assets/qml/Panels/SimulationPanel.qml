@@ -189,8 +189,10 @@ Pane {
         var finalValue
         if (scale !== 1)
             finalValue = _asScaledInt(numeric, scale)
-        else
+        else if (opts.forceInt)
             finalValue = _asInt(numeric)
+        else
+            finalValue = numeric
         try {
             spin.value = finalValue
         } catch (error) {
@@ -206,7 +208,7 @@ Pane {
                         console.warn("⚠️ SimulationPanel: scaled fallback failed for", logKey, scaledError)
                     }
                 }
-            } else {
+            } else if (opts.forceInt) {
                 var fallback = _asInt(numeric)
                 if (fallback !== finalValue) {
                     try {
