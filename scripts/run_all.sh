@@ -124,13 +124,21 @@ count = _append_block(warnings_log, "Shader warnings", entries)
 if count == 0:
     warnings_log.parent.mkdir(parents=True, exist_ok=True)
     warnings_log.touch(exist_ok=True)
-
-print(
-    "[run_all] Shader warnings captured: {count} -> {destination}".format(
-        count=count,
-        destination=warnings_log,
+    print(
+        "[run_all] No shader warnings detected; summary stored at {destination}".format(
+            destination=warnings_log,
+        )
     )
-)
+else:
+    print("[run_all] Shader warnings detected:")
+    for entry in entries:
+        print(f"  - {entry}")
+    print(
+        "[run_all] Shader warnings captured: {count} -> {destination}".format(
+            count=count,
+            destination=warnings_log,
+        )
+    )
 PY
 
 echo "== PyTest =="
