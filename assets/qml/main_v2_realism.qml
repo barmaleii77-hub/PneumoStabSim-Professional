@@ -11,6 +11,9 @@ Item {
 
     signal batchUpdatesApplied(var summary)
 
+    property var sceneBridge: null
+    property var diagnosticsTrace: sceneBridge && sceneBridge.signalTrace ? sceneBridge.signalTrace : null
+
     property var pendingPythonUpdates: ({})
     onPendingPythonUpdatesChanged: {
         if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") {
@@ -662,6 +665,8 @@ property real tankPressure: 0.0
         // === FIXED: Proper ExtendedSceneEnvironment implementation for Qt 6.9.3 ===
         environment: RealismEnvironment {
             id: realismEnvironment
+            sceneBridge: root.sceneBridge
+            diagnosticsTrace: root.diagnosticsTrace
             resolvedBackgroundMode: root.resolvedBackgroundMode()
             sceneClearColor: root.effectiveClearColor
             useSkybox: root.backgroundUsesSkybox && root.iblProbeReady

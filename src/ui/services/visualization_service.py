@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Dict, Optional
@@ -10,6 +11,9 @@ from src.common.settings_manager import SettingsManager
 from src.core.interfaces import VisualizationService as VisualizationServiceProtocol
 from src.security.access_control import AccessControlService, get_access_control
 from src.ui.hud import CameraHudTelemetry
+
+
+logger = logging.getLogger(__name__)
 
 
 class VisualizationService(VisualizationServiceProtocol):
@@ -45,6 +49,16 @@ class VisualizationService(VisualizationServiceProtocol):
         "simulation": "current.simulation",
     }
 
+    _GRAPHICS_CATEGORY_PATHS: Mapping[str, str] = {
+        "camera": "current.graphics.camera",
+        "lighting": "current.graphics.lighting",
+        "environment": "current.graphics.environment",
+        "scene": "current.graphics.scene",
+        "quality": "current.graphics.quality",
+        "materials": "current.graphics.materials",
+        "effects": "current.graphics.effects",
+    }
+
     def __init__(
         self,
         *,
@@ -56,6 +70,64 @@ class VisualizationService(VisualizationServiceProtocol):
         self._settings_manager = settings_manager
         self._camera_telemetry = CameraHudTelemetry()
         self._access_control = access_control or get_access_control()
+
+    # ----------------------------------------------------------------- startup
+    def populate_initial_state(self) -> Mapping[str, Mapping[str, Any]]:
+        """Load persisted graphics settings into the service state."""
+
+        manager = self._resolve_settings_manager()
+        if manager is None:
+            logger.debug("VisualizationService.populate_initial_state: no manager")
+            return self.populate_camera_defaults()
+
+        payload: Dict[str, Mapping[str, Any]] = {}
+        loaded_categories: list[str] = []
+
+        for category, path in self._GRAPHICS_CATEGORY_PATHS.items():
+            try:
+                raw = manager.get(path, {})
+            except Exception as exc:  # pragma: no cover - defensive logging only
+                logger.warning(
+                    "Failed to read settings for %s (%s): %s",
+                    category,
+                    path,
+                    exc,
+                )
+                continue
+
+            if not isinstance(raw, Mapping) or not raw:
+                if raw:
+                    logger.warning(
+                        "Settings payload for %s is not a mapping: %r",
+                        path,
+                        type(raw).__name__,
+                    )
+                continue
+
+            payload[category] = dict(raw)
+            loaded_categories.append(category)
+
+        try:
+            animation_payload = manager.get("current.animation", {})
+        except Exception as exc:  # pragma: no cover - optional log path
+            logger.warning("Failed to read settings for animation: %s", exc)
+        else:
+            if isinstance(animation_payload, Mapping) and animation_payload:
+                payload["animation"] = dict(animation_payload)
+                loaded_categories.append("animation")
+
+        if not payload:
+            logger.debug(
+                "VisualizationService.populate_initial_state: no persisted payloads"
+            )
+            return self.populate_camera_defaults()
+
+        logger.info(
+            "Loaded graphics defaults for categories: %s",
+            ", ".join(sorted(set(loaded_categories))),
+        )
+
+        return self.dispatch_updates(payload)
 
     # ----------------------------------------------------------------- protocol
     def categories(self) -> Sequence[str]:
