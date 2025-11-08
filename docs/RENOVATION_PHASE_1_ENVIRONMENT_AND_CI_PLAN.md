@@ -68,3 +68,10 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-05-05 – Promoted the Qt environment verification to the `make check`
   quality gate and GitHub Actions matrix; reports are now timestamped snapshots
   inside `reports/environment/`.
+- 2025-11-08 – `make check` in the Linux container failed: `pytest` reported
+  structlog JSON emission regressions, multiple physics step lever geometry
+  AttributeErrors, a receiver volume logging TypeError, and a documentation
+  version mismatch. Qt shader baking also warned about missing
+  `libxkbcommon.so.0`, but the existing Phase 1 environment guidance remains
+  accurate; follow-up fixes belong to application code and dependency packaging
+  tasks rather than environment documentation updates.
