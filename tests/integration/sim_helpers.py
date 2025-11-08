@@ -11,11 +11,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Iterator, Mapping
 
-from config.constants import get_pneumo_gas_constants
-from src.core.settings_manager import create_default_system_configuration
-from src.common.units import DEG2RAD, PA_ATM, T_AMBIENT
-from src.pneumo.enums import ReceiverVolumeMode, ThermoMode, Wheel
-from src.pneumo.gas_state import create_line_gas_state, create_tank_gas_state
+from src.core.settings_manager import (
+    create_default_gas_network,
+    create_default_system_configuration,
+)
+from src.common.units import DEG2RAD
+from src.pneumo.enums import ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.pneumo.sim_time import advance_gas
 from src.pneumo.system import PneumaticSystem, create_standard_diagonal_system
@@ -56,33 +57,11 @@ class SimulationContext:
 
 
 def _create_gas_network(system: PneumaticSystem) -> GasNetwork:
-    """Return a gas network initialised with atmospheric conditions."""
+    """Return a gas network initialised from the settings manager."""
 
-    volumes = {
-        line: float(payload["total_volume"])
-        for line, payload in system.get_line_volumes().items()
-    }
-    line_states = {
-        line: create_line_gas_state(line, PA_ATM, T_AMBIENT, volume)
-        for line, volume in volumes.items()
-    }
-
-    defaults = get_pneumo_gas_constants()
-    mode_name = str(defaults["tank_volume_mode"]).upper()
-    receiver_mode = ReceiverVolumeMode[mode_name]
-    tank_state = create_tank_gas_state(
-        V_initial=float(defaults["tank_volume_initial_m3"]),
-        p_initial=float(defaults["tank_pressure_initial_pa"]),
-        T_initial=float(defaults["tank_temperature_initial_k"]),
-        mode=receiver_mode,
-    )
-
-    return GasNetwork(
-        lines=line_states,
-        tank=tank_state,
-        system_ref=system,
-        master_isolation_open=False,
-    )
+    network = create_default_gas_network(system)
+    network.master_isolation_open = False
+    return network
 
 
 def create_simulation_context(

@@ -45,18 +45,16 @@ from src.pneumo.enums import (
 )
 from src.pneumo.receiver import ReceiverState, ReceiverSpec
 from src.pneumo.system import create_standard_diagonal_system
-from src.pneumo.gas_state import (
-    create_line_gas_state,
-    create_tank_gas_state,
-    apply_instant_volume_change,
-)
+from src.pneumo.gas_state import apply_instant_volume_change
 from src.pneumo.network import GasNetwork
 from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
-from config.constants import get_pneumo_relief_thresholds
 from src.common.units import KELVIN_0C, PA_ATM
-from src.core.settings_manager import create_default_system_configuration
+from src.core.settings_manager import (
+    create_default_gas_network,
+    create_default_system_configuration,
+)
 from src.runtime.steps import (
     PhysicsStepState,
     compute_kinematics,
@@ -490,7 +488,9 @@ class PhysicsWorker(QObject):
             # Initialize physics state (at rest)
             self.physics_state = create_initial_conditions()
 
-            config_defaults = create_default_system_configuration()
+            config_defaults = create_default_system_configuration(
+                settings_manager=self.settings_manager
+            )
 
             receiver_spec = ReceiverSpec(
                 V_min=self._volume_limits[0],
@@ -516,16 +516,16 @@ class PhysicsWorker(QObject):
                     return fallback
                 return value
 
-            def _resolve_positive(key: str) -> float:
+            def _resolve_positive(key: str, fallback: float = 0.0) -> float:
                 value = _resolve_numeric(pneumatic_cfg, key)
                 if value is None:
                     value = _resolve_numeric(pneumatic_defaults, key)
                 if value is None:
-                    return 0.0
+                    return fallback
                 try:
                     numeric = float(value)
                 except (TypeError, ValueError):
-                    return 0.0
+                    return fallback
                 return max(numeric, 0.0)
 
             default_temp_c = 20.0
@@ -535,23 +535,6 @@ class PhysicsWorker(QObject):
             if atmo_temp_c is None:
                 atmo_temp_c = default_temp_c
             ambient_temperature = max(atmo_temp_c + KELVIN_0C, 1.0)
-
-            poly_heat_transfer = _resolve_positive("polytropic_heat_transfer_coeff")
-            poly_exchange_area = _resolve_positive("polytropic_exchange_area")
-            leak_coefficient = _resolve_positive("leak_coefficient")
-            leak_reference_area = _resolve_positive("leak_reference_area")
-            diagonal_coupling_diameter = _resolve_positive("diagonal_coupling_dia")
-
-            relief_defaults = get_pneumo_relief_thresholds()
-            relief_min_threshold = _get_pressure_setting(
-                "relief_min_pressure", float(relief_defaults["min"])
-            )
-            relief_stiff_threshold = _get_pressure_setting(
-                "relief_stiff_pressure", float(relief_defaults["stiff"])
-            )
-            relief_safety_threshold = _get_pressure_setting(
-                "relief_safety_pressure", float(relief_defaults["safety"])
-            )
 
             receiver_state = ReceiverState(
                 spec=receiver_spec,
@@ -568,53 +551,62 @@ class PhysicsWorker(QObject):
                 master_isolation_open=self.master_isolation_open,
             )
 
-            line_volumes = structure.get_line_volumes()
-            line_states: dict[Line, Any] = {}
-            for line_name, volume_info in line_volumes.items():
-                if (
-                    not isinstance(volume_info, dict)
-                    or "total_volume" not in volume_info
-                ):
-                    raise RuntimeError(
-                        f"Line volume information missing for {line_name.value}"
-                    )
-                total_volume = float(volume_info.get("total_volume"))
-                if total_volume <= 0:
-                    raise RuntimeError(
-                        f"Line {line_name.value} has non-positive volume {total_volume}"
-                    )
-                line_states[line_name] = create_line_gas_state(
-                    line_name,
-                    PA_ATM,
-                    ambient_temperature,
-                    total_volume,
-                )
-
-            tank_state = create_tank_gas_state(
-                V_initial=self.receiver_volume,
-                p_initial=PA_ATM,
-                T_initial=ambient_temperature,
-                mode=receiver_mode,
+            gas_network = create_default_gas_network(
+                structure, settings_manager=self.settings_manager
             )
 
-            gas_network = GasNetwork(
-                lines=line_states,
-                tank=tank_state,
-                system_ref=structure,
-                master_isolation_open=self.master_isolation_open,
+            relief_min_threshold = _get_pressure_setting(
+                "relief_min_pressure", float(gas_network.relief_min_threshold)
+            )
+            relief_stiff_threshold = _get_pressure_setting(
+                "relief_stiff_pressure", float(gas_network.relief_stiff_threshold)
+            )
+            relief_safety_threshold = _get_pressure_setting(
+                "relief_safety_pressure", float(gas_network.relief_safety_threshold)
+            )
+
+            poly_heat_transfer = _resolve_positive(
+                "polytropic_heat_transfer_coeff",
+                gas_network.polytropic_params.heat_transfer_coeff
+                if gas_network.polytropic_params
+                else 0.0,
+            )
+            poly_exchange_area = _resolve_positive(
+                "polytropic_exchange_area",
+                gas_network.polytropic_params.exchange_area
+                if gas_network.polytropic_params
+                else 0.0,
+            )
+            leak_coefficient = _resolve_positive(
+                "leak_coefficient", gas_network.leak_coefficient
+            )
+            leak_reference_area = _resolve_positive(
+                "leak_reference_area", gas_network.leak_reference_area
+            )
+            diagonal_coupling_diameter = _resolve_positive(
+                "diagonal_coupling_dia",
+                gas_network.master_equalization_diameter,
+            )
+
+            gas_network.master_isolation_open = bool(self.master_isolation_open)
+            gas_network.ambient_temperature = ambient_temperature
+            for state in gas_network.lines.values():
+                state.T = ambient_temperature
+            gas_network.leak_coefficient = leak_coefficient
+            gas_network.leak_reference_area = leak_reference_area
+            gas_network.master_equalization_diameter = diagonal_coupling_diameter
+            gas_network.polytropic_params = PolytropicParameters(
+                heat_transfer_coeff=poly_heat_transfer,
+                exchange_area=poly_exchange_area,
                 ambient_temperature=ambient_temperature,
-                relief_min_threshold=relief_min_threshold,
-                relief_stiff_threshold=relief_stiff_threshold,
-                relief_safety_threshold=relief_safety_threshold,
-                polytropic_params=PolytropicParameters(
-                    heat_transfer_coeff=poly_heat_transfer,
-                    exchange_area=poly_exchange_area,
-                    ambient_temperature=ambient_temperature,
-                ),
-                leak_coefficient=leak_coefficient,
-                leak_reference_area=leak_reference_area,
-                master_equalization_diameter=diagonal_coupling_diameter,
             )
+            gas_network.relief_min_threshold = relief_min_threshold
+            gas_network.relief_stiff_threshold = relief_stiff_threshold
+            gas_network.relief_safety_threshold = relief_safety_threshold
+            gas_network.tank.mode = receiver_mode
+            gas_network.tank.T = ambient_temperature
+            gas_network.tank.p = PA_ATM
+            gas_network.tank.V = self.receiver_volume
 
             self.master_equalization_diameter = diagonal_coupling_diameter
 

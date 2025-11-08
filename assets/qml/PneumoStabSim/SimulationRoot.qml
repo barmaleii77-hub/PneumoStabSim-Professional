@@ -1443,4 +1443,8 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
     readonly property alias bridgeIndicators: bridgeIndicatorsPanel
     readonly property alias geometryIndicatorItem: bridgeIndicatorsPanel.geometryIndicatorItem
     readonly property alias simulationIndicatorItem: bridgeIndicatorsPanel.simulationIndicatorItem
+    readonly property alias sceneSharedMaterials: sharedMaterials
+    readonly property alias sceneDirectionalLights: directionalLights
+    readonly property alias scenePointLights: pointLights
+    readonly property alias sceneSuspensionAssembly: suspensionAssembly
 }
