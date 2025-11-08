@@ -10,11 +10,11 @@ from datetime import datetime
 from ..pneumo.system import create_standard_diagonal_system
 from ..pneumo.sim_time import run_gas_simulation
 from ..pneumo.enums import ThermoMode, Wheel
-from .config_defaults import (
-    create_default_system_configuration,
+from src.core.settings_manager import (
     create_default_gas_network,
-    get_default_lever_angles,
+    create_default_system_configuration,
     get_default_gas_parameters,
+    get_default_lever_angles,
 )
 from ..common.units import DEG2RAD
 

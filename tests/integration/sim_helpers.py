@@ -12,7 +12,7 @@ from pathlib import Path
 from collections.abc import Iterator, Mapping
 
 from config.constants import get_pneumo_gas_constants
-from src.app.config_defaults import create_default_system_configuration
+from src.core.settings_manager import create_default_system_configuration
 from src.common.units import DEG2RAD, PA_ATM, T_AMBIENT
 from src.pneumo.enums import ReceiverVolumeMode, ThermoMode, Wheel
 from src.pneumo.gas_state import create_line_gas_state, create_tank_gas_state

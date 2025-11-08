@@ -10,9 +10,9 @@ from datetime import datetime
 from ..pneumo.system import create_standard_diagonal_system
 from ..pneumo.sim_time import advance_gas
 from ..pneumo.enums import ThermoMode, Wheel
-from .config_defaults import (
-    create_default_system_configuration,
+from src.core.settings_manager import (
     create_default_gas_network,
+    create_default_system_configuration,
 )
 from ..common.units import PA_ATM, T_AMBIENT
 
