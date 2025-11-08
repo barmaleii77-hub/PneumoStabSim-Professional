@@ -9,6 +9,8 @@ pytest.importorskip(
     exc_type=ImportError,
 )
 
+import src.ui.panels.graphics.materials_tab as materials_tab_module
+from src.common.settings_manager import get_settings_manager
 from src.ui.panels.graphics.materials_tab import MaterialsTab
 
 
@@ -162,3 +164,61 @@ def test_materials_tab_empty_texture_does_not_autoselect(
 
     cached = tab.get_all_state()
     assert cached["frame"]["texture_path"] == ""
+
+
+@pytest.mark.gui
+def test_materials_tab_restores_texture_from_settings_on_init(
+    qapp,
+    qtbot,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_manager = get_settings_manager()
+    saved_path = "custom_texture.png"
+
+    class _StubManager:
+        def __init__(self, base):
+            self._base = base
+
+        def get(self, path, default=None):
+            if path == "current.graphics.materials":
+                return {"frame": {"texture_path": saved_path}}
+            return self._base.get(path, default)
+
+    monkeypatch.setattr(
+        materials_tab_module,
+        "get_settings_manager",
+        lambda: _StubManager(base_manager),
+    )
+    monkeypatch.setattr(
+        materials_tab_module,
+        "discover_texture_files",
+        lambda *args, **kwargs: [("First", "first.png"), ("Second", "second.png")],
+    )
+
+    warnings: list[str] = []
+
+    def _capture_warning(parent, title, text):
+        warnings.append(text)
+        return None
+
+    monkeypatch.setattr(
+        "PySide6.QtWidgets.QMessageBox.warning",
+        _capture_warning,
+    )
+
+    tab = MaterialsTab()
+    qtbot.addWidget(tab)
+
+    texture_widget = tab.get_controls()["texture_path"]
+
+    assert texture_widget.current_path() == saved_path
+    assert texture_widget.is_missing()
+
+    tab.show()
+    qapp.processEvents()
+
+    assert warnings, "Expected warning for missing initial texture path"
+    assert saved_path in warnings[0]
+
+    cached = tab.get_all_state()
+    assert cached["frame"]["texture_path"] == saved_path
