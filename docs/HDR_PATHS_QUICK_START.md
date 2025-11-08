@@ -55,6 +55,12 @@ PneumoStabSim-Professional/
 python app.py
 ```
 
+### Настройка HDR непосредственно из панели графики
+
+- **HDR Maximum (glowHDRMaximumValue)** — слайдер в разделе Bloom панели Effects. Диапазон `0.0 – 10.0`, шаг `0.1`, значение по умолчанию `2.0`. Управляет «потолком» яркости, после которого bloom перестаёт усиливать пиксели.
+- **HDR Scale (glowHDRScale)** — слайдер с диапазоном `1.0 – 5.0`, шаг `0.1`, значение по умолчанию `2.0`. Позволяет масштабировать входящие HDR значения перед пост-обработкой. Слишком высокие значения могут привести к пересвету, поэтому журналируйте изменения через GraphicsLogger.
+- **HDR статус** — подпись рядом с переключателем HDR в вкладке «Окружение» показывает активную карту (`file:///...`) либо `—`, если источник не найден. Значение синхронизируется с `normalizeHdrPath`.
+
 ### Проверить логи IBL
 ```bash
 Get-Content logs/ibl/ibl_signals_*.log -Tail 20
@@ -66,6 +72,11 @@ INFO | IblProbeLoader | Primary source changed: file:///C:/.../assets/hdr/studio
 INFO | IblProbeLoader | Texture status: Loading
 SUCCESS | IblProbeLoader | HDR probe LOADED successfully
 ```
+
+### Типовые предупреждения и fallback'и
+
+- `normalizeHdrPath: HDR asset not found (input=..., candidates=...)` — пишется в основной логгер, если выбранный путь не существует. Панель автоматически очищает поле HDR и показывает `—`. Проверьте наличие файла в `assets/hdr/` и права доступа.
+- `IBL:Fallback` события в `logs/ibl/ibl_signals_*.log` фиксируют переключение на резервную HDR-карту. Поддержка может использовать эти строки для диагностики, если bloom внезапно становится тусклым.
 
 ---
 
