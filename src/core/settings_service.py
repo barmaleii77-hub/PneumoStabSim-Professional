@@ -237,6 +237,19 @@ class SettingsService:
             else:
                 target[key] = deepcopy(value)
 
+    @staticmethod
+    def _prune_slider_metadata_nulls(payload: Any) -> None:
+        if isinstance(payload, MutableMapping):
+            if {"min", "max", "step"}.issubset(payload.keys()):
+                for field in ("decimals", "units"):
+                    if payload.get(field) is None:
+                        payload.pop(field, None)
+            for value in list(payload.values()):
+                SettingsService._prune_slider_metadata_nulls(value)
+        elif isinstance(payload, list):
+            for item in payload:
+                SettingsService._prune_slider_metadata_nulls(item)
+
     def _write_file(self, payload: dict[str, Any]) -> None:
         path = self.resolve_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -287,6 +300,7 @@ class SettingsService:
             payload_dict = dump_settings(payload)
         else:
             payload_dict = json.loads(json.dumps(payload))
+            self._prune_slider_metadata_nulls(payload_dict)
 
         last_modified = self._ensure_last_modified(payload_dict)
         if self._validate_schema:

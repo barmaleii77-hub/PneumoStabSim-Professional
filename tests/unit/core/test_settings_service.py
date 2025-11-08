@@ -129,6 +129,24 @@ def test_settings_service_set_updates_last_modified(settings_payload: Path) -> N
     assert parsed.tzinfo == timezone.utc
 
 
+def test_settings_service_save_prunes_null_slider_metadata(
+    settings_payload: Path,
+) -> None:
+    service = SettingsService(settings_path=settings_payload)
+
+    payload = json.loads(settings_payload.read_text(encoding="utf-8"))
+    slider = payload["metadata"]["environment_slider_ranges"]["ibl_intensity"]
+    slider["decimals"] = None
+    slider["units"] = None
+
+    service.save(payload)
+
+    persisted = json.loads(settings_payload.read_text(encoding="utf-8"))
+    result = persisted["metadata"]["environment_slider_ranges"]["ibl_intensity"]
+    assert "decimals" not in result
+    assert "units" not in result
+
+
 def test_constants_accessors_use_settings_service(
     settings_payload: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
