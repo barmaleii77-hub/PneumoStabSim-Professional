@@ -1,0 +1,18 @@
+[
+  {
+    "source": "/workspace/PneumoStabSim-Professional/reports/shaders/fallback_placeholder.log",
+    "generated_at": "2025-11-08T16:25:05Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 1,
+        "message": "fallback shader placeholder"
+      }
+    ],
+    "isFallbackLog": true
+  }
+]

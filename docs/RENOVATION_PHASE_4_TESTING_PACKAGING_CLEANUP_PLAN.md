@@ -102,6 +102,11 @@ Use this section to log coverage milestones, release candidate builds, and clean
 - Authored JSON/YAML schemas for physics scenarios, added baseline images, and wired CLI utilities (`tools/run_test_case.py`, `tools/collect_qml_errors.py`, `tools/check_shader_logs.py`) to persist artefacts in `reports/tests/`.
 - Captured new pytest-qt flows validating indicator feedback and ensured shader/QML diagnostics are harvested for CI publishing.
 
+### 2025-11-08 – Manual make check regression snapshot
+- Ran `make check` in the Linux container; execution failed at the unit test stage with 10 failing cases while producing updated coverage metrics.
+- Preserved full console output in `reports/tests/make_check_20251108_162420.log` and summarised root causes in `reports/tests/make_check_20251108_summary.md` for triage.
+- Shader validation fallback analysis exported to `reports/tests/shader_logs_summary.json`; Pytest JUnit artefact refreshed at `reports/tests/unit.xml`.
+
 ### 2025-12-14 – Visual Studio assets retired
 - Удалены `.sln/.csproj/.pyproj` вместе с C# заглушками и Insiders скриптами.
 - Обновлены `docs/ENVIRONMENT_SETUP.md` и `docs/DEVELOPMENT_GUIDE.md` с рекомендациями по VS Code/PyCharm.
