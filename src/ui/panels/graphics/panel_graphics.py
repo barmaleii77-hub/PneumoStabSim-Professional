@@ -40,6 +40,7 @@ from .camera_tab import CameraTab
 from .materials_tab import MaterialsTab
 from .lighting_tab import LightingTab
 from .scene_tab import SceneTab
+from .animation_tab import AnimationTab
 from .panel_graphics_settings_manager import (
     GraphicsSettingsError,
     GraphicsSettingsService,
@@ -68,6 +69,7 @@ class GraphicsPanel(QWidget):
     camera_changed = Signal(dict)
     scene_changed = Signal(dict)
     effects_changed = Signal(dict)
+    animation_changed = Signal(dict)
     preset_applied = Signal(dict)  # ✅ передаем полный state
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -93,6 +95,7 @@ class GraphicsPanel(QWidget):
         self.scene_tab: SceneTab | None = None
         self.materials_tab: MaterialsTab | None = None
         self.effects_tab: EffectsTab | None = None
+        self.animation_tab: AnimationTab | None = None
 
         # Построение UI и загрузка состояния
         self._create_ui()
@@ -139,6 +142,7 @@ class GraphicsPanel(QWidget):
         self.environment_tab = EnvironmentTab(parent=self)
         self.quality_tab = QualityTab(parent=self)
         self.scene_tab = SceneTab(parent=self)
+        self.animation_tab = AnimationTab(parent=self)
         self.camera_tab = CameraTab(parent=self)
         self.materials_tab = MaterialsTab(parent=self)
         self.effects_tab = EffectsTab(parent=self)
@@ -147,6 +151,7 @@ class GraphicsPanel(QWidget):
         tabs.addTab(self.environment_tab, "Окружение")
         tabs.addTab(self.quality_tab, "Качество")
         tabs.addTab(self.scene_tab, "Сцена")
+        tabs.addTab(self.animation_tab, "Анимация")
         tabs.addTab(self.camera_tab, "Камера")
         tabs.addTab(self.materials_tab, "Материалы")
         tabs.addTab(self.effects_tab, "Эффекты")
@@ -170,6 +175,8 @@ class GraphicsPanel(QWidget):
         self.camera_tab.camera_changed.connect(self._on_camera_changed)
         self.materials_tab.material_changed.connect(self._on_material_changed)
         self.effects_tab.effects_changed.connect(self._on_effects_changed)
+        if self.animation_tab is not None:
+            self.animation_tab.animation_changed.connect(self._on_animation_changed)
 
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
@@ -224,6 +231,9 @@ class GraphicsPanel(QWidget):
     def _on_effects_changed(self, data: dict[str, Any]) -> None:
         self._update_color_adjustments_toggle(data)
         self._emit_with_logging("effects_changed", data, "effects")
+
+    def _on_animation_changed(self, data: dict[str, Any]) -> None:
+        self._emit_with_logging("animation_changed", data, "animation")
 
     def _create_control_buttons(self) -> QHBoxLayout:
         row = QHBoxLayout()
@@ -335,6 +345,8 @@ class GraphicsPanel(QWidget):
             self.environment_tab.set_state(self.state["environment"])
             self.quality_tab.set_state(self.state["quality"])
             self.scene_tab.set_state(self.state["scene"])
+            if self.animation_tab is not None:
+                self.animation_tab.set_state(self.state["animation"])
             self.camera_tab.set_state(self.state["camera"])
             self.materials_tab.set_state(self.state["materials"])
             self.effects_tab.set_state(self.state["effects"])
@@ -354,6 +366,8 @@ class GraphicsPanel(QWidget):
             self.environment_changed.emit(self.environment_tab.get_state())
             self.quality_changed.emit(self.quality_tab.get_state())
             self.scene_changed.emit(self.scene_tab.get_state())
+            if self.animation_tab is not None:
+                self.animation_changed.emit(self.animation_tab.get_state())
             self.camera_changed.emit(self.camera_tab.get_state())
             # Материалы: при инициализации отправляем ПОЛНЫЙ набор, чтобы QML применил все
             self.material_changed.emit(self.materials_tab.get_all_state())
@@ -372,6 +386,8 @@ class GraphicsPanel(QWidget):
             self.environment_tab.set_state(self.state["environment"])
             self.quality_tab.set_state(self.state["quality"])
             self.scene_tab.set_state(self.state["scene"])
+            if self.animation_tab is not None:
+                self.animation_tab.set_state(self.state["animation"])
             self.camera_tab.set_state(self.state["camera"])
             self.materials_tab.set_state(self.state["materials"])
             self.effects_tab.set_state(self.state["effects"])
@@ -414,7 +430,11 @@ class GraphicsPanel(QWidget):
                 "materials": self.materials_tab.get_all_state(),
                 "effects": self.effects_tab.get_state(),
                 "scene": self.scene_tab.get_state(),
-                "animation": deepcopy(self.state.get("animation", {})),
+                "animation": (
+                    self.animation_tab.get_state()
+                    if self.animation_tab is not None
+                    else deepcopy(self.state.get("animation", {}))
+                ),
             }
             validated = self.settings_service.ensure_valid_state(state)
             self.state = validated

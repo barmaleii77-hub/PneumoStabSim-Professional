@@ -9,6 +9,7 @@
 - Камера (`camera`): fov/near/far/speed/autorotate
 - Эффекты (`effects`): bloom, DoF, motion blur, lens flare, vignette, tonemap
 - Материалы (`materials`): параметры PBR материалов для частей модели
+- Анимация (`animation`): глобальная амплитуда/частота, фазовые сдвиги, параметры сглаживания
 
 ## Обновление UI визуализации
 
@@ -17,6 +18,7 @@
 - **Панель телеметрии** — `TelemetryChartPanel` реализует графики QtCharts с контролем окна, автомасштабом и режимом стрима/паузы для мониторинга параметров графики и физики (`assets/qml/components/TelemetryChartPanel.qml`).
 - **Трассировка сигналов** — `SignalTracePanel` позволяет журналировать вызовы SceneBridge/StateSync и быстро очищать ленту событий (`assets/qml/components/SignalTracePanel.qml`).
 - **Визуализация пневмосистемы** — `FlowNetwork` и `ValveIndicator` показывают состояние клапанов, направление потоков и интенсивность через анимированные стрелки и колонны (`assets/qml/PneumoStabSim/scene/FlowNetwork.qml`, `assets/qml/PneumoStabSim/scene/ValveIndicator.qml`).
+- **Анимация подвески** — вкладка «Анимация» в `GraphicsPanel` теперь отражает полный набор параметров (`amplitude`, фазовые сдвиги по колёсам, `smoothing_*`, стартовое время). Управление синхронизировано с `SignalsRouter.handle_animation_changed`, что исключает скрытые параметры в JSON. 【F:src/ui/panels/graphics/animation_tab.py†L57-L260】【F:src/ui/main_window_pkg/signals_router.py†L1122-L1187】
 
 ### Цветокоррекция ExtendedSceneEnvironment
 

@@ -21,6 +21,7 @@ from src.ui.panels.graphics.effects_tab import EffectsTab
 from src.ui.panels.graphics.panel_graphics import GraphicsPanel
 from src.ui.panels.graphics.quality_tab import QualityTab
 from src.ui.panels.graphics.scene_tab import SceneTab
+from src.ui.panels.graphics.animation_tab import AnimationTab
 
 
 @pytest.mark.gui
@@ -179,20 +180,87 @@ def test_scene_tab_roundtrip_preserves_types(qapp):
 
 
 @pytest.mark.gui
+def test_animation_tab_roundtrip_preserves_payload(qapp):
+    tab = AnimationTab()
+
+    try:
+        payload = {
+            "is_running": True,
+            "animation_time": 12.5,
+            "amplitude": 0.08,
+            "frequency": 2.5,
+            "phase_global": 45.0,
+            "phase_fl": 0.0,
+            "phase_fr": 180.0,
+            "phase_rl": 90.0,
+            "phase_rr": 270.0,
+            "smoothing_enabled": True,
+            "smoothing_duration_ms": 200.0,
+            "smoothing_angle_snap_deg": 55.0,
+            "smoothing_piston_snap_m": 0.075,
+            "smoothing_easing": "OutQuad",
+        }
+
+        tab.set_state(payload)
+        state = tab.get_state()
+
+        for key, value in payload.items():
+            if isinstance(value, float):
+                assert math.isclose(state[key], value, rel_tol=1e-6)
+            else:
+                assert state[key] == value
+    finally:
+        tab.deleteLater()
+
+
+@pytest.mark.gui
+def test_animation_tab_smoothing_toggle_updates_controls(qapp):
+    tab = AnimationTab()
+
+    try:
+        baseline = tab.get_state()
+        baseline["smoothing_enabled"] = True
+        tab.set_state(baseline)
+
+        smoothing_checkbox = tab._controls["smoothing_enabled"]
+        duration_slider = tab._controls["smoothing_duration_ms"]
+        easing_combo = tab._controls["smoothing_easing"]
+
+        smoothing_checkbox.setChecked(False)
+        assert not duration_slider.isEnabled()
+        assert not easing_combo.isEnabled()
+
+        smoothing_checkbox.setChecked(True)
+        assert duration_slider.isEnabled()
+        assert easing_combo.isEnabled()
+    finally:
+        tab.deleteLater()
+
+
+@pytest.mark.gui
 def test_graphics_panel_collect_state_includes_scene(qapp):
     panel = GraphicsPanel()
 
     try:
         baseline_scene = panel.scene_tab.get_state()
+        baseline_animation = panel.animation_tab.get_state()
         collected = panel.collect_state()
         assert collected["scene"] == baseline_scene
+        assert collected["animation"] == baseline_animation
 
         updated_scene = dict(baseline_scene)
         updated_scene["scale_factor"] = min(baseline_scene["scale_factor"] + 0.5, 5.0)
         panel.scene_tab.set_state(updated_scene)
 
+        updated_animation = dict(baseline_animation)
+        updated_animation["amplitude"] = min(
+            baseline_animation["amplitude"] + 0.01, 0.2
+        )
+        panel.animation_tab.set_state(updated_animation)
+
         refreshed = panel.collect_state()
         assert refreshed["scene"] == panel.scene_tab.get_state()
+        assert refreshed["animation"] == panel.animation_tab.get_state()
     finally:
         panel.deleteLater()
 

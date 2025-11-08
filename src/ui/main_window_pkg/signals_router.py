@@ -755,6 +755,10 @@ class SignalsRouter:
             window.graphics_panel.effects_changed.connect(window._on_effects_changed)
             if hasattr(window.graphics_panel, "scene_changed"):
                 window.graphics_panel.scene_changed.connect(window._on_scene_changed)
+            if hasattr(window.graphics_panel, "animation_changed"):
+                window.graphics_panel.animation_changed.connect(
+                    window._on_animation_changed
+                )
             window.graphics_panel.preset_applied.connect(window._on_preset_applied)
             SignalsRouter.logger.info("✅ GraphicsPanel signals connected")
 
