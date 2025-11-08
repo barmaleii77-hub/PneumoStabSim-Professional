@@ -3,14 +3,19 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip(
-    "PySide6.QtTest",
-    reason="PySide6 QtTest module is required for UI signal tests",
+    "PySide6.QtQml",
+    reason="PySide6 Qt modules are required for UI signal tests",
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtCore",
+    reason="PySide6 Qt modules are required for UI signal tests",
     exc_type=ImportError,
 )
 
 from PySide6.QtCore import QObject, QUrl
 from PySide6.QtQml import QQmlApplicationEngine
-from PySide6.QtTest import QSignalSpy
+from tests.helpers import SignalListener
 
 
 def _has_property(obj: QObject, name: str) -> bool:
@@ -63,7 +68,7 @@ def test_batch_updates_signal_exposed(qapp, qml_file):
     target = _resolve_batch_target(root, qapp)
     assert target is not None, "No target exposing pendingPythonUpdates"
 
-    spy = QSignalSpy(root.batchUpdatesApplied)
+    spy = SignalListener(root.batchUpdatesApplied)
 
     initial_count = spy.count()
     target.setProperty("pendingPythonUpdates", {"geometry": {"frameLength": 2.0}})

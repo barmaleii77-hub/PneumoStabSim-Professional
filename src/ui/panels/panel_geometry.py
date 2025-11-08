@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Mapping
+from typing import Any
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -555,6 +556,33 @@ class GeometryPanel(QWidget):
         state = self.parameters.copy()
         state["active_preset"] = self._active_preset
         return state
+
+    def get_parameters(self) -> dict[str, Any]:
+        """Return the current geometry configuration as reflected by the UI."""
+
+        snapshot: dict[str, Any] = dict(self.parameters)
+        slider_map = {
+            "wheelbase": self.wheelbase_slider,
+            "track": self.track_slider,
+            "frame_to_pivot": self.frame_to_pivot_slider,
+            "lever_length": self.lever_length_slider,
+            "rod_position": self.rod_position_slider,
+            "cylinder_length": self.cylinder_length_slider,
+            "cyl_diam_m": self.cyl_diam_m_slider,
+            "stroke_m": self.stroke_m_slider,
+            "dead_gap_m": self.dead_gap_m_slider,
+            "rod_diameter_m": self.rod_diameter_front_slider,
+            "rod_diameter_rear_m": self.rod_diameter_rear_slider,
+            "piston_rod_length_m": self.piston_rod_length_m_slider,
+            "piston_thickness_m": self.piston_thickness_m_slider,
+        }
+        for key, slider in slider_map.items():
+            snapshot[key] = float(slider.value_spinbox.value())
+
+        snapshot["interference_check"] = bool(self.interference_check.isChecked())
+        snapshot["link_rod_diameters"] = bool(self.link_rod_diameters.isChecked())
+        snapshot["active_preset"] = self._active_preset
+        return snapshot
 
     @Slot(str, float)
     def _on_parameter_live_change(self, param_name: str, value: float):

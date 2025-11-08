@@ -7,11 +7,10 @@ import math
 import pytest
 
 pytest.importorskip("pytestqt")
-pytest.importorskip("PySide6.QtTest")
-
-from PySide6.QtTest import QSignalSpy
+pytest.importorskip("PySide6.QtCore")
 
 from tests.scenarios import SCENARIO_INDEX
+from tests.helpers import SignalListener
 
 
 @pytest.mark.gui
@@ -30,9 +29,9 @@ def test_training_bridge_emits_signals_on_apply(qtbot, training_preset_bridge):
             break
     assert target_id is not None, "No preset ID discovered in payload"
 
-    presets_spy = QSignalSpy(training_preset_bridge.presetsChanged)
-    active_spy = QSignalSpy(training_preset_bridge.activePresetChanged)
-    selected_spy = QSignalSpy(training_preset_bridge.selectedPresetChanged)
+    presets_spy = SignalListener(training_preset_bridge.presetsChanged)
+    active_spy = SignalListener(training_preset_bridge.activePresetChanged)
+    selected_spy = SignalListener(training_preset_bridge.selectedPresetChanged)
 
     training_preset_bridge.refreshPresets()
     qtbot.waitUntil(lambda: presets_spy.count() >= 1, timeout=1000)
@@ -61,8 +60,8 @@ def test_training_bridge_detects_settings_drift(
     preset_id = training_preset_bridge.defaultPresetId()
     assert training_preset_bridge.applyPreset(preset_id)
 
-    active_spy = QSignalSpy(training_preset_bridge.activePresetChanged)
-    selected_spy = QSignalSpy(training_preset_bridge.selectedPresetChanged)
+    active_spy = SignalListener(training_preset_bridge.activePresetChanged)
+    selected_spy = SignalListener(training_preset_bridge.selectedPresetChanged)
 
     settings_manager.set("current.simulation.physics_dt", 0.123456, auto_save=False)
 

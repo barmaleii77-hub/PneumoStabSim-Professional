@@ -22,6 +22,7 @@ from src.ui.panels.graphics.panel_graphics import GraphicsPanel
 from src.ui.panels.graphics.quality_tab import QualityTab
 from src.ui.panels.graphics.scene_tab import SceneTab
 from src.ui.panels.graphics.animation_tab import AnimationTab
+from tests.helpers import SignalListener
 
 
 @pytest.mark.gui
@@ -98,8 +99,6 @@ def test_graphics_panel_preset_buttons_persist_state(monkeypatch, tmp_path, qapp
     panel = GraphicsPanel()
 
     try:
-        from PySide6 import QtTest  # type: ignore
-
         baseline_state = deepcopy(panel.collect_state())
         recorded: dict[str, object] = {}
 
@@ -130,7 +129,7 @@ def test_graphics_panel_preset_buttons_persist_state(monkeypatch, tmp_path, qapp
         panel.graphics_logger.export_analysis_report = fake_export_report  # type: ignore[attr-defined]
         panel.graphics_logger.analyze_qml_sync = fake_analyze  # type: ignore[attr-defined]
 
-        preset_spy = QtTest.QSignalSpy(panel.preset_applied)
+        preset_spy = SignalListener(panel.preset_applied)
 
         panel.reset_to_defaults()
         assert recorded.get("reset_called") is True
@@ -270,9 +269,7 @@ def test_camera_controls_signals(qapp):
     panel = GraphicsPanel()
 
     try:
-        from PySide6 import QtTest  # type: ignore
-
-        spy = QtTest.QSignalSpy(panel.camera_changed)
+        spy = SignalListener(panel.camera_changed)
         camera_tab = panel.camera_tab
         assert camera_tab is not None
 
