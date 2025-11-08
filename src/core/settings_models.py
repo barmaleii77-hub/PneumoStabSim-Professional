@@ -677,4 +677,23 @@ class AppSettings(_StrictModel):
 def dump_settings(settings: AppSettings) -> dict[str, Any]:
     """Return a serialisable dictionary representation of the settings."""
 
-    return settings.model_dump(mode="python", round_trip=True)
+    # NOTE:
+    # ``AppSettings`` contains several optional fields (for example the
+    # ``decimals``/``units`` metadata in slider ranges) that default to
+    # ``None`` when not specified in ``config/app_settings.json``.  When the
+    # settings service mutates the model and writes it back to disk we want to
+    # preserve the original structure of the JSON file.  Serialising with the
+    # default `model_dump` arguments includes these ``None`` values, which would
+    # emit explicit ``null`` entries for every optional slider range field.  The
+    # JSON Schema enforces concrete types (``integer``/``string``) when the keys
+    # are present, so introducing ``null`` values caused schema validation to
+    # fail during ``SettingsService.save`` and broke a swath of tests.
+    #
+    # By excluding ``None`` we serialise only the values that were explicitly
+    # defined in the source JSON, keeping the payload compliant with the schema
+    # while preserving the existing file layout.
+    return settings.model_dump(
+        mode="python",
+        round_trip=True,
+        exclude_none=True,
+    )
