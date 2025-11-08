@@ -82,12 +82,6 @@ include = ["*", "config*"]
 [tool.setuptools.package-data]
 "*" = ["*.qml", "*.hdr", "*.png", "*.jpg", "*.ico"]
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --strict-markers --strict-config"
-testpaths = ["tests"]
-qt_api = "pyside6"
-
 [tool.coverage.run]
 source = ["src"]
 omit = ["*/tests/*", "*/test_*"]

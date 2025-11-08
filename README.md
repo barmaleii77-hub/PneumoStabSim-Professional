@@ -421,7 +421,7 @@ graph TD
 
 ### ✨ Архитектура и инструменты
 - **Единый идентификатор релиза**: unit-тест `tests/unit/test_version_consistency.py` теперь валидирует не только README и технические руководства, но и мастер-план (`docs/RENOVATION_MASTER_PLAN.md`), закрепляя `metadata.version` как единственный источник истины.
-- **CI-поток** автоматически загружает `pytest-qt` через `pytest.ini` (`-p pytestqt.plugin`), поэтому фикстура `qtbot` всегда доступна без правок кода.
+- **CI-поток** автоматически активирует `pytest-qt`, когда зависимость установлена; минимальные контейнеры пропускают GUI-тесты благодаря защитам в `tests/conftest.py`, поэтому headless-запуски больше не падают из-за отсутствия `qtbot`.
 - **`uv`** использует новые `dependency-groups`, устраняя предупреждения о `dev-dependencies` и упрощая запуск дополнительных наборов (`dev`, `docs`, `release`).
 - **`tools.task_runner`** и `tools.ci_tasks` гарантируют `PYTHONIOENCODING=utf-8` и единые `QT_LOGGING_RULES`, исключая сбои кодировки в консольных логах.
 - **Pre-commit** получил локальный хук `ruff-format-check-all`, который выполняет `ruff format` и `ruff check` последовательно для всего проекта.

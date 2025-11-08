@@ -4,6 +4,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip(
+    "PySide6.QtQuick",
+    reason="PySide6 QtQuick module is required for QML path case tests",
+    exc_type=ImportError,
+)
+
 from src.ui.main_window_pkg.ui_setup import (
     QML_ABSOLUTE_ROOT,
     QML_RELATIVE_ROOT,
