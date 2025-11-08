@@ -7,6 +7,7 @@ import pytest
 
 from src.common import settings_manager as settings_manager_module
 from src.common.settings_manager import SettingsManager, get_settings_manager
+from src.core.settings_service import SettingsService
 from src.ui.environment_schema import ENVIRONMENT_SLIDER_RANGE_DEFAULTS
 
 
@@ -147,6 +148,31 @@ def test_metadata_environment_slider_ranges_match_defaults() -> None:
         assert entry["min"] == pytest.approx(default_range.minimum)
         assert entry["max"] == pytest.approx(default_range.maximum)
         assert entry["step"] == pytest.approx(default_range.step)
+
+
+def test_settings_service_strips_null_environment_slider_metadata(
+    tmp_path: Path,
+) -> None:
+    payload = json.loads(Path("config/app_settings.json").read_text(encoding="utf-8"))
+    slider_ranges = payload.setdefault("metadata", {}).setdefault(
+        "environment_slider_ranges", {}
+    )
+
+    slider_ranges.setdefault("ibl_intensity", {}).update(
+        {"decimals": None, "units": None}
+    )
+    slider_ranges["unused"] = {"min": None, "max": None, "step": None}
+
+    settings_path = tmp_path / "app_settings.json"
+    service = SettingsService(settings_path=settings_path, validate_schema=False)
+    service.save(payload)
+
+    stored = json.loads(settings_path.read_text(encoding="utf-8"))
+    metadata_ranges = stored["metadata"]["environment_slider_ranges"]
+
+    assert "decimals" not in metadata_ranges["ibl_intensity"]
+    assert "units" not in metadata_ranges["ibl_intensity"]
+    assert "unused" not in metadata_ranges
 
 
 def test_settings_manager_set_without_auto_save(legacy_settings: Path) -> None:
