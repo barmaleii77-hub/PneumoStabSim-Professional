@@ -212,13 +212,17 @@ class EnvironmentTab(QWidget):
         slider_range = self._slider_ranges.get(
             key, ENVIRONMENT_SLIDER_RANGE_DEFAULTS[key]
         )
+        slider_decimals = (
+            slider_range.decimals if slider_range.decimals is not None else decimals
+        )
+        slider_unit = slider_range.unit if slider_range.unit is not None else unit
         return LabeledSlider(
             title,
             slider_range.minimum,
             slider_range.maximum,
             slider_range.step,
-            decimals=decimals,
-            unit=unit,
+            decimals=slider_decimals,
+            unit=slider_unit,
         )
 
     def _notify_range_warning(self, messages: list[str]) -> None:

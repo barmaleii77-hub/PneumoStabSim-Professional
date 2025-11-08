@@ -56,7 +56,9 @@
       "reflection_padding_m": {
         "min": 0.0,
         "max": 1.0,
-        "step": 0.01
+        "step": 0.01,
+        "decimals": 2,
+        "units": "м"
       },
       "fog_density": {
         "min": 0.0,
@@ -65,23 +67,31 @@
       },
       "fog_near": {
         "min": 0.0,
-        "max": 50.0,
-        "step": 0.1
+        "max": 200.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
       },
       "fog_far": {
         "min": 0.0,
-        "max": 150.0,
-        "step": 0.1
+        "max": 500.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
       },
       "fog_least_intense_y": {
         "min": -100.0,
         "max": 100.0,
-        "step": 0.1
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
       },
       "fog_most_intense_y": {
         "min": -100.0,
         "max": 100.0,
-        "step": 0.1
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
       },
       "fog_height_curve": {
         "min": 0.0,
@@ -100,8 +110,10 @@
       },
       "ao_radius": {
         "min": 0.001,
-        "max": 0.05,
-        "step": 0.001
+        "max": 0.1,
+        "step": 0.001,
+        "decimals": 3,
+        "units": "м"
       },
       "ao_softness": {
         "min": 0.0,
@@ -680,7 +692,9 @@
         "reflection_padding_m": {
           "min": 0.0,
           "max": 1.0,
-          "step": 0.01
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_density": {
           "min": 0.0,
@@ -689,23 +703,31 @@
         },
         "fog_near": {
           "min": 0.0,
-          "max": 50.0,
-          "step": 0.1
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_far": {
           "min": 0.0,
-          "max": 150.0,
-          "step": 0.1
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_least_intense_y": {
           "min": -100.0,
           "max": 100.0,
-          "step": 0.1
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_most_intense_y": {
           "min": -100.0,
           "max": 100.0,
-          "step": 0.1
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_height_curve": {
           "min": 0.0,
@@ -724,8 +746,10 @@
         },
         "ao_radius": {
           "min": 0.001,
-          "max": 0.05,
-          "step": 0.001
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
         },
         "ao_softness": {
           "min": 0.0,
@@ -1883,7 +1907,9 @@
         "reflection_padding_m": {
           "min": 0.0,
           "max": 1.0,
-          "step": 0.01
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_density": {
           "min": 0.0,
@@ -1892,23 +1918,31 @@
         },
         "fog_near": {
           "min": 0.0,
-          "max": 50.0,
-          "step": 0.1
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_far": {
           "min": 0.0,
-          "max": 150.0,
-          "step": 0.1
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_least_intense_y": {
           "min": -100.0,
           "max": 100.0,
-          "step": 0.1
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_most_intense_y": {
           "min": -100.0,
           "max": 100.0,
-          "step": 0.1
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
         },
         "fog_height_curve": {
           "min": 0.0,
@@ -1927,8 +1961,10 @@
         },
         "ao_radius": {
           "min": 0.001,
-          "max": 0.05,
-          "step": 0.001
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
         },
         "ao_softness": {
           "min": 0.0,
