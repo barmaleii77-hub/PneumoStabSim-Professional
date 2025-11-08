@@ -37,12 +37,12 @@ RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
     aqtinstall ruff mypy pytest pytest-xdist pytest-cov
 
-# Qt 6.10.0 with Quick 3D & tools (qmllint, qsb)
-ENV QT_VER=6.10.0 QT_ROOT=/opt/Qt
+# Qt 6.10.2 with Quick 3D & tools (qmllint, qsb)
+ENV QT_VER=6.10.2 QT_ROOT=/opt/Qt
 # Qt 6.10+ repositories nest the actual payload under a secondary qt6_{version}
 # directory. Pin the base URL explicitly so aqt can resolve the module metadata.
 RUN python -m aqt install-qt linux desktop ${QT_VER} gcc_64 \
-    -b https://download.qt.io/online/qtsdkrepository/linux_x64/desktop/qt6_6100/qt6_6100 \
+    -b https://download.qt.io/online/qtsdkrepository/linux_x64/desktop/qt6_6102/qt6_6102 \
     -m qtquick3d qtshadertools qtimageformats -O ${QT_ROOT}
 ENV QT_HOME=${QT_ROOT}/${QT_VER}/gcc_64
 ENV PATH=${QT_HOME}/bin:${PATH}
