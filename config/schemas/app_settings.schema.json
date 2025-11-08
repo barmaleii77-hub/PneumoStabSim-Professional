@@ -2627,6 +2627,7 @@
         },
         "step": {
           "type": "number",
+          "exclusiveMinimum": 0,
           "title": "Step"
         },
         "decimals": {
