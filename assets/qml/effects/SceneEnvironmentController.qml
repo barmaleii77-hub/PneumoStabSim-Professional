@@ -286,26 +286,38 @@ ExtendedSceneEnvironment {
     property real fogHeightCurve: 1.0
     property bool fogTransmitEnabled: true
     property real fogTransmitCurve: 1.0
+    property bool _fogSupportWarningShown: false
 
-    Fog {
-        id: environmentFog
-
-        enabled: root.fogEnabled
-        color: root.fogColor
-        density: root.fogDensity
-        depthEnabled: root.fogDepthEnabled && root.fogEnabled
-        depthCurve: root.fogDepthCurve
-        depthNear: root.toSceneLength(root.fogDepthNear)
-        depthFar: root.toSceneLength(root.fogDepthFar)
-        heightEnabled: root.fogHeightEnabled
-        leastIntenseY: root.toSceneLength(root.fogLeastIntenseY)
-        mostIntenseY: root.toSceneLength(root.fogMostIntenseY)
-        heightCurve: root.fogHeightCurve
-        transmitEnabled: root.fogTransmitEnabled
-        transmitCurve: root.fogTransmitCurve
+    Loader {
+        id: fogLoader
+        active: root.fogHelpersSupported
+        sourceComponent: Fog {
+            enabled: root.fogEnabled
+            color: root.fogColor
+            density: root.fogDensity
+            depthEnabled: root.fogDepthEnabled && root.fogEnabled
+            depthCurve: root.fogDepthCurve
+            depthNear: root.toSceneLength(root.fogDepthNear)
+            depthFar: root.toSceneLength(root.fogDepthFar)
+            heightEnabled: root.fogHeightEnabled
+            leastIntenseY: root.toSceneLength(root.fogLeastIntenseY)
+            mostIntenseY: root.toSceneLength(root.fogMostIntenseY)
+            heightCurve: root.fogHeightCurve
+            transmitEnabled: root.fogTransmitEnabled
+            transmitCurve: root.fogTransmitCurve
+        }
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                root._emitFogSupportWarning(
+                    qsTr("Fog helpers disabled: %1").arg(errorString() || qsTr("loader error"))
+                )
+            } else if (status === Loader.Ready) {
+                console.log("🌫️ SceneEnvironmentController: fog helpers active (Qt", root.qtRuntimeVersionString || "unknown", ")")
+            }
+        }
     }
 
-    fog: environmentFog
+    fog: fogLoader.item
 
     depthOfFieldFocusDistance: root.toSceneLength(root.dofFocusDistanceMeters)
     depthOfFieldFocusRange: root.toSceneLength(root.dofFocusRangeMeters)
@@ -449,9 +461,38 @@ ExtendedSceneEnvironment {
  // DITHERING (Qt6.10+)
  // ===============================================================
 
- property bool ditheringEnabled: true
- property bool canUseDithering: false
- property real sceneScaleFactor:1.0
+    property bool ditheringEnabled: true
+    property bool canUseDithering: false
+    property real sceneScaleFactor:1.0
+
+    readonly property string qtRuntimeVersionString: {
+        if (typeof qtRuntimeVersion === "string" && qtRuntimeVersion.length > 0)
+            return qtRuntimeVersion
+        if (typeof Qt !== "undefined") {
+            if (Qt.application && typeof Qt.application.qtVersion === "function") {
+                try {
+                    var fromApp = Qt.application.qtVersion()
+                    if (fromApp)
+                        return String(fromApp)
+                } catch (qtVersionError) {
+                    console.debug("SceneEnvironmentController: unable to query Qt.application.qtVersion", qtVersionError)
+                }
+            }
+            if (typeof Qt.qVersion === "function") {
+                try {
+                    var direct = Qt.qVersion()
+                    if (direct)
+                        return String(direct)
+                } catch (qVersionError) {
+                    console.debug("SceneEnvironmentController: unable to query Qt.qVersion", qVersionError)
+                }
+            }
+        }
+        if (typeof Qt !== "undefined" && Qt.application && Qt.application.version !== undefined)
+            return String(Qt.application.version)
+        return ""
+    }
+    readonly property bool fogHelpersSupported: qtVersionAtLeast(6, 10) && typeof Fog !== "undefined"
 
     // Camera parameters required by custom fog shaders
     property real cameraClipNear: 0.1
@@ -460,16 +501,14 @@ ExtendedSceneEnvironment {
     property real cameraAspectRatio: 1.0
 
     function qtVersionAtLeast(requiredMajor, requiredMinor) {
-        var versionString = "";
-        if (Qt.application && Qt.application.version !== undefined)
-            versionString = String(Qt.application.version);
+        var versionString = root.qtRuntimeVersionString || "";
         if (!versionString)
             return false;
-        var parts = versionString.split(".");
-        if (parts.length < 2)
+        var match = versionString.match(/(\d+)\.(\d+)/);
+        if (!match)
             return false;
-        var major = Number(parts[0]);
-        var minor = Number(parts[1]);
+        var major = Number(match[1]);
+        var minor = Number(match[2]);
         if (!isFinite(major) || !isFinite(minor))
             return false;
         if (major > requiredMajor)
@@ -477,6 +516,24 @@ ExtendedSceneEnvironment {
         if (major < requiredMajor)
             return false;
         return minor >= requiredMinor;
+    }
+
+    function _emitFogSupportWarning(reason) {
+        if (root._fogSupportWarningShown)
+            return
+        root._fogSupportWarningShown = true
+        var versionLabel = root.qtRuntimeVersionString || "unknown"
+        console.warn("⚠️ SceneEnvironmentController:", reason, "(Qt", versionLabel + ")")
+    }
+
+    onFogHelpersSupportedChanged: {
+        if (!fogHelpersSupported)
+            root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
+    }
+
+    Component.onCompleted: {
+        if (!root.fogHelpersSupported)
+            root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
     }
 
     function toSceneLength(value) {

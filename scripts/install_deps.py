@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import os
 import pathlib
 import subprocess
@@ -58,15 +59,34 @@ def install_optional_dev() -> None:
         pip_install(flat)
 
 
+MINIMUM_PYSIDE_VERSION = (6, 10, 0)
+
+
+def _parse_version_tuple(version: str) -> tuple[int, int, int]:
+    parts = [int(part) for part in re.findall(r"\d+", version)]
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
+def _is_supported_version(version: str) -> bool:
+    return _parse_version_tuple(version) >= MINIMUM_PYSIDE_VERSION
+
+
 def install_pyside() -> None:
     candidates = [
         version.strip()
-        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.0,6.9.0,6.8.2").split(
+        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.2,6.10.1,6.10.0").split(
             ","
         )
         if version.strip()
     ]
+    minimum_label = ".".join(str(part) for part in MINIMUM_PYSIDE_VERSION)
     for version in candidates:
+        if not _is_supported_version(version):
+            raise RuntimeError(
+                f"Requested PySide6 version '{version}' is below the supported minimum {minimum_label}"
+            )
         try:
             print(f"[deps] installing PySide6/shiboken6 {version}")
             pip_install([f"pyside6=={version}", f"shiboken6=={version}"])
@@ -75,7 +95,7 @@ def install_pyside() -> None:
         else:
             return
     print("[deps] falling back to latest PySide6/shiboken6 from PyPI")
-    pip_install(["pyside6", "shiboken6"])
+    pip_install(["pyside6>=6.10,<7", "shiboken6>=6.10,<7"])
 
 
 def install_critical_runtime() -> None:

@@ -14,6 +14,7 @@ import hashlib
 import importlib.util
 import json
 import platform
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -21,7 +22,8 @@ from collections.abc import Callable
 from collections.abc import Iterable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_QT_VERSION = "6.10.0"
+DEFAULT_QT_VERSION = "6.10.2"
+MINIMUM_QT_VERSION = (6, 10, 0)
 DEFAULT_MODULES = ("qtquick3d", "qtshadertools", "qtimageformats")
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "Qt"
 DEFAULT_ARCHIVES_DIR = REPO_ROOT / ".qt" / "archives"
@@ -74,6 +76,28 @@ def _collect_archives(archives_dir: Path) -> dict[str, Path]:
         if path.is_file():
             files[path.relative_to(archives_dir).as_posix()] = path
     return files
+
+
+def _parse_semver(version: str) -> tuple[int, int, int]:
+    """Return a comparable semantic version tuple from a user-supplied string."""
+
+    digits = [int(token) for token in re.findall(r"\d+", version)]
+    while len(digits) < 3:
+        digits.append(0)
+    return tuple(digits[:3])  # type: ignore[return-value]
+
+
+def _ensure_minimum_version(version: str) -> None:
+    """Raise ``SystemExit`` when *version* is older than the supported baseline."""
+
+    parsed = _parse_semver(version)
+    if parsed < MINIMUM_QT_VERSION:
+        minimum = ".".join(str(part) for part in MINIMUM_QT_VERSION)
+        raise SystemExit(
+            "Qt {version} is not supported; PneumoStabSim requires Qt {minimum} or newer.".format(
+                version=version, minimum=minimum
+            )
+        )
 
 
 def _verify_archives(archives_dir: Path, manifest: Path) -> None:
@@ -274,6 +298,8 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    _ensure_minimum_version(args.qt_version)
 
     modules = _parse_modules(args.modules)
     host, default_arch = _detect_host(args.arch)

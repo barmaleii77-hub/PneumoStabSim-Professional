@@ -16,7 +16,8 @@ QT_ROOT.mkdir(parents=True, exist_ok=True)
 
 QT_ARCH = os.environ.get("QT_ARCH", "gcc_64")
 
-DEFAULT_VERSIONS = "6.10.0,6.9.0,6.8.2"
+DEFAULT_VERSIONS = "6.10.2,6.10.1,6.10.0"
+MINIMUM_QT_VERSION = (6, 10, 0)
 QT_VERSIONS = [
     ver.strip()
     for ver in os.environ.get("QT_VERSIONS", DEFAULT_VERSIONS).split(",")
@@ -72,6 +73,25 @@ def _version_sort_key(version: str) -> tuple[int, ...]:
     while len(parts) < 3:
         parts.append(0)
     return tuple(parts)
+
+
+def _parse_version_tuple(version: str) -> tuple[int, int, int]:
+    parts = [int(part) for part in re.findall(r"\d+", version)]
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
+def _validate_versions(versions: Sequence[str]) -> None:
+    minimum = ".".join(str(part) for part in MINIMUM_QT_VERSION)
+    for version in versions:
+        if _parse_version_tuple(version) < MINIMUM_QT_VERSION:
+            raise RuntimeError(
+                f"Qt version '{version}' is not supported. Minimum required: {minimum}"
+            )
+
+
+_validate_versions(QT_VERSIONS)
 
 
 def _list_available_versions() -> Sequence[str]:

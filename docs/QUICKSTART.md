@@ -61,4 +61,4 @@ python app.py
 python --version  # Должно быть 3.13+
 
 # Проверьте зависимости
-pip list | grep PySide6  # Должно быть 6.9.3+
+pip list | grep PySide6  # Должно быть 6.10+

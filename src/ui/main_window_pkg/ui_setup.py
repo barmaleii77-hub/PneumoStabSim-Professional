@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from PySide6.QtCore import Qt, QSettings, QUrl
+from PySide6.QtCore import Qt, QSettings, QUrl, qVersion
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
 from PySide6.QtWidgets import (
     QLabel,
@@ -523,6 +523,17 @@ class UISetup:
                 "effectShaderManifest",
                 UISetup._build_effect_shader_manifest(),
             )
+            try:
+                context.setContextProperty("qtRuntimeVersion", qVersion())
+                UISetup.logger.info(
+                    "    ✅ Qt runtime version exposed to QML context (%s)",
+                    qVersion(),
+                )
+            except Exception as qt_version_exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Failed to expose qtRuntimeVersion: %s",
+                    qt_version_exc,
+                )
             UISetup.logger.info("    [QML] Renderer API: %s", graphics_api_label)
 
             try:
