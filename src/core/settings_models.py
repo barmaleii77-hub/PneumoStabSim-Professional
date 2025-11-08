@@ -35,7 +35,7 @@ class Metadata(_StrictModel):
     total_parameters: int
     description: str
     operational_imperatives: list[str]
-    environment_slider_ranges: dict[str, "SliderRange"]
+    environment_slider_ranges: "EnvironmentSliderRanges"
     legacy: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 
@@ -382,7 +382,7 @@ class GraphicsSettings(_StrictModel):
     materials: MaterialsSettings
     effects: EffectsSettings
     scene: SceneSettings
-    environment_ranges: dict[str, SliderRange]
+    environment_ranges: "EnvironmentSliderRanges"
 
 
 class AnimationSettings(_StrictModel):
@@ -531,6 +531,27 @@ class SliderRange(_StrictModel):
         if self.max <= self.min:
             raise ValueError("Slider range 'max' must be greater than 'min'")
         return self
+
+
+class EnvironmentSliderRanges(_StrictModel):
+    ibl_intensity: SliderRange
+    skybox_brightness: SliderRange
+    probe_horizon: SliderRange
+    skybox_blur: SliderRange
+    ibl_rotation: SliderRange
+    ibl_offset_x: SliderRange
+    ibl_offset_y: SliderRange
+    reflection_padding_m: SliderRange
+    fog_density: SliderRange
+    fog_near: SliderRange
+    fog_far: SliderRange
+    fog_least_intense_y: SliderRange
+    fog_most_intense_y: SliderRange
+    fog_height_curve: SliderRange
+    fog_transmit_curve: SliderRange
+    ao_strength: SliderRange
+    ao_radius: SliderRange
+    ao_softness: SliderRange
 
 
 class GeometryPreset(_StrictModel):

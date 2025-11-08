@@ -1566,7 +1566,8 @@
         "migration_date",
         "total_parameters",
         "description",
-        "operational_imperatives"
+        "operational_imperatives",
+        "environment_slider_ranges"
       ],
       "title": "Metadata",
       "type": "object"
