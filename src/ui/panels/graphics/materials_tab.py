@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from .widgets import ColorButton, LabeledSlider, FileCyclerWidget
 from .texture_discovery import discover_texture_files
+from src.common.settings_manager import get_settings_manager
 
 
 class MaterialsTab(QWidget):
@@ -51,6 +52,7 @@ class MaterialsTab(QWidget):
             "joint_rod": "Шарнир штока",
         }
         self._texture_items = self._discover_texture_files()
+        self._initial_texture_paths = self._load_initial_texture_paths()
         self._setup_ui()
         # Инициализируем текущий ключ после создания селектора
         self._current_key = self.get_current_material_key()
@@ -84,6 +86,11 @@ class MaterialsTab(QWidget):
         grid.addWidget(QLabel("Текстура", self), r, 0)
         texture_widget = FileCyclerWidget(self)
         texture_widget.set_resolution_roots([self._qml_root])
+        initial_key = self._material_selector.currentData()
+        if initial_key:
+            initial_path = self._initial_texture_paths.get(str(initial_key), "")
+            if initial_path:
+                texture_widget.set_current_data(initial_path, emit=False)
         texture_widget.set_items(self._texture_items)
         texture_widget.currentChanged.connect(
             lambda path: self._on_texture_changed(path)
@@ -573,6 +580,33 @@ class MaterialsTab(QWidget):
             return []
         self._logger.debug("Discovered %d texture candidates", len(textures))
         return textures
+
+    def _load_initial_texture_paths(self) -> dict[str, str]:
+        """Загрузить сохранённые пути текстур из SettingsManager."""
+
+        try:
+            manager = get_settings_manager()
+        except Exception:  # pragma: no cover - fallback when settings unavailable
+            self._logger.debug(
+                "SettingsManager unavailable; skipping initial texture restore",
+                exc_info=True,
+            )
+            return {}
+
+        raw_materials = manager.get("current.graphics.materials", {})
+        if not isinstance(raw_materials, dict):
+            return {}
+
+        restored: dict[str, str] = {}
+        for key in self._material_labels:
+            payload = raw_materials.get(key)
+            if not isinstance(payload, dict):
+                continue
+            path = payload.get("texture_path")
+            normalized = self._normalize_texture_path(path)
+            if normalized:
+                restored[key] = normalized
+        return restored
 
     def _normalize_texture_path(self, value: Any) -> str:
         if value is None:
