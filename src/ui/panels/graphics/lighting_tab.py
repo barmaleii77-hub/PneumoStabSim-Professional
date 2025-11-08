@@ -4,6 +4,7 @@ Graphics panel - lighting configuration tab
 """
 
 import copy
+from collections.abc import Mapping
 from typing import Any
 
 from PySide6.QtCore import Signal
@@ -25,6 +26,14 @@ from src.common.settings_manager import get_settings_manager
 from src.common.logging_widgets import LoggingCheckBox
 
 
+# Значения соответствуют движковым настройкам в assets/qml/lighting/PointLights.qml
+_POINT_ATTENUATION_DEFAULTS: dict[str, float] = {
+    "constant_fade": 1.0,
+    "linear_fade": 0.01,
+    "quadratic_fade": 1.0,
+}
+
+
 class LightingTab(QWidget):
     """Вкладка настройки освещения"""
 
@@ -42,6 +51,9 @@ class LightingTab(QWidget):
         self._state = copy.deepcopy(graphics_settings.get("lighting", {}))
 
         self._setup_ui()
+        # Применяем состояние сразу, чтобы слайдеры отображали корректные
+        # значения по умолчанию вместо минимальных порогов (например, 0.0).
+        self.set_state(self._state)
 
     def _setup_ui(self) -> None:
         """Настроить интерфейс"""
@@ -745,21 +757,52 @@ class LightingTab(QWidget):
     def get_state(self) -> dict[str, Any]:
         return copy.deepcopy(self._state)
 
-    def set_state(self, state: dict[str, Any]) -> None:
+    def _merge_with_defaults(self, state: Mapping[str, Any] | None) -> dict[str, Any]:
+        """Return a defensive copy of *state* with engine defaults applied."""
+
+        merged: dict[str, Any] = {}
+        if isinstance(state, Mapping):
+            merged = copy.deepcopy(state)
+
+        point = merged.get("point")
+        if not isinstance(point, Mapping):
+            point = {}
+        point_with_defaults: dict[str, float] = {}
+        for key, default in _POINT_ATTENUATION_DEFAULTS.items():
+            raw_value = point.get(key) if isinstance(point, Mapping) else None
+            try:
+                numeric = float(raw_value)
+            except (TypeError, ValueError):
+                numeric = default
+            point_with_defaults[key] = numeric
+
+        if point_with_defaults:
+            existing_point = dict(point) if isinstance(point, Mapping) else {}
+            existing_point.update(point_with_defaults)
+            merged["point"] = existing_point
+
+        return merged
+
+    def set_state(self, state: Mapping[str, Any] | None) -> None:
+        merged_state = self._merge_with_defaults(state)
         self._updating_ui = True
         try:
-            self._state = copy.deepcopy(state)
+            self._state = copy.deepcopy(merged_state)
             for group in ["key", "fill", "rim", "point", "spot"]:
-                if group not in state:
+                group_state = merged_state.get(group)
+                if not isinstance(group_state, Mapping):
                     continue
-                group_state = state[group]
                 for key, value in group_state.items():
                     control_key = f"{group}.{key}"
                     control = self._controls.get(control_key)
                     if isinstance(control, ColorButton):
                         control.set_color(value)
                     elif isinstance(control, LabeledSlider):
-                        control.set_value(value)
+                        try:
+                            numeric_value = float(value)
+                        except (TypeError, ValueError):
+                            continue
+                        control.set_value(numeric_value)
                     elif isinstance(control, QCheckBox):
                         control.setChecked(bool(value))
         finally:
