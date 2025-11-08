@@ -1,13 +1,14 @@
 import pytest
-from copy import deepcopy
-
-import src.ui.panels.graphics.environment_tab as environment_tab_module
 
 pytest.importorskip(
     "PySide6.QtWidgets",
     reason="PySide6 QtWidgets module is required for EnvironmentTab tests",
     exc_type=ImportError,
 )
+
+from copy import deepcopy
+
+import src.ui.panels.graphics.environment_tab as environment_tab_module
 
 from src.common.settings_manager import get_settings_manager
 from src.ui.environment_schema import (

@@ -38,7 +38,7 @@
 
 ### ✨ Что нового
 
-- `pytest.ini` теперь принудительно активирует `pytest-qt` через `-p pytestqt.plugin`, фиксируя отсутствие `qtbot` в автоматических прогонах.
+- `pytest.ini` настраивает `pytest-qt` как опциональный плагин: когда зависимость отсутствует, GUI-сценарии автоматически помечаются как `skip`, что устраняет падения headless-прогонов из-за `qtbot`.
 - `tools.ci_tasks` и `tools.task_runner` задают `PYTHONIOENCODING=utf-8` и унифицированные `QT_LOGGING_RULES` ещё до запуска команд.
 - Структурированные логи `structlog` переходят на `ensure_ascii=False`, Unicode символы больше не экранируются.
 - Добавлен регрессионный тест `test_unicode_roundtrip_in_console_logs` и обновлённый мануальный сценарий `tests/manual/centralized_save_demo.py`.
