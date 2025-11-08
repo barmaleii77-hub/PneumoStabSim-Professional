@@ -111,6 +111,7 @@ Node {
     readonly property alias rearLeftCorner: rlCorner
     readonly property alias rearRightCorner: rrCorner
     readonly property alias reflectionProbe: mainReflectionProbe
+    readonly property alias frameNode: frame
 
     // ------------------------------------------------------------------
     // Geometry helper centralising coordinate math

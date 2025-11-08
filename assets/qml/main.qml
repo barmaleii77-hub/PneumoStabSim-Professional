@@ -28,6 +28,11 @@ Item {
     property bool telemetryPanelVisible: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
+    readonly property var sceneSharedMaterials: simulationLoader.item ? simulationLoader.item.sceneSharedMaterials : null
+    readonly property var sceneDirectionalLights: simulationLoader.item ? simulationLoader.item.sceneDirectionalLights : null
+    readonly property var scenePointLights: simulationLoader.item ? simulationLoader.item.scenePointLights : null
+    readonly property var sceneSuspensionAssembly: simulationLoader.item ? simulationLoader.item.sceneSuspensionAssembly : null
+    readonly property var sceneFrameNode: sceneSuspensionAssembly ? sceneSuspensionAssembly.frameNode : null
     property bool simpleFallbackActive: false
     property string simpleFallbackReason: ""
 
