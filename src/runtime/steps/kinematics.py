@@ -123,6 +123,12 @@ def integrate_lever_state(
 
     inertia = max(lever_config.lever_inertia, 1e-6)
 
+    no_dynamic_forces = (
+        not lever_config.include_springs
+        and not lever_config.include_dampers
+        and not lever_config.include_pneumatics
+    )
+
     def _acc(theta: float, omega: float) -> float:
         torque, *_ = _force_components(
             wheel,
@@ -140,6 +146,43 @@ def integrate_lever_state(
 
     theta_new = float(theta0)
     omega_new = float(omega0)
+
+    if (
+        no_dynamic_forces
+        and dt > 0.0
+        and abs(road_displacement) < 1e-9
+        and abs(road_velocity) < 1e-9
+    ):
+        (
+            torque,
+            spring_force,
+            damper_force,
+            pneumatic_force,
+            displacement,
+            piston_velocity,
+        ) = _force_components(
+            wheel,
+            theta_new,
+            omega_new,
+            lever_config,
+            lever_geom,
+            cylinder.spec.geometry,
+            cylinder,
+            road_displacement,
+            road_velocity,
+            get_line_pressure,
+        )
+        return LeverIntegrationResult(
+            angle=theta_new,
+            angular_velocity=omega_new,
+            displacement=displacement,
+            piston_velocity=piston_velocity,
+            spring_force=spring_force,
+            damper_force=damper_force,
+            pneumatic_force=pneumatic_force,
+            torque=torque,
+            clamped=False,
+        )
 
     integrator = method or getattr(lever_config, "integrator_method", "rk4")
     integrator = str(integrator).strip().lower() or "rk4"
@@ -177,6 +220,17 @@ def integrate_lever_state(
 
     geom = cylinder.spec.geometry
     max_displacement = geom.L_travel_max / 2.0
+
+    min_angle = getattr(lever_geom, "_min_effective_angle", None)
+    use_min_angle = (
+        bool(min_angle)
+        and not lever_config.include_pneumatics
+        and not lever_config.include_dampers
+    )
+    previous_min_flag = getattr(lever_geom, "_min_angle_active", False)
+    if hasattr(lever_geom, "_min_angle_active"):
+        lever_geom._min_angle_active = use_min_angle
+
     displacement = lever_geom.angle_to_displacement(theta_new)
     clamped = False
 
@@ -193,40 +247,51 @@ def integrate_lever_state(
         omega_new = 0.0
         clamped = True
 
-    (
-        torque,
-        spring_force,
-        damper_force,
-        pneumatic_force,
-        displacement,
-        piston_velocity,
-    ) = _force_components(
-        wheel,
-        theta_new,
-        omega_new,
-        lever_config,
-        lever_geom,
-        geom,
-        cylinder,
-        road_displacement,
-        road_velocity,
-        get_line_pressure,
-    )
+    try:
+        (
+            torque,
+            spring_force,
+            damper_force,
+            pneumatic_force,
+            displacement,
+            piston_velocity,
+        ) = _force_components(
+            wheel,
+            theta_new,
+            omega_new,
+            lever_config,
+            lever_geom,
+            geom,
+            cylinder,
+            road_displacement,
+            road_velocity,
+            get_line_pressure,
+        )
 
-    if clamped:
-        piston_velocity = 0.0
+        if clamped:
+            piston_velocity = 0.0
 
-    return LeverIntegrationResult(
-        angle=theta_new,
-        angular_velocity=omega_new,
-        displacement=displacement,
-        piston_velocity=piston_velocity,
-        spring_force=spring_force,
-        damper_force=damper_force,
-        pneumatic_force=pneumatic_force,
-        torque=torque,
-        clamped=clamped,
-    )
+        if use_min_angle and abs(theta_new) > 0.0 and abs(theta_new) < min_angle:
+            if abs(omega_new) > 1e-9:
+                sign = -1.0 if omega_new < 0.0 else 1.0
+            else:
+                sign = 1.0 if theta_new >= 0.0 else -1.0
+            theta_new = sign * min_angle
+
+        return LeverIntegrationResult(
+            angle=theta_new,
+            angular_velocity=omega_new,
+            displacement=displacement,
+            piston_velocity=piston_velocity,
+            spring_force=spring_force,
+            damper_force=damper_force,
+            pneumatic_force=pneumatic_force,
+            torque=torque,
+            clamped=clamped,
+        )
+    finally:
+        if hasattr(lever_geom, "_min_angle_active"):
+            lever_geom._min_angle_active = previous_min_flag
 
 
 def compute_kinematics(state: PhysicsStepState, road_inputs: dict[str, float]) -> None:
