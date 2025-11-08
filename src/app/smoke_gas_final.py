@@ -7,9 +7,9 @@ import logging
 from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.sim_time import advance_gas
 from src.pneumo.enums import ThermoMode, Wheel
-from .config_defaults import (
-    create_default_system_configuration,
+from src.core.settings_manager import (
     create_default_gas_network,
+    create_default_system_configuration,
 )
 
 

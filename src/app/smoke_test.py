@@ -7,9 +7,7 @@ import os
 import logging
 from datetime import datetime
 from src.pneumo.system import create_standard_diagonal_system
-from .config_defaults import (
-    create_default_system_configuration,
-)
+from src.core.settings_manager import create_default_system_configuration
 from src.common.units import DEG2RAD
 
 

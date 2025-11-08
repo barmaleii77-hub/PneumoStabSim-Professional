@@ -56,7 +56,7 @@ from src.road.engine import create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
 from config.constants import get_pneumo_relief_thresholds
 from src.common.units import KELVIN_0C, PA_ATM
-from src.app.config_defaults import create_default_system_configuration
+from src.core.settings_manager import create_default_system_configuration
 from src.runtime.steps import (
     PhysicsStepState,
     compute_kinematics,
