@@ -117,6 +117,12 @@ for mismatch in diff['mismatched']:
     print(f"    QML:   {mismatch['qml_value']}")
 ```
 
+### Мониторинг HDR bloom и fallback'ов
+
+- Каждый сдвиг `bloom.hdr_max` и `bloom.hdr_scale` появляется как отдельное событие `parameter_change` в `logs/graphics/session_*.jsonl` и содержит новое значение, диапазон и отметку успешного применения в QML. Используйте фильтр `grep "bloom.hdr_"` для быстрого просмотра.
+- При выборе отсутствующего HDR-файла `MainWindow.normalizeHdrPath` логирует предупреждение `normalizeHdrPath: HDR asset not found (input=…, candidates=…)`, а панель окружения сбрасывает статус HDR на `—`. Эти сообщения помогают поддержке понять, почему bloom внезапно отключился.
+- IBL-лог (`logs/ibl/ibl_signals_*.log`) дополняет картину: строки `IBL:Fallback` фиксируют переход на резервную HDR-карту, а значит, bloom будет использовать базовый набор значений из `config/app_settings.json`.
+
 ## Структура событий
 
 ### GraphicsChangeEvent
