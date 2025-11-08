@@ -13,6 +13,11 @@ import json
 # Добавляем src в путь для импортов
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+from src.diagnostics.logger_factory import get_logger
+
+
+logger = get_logger("tools.comprehensive_test")
+
 
 def setup_test_environment():
     """Настройка тестового окружения"""
@@ -24,8 +29,8 @@ def setup_test_environment():
             import subprocess
 
             subprocess.run(["chcp", "65001"], capture_output=True, check=False)
-        except:
-            pass
+        except Exception as exc:
+            logger.warning("Failed to set Windows codepage", error=str(exc))
 
     # Настройка Qt окружения для тестов
     os.environ.setdefault(
@@ -468,8 +473,11 @@ class ComprehensiveTestSuite:
                     self.log_result("App Qt Import", True, "QApplication available")
                 else:
                     self.log_result("App Qt Import", False, "QApplication not found")
-            except:
+            except Exception as exc:
                 self.log_result("App Qt Import", False, "Import issues")
+                logger.warning(
+                    "Failed to validate QApplication import", error=str(exc)
+                )
 
             duration = time.time() - start
             self.log_result(
