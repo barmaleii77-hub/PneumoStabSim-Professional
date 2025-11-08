@@ -37,6 +37,7 @@ from src.core.settings_manager import (
     ProfileSettingsManager as _CoreProfileSettingsManager,
 )
 from src.security.access_control import get_access_control
+from src.settings.orbit_presets import orbit_presets_path
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
 _DEFAULT_UNITS_VERSION = "si_v2"
 _MM_PER_M = 1000.0
-_ORBIT_PRESETS_PATH = Path("config/orbit_presets.json")
 
 _GEOMETRY_LINEAR_KEYS: dict[str, None] = {
     "wheelbase": None,
@@ -336,6 +336,7 @@ class SettingsManager:
         self._original_units_version: str = _DEFAULT_UNITS_VERSION
         self._dirty: bool = False
         self._orbit_presets: dict[str, Any] | None = None
+        self._orbit_presets_path = orbit_presets_path()
         self._access_control = get_access_control()
         self.load()
 
@@ -655,7 +656,7 @@ class SettingsManager:
     # ----------------------------------------------------------------- orbit presets
 
     def _load_orbit_presets(self) -> dict[str, Any]:
-        path = _expand_path(_ORBIT_PRESETS_PATH)
+        path = _expand_path(self._orbit_presets_path)
         try:
             raw = path.read_text(encoding="utf-8")
         except FileNotFoundError:
@@ -720,6 +721,7 @@ class SettingsManager:
         return _deep_copy(self._orbit_presets)
 
     def refresh_orbit_presets(self) -> dict[str, Any]:
+        self._orbit_presets_path = orbit_presets_path()
         self._orbit_presets = None
         return self.get_orbit_presets()
 
