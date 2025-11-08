@@ -273,19 +273,19 @@ ExtendedSceneEnvironment {
     property alias vignetteRadiusValue: root.vignetteRadius
 
     // Fog (SceneEnvironment::fog) -------------------------------------------------
-    property bool fogEnabled: true
-    property color fogColor: "#aab9cf"
-    property real fogDensity: 0.06
-    property bool fogDepthEnabled: true
-    property real fogDepthCurve: 1.0
-    property real fogDepthNear: 2.0
-    property real fogDepthFar: 20.0
-    property bool fogHeightEnabled: false
-    property real fogLeastIntenseY: 0.0
-    property real fogMostIntenseY: 3.0
-    property real fogHeightCurve: 1.0
-    property bool fogTransmitEnabled: true
-    property real fogTransmitCurve: 1.0
+    property bool fogEnabled: environmentBoolDefault("fogEnabled", "fog_enabled", true)
+    property color fogColor: environmentColorDefault("fogColor", "fog_color", "#aab9cf")
+    property real fogDensity: environmentNumberDefault("fogDensity", "fog_density", 0.06)
+    property bool fogDepthEnabled: environmentBoolDefault("fogDepthEnabled", "fog_depth_enabled", true)
+    property real fogDepthCurve: environmentNumberDefault("fogDepthCurve", "fog_depth_curve", 1.0)
+    property real fogDepthNear: environmentNumberDefault("fogDepthNear", "fog_depth_near", 2.0)
+    property real fogDepthFar: environmentNumberDefault("fogDepthFar", "fog_depth_far", 20.0)
+    property bool fogHeightEnabled: environmentBoolDefault("fogHeightEnabled", "fog_height_enabled", false)
+    property real fogLeastIntenseY: environmentNumberDefault("fogLeastIntenseY", "fog_least_intense_y", 0.0)
+    property real fogMostIntenseY: environmentNumberDefault("fogMostIntenseY", "fog_most_intense_y", 3.0)
+    property real fogHeightCurve: environmentNumberDefault("fogHeightCurve", "fog_height_curve", 1.0)
+    property bool fogTransmitEnabled: environmentBoolDefault("fogTransmitEnabled", "fog_transmit_enabled", true)
+    property real fogTransmitCurve: environmentNumberDefault("fogTransmitCurve", "fog_transmit_curve", 1.0)
     property bool _fogSupportWarningShown: false
 
     Loader {
@@ -414,14 +414,14 @@ ExtendedSceneEnvironment {
  // ANTIALIASING
  // ===============================================================
 
- property string aaPrimaryMode: "ssaa"
- property string aaQualityLevel: "high"
- property string aaPostMode: "taa"
- property bool taaEnabled: true
- property real taaStrength:0.4
- property bool taaMotionAdaptive: true
- property bool fxaaEnabled: false
- property bool specularAAEnabled: false
+ property string aaPrimaryMode: qualityStringDefault("aaPrimaryMode", "aa_primary_mode", "ssaa")
+ property string aaQualityLevel: qualityStringDefault("aaQualityLevel", "aa_quality_level", "high")
+ property string aaPostMode: qualityStringDefault("aaPostMode", "aa_post_mode", "taa")
+ property bool taaEnabled: qualityBoolDefault("taaEnabled", "taa_enabled", true)
+ property real taaStrength: qualityNumberDefault("taaStrength", "taa_strength", 0.4)
+ property bool taaMotionAdaptive: qualityBoolDefault("taaMotionAdaptive", "taa_motion_adaptive", true)
+ property bool fxaaEnabled: qualityBoolDefault("fxaaEnabled", "fxaa_enabled", false)
+ property bool specularAAEnabled: qualityBoolDefault("specularAAEnabled", "specular_aa", false)
  property bool cameraIsMoving: false
 
     antialiasingMode: {
@@ -461,7 +461,7 @@ ExtendedSceneEnvironment {
  // DITHERING (Qt6.10+)
  // ===============================================================
 
-    property bool ditheringEnabled: true
+    property bool ditheringEnabled: qualityBoolDefault("ditheringEnabled", "dithering", true)
     property bool canUseDithering: false
     property real sceneScaleFactor:1.0
 
@@ -596,6 +596,21 @@ ExtendedSceneEnvironment {
         var message = "Missing graphics." + section + "." + keyName + " (" + reason + "); fallback=" + fallback
         console.warn("SceneEnvironmentController:", message)
 
+        logStructured("settings_fallback", {
+            section: section,
+            key: keyName,
+            reason: reason,
+            fallback: fallback
+        })
+
+        if (root.sceneBridge && typeof root.sceneBridge.logQmlEvent === "function") {
+            try {
+                root.sceneBridge.logQmlEvent("warning", "SceneEnvironmentController." + section + "." + keyName)
+            } catch (error) {
+                console.debug("SceneEnvironmentController: logQmlEvent failed", error)
+            }
+        }
+
         var overlay = diagnosticsTrace
         if (!overlay || typeof overlay.recordObservation !== "function")
             return
@@ -688,6 +703,16 @@ ExtendedSceneEnvironment {
         return value
     }
 
+    function environmentColorDefault(primaryKey, secondaryKey, fallback) {
+        var colorString = environmentStringDefault(primaryKey, secondaryKey, fallback)
+        try {
+            return Qt.color(colorString)
+        } catch (error) {
+            _recordSettingWarning("environment", primaryKey, secondaryKey, "invalid_color", fallback)
+        }
+        return Qt.color(fallback)
+    }
+
     function effectsBoolDefault(primaryKey, secondaryKey, fallback) {
         if (!root.contextEffectsDefaults) {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
@@ -722,6 +747,48 @@ ExtendedSceneEnvironment {
         var value = stringFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
+    }
+
+    function qualityBoolDefault(primaryKey, secondaryKey, fallback) {
+        var defaults = _qualityContextPayload()
+        if (!defaults) {
+            _recordSettingWarning("quality", primaryKey, secondaryKey, "missing_context", fallback)
+            return fallback
+        }
+        var value = boolFromKeys(defaults, primaryKey, secondaryKey)
+        if (value === undefined) {
+            _recordSettingWarning("quality", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
+    }
+
+    function qualityNumberDefault(primaryKey, secondaryKey, fallback) {
+        var defaults = _qualityContextPayload()
+        if (!defaults) {
+            _recordSettingWarning("quality", primaryKey, secondaryKey, "missing_context", fallback)
+            return fallback
+        }
+        var value = numberFromKeys(defaults, primaryKey, secondaryKey)
+        if (value === undefined) {
+            _recordSettingWarning("quality", primaryKey, secondaryKey, "missing", fallback)
+            return fallback
+        }
+        return value
+    }
+
+    function qualityStringDefault(primaryKey, secondaryKey, fallback) {
+        var defaults = _qualityContextPayload()
+        if (!defaults) {
+            _recordSettingWarning("quality", primaryKey, secondaryKey, "missing_context", fallback)
+            return fallback
+        }
+        var value = stringFromKeys(defaults, primaryKey, secondaryKey)
+        if (value === undefined) {
+            _recordSettingWarning("quality", primaryKey, secondaryKey, "missing", fallback)
             return fallback
         }
         return value
@@ -946,16 +1013,33 @@ ExtendedSceneEnvironment {
             root._applyEffectsPayload(root.sceneBridge.effects)
     }
 
+    function _forwardToParent(methodName, payload) {
+        var host = root.parent
+        if (!host)
+            return
+        var handler = host[methodName]
+        if (typeof handler !== "function")
+            return
+        try {
+            handler.call(host, payload)
+        } catch (error) {
+            console.debug("SceneEnvironmentController:", methodName, "forward failed", error)
+        }
+    }
+
     function _applyEnvironmentPayload(payload) {
         root.applyEnvironmentPayload(payload)
+        _forwardToParent("applyEnvironmentPayload", payload)
     }
 
     function _applyQualityPayload(payload) {
         root.applyQualityPayload(payload)
+        _forwardToParent("applyQualityPayload", payload)
     }
 
     function _applyEffectsPayload(payload) {
         root.applyEffectsPayload(payload)
+        _forwardToParent("applyEffectsPayload", payload)
     }
 
     function _logFogEvent(level, message) {
@@ -988,6 +1072,7 @@ ExtendedSceneEnvironment {
     Connections {
         target: root.sceneBridge
         enabled: !!root.sceneBridge
+        ignoreUnknownSignals: true
 
         function onEnvironmentChanged(payload) {
             if (payload)

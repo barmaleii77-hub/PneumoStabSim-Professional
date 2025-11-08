@@ -83,6 +83,30 @@ ExtendedSceneEnvironment {
         var message = "Missing graphics." + section + "." + keyName + " (" + reason + "); using " + fallbackText
         console.warn("RealismEnvironment:", message)
 
+        if (sceneBridge && typeof sceneBridge.logQmlEvent === "function") {
+            try {
+                sceneBridge.logQmlEvent("warning", "RealismEnvironment." + section + "." + keyName)
+            } catch (error) {
+                console.debug("RealismEnvironment: logQmlEvent failed", error)
+            }
+        }
+
+        try {
+            var structured = {
+                level: "warning",
+                logger: "qml.realism_environment",
+                event: "settings_fallback",
+                section: section,
+                key: keyName,
+                reason: reason,
+                fallback: fallbackText,
+                timestamp: new Date().toISOString()
+            }
+            console.log(JSON.stringify(structured))
+        } catch (error) {
+            console.debug("RealismEnvironment: structured log failed", error)
+        }
+
         _recordOverlayWarning({
             section: section,
             key: keyName,
