@@ -96,6 +96,221 @@ signal animationToggled(bool running)
         return result
     }
 
+    function _isPlainObject(value) {
+        return value && typeof value === "object" && !Array.isArray(value)
+    }
+
+    function _cloneObject(value) {
+        if (!_isPlainObject(value))
+            return ({})
+        var clone = {}
+        for (var key in value) {
+            if (!Object.prototype.hasOwnProperty.call(value, key))
+                continue
+            var entry = value[key]
+            clone[key] = _isPlainObject(entry) ? _cloneObject(entry) : entry
+        }
+        return clone
+    }
+
+    function _deepMerge(base, payload) {
+        var result = _cloneObject(base)
+        if (_isPlainObject(payload)) {
+            for (var key in payload) {
+                if (!Object.prototype.hasOwnProperty.call(payload, key))
+                    continue
+                var value = payload[key]
+                if (_isPlainObject(value))
+                    result[key] = _deepMerge(result[key], value)
+                else
+                    result[key] = value
+            }
+        }
+        return result
+    }
+
+    function _normaliseKeyList(names) {
+        var list = []
+        function add(name) {
+            if (name && list.indexOf(name) === -1)
+                list.push(name)
+        }
+        function pushVariants(raw) {
+            if (raw === undefined || raw === null)
+                return
+            var text = String(raw)
+            if (!text.length)
+                return
+            add(text)
+            add(text.toLowerCase())
+            add(text.replace(/([A-Z])/g, function(match) { return "_" + match.toLowerCase() }))
+            add(text.replace(/_([a-zA-Z0-9])/g, function(_, chr) { return chr.toUpperCase() }))
+        }
+        if (Array.isArray(names)) {
+            for (var i = 0; i < names.length; ++i)
+                pushVariants(names[i])
+        } else {
+            pushVariants(names)
+        }
+        return list
+    }
+
+    function _resolveMapEntry(source, nameOptions) {
+        if (!_isPlainObject(source))
+            return undefined
+        var names = _normaliseKeyList(nameOptions)
+        for (var i = 0; i < names.length; ++i) {
+            var candidateName = names[i]
+            if (candidateName && Object.prototype.hasOwnProperty.call(source, candidateName))
+                return source[candidateName]
+        }
+        return undefined
+    }
+
+    function _valueFromSubsection(sources, sectionNames, keyNames) {
+        var sectionList = []
+        if (Array.isArray(sectionNames))
+            sectionList = sectionNames
+        else if (sectionNames !== undefined && sectionNames !== null)
+            sectionList = [sectionNames]
+        var keys = _normaliseKeyList(keyNames)
+        for (var i = 0; i < sources.length; ++i) {
+            var current = sources[i]
+            var valid = true
+            for (var j = 0; j < sectionList.length; ++j) {
+                current = _resolveMapEntry(current, sectionList[j])
+                if (!_isPlainObject(current)) {
+                    valid = false
+                    break
+                }
+            }
+            if (!valid)
+                continue
+            for (var k = 0; k < keys.length; ++k) {
+                var candidate = current[keys[k]]
+                if (candidate !== undefined)
+                    return candidate
+            }
+        }
+        return undefined
+    }
+
+    function _valueFromSources(sources, keyNames) {
+        return _valueFromSubsection(sources, [], keyNames)
+    }
+
+    function _coerceNumber(value, fallback) {
+        var numeric = Number(value)
+        return isFinite(numeric) ? numeric : fallback
+    }
+
+    function _coerceBool(value, fallback) {
+        if (value === undefined || value === null)
+            return fallback
+        if (typeof value === "string") {
+            var lowered = value.toLowerCase()
+            if (lowered === "true" || lowered === "yes" || lowered === "1")
+                return true
+            if (lowered === "false" || lowered === "no" || lowered === "0")
+                return false
+        }
+        return !!value
+    }
+
+    function _coerceColor(value, fallback) {
+        if (value === undefined || value === null)
+            return fallback
+        var text = String(value)
+        return text.length ? text : fallback
+    }
+
+    function _coerceString(value, fallback) {
+        if (value === undefined || value === null)
+            return fallback
+        var text = String(value)
+        return text.length ? text : fallback
+    }
+
+    function environmentDefaultsMapFor(source) {
+        if (!_isPlainObject(source))
+            return ({})
+        var direct = _resolveMapEntry(source, "environment")
+        if (_isPlainObject(direct))
+            return _cloneObject(direct)
+        var graphics = _resolveMapEntry(source, "graphics")
+        if (_isPlainObject(graphics)) {
+            var nested = _resolveMapEntry(graphics, "environment")
+            if (_isPlainObject(nested))
+                return _cloneObject(nested)
+        }
+        return ({})
+    }
+
+    function environmentDefaultString(map, keys, fallback) {
+        var value = _valueFromSources([map || ({})], keys)
+        if (value === undefined || value === null)
+            return fallback
+        var text = String(value)
+        return text.length ? text : fallback
+    }
+
+    function environmentDefaultNumber(map, keys, fallback) {
+        return _coerceNumber(_valueFromSources([map || ({})], keys), fallback)
+    }
+
+    function environmentDefaultBool(map, keys, fallback) {
+        var value = _valueFromSources([map || ({})], keys)
+        return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function _normalizeRenderPolicy(value, fallback) {
+        var defaultKey = fallback !== undefined && fallback !== null ? String(fallback) : "always"
+        var text = _coerceString(value, defaultKey)
+        var normalized = text.toLowerCase()
+        if (normalized === "on_demand" || normalized === "on-demand")
+            normalized = "ondemand"
+        if (normalized === "always" || normalized === "ondemand" || normalized === "automatic" || normalized === "manual")
+            return normalized
+        return defaultKey.toLowerCase()
+    }
+
+    function _renderSources() {
+        return [renderState || ({}), qualityState || ({}), sceneRenderDefaults || ({}), sceneQualityDefaults || ({})]
+    }
+
+    function _syncRenderSettingsState() {
+        var sources = _renderSources()
+        var scaleFallback = renderScale > 0 ? renderScale : 1.0
+        var scaleValue = _coerceNumber(_valueFromSources(sources, ["renderScale", "render_scale", "sceneScaleFactor", "scene_scale_factor"]), scaleFallback)
+        if (!isFinite(scaleValue) || scaleValue <= 0)
+            scaleValue = 1.0
+        if (scaleValue !== renderScale)
+            renderScale = scaleValue
+
+        var frameFallback = frameRateLimit >= 0 ? frameRateLimit : 0
+        var frameValue = _coerceNumber(_valueFromSources(sources, ["frameRateLimit", "frame_rate_limit", "frameLimit", "frame_limit"]), frameFallback)
+        if (!isFinite(frameValue) || frameValue < 0)
+            frameValue = 0
+        if (frameValue !== frameRateLimit)
+            frameRateLimit = frameValue
+
+        var policyValue = _valueFromSources(sources, ["renderPolicy", "render_policy", "renderMode", "render_mode"])
+        var normalizedPolicy = _normalizeRenderPolicy(policyValue, renderPolicyKey)
+        if (normalizedPolicy !== renderPolicyKey)
+            renderPolicyKey = normalizedPolicy
+    }
+
+    function normalizeHdrSource(value) {
+        if (value === undefined || value === null)
+            return ""
+        var text = String(value).trim()
+        if (!text.length)
+            return ""
+        if (text.startsWith("qrc:/") || text.indexOf("://") > 0 || text.startsWith("data:"))
+            return text
+        return Qt.resolvedUrl(text)
+    }
+
     function _storeLastUpdate(category, payload) {
         var snapshot = _mergeObjects(lastUpdateByCategory, {})
         var stored = payload
@@ -180,8 +395,15 @@ signal animationToggled(bool running)
         _logBatchEvent("function_called", "applyGeometryUpdates")
         var normalized = _normaliseState(params)
         if (!_isEmptyMap(normalized)) {
-            geometryState = _mergeObjects(geometryState, normalized)
+            geometryState = _deepMerge(geometryState, normalized)
             geometryStateReceived = true
+            if (cameraController && typeof cameraController.updateGeometry === "function") {
+                try {
+                    cameraController.updateGeometry(normalized)
+                } catch (error) {
+                    console.debug("[SimulationRoot] cameraController.updateGeometry failed", error)
+                }
+            }
         }
         _storeLastUpdate("geometry", normalized)
     }
@@ -226,6 +448,36 @@ signal animationToggled(bool running)
         pythonAnimationActive = _normalizeBool(payload.python_driven, pythonAnimationActive)
         pythonAnimationActive = _normalizeBool(payload.pythonDriven, pythonAnimationActive)
 
+        var frameSource = _resolveMapEntry(payload, "frame")
+        if (_isPlainObject(frameSource) && rigAnimation && typeof rigAnimation.applyFrameMotion === "function") {
+            pythonFrameActive = true
+            try {
+                rigAnimation.applyFrameMotion(frameSource, { immediate: !pythonAnimationActive })
+            } catch (error) {
+                console.debug("[SimulationRoot] rigAnimation.applyFrameMotion failed", error)
+            }
+        }
+
+        var leverAnglesSource = _resolveMapEntry(payload, ["leverAngles", "lever_angles"])
+        if (_isPlainObject(leverAnglesSource) && rigAnimation && typeof rigAnimation.applyLeverAnglesRadians === "function") {
+            pythonLeverAnglesActive = true
+            try {
+                rigAnimation.applyLeverAnglesRadians(leverAnglesSource, { immediate: !pythonAnimationActive })
+            } catch (error) {
+                console.debug("[SimulationRoot] rigAnimation.applyLeverAnglesRadians failed", error)
+            }
+        }
+
+        var pistonSource = _resolveMapEntry(payload, ["pistonPositions", "piston_positions"])
+        if (_isPlainObject(pistonSource) && rigAnimation && typeof rigAnimation.applyPistonPositions === "function") {
+            pythonPistonsActive = true
+            try {
+                rigAnimation.applyPistonPositions(pistonSource, { immediate: !pythonAnimationActive })
+            } catch (error) {
+                console.debug("[SimulationRoot] rigAnimation.applyPistonPositions failed", error)
+            }
+        }
+
         _storeLastUpdate("animation", payload)
         if (isRunning !== previousRunning)
             animationToggled(isRunning)
@@ -233,17 +485,34 @@ signal animationToggled(bool running)
 
     function applyLightingUpdates(params) {
         _logBatchEvent("function_called", "applyLightingUpdates")
-        _storeLastUpdate("lighting", params || {})
+        var normalized = _normaliseState(params)
+        lightingState = _deepMerge(lightingState, normalized)
+        _storeLastUpdate("lighting", normalized)
     }
 
     function applyMaterialUpdates(params) {
         _logBatchEvent("function_called", "applyMaterialUpdates")
-        _storeLastUpdate("materials", params || {})
+        var normalized = _normaliseState(params)
+        materialsState = _deepMerge(materialsState, normalized)
+        _storeLastUpdate("materials", normalized)
     }
 
     function applyEnvironmentUpdates(params) {
         _logBatchEvent("function_called", "applyEnvironmentUpdates")
-        _storeLastUpdate("environment", params || {})
+        var normalized = _normaliseState(params)
+        environmentState = _deepMerge(environmentState, normalized)
+        if (sceneEnvironment && typeof sceneEnvironment.applyEnvironmentPayload === "function") {
+            try {
+                sceneEnvironment.applyEnvironmentPayload(normalized)
+            } catch (error) {
+                console.debug("[SimulationRoot] sceneEnvironment.applyEnvironmentPayload failed", error)
+            }
+        }
+        var scaleCandidate = _valueFromSources([normalized], ["sceneScaleFactor", "scene_scale_factor", "render_scale"])
+        var numericScale = _coerceNumber(scaleCandidate, sceneScaleFactor)
+        if (isFinite(numericScale) && numericScale > 0 && numericScale !== sceneScaleFactor)
+            sceneScaleFactor = numericScale
+        _storeLastUpdate("environment", normalized)
     }
 
     function applySceneUpdates(params) {
@@ -253,17 +522,53 @@ signal animationToggled(bool running)
 
     function applyQualityUpdates(params) {
         _logBatchEvent("function_called", "applyQualityUpdates")
-        _storeLastUpdate("quality", params || {})
+        var normalized = _normaliseState(params)
+        qualityState = _deepMerge(qualityState, normalized)
+        if (sceneEnvironment && typeof sceneEnvironment.applyQualityPayload === "function") {
+            try {
+                sceneEnvironment.applyQualityPayload(normalized)
+            } catch (error) {
+                console.debug("[SimulationRoot] sceneEnvironment.applyQualityPayload failed", error)
+            }
+        }
+        if (_isPlainObject(normalized) || !_isEmptyMap(qualityState))
+            _syncRenderSettingsState()
+        _storeLastUpdate("quality", normalized)
     }
 
     function applyCameraUpdates(params) {
         _logBatchEvent("function_called", "applyCameraUpdates")
-        _storeLastUpdate("camera", params || {})
+        var normalized = _normaliseState(params)
+        cameraStateSnapshot = _deepMerge(cameraStateSnapshot, normalized)
+        if (cameraController && typeof cameraController.applyCameraUpdates === "function") {
+            try {
+                cameraController.applyCameraUpdates(normalized)
+            } catch (error) {
+                console.debug("[SimulationRoot] cameraController.applyCameraUpdates failed", error)
+            }
+        }
+        _storeLastUpdate("camera", normalized)
     }
 
     function applyEffectsUpdates(params) {
         _logBatchEvent("function_called", "applyEffectsUpdates")
-        _storeLastUpdate("effects", params || {})
+        var normalized = _normaliseState(params)
+        effectsState = _deepMerge(effectsState, normalized)
+        if (sceneEnvironment && typeof sceneEnvironment.applyEffectsPayload === "function") {
+            try {
+                sceneEnvironment.applyEffectsPayload(normalized)
+            } catch (error) {
+                console.debug("[SimulationRoot] sceneEnvironment.applyEffectsPayload failed", error)
+            }
+        }
+        if (postEffects && typeof postEffects.applyPayload === "function") {
+            try {
+                postEffects.applyPayload(normalized, sceneEnvironment)
+            } catch (error) {
+                console.debug("[SimulationRoot] postEffects.applyPayload failed", error)
+            }
+        }
+        _storeLastUpdate("effects", normalized)
     }
 
     function applyRenderSettings(params) {
@@ -277,18 +582,65 @@ signal animationToggled(bool running)
             applyEffectsUpdates(payload.effects)
         if (payload.camera)
             applyCameraUpdates(payload.camera)
+        var renderPayload = null
+        if (payload.render !== undefined)
+            renderPayload = _normaliseState(payload.render)
+        if (_isPlainObject(renderPayload))
+            renderState = _deepMerge(renderState, renderPayload)
+        var directOverrides = {}
+        var scaleOverride = _valueFromSources([payload], ["renderScale", "render_scale", "sceneScaleFactor", "scene_scale_factor"])
+        var numericScale = _coerceNumber(scaleOverride, renderScale)
+        if (scaleOverride !== undefined && isFinite(numericScale) && numericScale > 0)
+            directOverrides.renderScale = numericScale
+        var frameOverride = _valueFromSources([payload], ["frameRateLimit", "frame_rate_limit", "frameLimit", "frame_limit"])
+        var numericFrame = _coerceNumber(frameOverride, frameRateLimit)
+        if (frameOverride !== undefined && isFinite(numericFrame) && numericFrame >= 0)
+            directOverrides.frameRateLimit = numericFrame
+        var policyOverride = _valueFromSources([payload], ["renderPolicy", "render_policy", "renderMode", "render_mode"])
+        if (policyOverride !== undefined && policyOverride !== null)
+            directOverrides.renderPolicy = _normalizeRenderPolicy(policyOverride, renderPolicyKey)
+        if (!_isEmptyMap(directOverrides))
+            renderState = _deepMerge(renderState, directOverrides)
+        _syncRenderSettingsState()
         _storeLastUpdate("render", payload)
     }
 
     function applyThreeDUpdates(params) {
         _logBatchEvent("function_called", "applyThreeDUpdates")
         var normalized = _normaliseState(params)
-        threeDState = normalized
+        threeDState = _deepMerge(threeDState, normalized)
         var networkSource = null
         if (normalized && typeof normalized === "object")
             networkSource = normalized.flowNetwork !== undefined ? normalized.flowNetwork : normalized.flownetwork
         flowTelemetry = _normaliseState(networkSource)
         receiverTelemetry = _resolveReceiverTelemetry(normalized)
+        var frameNode = _resolveMapEntry(normalized, "frame")
+        if (_isPlainObject(frameNode) && rigAnimation && typeof rigAnimation.applyFrameMotion === "function") {
+            pythonFrameActive = true
+            try {
+                rigAnimation.applyFrameMotion(frameNode, { immediate: !pythonAnimationActive })
+            } catch (error) {
+                console.debug("[SimulationRoot] rigAnimation.applyFrameMotion (threeD) failed", error)
+            }
+        }
+        var leverNode = _resolveMapEntry(normalized, ["leverAngles", "lever_angles"])
+        if (_isPlainObject(leverNode) && rigAnimation && typeof rigAnimation.applyLeverAnglesRadians === "function") {
+            pythonLeverAnglesActive = true
+            try {
+                rigAnimation.applyLeverAnglesRadians(leverNode, { immediate: !pythonAnimationActive })
+            } catch (error) {
+                console.debug("[SimulationRoot] rigAnimation.applyLeverAnglesRadians (threeD) failed", error)
+            }
+        }
+        var pistonNode = _resolveMapEntry(normalized, ["pistonPositions", "piston_positions"])
+        if (_isPlainObject(pistonNode) && rigAnimation && typeof rigAnimation.applyPistonPositions === "function") {
+            pythonPistonsActive = true
+            try {
+                rigAnimation.applyPistonPositions(pistonNode, { immediate: !pythonAnimationActive })
+            } catch (error) {
+                console.debug("[SimulationRoot] rigAnimation.applyPistonPositions (threeD) failed", error)
+            }
+        }
         _storeLastUpdate("threeD", normalized)
     }
 
@@ -309,6 +661,7 @@ signal animationToggled(bool running)
     function updateThreeD(params) { applyThreeDUpdates(params) }
 
     Component.onCompleted: {
+        _refreshSceneDefaults()
         const hasBridge = sceneBridge !== null && sceneBridge !== undefined
         const hasWindow = typeof window !== "undefined" && window
         const windowIdentifier = hasWindow && typeof window.objectName === "string" && window.objectName.length > 0
@@ -321,10 +674,18 @@ signal animationToggled(bool running)
         if (!hasWindow)
             console.warn("[SimulationRoot] Window context missing; shader warnings will stay local")
         _applyBridgeSnapshot(sceneBridge)
+        initializeRenderSettings()
     }
+
+    onSceneDefaultsChanged: _refreshSceneDefaults()
 
     onSceneBridgeChanged: {
         _applyBridgeSnapshot(sceneBridge)
+    }
+
+    onSceneViewChanged: {
+        if (sceneView)
+            initializeRenderSettings()
     }
 
     function diagnosticsWindow() {
@@ -457,11 +818,13 @@ signal animationToggled(bool running)
         geometryState = ({})
         simulationState = ({})
         threeDState = ({})
+        renderState = ({})
         flowTelemetry = ({})
         receiverTelemetry = ({})
         geometryStateReceived = false
         simulationStateReceived = false
         sceneBridgeDispatchCount = 0
+        _syncRenderSettingsState()
     }
 
     function _applyBridgeSnapshot(target) {
@@ -484,6 +847,11 @@ signal animationToggled(bool running)
         } catch (error) {
             threeDState = ({})
         }
+        try {
+            renderState = _normaliseState(target.render)
+        } catch (error) {
+            renderState = ({})
+        }
         var snapshotFlow = ({})
         try {
             if (threeDState && typeof threeDState === "object")
@@ -495,6 +863,7 @@ signal animationToggled(bool running)
         receiverTelemetry = _resolveReceiverTelemetry(threeDState)
         geometryStateReceived = !_isEmptyMap(geometryState)
         simulationStateReceived = !_isEmptyMap(simulationState)
+        _syncRenderSettingsState()
     }
 
     function _resolveReceiverTelemetry(source) {
@@ -665,8 +1034,27 @@ signal animationToggled(bool running)
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
  property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyGeometryDefaults
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
+ property var sceneMaterialsDefaults: ({})
+ property var sceneLightingDefaults: ({})
+ property var sceneEnvironmentDefaults: ({})
+ property var sceneQualityDefaults: ({})
+ property var sceneRenderDefaults: ({})
+ property var sceneEffectsDefaults: ({})
+ property var lightingState: ({})
+ property var materialsState: ({})
+ property var environmentState: ({})
+ property var qualityState: ({})
+ property var renderState: ({})
+ property var effectsState: ({})
+ property var cameraStateSnapshot: ({})
  property var cameraHudSettings: ({})
  property bool cameraHudEnabled: false
+ property real renderScale: 1.0
+ property real frameRateLimit: 0.0
+ property string renderPolicyKey: "always"
+ property var sceneRenderSettings: null
+ property bool renderSettingsSupported: false
+ property real sceneScaleFactor: 1.0
  property bool feedbackReady: false
  property real animationTime: animationDefaults && animationDefaults.animation_time !== undefined ? Number(animationDefaults.animation_time) :0.0 // сек, накапливается Python-таймером
  property bool pythonAnimationActive: false
@@ -681,6 +1069,90 @@ signal animationToggled(bool running)
  property real fallbackBaseTime: animationTime
  readonly property real fallbackCycleSeconds: Math.max(0.2, 1.0 / Math.max(userFrequency, 0.01))
  property real batchFlashOpacity: 0.0
+
+    function _sceneDefaultsSection(sectionName) {
+        var base = sceneDefaults
+        var direct = _resolveMapEntry(base, sectionName)
+        if (_isPlainObject(direct))
+            return _cloneObject(direct)
+        var graphics = _resolveMapEntry(base, "graphics")
+        if (_isPlainObject(graphics)) {
+            var nested = _resolveMapEntry(graphics, sectionName)
+            if (_isPlainObject(nested))
+                return _cloneObject(nested)
+        }
+        return ({})
+    }
+
+    function _refreshSceneDefaults() {
+        sceneMaterialsDefaults = _sceneDefaultsSection("materials")
+        sceneLightingDefaults = _sceneDefaultsSection("lighting")
+        sceneEnvironmentDefaults = _sceneDefaultsSection("environment")
+        sceneQualityDefaults = _sceneDefaultsSection("quality")
+        sceneRenderDefaults = _sceneDefaultsSection("render")
+        sceneEffectsDefaults = _sceneDefaultsSection("effects")
+        environmentDefaultsMap = environmentDefaultsMapFor(sceneDefaults)
+        _syncRenderSettingsState()
+    }
+
+    function materialsSources() {
+        return [materialsState || ({}), sceneMaterialsDefaults || ({}), emptyMaterialsDefaults || ({})]
+    }
+
+    function lightingSources() {
+        return [lightingState || ({}), sceneLightingDefaults || ({})]
+    }
+
+    function qualitySources() {
+        return [qualityState || ({}), sceneQualityDefaults || ({})]
+    }
+
+    function environmentSources() {
+        return [environmentState || ({}), sceneEnvironmentDefaults || ({})]
+    }
+
+    function geometrySources() {
+        return [geometryState || ({}), geometryDefaults || ({}), emptyGeometryDefaults || ({})]
+    }
+
+    function geometryNumber(keys, fallback) {
+        return _coerceNumber(_valueFromSources(geometrySources(), keys), fallback)
+    }
+
+    function environmentNumber(keys, fallback) {
+        return _coerceNumber(_valueFromSources(environmentSources(), keys), fallback)
+    }
+
+    function environmentBool(keys, fallback) {
+        var value = _valueFromSources(environmentSources(), keys)
+        return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function lightingNumber(group, keys, fallback) {
+        return _coerceNumber(_valueFromSubsection(lightingSources(), group, keys), fallback)
+    }
+
+    function lightingBool(group, keys, fallback) {
+        var value = _valueFromSubsection(lightingSources(), group, keys)
+        return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function lightingColor(group, keys, fallback) {
+        return _coerceColor(_valueFromSubsection(lightingSources(), group, keys), fallback)
+    }
+
+    function qualityShadowBool(keys, fallback) {
+        var value = _valueFromSubsection(qualitySources(), [["shadowSettings", "shadows"]], keys)
+        return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function qualityShadowNumber(keys, fallback) {
+        return _coerceNumber(_valueFromSubsection(qualitySources(), [["shadowSettings", "shadows"]], keys), fallback)
+    }
+
+    function effectsSources() {
+        return [effectsState || ({}), sceneEffectsDefaults || ({})]
+    }
 
  function initializeRenderSettings() {
   if (sceneRenderSettings) {
@@ -757,7 +1229,10 @@ signal animationToggled(bool running)
 
 readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
-readonly property var environmentDefaultsMap: environmentDefaultsMapFor(sceneDefaults)
+property var environmentDefaultsMap: ({})
+readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
+readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
+property real reflectionProbePaddingM: environmentNumber(["reflection_probe_padding", "probePadding"], 0.15)
 property color environmentBackgroundColorDefault: environmentDefaultString(environmentDefaultsMap, ["background_color", "backgroundColor"], "#1f242c")
 property string environmentBackgroundModeDefault: environmentDefaultString(environmentDefaultsMap, ["background_mode", "backgroundMode"], "skybox")
 property bool environmentSkyboxEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["skybox_enabled", "skyboxEnabled"], true)
@@ -795,6 +1270,161 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         return Math.max(0, numeric);
     }
 
+
+    PostEffects {
+        id: postEffectsComponent
+        visible: false
+        enabled: false
+        diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
+        onSimplifiedRenderingRequested: root.updateSimpleFallbackState(true, reason)
+        onSimplifiedRenderingRecovered: root.updateSimpleFallbackState(false, "")
+    }
+
+    Binding {
+        target: root
+        property: "postEffects"
+        value: postEffectsComponent
+    }
+
+    SceneEnvironmentController {
+        id: sceneEnvironment
+        objectName: "sceneEnvironment"
+        sceneBridge: root.sceneBridge
+        diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
+        materialsDefaultsOverride: root.activeMaterialsDefaults
+        lightingContextOverride: root.activeLightingDefaults
+        onSimplifiedRenderingRequested: root.updateSimpleFallbackState(true, reason)
+        onSimplifiedRenderingRecovered: root.updateSimpleFallbackState(false, "")
+    }
+
+    Animation.RigAnimationController {
+        id: rigAnimation
+        smoothingEnabled: true
+        smoothingDurationMs: 160.0
+        angleSnapThresholdDeg: 5.0
+        pistonSnapThresholdM: 0.01
+    }
+
+    Scene.SharedMaterials {
+        id: sharedMaterials
+        initialSharedMaterials: sceneMaterialsDefaults
+        materialsDefaults: root.activeMaterialsDefaults
+    }
+
+    View3D {
+        id: sceneView
+        objectName: "simulationView"
+        anchors.fill: parent
+        visible: !root.simpleFallbackActive
+        camera: cameraController.camera
+        environment: sceneEnvironment
+
+        Node {
+            id: worldRoot
+            objectName: "worldRoot"
+            position: Qt.vector3d(0, rigAnimation.frameHeave * root.sceneScaleFactor, 0)
+            eulerRotation: Qt.vector3d(rigAnimation.framePitchDeg, 0, rigAnimation.frameRollDeg)
+        }
+
+        Scene.SuspensionAssembly {
+            id: suspensionAssembly
+            worldRoot: worldRoot
+            geometryState: root.geometryState
+            geometryDefaults: root.geometryDefaults
+            emptyGeometryDefaults: root.emptyGeometryDefaults
+            sharedMaterials: sharedMaterials
+            materialsDefaults: root.activeMaterialsDefaults
+            leverAngles: rigAnimation.leverAnglesDeg
+            pistonPositions: rigAnimation.pistonPositions
+            sceneScaleFactor: root.sceneScaleFactor
+            flowTelemetry: root.flowTelemetry
+            receiverTelemetry: root.receiverTelemetry
+            reflectionProbeEnabled: true
+            reflectionProbePaddingM: sanitizeReflectionProbePadding(environmentNumber(["reflection_probe_padding", "probePadding"], reflectionProbePaddingM))
+        }
+
+        DirectionalLights {
+            id: directionalLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            shadowsEnabled: qualityShadowBool(["enabled"], true)
+            shadowResolution: qualityShadowNumber(["resolution", "shadowResolution"], 4096)
+            shadowFilterSamples: qualityShadowNumber(["filterSamples", "filter", "samples"], 32)
+            shadowBias: qualityShadowNumber(["bias", "shadowBias"], 8.0)
+            shadowFactor: qualityShadowNumber(["factor", "darkness", "shadowFactor"], 80.0)
+
+            keyLightBrightness: lightingNumber("key", ["brightness", "intensity"], 1.0)
+            keyLightColor: lightingColor("key", "color", "#ffffff")
+            keyLightAngleX: lightingNumber("key", ["angle_x", "angleX"], 25.0)
+            keyLightAngleY: lightingNumber("key", ["angle_y", "angleY"], 23.5)
+            keyLightAngleZ: lightingNumber("key", ["angle_z", "angleZ"], 0.0)
+            keyLightCastsShadow: lightingBool("key", ["cast_shadow", "castsShadow"], true)
+            keyLightBindToCamera: lightingBool("key", ["bind_to_camera", "bindToCamera"], false)
+            keyLightPosX: lightingNumber("key", ["position_x", "pos_x", "x"], 0.0)
+            keyLightPosY: lightingNumber("key", ["position_y", "pos_y", "y"], 0.0)
+            keyLightPosZ: lightingNumber("key", ["position_z", "pos_z", "z"], 0.0)
+
+            fillLightBrightness: lightingNumber("fill", ["brightness", "intensity"], 1.0)
+            fillLightColor: lightingColor("fill", "color", "#f1f4ff")
+            fillLightAngleX: lightingNumber("fill", ["angle_x", "angleX"], 0.0)
+            fillLightAngleY: lightingNumber("fill", ["angle_y", "angleY"], -45.0)
+            fillLightAngleZ: lightingNumber("fill", ["angle_z", "angleZ"], 0.0)
+            fillLightCastsShadow: lightingBool("fill", ["cast_shadow", "castsShadow"], false)
+            fillLightBindToCamera: lightingBool("fill", ["bind_to_camera", "bindToCamera"], false)
+            fillLightPosX: lightingNumber("fill", ["position_x", "pos_x", "x"], 0.0)
+            fillLightPosY: lightingNumber("fill", ["position_y", "pos_y", "y"], 0.0)
+            fillLightPosZ: lightingNumber("fill", ["position_z", "pos_z", "z"], 0.0)
+
+            rimLightBrightness: lightingNumber("rim", ["brightness", "intensity"], 1.1)
+            rimLightColor: lightingColor("rim", "color", "#ffe1bd")
+            rimLightAngleX: lightingNumber("rim", ["angle_x", "angleX"], 30.0)
+            rimLightAngleY: lightingNumber("rim", ["angle_y", "angleY"], -135.0)
+            rimLightAngleZ: lightingNumber("rim", ["angle_z", "angleZ"], 0.0)
+            rimLightCastsShadow: lightingBool("rim", ["cast_shadow", "castsShadow"], false)
+            rimLightBindToCamera: lightingBool("rim", ["bind_to_camera", "bindToCamera"], false)
+            rimLightPosX: lightingNumber("rim", ["position_x", "pos_x", "x"], 0.0)
+            rimLightPosY: lightingNumber("rim", ["position_y", "pos_y", "y"], 0.0)
+            rimLightPosZ: lightingNumber("rim", ["position_z", "pos_z", "z"], 0.0)
+        }
+
+        PointLights {
+            id: pointLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            pointLightBrightness: lightingNumber("point", ["brightness", "intensity"], 50.0)
+            pointLightColor: lightingColor("point", "color", "#fff7e0")
+            pointLightX: lightingNumber("point", ["position_x", "pos_x", "x"], 0.0)
+            pointLightY: lightingNumber("point", ["position_y", "pos_y", "y"], 2.6)
+            pointLightZ: lightingNumber("point", ["position_z", "pos_z", "z"], 1.5)
+            pointLightRange: lightingNumber("point", "range", 3.6)
+            constantFade: lightingNumber("point", ["constant_fade", "constantFade"], 1.0)
+            linearFade: lightingNumber("point", ["linear_fade", "linearFade"], 0.01)
+            quadraticFade: lightingNumber("point", ["quadratic_fade", "quadraticFade"], 1.0)
+            pointLightCastsShadow: lightingBool("point", ["cast_shadow", "castsShadow"], false)
+            pointLightBindToCamera: lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
+        }
+    }
+
+    Binding {
+        target: root
+        property: "sceneView"
+        value: sceneView
+    }
+
+    CameraController {
+        id: cameraController
+        anchors.fill: parent
+        worldRoot: worldRoot
+        view3d: sceneView
+        sceneBridge: root.sceneBridge
+        taaMotionAdaptive: environmentBool(["taa_motion_adaptive", "taaMotionAdaptive"], false)
+        hudVisible: root.cameraHudEnabled
+        hudSettings: root.cameraHudSettings
+        sceneScaleFactor: root.sceneScaleFactor
+        visible: !root.simpleFallbackActive
+        z: 5000
+        onHudToggleRequested: root.cameraHudEnabled = !root.cameraHudEnabled
+    }
 
     BridgeIndicatorsPanel {
         id: bridgeIndicatorsPanel
