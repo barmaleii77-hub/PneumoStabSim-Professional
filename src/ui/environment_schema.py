@@ -251,9 +251,32 @@ SCENE_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
 ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition("is_running", "bool"),
     EnvironmentParameterDefinition(
-        "amplitude", "float", min_value=0.0, max_value=180.0
+        "animation_time", "float", min_value=0.0, max_value=100000.0
     ),
-    EnvironmentParameterDefinition("frequency", "float", min_value=0.0, max_value=50.0),
+    EnvironmentParameterDefinition("amplitude", "float", min_value=0.0, max_value=0.2),
+    EnvironmentParameterDefinition("frequency", "float", min_value=0.1, max_value=10.0),
+    EnvironmentParameterDefinition(
+        "phase_global", "float", min_value=0.0, max_value=360.0
+    ),
+    EnvironmentParameterDefinition("phase_fl", "float", min_value=0.0, max_value=360.0),
+    EnvironmentParameterDefinition("phase_fr", "float", min_value=0.0, max_value=360.0),
+    EnvironmentParameterDefinition("phase_rl", "float", min_value=0.0, max_value=360.0),
+    EnvironmentParameterDefinition("phase_rr", "float", min_value=0.0, max_value=360.0),
+    EnvironmentParameterDefinition("smoothing_enabled", "bool"),
+    EnvironmentParameterDefinition(
+        "smoothing_duration_ms", "float", min_value=0.0, max_value=600.0
+    ),
+    EnvironmentParameterDefinition(
+        "smoothing_angle_snap_deg", "float", min_value=0.0, max_value=180.0
+    ),
+    EnvironmentParameterDefinition(
+        "smoothing_piston_snap_m", "float", min_value=0.0, max_value=0.3
+    ),
+    EnvironmentParameterDefinition(
+        "smoothing_easing",
+        "string",
+        allowed_values=("OutCubic", "OutQuad", "Linear", "InOutSine"),
+    ),
 )
 
 ENVIRONMENT_REQUIRED_KEYS = frozenset(defn.key for defn in ENVIRONMENT_PARAMETERS)
