@@ -288,6 +288,8 @@ class SettingsService:
         else:
             payload_dict = json.loads(json.dumps(payload))
 
+        self._strip_null_slider_metadata(payload_dict)
+
         last_modified = self._ensure_last_modified(payload_dict)
         if self._validate_schema:
             self.validate(payload_dict)
@@ -312,6 +314,37 @@ class SettingsService:
             for candidate in pending_unknown_paths:
                 self._record_unknown_path(candidate)
         self._publish_update_event(metadata or {})
+
+    def _strip_null_slider_metadata(self, payload: MutableMapping[str, Any]) -> None:
+        """Remove optional slider metadata fields that were serialised as ``null``."""
+
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, MutableMapping):
+            return
+
+        slider_ranges = metadata.get("environment_slider_ranges")
+        if not isinstance(slider_ranges, MutableMapping):
+            return
+
+        empty_ranges: list[str] = []
+        for key, slider in slider_ranges.items():
+            if not isinstance(slider, MutableMapping):
+                continue
+
+            null_keys = [
+                candidate for candidate, value in slider.items() if value is None
+            ]
+            for candidate in null_keys:
+                slider.pop(candidate, None)
+
+            if not slider:
+                empty_ranges.append(key)
+
+        for key in empty_ranges:
+            slider_ranges.pop(key, None)
+
+        if not slider_ranges:
+            metadata.pop("environment_slider_ranges", None)
 
     # ------------------------------------------------------------------
     # Helper utilities
