@@ -13,6 +13,11 @@ from collections import defaultdict
 from typing import Any
 import re
 
+from src.diagnostics.logger_factory import get_logger
+
+
+logger = get_logger("tools.analyze_logs")
+
 # ============================================================================
 # Безопасный вывод для Windows
 # ============================================================================
@@ -75,7 +80,8 @@ def format_timestamp(ts: str) -> str:
     try:
         dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         return dt.strftime("%H:%M:%S")
-    except:
+    except Exception as exc:
+        logger.warning("Failed to parse timestamp", timestamp=ts, error=str(exc))
         return ts
 
 
