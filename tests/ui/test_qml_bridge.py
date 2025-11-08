@@ -5,11 +5,14 @@ from __future__ import annotations
 import pytest
 
 from src.common.settings_manager import SettingsManager
+from importlib import import_module
+
 from src.ui.scene_bridge import SceneBridge
 from src.ui.qml_bridge import QMLBridge
+from tests.helpers import SignalListener
 
 try:  # pragma: no cover - optional dependency for headless environments
-    from PySide6 import QtCore, QtTest  # noqa: F401 - used to detect availability
+    import_module("PySide6.QtCore")
 except (
     Exception
 ):  # pragma: no cover - allow tests to be skipped when PySide6 is missing
@@ -160,7 +163,7 @@ def test_scene_bridge_refresh_orbit_presets_emits_updates(monkeypatch) -> None:
     manager = SettingsManager()
     bridge = SceneBridge(settings_manager=manager)
 
-    spy = QtTest.QSignalSpy(bridge.cameraChanged)
+    spy = SignalListener(bridge.cameraChanged)
 
     manifest = manager.get_orbit_presets()
     updated_manifest = {

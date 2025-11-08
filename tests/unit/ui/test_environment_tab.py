@@ -78,7 +78,7 @@ def test_environment_tab_applies_custom_slider_ranges(qapp, monkeypatch):
 
     assert slider._min == pytest.approx(0.5)
     assert slider._max == pytest.approx(1.5)
-    assert slider._step == pytest.approx(0.1)
+    assert slider.step_size == pytest.approx(0.1)
     assert not warnings
 
 
@@ -124,7 +124,7 @@ def test_environment_tab_missing_range_triggers_warning(qapp, monkeypatch):
     default_range = ENVIRONMENT_SLIDER_RANGE_DEFAULTS["skybox_brightness"]
     assert slider._min == pytest.approx(default_range.minimum)
     assert slider._max == pytest.approx(default_range.maximum)
-    assert slider._step == pytest.approx(default_range.step)
+    assert slider.step_size == pytest.approx(default_range.step)
     assert captured
     message = "\n".join(captured)
     assert "skybox_brightness" in message
@@ -187,7 +187,7 @@ def test_environment_tab_uses_metadata_ranges_when_current_missing(qapp, monkeyp
 
     assert slider._min == pytest.approx(0.2)
     assert slider._max == pytest.approx(4.0)
-    assert slider._step == pytest.approx(0.2)
+    assert slider.step_size == pytest.approx(0.2)
     assert captured
     message = "\n".join(captured)
     assert "metadata.environment_slider_ranges" in message
@@ -244,4 +244,4 @@ def test_environment_tab_applies_metadata_decimals_and_units(qapp, monkeypatch):
     assert slider._unit == "м"
     assert slider._min == pytest.approx(0.0)
     assert slider._max == pytest.approx(250.0)
-    assert slider._step == pytest.approx(0.5)
+    assert slider.step_size == pytest.approx(0.5)

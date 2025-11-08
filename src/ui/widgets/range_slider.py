@@ -98,6 +98,7 @@ class RangeSlider(QWidget):
         self._setup_ui(title)
         self._configure_accessibility(title)
         self.setRange(minimum, maximum)
+        self.setStepSize(step)
         self.setValue(value)
         self._connect_signals()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -499,6 +500,36 @@ class RangeSlider(QWidget):
         else:
             self.units_label.clear()
         self._refresh_accessibility_descriptions()
+
+    def setStepSize(self, step: float) -> None:
+        """Update the logical step used for rounding and keyboard nudges."""
+
+        step = float(step)
+        self._step = step
+        single_step = abs(step) if not math.isclose(step, 0.0, abs_tol=1e-12) else 0.001
+        for spinbox in (self.min_spinbox, self.value_spinbox, self.max_spinbox):
+            spinbox.setSingleStep(single_step)
+
+    def stepSize(self) -> float:
+        """Return the configured step size."""
+
+        return float(self._step)
+
+    @property
+    def step(self) -> float:
+        return float(self._step)
+
+    @step.setter
+    def step(self, value: float) -> None:
+        self.setStepSize(value)
+
+    @property
+    def step_size(self) -> float:
+        return float(self._step)
+
+    @step_size.setter
+    def step_size(self, value: float) -> None:
+        self.setStepSize(value)
 
     def setTitle(self, title: str):
         if hasattr(self, "title_label"):

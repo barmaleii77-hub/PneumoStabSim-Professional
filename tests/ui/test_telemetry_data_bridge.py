@@ -6,17 +6,16 @@ import math
 
 import pytest
 
-try:
-    from PySide6.QtTest import QSignalSpy
-except ImportError:  # pragma: no cover - depends on system Qt libraries
-    pytest.skip(
-        "PySide6 QtTest module is required for telemetry bridge tests",  # noqa: EM101
-        allow_module_level=True,
-    )
+pytest.importorskip(
+    "PySide6.QtCore",
+    reason="PySide6 QtCore module is required for telemetry bridge tests",
+    exc_type=ImportError,
+)
 
 from src.pneumo.enums import Line
 from src.runtime.state import StateSnapshot
 from src.ui.bridge.telemetry_bridge import TelemetryDataBridge
+from tests.helpers import SignalListener
 
 
 def _make_snapshot(
@@ -42,7 +41,7 @@ def _make_snapshot(
 
 def test_push_snapshot_emits_active_metrics():
     bridge = TelemetryDataBridge(max_samples=8)
-    spy = QSignalSpy(bridge.sampleAppended)
+    spy = SignalListener(bridge.sampleAppended)
 
     snapshot = _make_snapshot(
         0.1,
@@ -72,7 +71,7 @@ def test_push_snapshot_emits_active_metrics():
 def test_update_interval_throttles_samples():
     bridge = TelemetryDataBridge(max_samples=8)
     bridge.setUpdateInterval(3)
-    spy = QSignalSpy(bridge.sampleAppended)
+    spy = SignalListener(bridge.sampleAppended)
 
     for idx in range(1, 5):
         snapshot = _make_snapshot(
@@ -92,7 +91,7 @@ def test_update_interval_throttles_samples():
 
 def test_pause_and_reset_behaviour():
     bridge = TelemetryDataBridge(max_samples=8)
-    spy = QSignalSpy(bridge.sampleAppended)
+    spy = SignalListener(bridge.sampleAppended)
 
     first = _make_snapshot(0.1, pressures={Line.A1: 100000.0}, tank_pressure=100000.0)
     bridge.push_snapshot(first)
