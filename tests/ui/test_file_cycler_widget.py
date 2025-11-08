@@ -127,3 +127,55 @@ def test_file_cycler_user_confirms_new_path_clears_warning(
     assert not widget.is_missing()
     indicator = widget.findChild(QLabel, "fileCyclerMissingIndicator")
     assert indicator is not None and not indicator.isVisible()
+
+
+@pytest.mark.gui
+def test_file_cycler_warning_resets_when_file_reappears(
+    qapp,
+    qtbot,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog,
+) -> None:
+    target = tmp_path / "texture.png"
+
+    widget = FileCyclerWidget()
+    qtbot.addWidget(widget)
+    widget.set_resolution_roots([tmp_path])
+    widget.set_items([("Texture", "texture.png")])
+
+    warnings: list[str] = []
+
+    def fake_warning(parent, title, text):  # noqa: ANN001 - Qt slot signature
+        warnings.append(text)
+
+    monkeypatch.setattr("PySide6.QtWidgets.QMessageBox.warning", fake_warning)
+
+    caplog.set_level(logging.WARNING, logger="FileCyclerWidget")
+
+    widget.show()
+    qapp.processEvents()
+
+    widget.set_current_data("texture.png", emit=False)
+    qapp.processEvents()
+
+    assert widget.is_missing()
+    assert warnings and "texture.png" in warnings[-1]
+
+    target.write_bytes(b"stub")
+    widget.set_current_data("texture.png", emit=False)
+    qapp.processEvents()
+
+    indicator = widget.findChild(QLabel, "fileCyclerMissingIndicator")
+    assert indicator is not None and not indicator.isVisible()
+    assert not widget.is_missing()
+    assert not widget.missing_path()
+    assert warnings == warnings[:1]
+
+    target.unlink()
+    widget.set_current_data("texture.png", emit=False)
+    qapp.processEvents()
+
+    assert widget.is_missing()
+    assert len(warnings) == 2
+    assert sum("texture.png" in record.message for record in caplog.records) >= 2
