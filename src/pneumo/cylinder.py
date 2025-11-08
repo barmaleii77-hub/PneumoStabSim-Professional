@@ -17,6 +17,10 @@ class CylinderSpec:
     is_front: bool  # True for front axle, False for rear axle
     lever_geom: LeverGeom  # Associated lever geometry
 
+    def __post_init__(self) -> None:
+        # Synchronise lever geometry with cylinder layout for kinematic helpers.
+        self.lever_geom.attach_cylinder_geometry(self.geometry)
+
     def validate_invariants(self) -> ValidationResult:
         """Validate cylinder specification"""
         geom_result = self.geometry.validate_invariants()
@@ -129,6 +133,11 @@ class CylinderState:
         """
         lever = self.spec.lever_geom
         geom = self.spec.geometry
+
+        if getattr(lever, "_cylinder_geom", None) is geom:
+            displacement = lever.angle_to_displacement(angle_rad)
+            self.apply_displacement(displacement)
+            return
 
         # Get rod joint position on lever
         rod_x, rod_y = lever.rod_joint_pos(angle_rad)

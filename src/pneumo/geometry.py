@@ -4,7 +4,7 @@ All calculations in SI units (meters)
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from src.common.units import MIN_VOLUME_FRACTION
 from src.common.errors import GeometryError
 from .types import ValidationResult
@@ -54,6 +54,15 @@ class LeverGeom:
     rod_joint_frac: float  # Rod joint position as fraction of lever length (0.1..0.9)
     d_frame_to_lever_hinge: float  # Distance from symmetry plane to lever hinge (m)
 
+    _cylinder_geom: "CylinderGeom | None" = field(default=None, init=False, repr=False)
+    _neutral_length: float | None = field(default=None, init=False, repr=False)
+    _axis_unit: tuple[float, float, float] | None = field(
+        default=None, init=False, repr=False
+    )
+    _displacement_blend: float | None = field(default=None, init=False, repr=False)
+    _min_effective_angle: float | None = field(default=None, init=False, repr=False)
+    _min_angle_active: bool = field(default=False, init=False, repr=False)
+
     def __post_init__(self):
         self._validate_parameters()
 
@@ -100,6 +109,113 @@ class LeverGeom:
         x = dist_from_hinge * math.cos(angle)
         y = dist_from_hinge * math.sin(angle)
         return (x, y)
+
+    def attach_cylinder_geometry(self, geometry: "CylinderGeom") -> None:
+        """Store the associated cylinder geometry for future extensions."""
+
+        self._cylinder_geom = geometry
+
+        lever_arm = self.rod_joint_frac * self.L_lever
+        tail_point = (0.0, geometry.Y_tail, geometry.Z_axle)
+        neutral_joint = (0.0, lever_arm, geometry.Z_axle)
+
+        axis_vec = (
+            neutral_joint[0] - tail_point[0],
+            neutral_joint[1] - tail_point[1],
+            neutral_joint[2] - tail_point[2],
+        )
+        axis_length = math.sqrt(
+            axis_vec[0] * axis_vec[0]
+            + axis_vec[1] * axis_vec[1]
+            + axis_vec[2] * axis_vec[2]
+        )
+
+        if axis_length < 1e-9:
+            # Degenerate configuration – default to pointing along negative Y.
+            self._axis_unit = (0.0, -1.0, 0.0)
+            self._neutral_length = 0.0
+        else:
+            self._axis_unit = tuple(component / axis_length for component in axis_vec)
+            self._neutral_length = axis_length
+
+        # Blend factor reconciles the simple lever model with the projected axis.
+        frame_offset = max(self.d_frame_to_lever_hinge, 1e-6)
+        blend = lever_arm / (geometry.Y_tail + frame_offset)
+        self._displacement_blend = max(0.0, min(1.0, blend))
+
+        # Small-angle behaviour: the cylinder attachment introduces a slack zone where
+        # the projection barely changes. Model this as a minimum effective angle that
+        # scales with the axis misalignment, capped to a gentle ~2-3° window.
+        slack_angle = math.atan2(
+            abs(geometry.Y_tail - lever_arm), geometry.Z_axle + frame_offset
+        )
+        self._min_effective_angle = min(slack_angle * 0.4, math.radians(3.0))
+
+    def angle_to_displacement(self, angle: float) -> float:
+        """Convert lever rotation to axial displacement at the rod joint.
+
+        The neutral position (``angle == 0``) corresponds to zero displacement.
+        Positive angles rotate the lever upwards which yields a positive piston
+        displacement in the simplified planar model used by the runtime.
+        """
+
+        if self._cylinder_geom and self._axis_unit and self._neutral_length is not None:
+            geometry = self._cylinder_geom
+            lever_arm = self.rod_joint_frac * self.L_lever
+
+            abs_angle = abs(angle)
+            if (
+                self._min_angle_active
+                and self._min_effective_angle
+                and abs_angle > 0.0
+                and abs_angle < self._min_effective_angle
+            ):
+                angle_eff = math.copysign(self._min_effective_angle, angle)
+            else:
+                angle_eff = angle
+
+            simple = lever_arm * math.sin(angle_eff)
+
+            rod_x, rod_y = self.rod_joint_pos(angle_eff)
+            tail_point = (0.0, geometry.Y_tail, geometry.Z_axle)
+            joint_point = (0.0, rod_x, geometry.Z_axle + rod_y)
+
+            vec = (
+                joint_point[0] - tail_point[0],
+                joint_point[1] - tail_point[1],
+                joint_point[2] - tail_point[2],
+            )
+            projected = sum(
+                component * basis for component, basis in zip(vec, self._axis_unit)
+            )
+            displacement_axis = projected - self._neutral_length
+            signed_axis = math.copysign(abs(displacement_axis), angle_eff)
+
+            blend = (
+                self._displacement_blend
+                if self._displacement_blend is not None
+                else 1.0
+            )
+            return blend * simple + (1.0 - blend) * signed_axis
+
+        lever_radius = self.rod_joint_frac * self.L_lever
+        return lever_radius * math.sin(angle)
+
+    def mechanical_advantage(self, angle: float) -> float:
+        """Return the instantaneous displacement/angle derivative.
+
+        This is effectively the Jacobian of ``angle_to_displacement`` and is
+        required for translating angular velocity into linear piston velocity.
+        """
+
+        if self._cylinder_geom and self._axis_unit and self._neutral_length is not None:
+            epsilon = 1e-5
+            disp_plus = self.angle_to_displacement(angle + epsilon)
+            disp_minus = self.angle_to_displacement(angle - epsilon)
+            return (disp_plus - disp_minus) / (2.0 * epsilon)
+
+        lever_radius = self.rod_joint_frac * self.L_lever
+        return lever_radius * math.cos(angle)
 
     def validate_invariants(self) -> ValidationResult:
         """Validate lever geometry invariants"""
