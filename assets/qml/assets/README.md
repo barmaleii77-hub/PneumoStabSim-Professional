@@ -11,8 +11,11 @@ absence of lighting data.
 
 - Place candidate HDR/EXR files under `assets/hdr/` or another configured
   search path.
-- Use the graphics settings panel to cycle through the available files and
-  persist the chosen path back to `config/app_settings.json`.
+- Use the graphics settings panel to cycle through the available HDR files and
+  persist the chosen path back to `config/app_settings.json`. The same
+  `FileCyclerWidget` powers the materials tab: drop custom textures (for
+  example, `frame_albedo.png`) here or next to the project so that
+  `SharedMaterials` picks them up automatically.
 - Do **not** copy placeholder files into this directory. Missing files should
   surface as warnings so users can address the configuration explicitly.
 - Re-run the rendering smoke tests after updating HDR assets to confirm the

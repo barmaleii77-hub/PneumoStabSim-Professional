@@ -31,6 +31,16 @@
   - Обновлённый `Порог (glowHDRMinimumValue)` сохраняет диапазон `0.0–4.0` с шагом `0.05`; вместе с `HDR Maximum` и `HDR Scale` позволяет точно настроить реакцию bloom. Все три значения записываются в JSON через ключи `bloom.threshold`, `bloom.hdr_max`, `bloom.hdr_scale` и попадают в QML через `applyEffectsUpdates`. 【F:src/ui/panels/graphics/effects_tab.py†L140-L182】【F:src/ui/panels/graphics/EFFECTS_TAB_DOCUMENTATION.md†L40-L88】
   - Все изменения фиксируются в `GraphicsLogger`: события `bloom.hdr_*` появляются в `logs/graphics/session_*.jsonl`, а при выборе отсутствующих HDR-карт `MainWindow.normalizeHdrPath` записывает предупреждение и сбрасывает источник, чтобы bloom не использовал пустой путь. QA команде следует проверять оба журнала при расследовании жалоб на пересвет. 【F:docs/GRAPHICS_LOGGING.md†L1-L200】【F:src/ui/main_window_pkg/main_window_refactored.py†L964-L1007】
 
+### Пользовательские HDR и FileCyclerWidget
+
+- Вкладка «Окружение» теперь использует `FileCyclerWidget` для перебора HDR-файлов: виджет собирает содержимое `assets/hdr/`, `assets/hdri/` и `assets/qml/assets/`, принимает относительные пути из конфигурации и поддерживает явный выбор «—» для отключения HDR. 【F:src/ui/panels/graphics/environment_tab.py†L333-L343】【F:src/ui/panels/graphics/environment_tab.py†L479-L506】
+- При отсутствии выбранного файла статусная подпись меняется на `⚠ файл не найден`, а сам `FileCyclerWidget` включает красный индикатор, логирует `Файл не найден: <путь>` и при необходимости показывает диалоговое предупреждение пользователю. Это облегчает диагностику пользовательских HDR-пакетов и гарантирует, что fallback включается прозрачно. 【F:src/ui/panels/graphics/environment_tab.py†L508-L518】【F:src/ui/panels/graphics/widgets.py†L486-L568】
+
+### Пользовательские текстуры материалов
+
+- Вкладка «Материалы» публикует `texture_path` через тот же `FileCyclerWidget`: пользователь может циклически переключаться между текстурами, расположенными рядом с QML (`assets/qml/assets/`) или в любом другом каталоге, прописанном в настройках. При выборе конфигурационного пути он помечается суффиксом `(config)`, что облегчает аудит поставленных ассетов. 【F:src/ui/panels/graphics/materials_tab.py†L77-L101】【F:src/ui/panels/graphics/widgets.py†L382-L421】
+- `SharedMaterials` подключает пользовательские карты цвета через `AssetsLoader`: для каждого материала используется `resolveTextureSource`, а при отсутствии файла автоматически генерируется градиентный fallback с подписью компонента, чтобы сцена оставалась предсказуемой даже без бинарных ресурсов. 【F:assets/qml/scene/SharedMaterials.qml†L175-L356】【F:assets/qml/scene/SharedMaterials.qml†L382-L496】
+
 ### Наследие UFrameScene и что исчезло
 
 - В legacy-заглушке `main_stub.qml` использовался пульсирующий индикатор в правом нижнем углу, который сразу сигнализировал об успешной загрузке 3D-сцены. При миграции на модульную архитектуру этот визуальный маяк был потерян, поэтому пользовательский контроль за готовностью сцены стал менее очевидным. 【F:archive/assets/qml/legacy_backups/main_stub.qml†L50-L87】
