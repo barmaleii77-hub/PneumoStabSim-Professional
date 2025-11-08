@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, Field, RootModel, model_validator
 
 
 class _StrictModel(BaseModel):
@@ -522,9 +522,15 @@ class GeometryInitialStateConstants(_StrictModel):
 class SliderRange(_StrictModel):
     min: float
     max: float
-    step: float | None = None
+    step: float = Field(gt=0)
     decimals: int | None = None
     units: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_bounds(self) -> "SliderRange":
+        if self.max <= self.min:
+            raise ValueError("Slider range 'max' must be greater than 'min'")
+        return self
 
 
 class GeometryPreset(_StrictModel):
