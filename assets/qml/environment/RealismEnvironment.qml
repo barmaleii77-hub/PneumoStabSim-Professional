@@ -45,6 +45,22 @@ ExtendedSceneEnvironment {
         return undefined
     }
 
+    function _sceneScaleFactor() {
+        if (sceneBridge && sceneBridge.sceneScaleFactor !== undefined) {
+            var numeric = Number(sceneBridge.sceneScaleFactor)
+            if (Number.isFinite(numeric) && numeric > 0)
+                return numeric
+        }
+        return 1.0
+    }
+
+    function toSceneLength(value) {
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            return 0.0
+        return numeric * _sceneScaleFactor()
+    }
+
     function _recordOverlayWarning(entry) {
         var overlay = diagnosticsTrace
         if (!overlay || typeof overlay.recordObservation !== "function")
@@ -234,9 +250,9 @@ ExtendedSceneEnvironment {
 
     // Ambient occlusion
     property bool ssaoEnabled: _bool("environment", ["ao_enabled", "ssao_enabled"], true)
-    property int ssaoSampleRate: Math.round(_number("environment", ["ao_sample_rate", "ssao_sample_rate"], 3))
-    property real ssaoRadius: _number("environment", ["ao_radius", "ssao_radius"], 200.0)
-    property real ssaoIntensity: _number("environment", ["ao_strength", "ssao_intensity"], 70.0)
+    property int ssaoSampleRate: Math.round(_number("environment", ["ao_sample_rate", "ssao_sample_rate"], 4))
+    property real ssaoRadius: _number("environment", ["ao_radius", "ssao_radius"], 0.008)
+    property real ssaoIntensity: _number("environment", ["ao_strength", "ssao_intensity"], 1.0)
     property real ssaoSoftness: _number("environment", ["ao_softness", "ssao_softness"], 20.0)
 
     // Bloom/glow
@@ -261,16 +277,16 @@ ExtendedSceneEnvironment {
 
     // Depth of field
     property bool depthOfFieldActive: _bool("effects", ["depth_of_field", "dof_enabled"], false)
-    property real depthOfFieldFocusDistanceValue: _number("effects", ["dof_focus_distance", "focus_distance"], 2000.0)
-    property real depthOfFieldFocusRangeValue: _number("effects", ["dof_focus_range", "focus_range"], 900.0)
+    property real depthOfFieldFocusDistanceValue: _number("effects", ["dof_focus_distance", "focus_distance"], 2.5)
+    property real depthOfFieldFocusRangeValue: _number("effects", ["dof_focus_range", "focus_range"], 0.9)
     property real depthOfFieldBlurAmountValue: _number("effects", ["dof_blur", "blur_amount"], 3.0)
 
     // Fog
     property bool fogEnabled: _bool("environment", ["fog_enabled", "fog_active"], false)
     property color fogColor: _color("environment", ["fog_color", "fogColor"], "#d0d8e8")
-    property real fogDensity: _number("environment", ["fog_density", "fogDensity"], 0.0008)
-    property real fogDepthNear: _number("environment", ["fog_near", "fog_depth_near"], 0.0)
-    property real fogDepthFar: _number("environment", ["fog_far", "fog_depth_far"], 20000.0)
+    property real fogDensity: _number("environment", ["fog_density", "fogDensity"], 0.06)
+    property real fogDepthNear: _number("environment", ["fog_near", "fog_depth_near"], 2.0)
+    property real fogDepthFar: _number("environment", ["fog_far", "fog_depth_far"], 20.0)
 
     // Vignette & color adjustments
     property bool vignetteActive: _bool("effects", ["vignette", "vignette_enabled"], true)
@@ -300,7 +316,7 @@ ExtendedSceneEnvironment {
 
     aoEnabled: env.ssaoEnabled
     aoSampleRate: env.ssaoSampleRate
-    aoDistance: env.ssaoRadius
+    aoDistance: env.toSceneLength(env.ssaoRadius)
     aoStrength: env.ssaoIntensity
     aoSoftness: env.ssaoSoftness
     aoDither: true
@@ -326,16 +342,16 @@ ExtendedSceneEnvironment {
     lensFlareStretchToAspect: env.lensFlareStretchValue
 
     depthOfFieldEnabled: env.depthOfFieldActive
-    depthOfFieldFocusDistance: env.depthOfFieldFocusDistanceValue
-    depthOfFieldFocusRange: env.depthOfFieldFocusRangeValue
+    depthOfFieldFocusDistance: env.toSceneLength(env.depthOfFieldFocusDistanceValue)
+    depthOfFieldFocusRange: env.toSceneLength(env.depthOfFieldFocusRangeValue)
     depthOfFieldBlurAmount: env.depthOfFieldBlurAmountValue
 
     fog: Fog {
         enabled: env.fogEnabled
         color: env.fogColor
         density: env.fogDensity
-        depthNear: env.fogDepthNear
-        depthFar: env.fogDepthFar
+        depthNear: env.toSceneLength(env.fogDepthNear)
+        depthFar: env.toSceneLength(env.fogDepthFar)
     }
 
     vignetteEnabled: env.vignetteActive

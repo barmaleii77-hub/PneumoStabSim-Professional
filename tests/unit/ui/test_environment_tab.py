@@ -191,3 +191,56 @@ def test_environment_tab_uses_metadata_ranges_when_current_missing(qapp, monkeyp
     message = "\n".join(captured)
     assert "metadata.environment_slider_ranges" in message
     assert "skybox_brightness" in message
+
+
+def test_environment_tab_applies_metadata_decimals_and_units(qapp, monkeypatch):
+    base_manager = get_settings_manager()
+    partial_ranges = {
+        key: {
+            "min": value.minimum,
+            "max": value.maximum,
+            "step": value.step,
+        }
+        for key, value in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
+    }
+    partial_ranges.pop("fog_near")
+
+    metadata_ranges = {
+        "fog_near": {
+            "min": 0.0,
+            "max": 250.0,
+            "step": 0.5,
+            "decimals": 3,
+            "units": "м",
+        }
+    }
+
+    class _StubManager:
+        def __init__(self, base, ranges, metadata):
+            self._base = base
+            self._ranges = deepcopy(ranges)
+            self._metadata = deepcopy(metadata)
+
+        def get(self, path, default=None):
+            if path == "graphics.environment_ranges":
+                return deepcopy(self._ranges)
+            if path == "metadata.environment_slider_ranges":
+                return deepcopy(self._metadata)
+            if path == "defaults_snapshot.graphics.environment_ranges":
+                return None
+            return self._base.get(path, default)
+
+    monkeypatch.setattr(
+        environment_tab_module,
+        "get_settings_manager",
+        lambda: _StubManager(base_manager, partial_ranges, metadata_ranges),
+    )
+
+    tab = EnvironmentTab()
+    slider = tab.get_controls()["fog.near"]
+
+    assert slider._decimals == 3
+    assert slider._unit == "м"
+    assert slider._min == pytest.approx(0.0)
+    assert slider._max == pytest.approx(250.0)
+    assert slider._step == pytest.approx(0.5)

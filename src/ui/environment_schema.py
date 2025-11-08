@@ -32,6 +32,8 @@ class EnvironmentSliderRange:
     minimum: float
     maximum: float
     step: float
+    decimals: int | None = None
+    unit: str | None = None
 
     def as_tuple(self) -> tuple[float, float, float]:
         return (self.minimum, self.maximum, self.step)
@@ -166,8 +168,8 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "fog_density", "float", min_value=0.0, max_value=1.0
     ),
-    EnvironmentParameterDefinition("fog_near", "float", min_value=0.0, max_value=50.0),
-    EnvironmentParameterDefinition("fog_far", "float", min_value=0.0, max_value=150.0),
+    EnvironmentParameterDefinition("fog_near", "float", min_value=0.0, max_value=200.0),
+    EnvironmentParameterDefinition("fog_far", "float", min_value=0.0, max_value=500.0),
     EnvironmentParameterDefinition("fog_height_enabled", "bool"),
     EnvironmentParameterDefinition(
         "fog_least_intense_y", "float", min_value=-100.0, max_value=100.0
@@ -187,7 +189,7 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
         "ao_strength", "float", min_value=0.0, max_value=100.0
     ),
     EnvironmentParameterDefinition(
-        "ao_radius", "float", min_value=0.001, max_value=0.05
+        "ao_radius", "float", min_value=0.001, max_value=0.1
     ),
     EnvironmentParameterDefinition(
         "ao_softness", "float", min_value=0.0, max_value=50.0
@@ -211,21 +213,25 @@ ENVIRONMENT_SLIDER_RANGE_DEFAULTS: dict[str, EnvironmentSliderRange] = {
     "ibl_offset_x": EnvironmentSliderRange("ibl_offset_x", -180.0, 180.0, 1.0),
     "ibl_offset_y": EnvironmentSliderRange("ibl_offset_y", -180.0, 180.0, 1.0),
     "reflection_padding_m": EnvironmentSliderRange(
-        "reflection_padding_m", 0.0, 1.0, 0.01
+        "reflection_padding_m", 0.0, 1.0, 0.01, decimals=2, unit="м"
     ),
     "fog_density": EnvironmentSliderRange("fog_density", 0.0, 1.0, 0.01),
-    "fog_near": EnvironmentSliderRange("fog_near", 0.0, 50.0, 0.1),
-    "fog_far": EnvironmentSliderRange("fog_far", 0.0, 150.0, 0.1),
+    "fog_near": EnvironmentSliderRange(
+        "fog_near", 0.0, 200.0, 0.1, decimals=2, unit="м"
+    ),
+    "fog_far": EnvironmentSliderRange("fog_far", 0.0, 500.0, 0.1, decimals=2, unit="м"),
     "fog_least_intense_y": EnvironmentSliderRange(
-        "fog_least_intense_y", -100.0, 100.0, 0.1
+        "fog_least_intense_y", -100.0, 100.0, 0.1, decimals=2, unit="м"
     ),
     "fog_most_intense_y": EnvironmentSliderRange(
-        "fog_most_intense_y", -100.0, 100.0, 0.1
+        "fog_most_intense_y", -100.0, 100.0, 0.1, decimals=2, unit="м"
     ),
     "fog_height_curve": EnvironmentSliderRange("fog_height_curve", 0.0, 4.0, 0.05),
     "fog_transmit_curve": EnvironmentSliderRange("fog_transmit_curve", 0.0, 4.0, 0.05),
     "ao_strength": EnvironmentSliderRange("ao_strength", 0.0, 100.0, 1.0),
-    "ao_radius": EnvironmentSliderRange("ao_radius", 0.001, 0.05, 0.001),
+    "ao_radius": EnvironmentSliderRange(
+        "ao_radius", 0.001, 0.1, 0.001, decimals=3, unit="м"
+    ),
     "ao_softness": EnvironmentSliderRange("ao_softness", 0.0, 50.0, 1.0),
 }
 
@@ -372,7 +378,35 @@ def _parse_slider_range(key: str, payload: Mapping[str, Any]) -> EnvironmentSlid
             f"Slider range '{key}.max' must be greater than '{key}.min'"
         )
 
-    return EnvironmentSliderRange(key=key, minimum=minimum, maximum=maximum, step=step)
+    decimals_value: int | None = None
+    if "decimals" in payload and payload["decimals"] is not None:
+        decimals_value = _coerce_int(payload["decimals"], f"{key}.decimals")
+        if decimals_value < 0:
+            raise EnvironmentValidationError(
+                f"Slider range '{key}.decimals' must be non-negative"
+            )
+
+    unit_value: str | None = None
+    if "units" in payload and payload["units"] is not None:
+        raw_unit = payload["units"]
+        if not isinstance(raw_unit, str):
+            raise EnvironmentValidationError(
+                f"Slider range '{key}.units' must be a string"
+            )
+        unit_value = raw_unit.strip()
+        if not unit_value:
+            raise EnvironmentValidationError(
+                f"Slider range '{key}.units' cannot be empty"
+            )
+
+    return EnvironmentSliderRange(
+        key=key,
+        minimum=minimum,
+        maximum=maximum,
+        step=step,
+        decimals=decimals_value,
+        unit=unit_value,
+    )
 
 
 def validate_environment_slider_ranges(

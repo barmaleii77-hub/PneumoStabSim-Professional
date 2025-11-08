@@ -229,6 +229,7 @@ class EffectsTab(QWidget):
             50.0,
             0.1,
             decimals=2,
+            unit="м",
         )
         row = self._add_slider(grid, row, "Размытие", "dof.blur", 0.0, 10.0, 0.1)
         return group
@@ -372,8 +373,11 @@ class EffectsTab(QWidget):
         step: float,
         *,
         decimals: int = 2,
+        unit: str | None = None,
     ) -> int:
-        slider = LabeledSlider(title, minimum, maximum, step, decimals=decimals)
+        slider = LabeledSlider(
+            title, minimum, maximum, step, decimals=decimals, unit=unit
+        )
         slider.valueChanged.connect(
             lambda value: self._on_control_changed(control_key, value)
         )

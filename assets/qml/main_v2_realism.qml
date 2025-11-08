@@ -109,8 +109,8 @@ Item {
     property real bloomThreshold: 1.0
     property real bloomIntensity: 0.6    // === CHANGED: More balanced for filmic
     property bool ssaoEnabled: true
-    property real ssaoRadius: 200        // === CHANGED: Scene units for better visibility
-    property real ssaoIntensity: 70      // === CHANGED: Proper strength value
+    property real ssaoRadius: 0.008
+    property real ssaoIntensity: 1.0
     property bool tonemapActive: true
     property int tonemapModeIndex: 3     // 0=None, 1=Linear, 2=Reinhard, 3=Filmic
     readonly property var tonemapModeTable: [
@@ -129,8 +129,8 @@ Item {
     }
 
     property bool depthOfFieldEnabled: false
-    property real dofFocusDistance: 2000
-    property real dofFocusRange: 900
+    property real dofFocusDistance: 2.5
+    property real dofFocusRange: 0.9
     property real dofBlurAmount: 3.0
 
     property bool fxaaEnabled: true
@@ -141,9 +141,9 @@ Item {
 
     property bool fogEnabled: false
     property color fogColor: "#d0d8e8"
-    property real fogDensity: 0.0008
-    property real fogDepthNear: 0.0
-    property real fogDepthFar: 20000.0
+    property real fogDensity: 0.06
+    property real fogDepthNear: 2.0
+    property real fogDepthFar: 20.0
 
     property real bloomStrength: 0.8
     property real bloomSecondaryBloom: 0.5

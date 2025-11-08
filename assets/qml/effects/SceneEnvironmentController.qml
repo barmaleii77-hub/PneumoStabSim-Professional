@@ -254,8 +254,18 @@ ExtendedSceneEnvironment {
     property alias lensFlareStretchValue: root.lensFlareStretchToAspect
 
     property alias internalDepthOfFieldEnabled: root.depthOfFieldEnabled
-    property alias dofFocusDistance: root.depthOfFieldFocusDistance
-    property alias dofFocusRange: root.depthOfFieldFocusRange
+    property real dofFocusDistanceMeters: effectsNumberDefault(
+        "dofFocusDistance",
+        "dof_focus_distance",
+        2.5
+    )
+    property real dofFocusRangeMeters: effectsNumberDefault(
+        "dofFocusRange",
+        "dof_focus_range",
+        0.9
+    )
+    property alias dofFocusDistance: root.dofFocusDistanceMeters
+    property alias dofFocusRange: root.dofFocusRangeMeters
     property alias dofBlurAmount: root.depthOfFieldBlurAmount
 
     property alias internalVignetteEnabled: root.vignetteEnabled
@@ -285,17 +295,20 @@ ExtendedSceneEnvironment {
         density: root.fogDensity
         depthEnabled: root.fogDepthEnabled && root.fogEnabled
         depthCurve: root.fogDepthCurve
-        depthNear: root.fogDepthNear
-        depthFar: root.fogDepthFar
+        depthNear: root.toSceneLength(root.fogDepthNear)
+        depthFar: root.toSceneLength(root.fogDepthFar)
         heightEnabled: root.fogHeightEnabled
-        leastIntenseY: root.fogLeastIntenseY
-        mostIntenseY: root.fogMostIntenseY
+        leastIntenseY: root.toSceneLength(root.fogLeastIntenseY)
+        mostIntenseY: root.toSceneLength(root.fogMostIntenseY)
         heightCurve: root.fogHeightCurve
         transmitEnabled: root.fogTransmitEnabled
         transmitCurve: root.fogTransmitCurve
     }
 
     fog: environmentFog
+
+    depthOfFieldFocusDistance: root.toSceneLength(root.dofFocusDistanceMeters)
+    depthOfFieldFocusRange: root.toSceneLength(root.dofFocusRangeMeters)
 
     property bool colorAdjustmentsEnabled: effectsBoolDefault(
         "colorAdjustmentsEnabled",
@@ -1622,21 +1635,21 @@ ExtendedSceneEnvironment {
     if (fogNearValue === undefined)
         fogNearValue = numberFromKeys(params, "fogNear", "fog_near")
     if (fogNearValue !== undefined && isFinite(fogNearValue))
-        fogDepthNear = toSceneLength(fogNearValue)
+        fogDepthNear = fogNearValue
     var fogFarValue = numberFromKeys(params, "fogDepthFar", "fog_far")
     if (fogFarValue === undefined)
         fogFarValue = numberFromKeys(params, "fogFar", "fog_far")
     if (fogFarValue !== undefined && isFinite(fogFarValue))
-        fogDepthFar = toSceneLength(fogFarValue)
+        fogDepthFar = fogFarValue
     var fogHeightFlag = boolFromKeys(params, "fogHeightEnabled", "fog_height_enabled")
     if (fogHeightFlag !== undefined)
         fogHeightEnabled = !!fogHeightFlag
     var fogLeastValue = numberFromKeys(params, "fogLeastIntenseY", "fog_least_intense_y")
     if (fogLeastValue !== undefined && isFinite(fogLeastValue))
-        fogLeastIntenseY = toSceneLength(fogLeastValue)
+        fogLeastIntenseY = fogLeastValue
     var fogMostValue = numberFromKeys(params, "fogMostIntenseY", "fog_most_intense_y")
     if (fogMostValue !== undefined && isFinite(fogMostValue))
-        fogMostIntenseY = toSceneLength(fogMostValue)
+        fogMostIntenseY = fogMostValue
     var fogHeightCurveValue = numberFromKeys(params, "fogHeightCurve", "fog_height_curve")
     if (fogHeightCurveValue !== undefined && isFinite(fogHeightCurveValue))
         fogHeightCurve = fogHeightCurveValue
@@ -1658,22 +1671,22 @@ ExtendedSceneEnvironment {
         if (fog.near !== undefined) {
             var fogNestedNear = Number(fog.near)
             if (isFinite(fogNestedNear))
-                fogDepthNear = toSceneLength(fogNestedNear)
+                fogDepthNear = fogNestedNear
         }
         if (fog.depth_near !== undefined) {
             var fogNestedDepthNear = Number(fog.depth_near)
             if (isFinite(fogNestedDepthNear))
-                fogDepthNear = toSceneLength(fogNestedDepthNear)
+                fogDepthNear = fogNestedDepthNear
         }
         if (fog.far !== undefined) {
             var fogNestedFar = Number(fog.far)
             if (isFinite(fogNestedFar))
-                fogDepthFar = toSceneLength(fogNestedFar)
+                fogDepthFar = fogNestedFar
         }
         if (fog.depth_far !== undefined) {
             var fogNestedDepthFar = Number(fog.depth_far)
             if (isFinite(fogNestedDepthFar))
-                fogDepthFar = toSceneLength(fogNestedDepthFar)
+                fogDepthFar = fogNestedDepthFar
         }
         if (fog.density !== undefined)
             fogDensity = Number(fog.density)
@@ -1687,12 +1700,12 @@ ExtendedSceneEnvironment {
         if (fog.least_intense_y !== undefined) {
             var fogLeastNested = Number(fog.least_intense_y)
             if (isFinite(fogLeastNested))
-                fogLeastIntenseY = toSceneLength(fogLeastNested)
+                fogLeastIntenseY = fogLeastNested
         }
         if (fog.most_intense_y !== undefined) {
             var fogMostNested = Number(fog.most_intense_y)
             if (isFinite(fogMostNested))
-                fogMostIntenseY = toSceneLength(fogMostNested)
+                fogMostIntenseY = fogMostNested
         }
         if (fog.height_curve !== undefined) {
             var fogHeightCurveNested = Number(fog.height_curve)
