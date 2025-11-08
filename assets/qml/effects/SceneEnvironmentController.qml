@@ -534,6 +534,7 @@ ExtendedSceneEnvironment {
     Component.onCompleted: {
         if (!root.fogHelpersSupported)
             root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
+        Qt.callLater(_updateBufferRequirements)
     }
 
     function toSceneLength(value) {
@@ -1108,27 +1109,6 @@ ExtendedSceneEnvironment {
             _applyingQualityPreset = false
         }
         return true
-    }
-
-    Component.onCompleted: {
-        root._applyInitialContextDefaults()
-        root.canUseDithering = qtVersionAtLeast(6,10)
-        if (canUseDithering) {
-            root.ditheringEnabled = Qt.binding(function() { return ditheringEnabled })
-        }
-        _syncColorAdjustmentFlags()
-        console.log("✅ SceneEnvironmentController loaded (dithering "
-                    + (root.canUseDithering ? "enabled" : "disabled") + ")")
-        var depthPropertyAvailable = _hasEnvironmentProperty("depthTextureEnabled")
-        var velocityPropertyAvailable = _hasEnvironmentProperty("velocityTextureEnabled")
-        if (!depthPropertyAvailable)
-            console.warn("⚠️ SceneEnvironmentController: ExtendedSceneEnvironment.depthTextureEnabled property is unavailable; depth buffer requests will be skipped")
-        if (!velocityPropertyAvailable)
-            console.warn("⚠️ SceneEnvironmentController: ExtendedSceneEnvironment.velocityTextureEnabled property is unavailable; velocity buffer requests will be skipped")
-        root._applySceneBridgeState()
-        applyQualityPresetInternal(qualityPreset)
-        _syncSkyboxBackground()
-        Qt.callLater(_updateBufferRequirements)
     }
 
     function applyEffectsPayload(params) {
