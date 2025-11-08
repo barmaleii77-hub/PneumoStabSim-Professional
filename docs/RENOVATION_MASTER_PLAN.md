@@ -322,6 +322,7 @@ best practices for scientific visualisation software.
 - `.pre-commit-config.yaml` запускает `tools.ci_tasks lint` на `pre-commit` и `tools.ci_tasks typecheck` + `test-unit` на `pre-push`; UI-сценарии остаются ручными, но задокументированы в `docs/CI.md`.
 - Физические регрессионные кейсы дополнены стресс-сценарием предельных давлений и режимом полного вывешивания (`tests/physics/cases/*.scene.yaml`), что покрывает проверку калибровки вертикальных сил и моментов при экстремальных состояниях.
 - Phase 4 execution plan ссылается на обновлённый процесс в `docs/CI.md`, что упрощает контроль KPI по покрытиям и стабильности пайплайна.
+- Ручной прогон `make check` от 8 ноября 2025 года задокументирован в `reports/tests/make_check_20251108_162420.log` и краткой сводке `reports/tests/make_check_20251108_summary.md`; шейдерный разбор зафиксирован в `reports/tests/shader_logs_summary.json`.
 
 **Action Plan**
 
