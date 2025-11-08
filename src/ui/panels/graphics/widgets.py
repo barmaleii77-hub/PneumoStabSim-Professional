@@ -273,6 +273,7 @@ class FileCyclerWidget(QWidget):
         self._logged_missing_paths: set[str] = set()
         self._dialogued_missing_paths: set[str] = set()
         self._pending_dialog_paths: list[str] = []
+        self._path_exists_cache: dict[str, bool] = {}
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -332,6 +333,8 @@ class FileCyclerWidget(QWidget):
         соответствующий путь присутствует в новом списке.
         """
 
+        self._invalidate_path_cache()
+
         normalised: list[tuple[str, str]] = []
         seen: set[str] = set()
         for label, path in items:
@@ -378,10 +381,12 @@ class FileCyclerWidget(QWidget):
             if candidate not in resolved:
                 resolved.append(candidate)
         self._resolution_roots = resolved
+        self._invalidate_path_cache()
 
     def set_current_data(self, path: str | None, *, emit: bool = True) -> None:
         """Установить текущий путь. Допускает значения вне списка items."""
 
+        previous_path = self.current_path()
         normalised = str(path).strip().replace("\\", "/") if path else ""
         if not normalised:
             # Исправленная логика: изменяем только если состояние действительно изменилось,
@@ -398,7 +403,13 @@ class FileCyclerWidget(QWidget):
             self._index = -1
             self._custom_entry = None
             self._update_ui(emit=emit and changed)
+            if previous_path:
+                self._invalidate_path_cache_for(previous_path)
             return
+
+        self._invalidate_path_cache_for(normalised)
+        if previous_path and previous_path != normalised:
+            self._invalidate_path_cache_for(previous_path)
 
         for idx, (_, candidate) in enumerate(self._items):
             if candidate == normalised:
@@ -484,6 +495,8 @@ class FileCyclerWidget(QWidget):
             self._label.setText(self._placeholder)
 
         missing = bool(path) and self._is_path_missing(path)
+        if not missing and path:
+            self._clear_missing_tracking(path)
         self._missing_path = path if missing else ""
 
         self._warning_label.setVisible(missing)
@@ -582,13 +595,47 @@ class FileCyclerWidget(QWidget):
             )
 
     def _is_path_missing(self, path: str) -> bool:
+        cached = self._path_exists_cache.get(path)
+        if cached is True:
+            return False
+
+        exists = self._probe_path_exists(path)
+        if exists:
+            self._path_exists_cache[path] = True
+            return False
+
+        # Повторно проверяем отсутствующие пути, чтобы обнаруживать повторное появление.
+        # Кэшируем ``False`` для случая, когда файл по-прежнему недоступен.
+        self._path_exists_cache[path] = False
+        return True
+
+    def _probe_path_exists(self, path: str) -> bool:
         for candidate in self._iter_path_candidates(path):
             try:
                 if candidate.exists():
-                    return False
+                    return True
             except OSError:
                 continue
-        return True
+        return False
+
+    def _invalidate_path_cache(self) -> None:
+        self._path_exists_cache.clear()
+
+    def _invalidate_path_cache_for(self, path: str) -> None:
+        if not path:
+            return
+        self._path_exists_cache.pop(path, None)
+        self._clear_missing_tracking(path)
+
+    def _clear_missing_tracking(self, path: str) -> None:
+        if not path:
+            return
+        self._logged_missing_paths.discard(path)
+        self._dialogued_missing_paths.discard(path)
+        try:
+            self._pending_dialog_paths.remove(path)
+        except ValueError:
+            pass
 
     def _iter_path_candidates(self, path: str) -> Iterable[Path]:
         seen: set[Path] = set()
