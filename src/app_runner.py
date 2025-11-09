@@ -5,6 +5,8 @@
 включая обработку сигналов, логирование и диагностику.
 """
 
+from __future__ import annotations
+
 import argparse
 import asyncio
 import json
@@ -15,7 +17,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
@@ -28,6 +30,26 @@ from src.core.settings_validation import (
 )
 from src.core.settings_models import AppSettings, dump_settings
 from src.ui.qml_registration import register_qml_types
+
+if TYPE_CHECKING:
+
+    class MainWindowProtocol(Protocol):
+        """Protocol capturing the runtime behaviour required from main windows."""
+
+        def show(self) -> None: ...
+
+        def raise_(self) -> None: ...
+
+        def activateWindow(self) -> None: ...
+
+        def close(self) -> bool | None: ...
+
+else:  # pragma: no cover - protocol only aids static type checking
+
+    class MainWindowProtocol:
+        """Runtime placeholder used when static typing is unavailable."""
+
+        pass
 
 
 class ApplicationRunner:
@@ -58,7 +80,7 @@ class ApplicationRunner:
         self.logging_preset = logging_preset
 
         self.app_instance: Any | None = None
-        self.window_instance: Any | None = None
+        self.window_instance: MainWindowProtocol | None = None
         self.app_logger: logging.Logger | None = None
         self.error_hook_manager: ErrorHookManager | None = None
         self.logger: LoggerProtocol = get_logger("app.runner").bind(
@@ -326,8 +348,9 @@ class ApplicationRunner:
 
         try:
             service = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
+            payload_model: Any
             try:
-                payload_model: Any = service.load(use_cache=False)
+                payload_model = service.load(use_cache=False)
             except Exception as load_exc:
                 # Попробуем починить файл настроек и повторить
                 try:
@@ -572,7 +595,9 @@ class ApplicationRunner:
             return
 
         try:
-            window = self._instantiate_main_window(use_qml_3d=self.use_qml_3d_schema)
+            main_window = self._instantiate_main_window(
+                use_qml_3d=self.use_qml_3d_schema
+            )
         except Exception as exc:
             # Переводим причину в пост-диагностику
             self._append_post_diag_trace(f"qml-create-window-failed:{exc}")
@@ -586,20 +611,20 @@ class ApplicationRunner:
                     f"WARNING: fallback window due to startup error: {exc}",
                 )
 
-            window = self._create_diagnostics_main_window(str(exc))
+            main_window = self._create_diagnostics_main_window(str(exc))
 
-        self.window_instance = window
+        self.window_instance = main_window
 
-        window.show()
-        window.raise_()
-        window.activateWindow()
+        main_window.show()
+        main_window.raise_()
+        main_window.activateWindow()
 
         if self.app_logger:
             self.app_logger.info("MainWindow created and shown")
 
         self._log_runtime_scenegraph_backend()
 
-    def _instantiate_main_window(self, *, use_qml_3d: bool) -> Any:
+    def _instantiate_main_window(self, *, use_qml_3d: bool) -> MainWindowProtocol:
         """Create a :class:`MainWindow` instance with the preferred backend."""
 
         if self.use_legacy_ui:
@@ -629,17 +654,19 @@ class ApplicationRunner:
                     "info",
                     "INFO: legacy UI mode enabled — QML scene initialisation skipped",
                 )
-            return window
+            return cast(MainWindowProtocol, window)
 
         from src.ui.main_window import MainWindow as ModernMainWindow
 
         register_qml_types()
 
-        window = ModernMainWindow(use_qml_3d=use_qml_3d)
-        self._check_qml_initialization(window)
-        return window
+        window_instance = ModernMainWindow(use_qml_3d=use_qml_3d)
+        self._check_qml_initialization(window_instance)
+        return cast(MainWindowProtocol, window_instance)
 
-    def _create_diagnostics_main_window(self, failure_reason: str) -> Any:
+    def _create_diagnostics_main_window(
+        self, failure_reason: str
+    ) -> MainWindowProtocol:
         """Instantiate a diagnostics-aware main window after a startup failure."""
 
         try:
@@ -648,7 +675,9 @@ class ApplicationRunner:
             self._append_post_diag_trace(f"diagnostics-window-fallback:{diag_exc}")
             from src.ui.main_window_backup import MainWindow as BackupMainWindow
 
-            diagnostics_window = BackupMainWindow(use_qml_3d=False)
+            diagnostics_window = cast(
+                MainWindowProtocol, BackupMainWindow(use_qml_3d=False)
+            )
 
         self._schedule_diagnostics_banner(diagnostics_window, failure_reason)
         if hasattr(diagnostics_window, "setWindowTitle"):
@@ -660,7 +689,9 @@ class ApplicationRunner:
                 pass
         return diagnostics_window
 
-    def _schedule_diagnostics_banner(self, window: Any, failure_reason: str) -> None:
+    def _schedule_diagnostics_banner(
+        self, window: MainWindowProtocol, failure_reason: str
+    ) -> None:
         """Show a deferred diagnostics notification with retry guidance."""
 
         QMessageBoxType: Any | None
@@ -683,6 +714,13 @@ class ApplicationRunner:
 
                 def _show_dialog() -> None:
                     dialog = QMessageBoxType(window)
+                    exec_method = getattr(dialog, "exec", None)
+                    if not callable(exec_method):
+                        self._log_with_fallback(
+                            "warning",
+                            "WARNING: diagnostics dialog type does not expose exec()",
+                        )
+                        return
                     dialog.setIcon(QMessageBoxType.Icon.Warning)
                     dialog.setWindowTitle("Диагностика запуска")
                     dialog.setText(message)
@@ -690,7 +728,7 @@ class ApplicationRunner:
                         QMessageBoxType.StandardButton.Retry
                         | QMessageBoxType.StandardButton.Close
                     )
-                    result = dialog.exec()
+                    result = exec_method()
                     if result == int(QMessageBoxType.StandardButton.Retry):
                         self._retry_main_window_from_banner(window)
 
@@ -701,7 +739,9 @@ class ApplicationRunner:
 
         self._log_with_fallback("warning", f"WARNING: {message}")
 
-    def _retry_main_window_from_banner(self, previous_window: Any) -> None:
+    def _retry_main_window_from_banner(
+        self, previous_window: MainWindowProtocol
+    ) -> None:
         """Retry loading the main window after a diagnostics warning."""
 
         try:
@@ -970,13 +1010,11 @@ class ApplicationRunner:
         if self.app_logger:
             self.app_logger.info("Test mode: auto-closing in 5 seconds")
 
-        # Удерживаем QTimer в живых через атрибут window
-        self.window_instance._auto_close_timer = self.QTimer(self.window_instance)
-        self.window_instance._auto_close_timer.setSingleShot(True)
-        self.window_instance._auto_close_timer.timeout.connect(
-            lambda: self.window_instance.close()
-        )
-        self.window_instance._auto_close_timer.start(5000)
+        auto_close_timer = self.QTimer(self.window_instance)
+        auto_close_timer.setSingleShot(True)
+        auto_close_timer.timeout.connect(lambda: self.window_instance.close())
+        auto_close_timer.start(5000)
+        setattr(self.window_instance, "_auto_close_timer", auto_close_timer)
 
     def _schedule_safe_exit(
         self,

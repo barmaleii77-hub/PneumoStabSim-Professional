@@ -29,4 +29,8 @@ def pytest_plugin_registered(
 
     name = getattr(plugin, "__name__", "")
     if name in {"pytestqt", "pytestqt.plugin"}:
+        try:
+            manager.unregister(plugin, name=name)
+        except KeyError:
+            pass
         disable_pytestqt(manager)
