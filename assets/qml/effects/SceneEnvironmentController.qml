@@ -1013,6 +1013,48 @@ ExtendedSceneEnvironment {
         }
     }
 
+    function applyTonemapExposure(value) {
+        if (value === undefined || value === null)
+            return
+        var numeric = Number(value)
+        if (!isFinite(numeric))
+            return
+        if (tonemapExposureValue !== numeric)
+            tonemapExposureValue = numeric
+        try {
+            if (root.exposure !== undefined && root.exposure !== numeric)
+                root.exposure = numeric
+        } catch (error) {
+            console.debug("SceneEnvironmentController: exposure assignment failed", error)
+        }
+        try {
+            mirrorHostProperty("tonemapExposure", tonemapExposureValue)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapExposure failed", error)
+        }
+    }
+
+    function applyTonemapWhitePoint(value) {
+        if (value === undefined || value === null)
+            return
+        var numeric = Number(value)
+        if (!isFinite(numeric))
+            return
+        if (tonemapWhitePointValue !== numeric)
+            tonemapWhitePointValue = numeric
+        try {
+            if (root.whitePoint !== undefined && root.whitePoint !== numeric)
+                root.whitePoint = numeric
+        } catch (error) {
+            console.debug("SceneEnvironmentController: whitePoint assignment failed", error)
+        }
+        try {
+            mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapWhitePoint failed", error)
+        }
+    }
+
     function setTonemapEnabledFlag(enabled) {
         var value = !!enabled
         if (tonemapActive !== value) {
@@ -1747,23 +1789,11 @@ ExtendedSceneEnvironment {
     if (tonemapModeKey !== undefined)
         assignTonemapModeProperty(tonemapModeKey)
     var tonemapExposureKey = numberFromKeys(params, "tonemapExposure", "tonemap_exposure")
-    if (tonemapExposureKey !== undefined) {
-        tonemapExposureValue = tonemapExposureKey
-        try {
-            mirrorHostProperty("tonemapExposure", tonemapExposureValue)
-        } catch (error) {
-            console.debug("SceneEnvironmentController: mirror tonemapExposure failed", error)
-        }
-    }
+    if (tonemapExposureKey !== undefined)
+        applyTonemapExposure(tonemapExposureKey)
     var tonemapWhitePointKey = numberFromKeys(params, "tonemapWhitePoint", "tonemap_white_point")
-    if (tonemapWhitePointKey !== undefined) {
-        tonemapWhitePointValue = tonemapWhitePointKey
-        try {
-            mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
-        } catch (error) {
-            console.debug("SceneEnvironmentController: mirror tonemapWhitePoint failed", error)
-        }
-    }
+    if (tonemapWhitePointKey !== undefined)
+        applyTonemapWhitePoint(tonemapWhitePointKey)
 
     if (params.tonemap) {
         var tonemap = params.tonemap
@@ -1771,22 +1801,10 @@ ExtendedSceneEnvironment {
             setTonemapEnabledFlag(tonemap.enabled)
         if (tonemap.mode)
             assignTonemapModeProperty(tonemap.mode)
-        if (tonemap.exposure !== undefined) {
-            tonemapExposureValue = Number(tonemap.exposure)
-            try {
-                mirrorHostProperty("tonemapExposure", tonemapExposureValue)
-            } catch (error) {
-                console.debug("SceneEnvironmentController: mirror tonemapExposure failed", error)
-            }
-        }
-        if (tonemap.white_point !== undefined) {
-            tonemapWhitePointValue = Number(tonemap.white_point)
-            try {
-                mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
-            } catch (error) {
-                console.debug("SceneEnvironmentController: mirror tonemapWhitePoint failed", error)
-            }
-        }
+        if (tonemap.exposure !== undefined)
+            applyTonemapExposure(tonemap.exposure)
+        if (tonemap.white_point !== undefined)
+            applyTonemapWhitePoint(tonemap.white_point)
     }
 
     var fogEnabledValue = boolFromKeys(params, "fogEnabled", "fog_enabled")
