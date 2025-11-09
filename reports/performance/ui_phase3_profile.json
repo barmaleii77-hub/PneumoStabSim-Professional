@@ -1,49 +1,49 @@
 {
   "overlayEnabled": false,
-  "recordedAt": "2025-11-18T00:00:00+00:00",
+  "recordedAt": "2025-11-09T08:31:12.546952+00:00",
   "source": "performance_monitor.phase3",
   "scenario": "phase3",
   "metadata": {
     "settingsAvailable": true,
     "historyLimit": 1000,
     "scenario": "phase3",
-    "timestamp": "2025-11-18T00:00:00+00:00",
+    "timestamp": "2025-11-09T08:31:12.546859+00:00",
     "averages": {
-      "avg_cpu_percent": 1.1,
-      "avg_memory_mb": 52.0,
-      "avg_memory_percent": 0.35,
-      "avg_fps": 60.0,
-      "avg_frame_time_ms": 16.5,
-      "avg_cpu_time_user": 1.2,
-      "avg_cpu_time_system": 0.4,
-      "avg_cpu_time_total": 1.6,
-      "avg_gpu_utilization_percent": 48.0,
-      "avg_gpu_memory_total_mb": 8192.0,
-      "avg_gpu_memory_used_mb": 2048.0,
-      "avg_gpu_memory_free_mb": 6144.0
+      "avg_cpu_percent": 0.8,
+      "avg_memory_mb": 67.33984375,
+      "avg_memory_percent": 0.3667489204851153,
+      "avg_fps": 59.20808376898159,
+      "avg_frame_time_ms": 16.890509128570557,
+      "avg_cpu_time_user": 0.921,
+      "avg_cpu_time_system": 0.15,
+      "avg_cpu_time_total": 1.0710000000000002,
+      "avg_gpu_utilization_percent": null,
+      "avg_gpu_memory_total_mb": null,
+      "avg_gpu_memory_used_mb": null,
+      "avg_gpu_memory_free_mb": null
     },
     "samples": 12,
     "overlay_enabled": false,
-    "gpu_metrics_available": true
+    "gpu_metrics_available": false
   },
   "extra": {
     "averages": {
-      "avg_cpu_percent": 1.1,
-      "avg_memory_mb": 52.0,
-      "avg_memory_percent": 0.35,
-      "avg_fps": 60.0,
-      "avg_frame_time_ms": 16.5,
-      "avg_cpu_time_user": 1.2,
-      "avg_cpu_time_system": 0.4,
-      "avg_cpu_time_total": 1.6,
-      "avg_gpu_utilization_percent": 48.0,
-      "avg_gpu_memory_total_mb": 8192.0,
-      "avg_gpu_memory_used_mb": 2048.0,
-      "avg_gpu_memory_free_mb": 6144.0
+      "avg_cpu_percent": 0.8,
+      "avg_memory_mb": 67.33984375,
+      "avg_memory_percent": 0.3667489204851153,
+      "avg_fps": 59.20808376898159,
+      "avg_frame_time_ms": 16.890509128570557,
+      "avg_cpu_time_user": 0.921,
+      "avg_cpu_time_system": 0.15,
+      "avg_cpu_time_total": 1.0710000000000002,
+      "avg_gpu_utilization_percent": null,
+      "avg_gpu_memory_total_mb": null,
+      "avg_gpu_memory_used_mb": null,
+      "avg_gpu_memory_free_mb": null
     },
     "sampleCount": 12,
     "psutilAvailable": true,
-    "gpuMetricsAvailable": true,
+    "gpuMetricsAvailable": false,
     "overlayEnabled": false
   }
 }

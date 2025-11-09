@@ -35,6 +35,23 @@
    - Publish MkDocs site updates, including API docs and troubleshooting guides.
    - Ensure diagrams and architecture decision records reference new modules.
 
+### Headless Qt Toggle for Tests and Utilities
+
+- The default Windows workflow now prefers GPU rendering by forcing
+  `QSG_RHI_BACKEND=d3d11` whenever `PSS_HEADLESS` is unset. This ensures test and
+  application launchers exercise the Direct3D 11 backend unless headless mode is
+  explicitly requested.
+- Set `PSS_HEADLESS=1` (or pass `--pss-headless` to pytest) to enable
+  `QT_QPA_PLATFORM=offscreen` and `QT_QUICK_BACKEND=software` overrides.
+- Tests that depend on offscreen rendering should use the `@pytest.mark.headless`
+  marker; the fixture automatically applies the headless environment for the
+  marked scope.
+- Windows scripts such as `scripts/run_tests_ci.ps1` and `run.ps1` respect the
+  toggle. Example usage:
+  - `set PSS_HEADLESS=1; python -m pytest --pss-headless`
+  - `set PSS_HEADLESS=1; .\scripts\run_tests_ci.ps1`
+  - `Remove-Item Env:PSS_HEADLESS; .\run.ps1` *(restores GPU/D3D11 rendering)*
+
 ## Deliverables
 - Passing automated test suite with coverage report stored under `docs/reports/`.
 - Signed release artifacts uploaded to internal distribution channel.
