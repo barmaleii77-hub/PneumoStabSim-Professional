@@ -33,12 +33,14 @@ for releases:
 
 Before opening a pull request or merging into `develop`:
 
-1. Run `make check` to execute linters (`ruff`, `mypy`, `qmllint`) and the test
+1. Run `make uv-sync` if you have not refreshed the virtual environment in the
+   current session so the tooling stack matches CI.
+2. Run `make check` to execute linters (`ruff`, `mypy`, `qmllint`) and the test
    suite (`pytest`).
-2. Attach relevant artefacts (test logs, profiling reports) to the PR or
+3. Attach relevant artefacts (test logs, profiling reports) to the PR or
    reference them in the `docs/` reports when they impact performance or
    rendering fidelity.
-3. Update documentation (master plan, phase plan, or change log) whenever the
+4. Update documentation (master plan, phase plan, or change log) whenever the
    architecture, tooling, or workflows change.
 
 ## Opening a pull request

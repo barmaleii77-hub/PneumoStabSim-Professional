@@ -94,7 +94,7 @@
 ## V. Параметры
 
 - Все исходные величины загружаются через `config/app_settings.json`, схема
-  описана в `config/schemas/app_settings.schema.json` и валидируется
+  описана в `schemas/settings/app_settings.schema.json` и валидируется
   `src/core/settings_validation.py`.
 - Класс `SettingsManager` (`src/core/settings_manager.py`) предоставляет доступ к
   параметрам UI, а `src/app/config_defaults.py` определяет значения по умолчанию.

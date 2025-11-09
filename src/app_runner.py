@@ -836,8 +836,8 @@ class ApplicationRunner:
     def _resolve_schema_path(self) -> Path:
         return (
             Path(__file__).resolve().parents[1]
-            / "config"
             / "schemas"
+            / "settings"
             / "app_settings.schema.json"
         )
 

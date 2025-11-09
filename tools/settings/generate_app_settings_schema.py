@@ -18,7 +18,7 @@ from typing import Any
 from src.core.settings_models import AppSettings
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_OUTPUT_PATH = REPO_ROOT / "config" / "schemas" / "app_settings.schema.json"
+DEFAULT_OUTPUT_PATH = REPO_ROOT / "schemas" / "settings" / "app_settings.schema.json"
 
 
 def build_schema() -> dict[str, Any]:
@@ -47,7 +47,7 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUT_PATH,
         help=(
             "Destination path for the generated schema. Defaults to"
-            " config/schemas/app_settings.schema.json relative to the"
+            " schemas/settings/app_settings.schema.json relative to the"
             " repository root."
         ),
     )

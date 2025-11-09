@@ -24,7 +24,7 @@ from typing import Any
 from collections.abc import Iterable, Iterator, Mapping, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCHEMA_PATH = REPO_ROOT / "config" / "schemas" / "app_settings.schema.json"
+DEFAULT_SCHEMA_PATH = REPO_ROOT / "schemas" / "settings" / "app_settings.schema.json"
 DEFAULT_SETTINGS_PATH = REPO_ROOT / "config" / "app_settings.json"
 DEFAULT_BASELINE_PATH = REPO_ROOT / "config" / "baseline" / "app_settings.json"
 DEFAULT_OUTPUT_PATH = REPO_ROOT / "docs" / "settings_control_matrix.md"

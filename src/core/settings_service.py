@@ -615,8 +615,8 @@ class SettingsService:
 
         return (
             Path(__file__).resolve().parents[2]
-            / "config"
             / "schemas"
+            / "settings"
             / "app_settings.schema.json"
         )
 

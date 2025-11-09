@@ -161,15 +161,15 @@ Target release: PneumoStabSim Professional v4.9.8
 
 - ✅ `SettingsService` теперь возвращает типизированные Pydantic-модели, поэтому
   модули больше не обращаются к `dict` напрямую.
-- ✅ JSON Schema (`config/schemas/app_settings.schema.json`) генерируется из
+- ✅ JSON Schema (`schemas/settings/app_settings.schema.json`) генерируется из
   `src/core/settings_models.py` и применяется при каждом сохранении настроек.
 - Settings logic is split between `src/common/settings_manager.py` (schema
   aware) and `src/core/settings_service.py` (lightweight cache), leading to
   duplicated behaviour and inconsistent defaults.
 - Settings persistence lacks traceability between UI sliders and stored keys.
 - JSON-based migration descriptors exist under `config/migrations/` with a
-  command-line runner in `src.tools.settings_migrate` keeping track of applied
-  upgrades.
+  command-line runner exposed via `tools/migrations/apply.py` (backed by
+  `src.tools.settings_migrate`) keeping track of applied upgrades.
 
 **Action Plan**
 
@@ -178,7 +178,7 @@ Target release: PneumoStabSim Professional v4.9.8
    *Status: August 2025 update expanded the shared manager with category-level
    helpers powering the modular panel save/reset workflow.*
 2. Implement a `config/migrations/` pipeline driven by migration descriptors
-   (YAML/JSON) executed by `python -m src.tools.settings_migrate`. Document the
+   (YAML/JSON) executed by `python tools/migrations/apply.py`. Document the
    workflow in `docs/SETTINGS_ARCHITECTURE.md`.
 3. Add end-to-end tests: `tests/settings/test_persistence.py` verifying
    round-trips and schema validation errors.
