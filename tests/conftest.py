@@ -485,6 +485,13 @@ def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers", "scenario: Scenario-driven physics regression suites"
     )
+    config.addinivalue_line(
+        "markers", "qtbot: Exercises Qt widgets with the pytest-qt qtbot fixture"
+    )
+    config.addinivalue_line(
+        "markers",
+        "qt_no_exception_capture: Disable pytest-qt exception capture for a test",
+    )
 
 
 # Safe exit on test completion
