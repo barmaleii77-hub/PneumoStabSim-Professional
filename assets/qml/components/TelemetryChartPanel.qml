@@ -3,6 +3,8 @@ import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
 import QtCharts 6.10
 
+pragma ComponentBehavior: Bound
+
 Item {
     id: root
 
@@ -108,11 +110,13 @@ Item {
                         ListElement { label: qsTr("Каждый 10-й"); value: 10 }
                         ListElement { label: qsTr("Каждый 20-й"); value: 20 }
                     }
-                    onActivated: {
+                    onActivated: function(index) {
                         if (!root.telemetryBridge)
                             return
-                        var value = intervalCombo.model.get(index).value
-                        root.telemetryBridge.setUpdateInterval(value)
+                        const entry = intervalCombo.model.get(index)
+                        if (!entry || entry.value === undefined)
+                            return
+                        root.telemetryBridge.setUpdateInterval(entry.value)
                     }
 
                     function syncToInterval(current) {
@@ -262,6 +266,10 @@ Item {
                         model: metricsModel
                         delegate: CheckDelegate {
                             id: metricDelegate
+                            required property string metricId
+                            required property string label
+                            required property string unit
+                            required property color metricColor
                             width: {
                                 const view = ListView.view
                                 const fallbackParent = parent && parent.width !== undefined ? parent.width : 0
@@ -269,21 +277,21 @@ Item {
                                 const numericWidth = Number(baseWidth)
                                 return isNaN(numericWidth) ? 0 : Math.round(numericWidth)
                             }
-                            text: model.label + " (" + model.unit + ")"
-                            checked: root.selectedMetrics.indexOf(model.metricId) !== -1
+                            text: label + " (" + unit + ")"
+                            checked: root.selectedMetrics.indexOf(metricId) !== -1
                             indicator: Rectangle {
                                 implicitWidth: 12
                                 implicitHeight: 12
                                 radius: 6
-                                color: model.color
+                                color: metricDelegate.metricColor
                                 border.width: 1
-                                border.color: Qt.darker(model.color, 1.6)
+                                border.color: Qt.darker(metricDelegate.metricColor, 1.6)
                             }
                             onToggled: {
                                 if (checked)
-                                    root.addMetric(model.metricId)
+                                    root.addMetric(metricId)
                                 else
-                                    root.removeMetric(model.metricId)
+                                    root.removeMetric(metricId)
                             }
                         }
                     }
@@ -381,7 +389,7 @@ Item {
                 label: entry.label,
                 unit: entry.unit,
                 category: entry.category,
-                color: entry.color,
+                metricColor: entry.color,
             })
         }
     }

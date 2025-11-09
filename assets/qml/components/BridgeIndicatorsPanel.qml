@@ -1,5 +1,4 @@
 import QtQuick 6.10
-import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
 
 pragma ComponentBehavior: Bound

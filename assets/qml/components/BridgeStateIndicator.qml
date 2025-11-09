@@ -46,8 +46,11 @@ Control {
 
         Rectangle {
             id: indicator
-            width: 14
-            height: 14
+            readonly property real indicatorSize: 14
+            implicitWidth: indicatorSize
+            implicitHeight: indicatorSize
+            Layout.preferredWidth: implicitWidth
+            Layout.preferredHeight: implicitHeight
             radius: 7
             color: root.warning
                 ? root.warningColor
