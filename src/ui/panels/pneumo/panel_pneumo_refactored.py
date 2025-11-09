@@ -25,6 +25,9 @@ from .thermo_tab import ThermoTab
 from .pressures_tab import PressuresTab
 from .valves_tab import ValvesTab
 from .receiver_tab import ReceiverTab
+from src.core.history import HistoryStack
+from src.core.settings_sync_controller import SettingsSyncController
+from src.ui.panels.preset_manager import PanelPresetManager
 
 LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +45,13 @@ class PneumoPanel(QWidget):
         LOGGER.info("PneumoPanel (refactored) initializing...")
 
         self.state_manager = PneumoStateManager()
+        self._history = HistoryStack()
+        self._sync_controller = SettingsSyncController(
+            initial_state=self.state_manager.get_state(), history=self._history
+        )
+        self._sync_controller.register_listener(self._on_state_synced)
+        self.preset_manager = PanelPresetManager("pneumo", self._sync_controller)
+        self._sync_guard = 0
         self._external_update_depth = 0
         self._setup_ui()
         self._connect_signals()
@@ -76,12 +86,33 @@ class PneumoPanel(QWidget):
         self.tab_widget.addTab(self.valves_tab, "Клапаны")
         self.tab_widget.addTab(self.receiver_tab, "Ресивер")
 
+        tab_tip = self.preset_manager.get_tooltip(
+            "tab_widget", "Выберите раздел для настройки пневмосистемы"
+        )
+        if tab_tip:
+            self.tab_widget.setToolTip(tab_tip)
+
         layout.addWidget(self.tab_widget)
 
         buttons_row = QHBoxLayout()
         self.reset_button = QPushButton("↩︎ Сбросить (defaults)")
+        reset_tip = self.preset_manager.get_tooltip(
+            "reset_button", "Сбросить параметры пневмосистемы"
+        )
+        if reset_tip:
+            self.reset_button.setToolTip(reset_tip)
         self.save_defaults_button = QPushButton("💾 Сохранить как дефолт")
+        save_tip = self.preset_manager.get_tooltip(
+            "save_defaults_button", "Сохранить текущие параметры как дефолты"
+        )
+        if save_tip:
+            self.save_defaults_button.setToolTip(save_tip)
         self.validate_button = QPushButton("Проверить")
+        validate_tip = self.preset_manager.get_tooltip(
+            "validate_button", "Проверить корректность настроек"
+        )
+        if validate_tip:
+            self.validate_button.setToolTip(validate_tip)
         buttons_row.addWidget(self.reset_button)
         buttons_row.addWidget(self.save_defaults_button)
         buttons_row.addWidget(self.validate_button)
@@ -125,6 +156,10 @@ class PneumoPanel(QWidget):
         LOGGER.debug("Parameter changed: %s=%s", name, value)
         self.parameter_changed.emit(name, float(value))
         self._emit_state_update()
+        self._apply_sync_patch(
+            {name: self.state_manager.get_state().get(name, value)},
+            description=f"Update pneumatic parameter {name}",
+        )
 
     def _on_mode_changed(self, name: str, mode: str) -> None:
         if self._external_update_depth:
@@ -132,6 +167,10 @@ class PneumoPanel(QWidget):
         LOGGER.debug("Mode changed: %s=%s", name, mode)
         self.mode_changed.emit(name, mode)
         self._emit_state_update()
+        self._apply_sync_patch(
+            {name: self.state_manager.get_state().get(name, mode)},
+            description=f"Update pneumatic mode {name}",
+        )
 
     def _on_option_changed(self, name: str, value: bool) -> None:
         if self._external_update_depth:
@@ -140,6 +179,10 @@ class PneumoPanel(QWidget):
         LOGGER.debug("Option changed: %s=%s", name, value)
         self.mode_changed.emit(name, str(value))
         self._emit_state_update()
+        self._apply_sync_patch(
+            {name: self.state_manager.get_state().get(name, value)},
+            description=f"Update pneumatic option {name}",
+        )
 
     def _on_receiver_volume_changed(self, volume: float, mode: str) -> None:
         if self._external_update_depth:
@@ -147,12 +190,26 @@ class PneumoPanel(QWidget):
         LOGGER.debug("Receiver volume changed: %s (%s)", volume, mode)
         self.receiver_volume_changed.emit(volume, mode)
         self._emit_state_update()
+        self._apply_sync_patch(
+            {
+                "receiver_volume": self.state_manager.get_state().get(
+                    "receiver_volume", volume
+                ),
+                "volume_mode": mode,
+            },
+            description="Update pneumatic receiver",
+        )
 
     def _on_reset_clicked(self) -> None:
         self.state_manager.reset_to_defaults()
         self._refresh_tabs()
         self.state_manager.save_state()
         self._emit_state_update()
+        self._apply_sync_state(
+            self.state_manager.get_state(),
+            description="Reset pneumatic defaults",
+            origin="preset",
+        )
 
     def _on_save_defaults_clicked(self) -> None:
         self.state_manager.save_current_as_defaults()
@@ -160,6 +217,12 @@ class PneumoPanel(QWidget):
             self,
             "Сохранение",
             "Текущие параметры сохранены как defaults_snapshot",
+        )
+        self._apply_sync_state(
+            self.state_manager.get_state(),
+            description="Save pneumatic defaults",
+            origin="preset",
+            metadata={"force_refresh": True},
         )
 
     def _on_validate_clicked(self) -> None:
@@ -186,6 +249,9 @@ class PneumoPanel(QWidget):
 
         return self.state_manager.export_storage_payload()
 
+    def get_state(self) -> dict[str, Any]:
+        return self._sync_controller.snapshot()
+
     def reset_to_defaults(self) -> None:
         """Public helper mirroring button action."""
 
@@ -195,6 +261,15 @@ class PneumoPanel(QWidget):
         """Persist current parameters via the settings manager."""
 
         self.state_manager.save_state()
+
+    def undo_last_change(self) -> bool:
+        return self._sync_controller.undo() is not None
+
+    def redo_last_change(self) -> bool:
+        return self._sync_controller.redo() is not None
+
+    def apply_registered_preset(self, preset_id: str) -> bool:
+        return self.preset_manager.apply_registered_preset(preset_id) is not None
 
     # ----------------------------------------------------------------- syncing
     def set_parameters(
@@ -293,3 +368,67 @@ class PneumoPanel(QWidget):
 
         if source != "qml":
             self._emit_state_update()
+        self._apply_sync_patch(
+            normalised,
+            description=f"Set pneumatic parameters ({source})",
+            origin="external",
+            metadata={"source": source, "force_refresh": True},
+        )
+
+    def _apply_sync_patch(
+        self,
+        patch: Mapping[str, Any],
+        *,
+        description: str,
+        origin: str = "local",
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        if self._sync_guard:
+            return
+        meta = {"panel": "pneumo"}
+        if metadata:
+            meta.update(dict(metadata))
+        self._sync_controller.apply_patch(
+            dict(patch),
+            description=description,
+            origin=origin,
+            metadata=meta,
+        )
+
+    def _apply_sync_state(
+        self,
+        state: Mapping[str, Any],
+        *,
+        description: str,
+        origin: str = "external",
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        if self._sync_guard:
+            return
+        meta = {"panel": "pneumo"}
+        if metadata:
+            meta.update(dict(metadata))
+        self._sync_controller.apply_state(
+            dict(state),
+            description=description,
+            origin=origin,
+            metadata=meta,
+        )
+
+    def _on_state_synced(
+        self, state: Mapping[str, Any], context: Mapping[str, Any]
+    ) -> None:
+        origin = str(context.get("origin", ""))
+        if origin == "local" and not context.get("force_refresh"):
+            return
+
+        self._sync_guard += 1
+        self._external_update_depth += 1
+        try:
+            self.state_manager.update_from(dict(state))
+            self._refresh_tabs()
+        finally:
+            self._external_update_depth = max(0, self._external_update_depth - 1)
+            self._sync_guard -= 1
+
+        self._emit_state_update()

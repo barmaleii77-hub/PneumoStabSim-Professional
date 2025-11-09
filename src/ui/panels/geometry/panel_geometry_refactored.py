@@ -4,6 +4,8 @@ Geometry Panel - Refactored Coordinator (v1.0.0)
 """
 
 import logging
+from typing import Any, Mapping
+
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
 from PySide6.QtGui import QFont
@@ -14,6 +16,9 @@ from .suspension_tab import SuspensionTab
 from .cylinder_tab import CylinderTab
 from .options_tab import OptionsTab
 from src.common.settings_manager import get_settings_manager
+from src.core.history import HistoryStack
+from src.core.settings_sync_controller import SettingsSyncController
+from src.ui.panels.preset_manager import PanelPresetManager
 
 
 class GeometryPanel(QWidget):
@@ -51,6 +56,15 @@ class GeometryPanel(QWidget):
         # State manager (shared by all tabs)
         self.state_manager = GeometryStateManager(self.settings_manager)
 
+        initial_state = self.state_manager.get_all_parameters()
+        self._history = HistoryStack()
+        self._sync_controller = SettingsSyncController(
+            initial_state=initial_state, history=self._history
+        )
+        self._sync_controller.register_listener(self._on_state_synced)
+        self.preset_manager = PanelPresetManager("geometry", self._sync_controller)
+        self._sync_guard = 0
+
         # Conflict resolution state
         self._resolving_conflict = False
 
@@ -85,6 +99,12 @@ class GeometryPanel(QWidget):
 
         # Tab widget
         self.tab_widget = QTabWidget()
+        tooltip = self.preset_manager.get_tooltip(
+            "tab_widget",
+            "Выберите вкладку для изменения параметров геометрии",
+        )
+        if tooltip:
+            self.tab_widget.setToolTip(tooltip)
 
         # Create tabs (pass shared state manager)
         self.frame_tab = FrameTab(self.state_manager, self)
@@ -99,6 +119,17 @@ class GeometryPanel(QWidget):
         self.tab_widget.addTab(self.options_tab, "Опции")
 
         layout.addWidget(self.tab_widget)
+
+        reset_tip = self.preset_manager.get_tooltip(
+            "options_reset", "Сбросить геометрию к значениям по умолчанию"
+        )
+        if reset_tip:
+            self.options_tab.reset_button.setToolTip(reset_tip)
+        validate_tip = self.preset_manager.get_tooltip(
+            "options_validate", "Проверить корректность настроек геометрии"
+        )
+        if validate_tip:
+            self.options_tab.validate_button.setToolTip(validate_tip)
 
     def _connect_signals(self):
         """Connect signals from tabs"""
@@ -167,6 +198,11 @@ class GeometryPanel(QWidget):
                 self.geometry_changed.emit(geometry_3d)
                 self.logger.debug(f"3D scene update sent for: {param_name}")
 
+            self._apply_sync_patch(
+                {param_name: self.state_manager.get_parameter(param_name)},
+                description=f"Update geometry.{param_name}",
+            )
+
     @Slot(str, float)
     def _on_tab_parameter_live_changed(self, param_name: str, value: float):
         """Handle parameter change from tab (real-time)
@@ -199,14 +235,21 @@ class GeometryPanel(QWidget):
         self.cylinder_tab.update_link_state(
             bool(self.state_manager.get_parameter("link_rod_diameters"))
         )
-        self.cylinder_tab.update_link_state(
-            bool(self.state_manager.get_parameter("link_rod_diameters"))
-        )
 
         # Emit update signals
         self.geometry_updated.emit(self.state_manager.get_all_parameters())
         geometry_3d = self.state_manager.get_3d_geometry_update()
         self.geometry_changed.emit(geometry_3d)
+        metadata = self.preset_manager.record_application(
+            "geometry", preset_params.get("name")
+        )
+        self._apply_sync_state(
+            self.state_manager.get_all_parameters(),
+            description=metadata.get(
+                "description", f"Apply geometry preset {preset_params.get('name')}"
+            ),
+            origin="preset",
+        )
 
     @Slot(str, bool)
     def _on_option_changed(self, option_name: str, value: bool):
@@ -222,6 +265,10 @@ class GeometryPanel(QWidget):
         if option_name == "link_rod_diameters":
             self.cylinder_tab.update_from_state()
             self.cylinder_tab.update_link_state(value)
+        self._apply_sync_patch(
+            {option_name: self.state_manager.get_parameter(option_name)},
+            description=f"Update geometry option {option_name}",
+        )
 
     @Slot()
     def _on_reset_requested(self):
@@ -237,12 +284,79 @@ class GeometryPanel(QWidget):
         self.geometry_updated.emit(self.state_manager.get_all_parameters())
         geometry_3d = self.state_manager.get_3d_geometry_update()
         self.geometry_changed.emit(geometry_3d)
+        self._apply_sync_state(
+            self.state_manager.get_all_parameters(),
+            description="Reset geometry defaults",
+            origin="preset",
+        )
 
     @Slot()
     def _on_validate_requested(self):
         """Handle validation request"""
         self.logger.info("Validation requested")
         # Validation result shown by OptionsTab dialog
+
+    def _apply_sync_patch(
+        self,
+        patch: Mapping[str, Any],
+        *,
+        description: str,
+        origin: str = "local",
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        if self._sync_guard:
+            return
+        meta = {"panel": "geometry"}
+        if metadata:
+            meta.update(dict(metadata))
+        self._sync_controller.apply_patch(
+            dict(patch),
+            description=description,
+            origin=origin,
+            metadata=meta,
+        )
+
+    def _apply_sync_state(
+        self,
+        state: Mapping[str, Any],
+        *,
+        description: str,
+        origin: str = "external",
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        if self._sync_guard:
+            return
+        meta = {"panel": "geometry"}
+        if metadata:
+            meta.update(dict(metadata))
+        self._sync_controller.apply_state(
+            dict(state),
+            description=description,
+            origin=origin,
+            metadata=meta,
+        )
+
+    def _on_state_synced(
+        self, state: Mapping[str, Any], context: Mapping[str, Any]
+    ) -> None:
+        origin = str(context.get("origin", ""))
+        if origin == "local" and not context.get("force_refresh"):
+            return
+
+        self._sync_guard += 1
+        try:
+            self.state_manager.update_parameters(dict(state))
+            self.frame_tab.update_from_state()
+            self.suspension_tab.update_from_state()
+            self.cylinder_tab.update_from_state()
+            self.cylinder_tab.update_link_state(
+                bool(self.state_manager.get_parameter("link_rod_diameters"))
+            )
+            self.geometry_updated.emit(self.state_manager.get_all_parameters())
+            geometry_3d = self.state_manager.get_3d_geometry_update()
+            self.geometry_changed.emit(geometry_3d)
+        finally:
+            self._sync_guard -= 1
 
     # =========================================================================
     # CONFLICT RESOLUTION
@@ -360,6 +474,21 @@ class GeometryPanel(QWidget):
 
         finally:
             self._resolving_conflict = False
+
+        self._apply_sync_state(
+            self.state_manager.get_all_parameters(),
+            description="External geometry set_parameters",
+            origin="external",
+        )
+
+    def undo_last_change(self) -> bool:
+        return self._sync_controller.undo() is not None
+
+    def redo_last_change(self) -> bool:
+        return self._sync_controller.redo() is not None
+
+    def apply_registered_preset(self, preset_id: str) -> bool:
+        return self.preset_manager.apply_registered_preset(preset_id) is not None
 
     # =========================================================================
     # HELPERS
