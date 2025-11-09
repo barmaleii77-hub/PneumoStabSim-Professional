@@ -12,9 +12,9 @@ from __future__ import annotations
 import argparse
 import json
 import math
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Mapping
 
 DEFAULT_CONFIG_PATH = Path("config/baseline/materials.json")
 DEFAULT_REPORT_PATH = Path("reports/performance/hdr_orientation.md")
@@ -76,7 +76,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_skyboxes(config_path: Path) -> List[Skybox]:
+def load_skyboxes(config_path: Path) -> list[Skybox]:
     try:
         payload = json.loads(config_path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
