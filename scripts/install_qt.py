@@ -16,7 +16,7 @@ QT_ROOT.mkdir(parents=True, exist_ok=True)
 
 QT_ARCH = os.environ.get("QT_ARCH", "gcc_64")
 
-DEFAULT_VERSIONS = "6.10.1,6.10.0"
+DEFAULT_VERSIONS = "6.10.0,6.9.2"
 MINIMUM_QT_VERSION = (6, 10, 0)
 QT_VERSIONS = [
     ver.strip()

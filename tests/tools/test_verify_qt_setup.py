@@ -13,7 +13,7 @@ def test_extract_missing_dependency_detects_known_library() -> None:
 def test_run_smoke_check_warns_when_runtime_missing(
     monkeypatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setattr(qt_env, "_check_pyside_version", lambda expected: "6.10.1")
+    monkeypatch.setattr(qt_env, "_check_pyside_version", lambda expected: "6.10.0")
     monkeypatch.setattr(qt_env, "_check_environment_paths", lambda name: None)
     monkeypatch.setattr(qt_env, "_check_qlibraryinfo", lambda: Path("/qt/plugins"))
 

@@ -23,8 +23,8 @@ Paste the following block into the assistant's system message to brief CODEX:
 НЕ ИЗМЕНЯЙ бизнес-код симулятора, PBR/IBL и физику. Вся логика — только в Docker/скриптах/CI.
 
 Технические требования
-• Python 3.13.x, PySide6/Qt 6.10.1 (как в логах запуска).
-• Qt CLI-утилиты в контейнере: qmllint, qsb (через aqtinstall Qt 6.10.1).
+• Python 3.13.x, PySide6/Qt 6.10.0 (как в логах запуска).
+• Qt CLI-утилиты в контейнере: qmllint, qsb (через aqtinstall Qt 6.10.0).
 • Headless рендер: Xvfb + Mesa (llvmpipe OpenGL), Lavapipe (Vulkan).
 • Проверка шейдеров: нет BOM, #version первой строкой, профили GLSL валидные.
 • Параметры запуска Qt: тесты в OpenGL и Vulkan (QSG_RHI_BACKEND=opengl / QSG_RHI_BACKEND=vulkan), QT_QUICK_CONTROLS_STYLE=Fusion, headless-профиль Qt (QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software) при отсутствии DISPLAY и VK_ICD_FILENAMES для Lavapipe. Эти же дефолты прописаны в env.sample и применяются configure_qt_environment().
@@ -32,7 +32,7 @@ Paste the following block into the assistant's system message to brief CODEX:
 • Не хардкодить рабочие параметры симулятора — читать из config/app_settings.json, тесты запускаются без HDR-ассетов.
 
 План действий (выполняй последовательно)
-1. Dockerfile (debian/bookworm devcontainer) с Xvfb, Mesa, Lavapipe, aqtinstall и Qt 6.10.1.
+1. Dockerfile (debian/bookworm devcontainer) с Xvfb, Mesa, Lavapipe, aqtinstall и Qt 6.10.0.
 2. Скрипты: entrypoint, xvfb_wrapper, install_deps (умный bootstrap), shader_sanity, collect_logs, run_all.
 3. Makefile цели: build, shell, test, test-opengl, test-vulkan, verify-all, analyze-logs.
 4. Devcontainer профиль, VS Code launch.json, инструкции для Visual Studio.
