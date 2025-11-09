@@ -446,6 +446,11 @@ with evidence attached in the repository.
 1. **Deterministic Runtime** – Application launches via `python -m
    src.app_runner` on Windows and Linux using Python 3.13 without warnings or
    missing Qt plugins.
+   - *2025-11-09 update:* Headless Windows CI runs now disable `pytest-qt`
+     automatically when Qt backends cannot be imported, scenario/qtbot markers
+     are declared explicitly for strict marker mode, and the startup bootstrap
+     tests simulate an available display to avoid forcing ANGLE fallbacks during
+     Windows safe-mode validation.
 2. **Complete UI Coverage** – Every scene parameter exposed in
    `config/app_settings.json` has a dedicated UI control with bidirectional
    binding and logging.

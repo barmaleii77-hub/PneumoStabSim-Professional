@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip(
+qtquick_module = pytest.importorskip(
     "PySide6.QtQuick",
     reason="PySide6 QtQuick module is required to instantiate ShaderEffect",
     exc_type=ImportError,
@@ -16,6 +16,13 @@ pytest.importorskip(
 
 from PySide6.QtCore import QMetaObject, Qt, QUrl, Q_ARG
 from PySide6.QtQml import QQmlComponent, QQmlEngine
+
+if not hasattr(qtquick_module, "QQuickShaderEffect"):
+    pytest.skip(
+        "QQuickShaderEffect is not available in this PySide6 build",
+        allow_module_level=True,
+    )
+
 from PySide6.QtQuick import QQuickShaderEffect
 
 

@@ -7,9 +7,6 @@ from pathlib import Path
 from collections.abc import Callable
 from collections.abc import Mapping
 
-import importlib.util
-from ctypes import util as ctypes_util
-
 import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
@@ -19,14 +16,10 @@ from tests._qt_headless import HEADLESS_FLAG
 from tests._qt_headless import apply_headless_defaults
 from tests._qt_headless import headless_requested
 from tests.physics.cases import build_case_loader
+from tests._qt_runtime import QT_SKIP_REASON
 
 
 pytest_plugins: tuple[str, ...] = ()
-
-try:
-    _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
-except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
-    _pytestqt_spec = None
 
 if "raising" not in inspect.signature(MonkeyPatch.setitem).parameters:
 
@@ -136,19 +129,17 @@ else:
     _gui_skip_reason = None
     pytest_plugins = ("pytestqt.plugin",)
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
-
-
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
     """Automatically skip GUI-bound tests when Qt backends are unavailable."""
 
     _ = config
-    if _gui_skip_reason is None:
+    if QT_SKIP_REASON is None:
         return
 
     gui_fixtures = {"qtbot", "qapp"}
-    skip_marker = pytest.mark.skip(reason=_gui_skip_reason)
+    skip_marker = pytest.mark.skip(reason=QT_SKIP_REASON)
     for item in items:
         fixturenames = set(getattr(item, "fixturenames", ()))
         if "gui" in item.keywords or fixturenames.intersection(gui_fixtures):
@@ -157,9 +148,9 @@ def pytest_collection_modifyitems(
 
 def pytest_report_header(config: pytest.Config) -> list[str]:
     _ = config
-    if _gui_skip_reason is None:
+    if QT_SKIP_REASON is None:
         return []
-    return [f"GUI tests skipped: {_gui_skip_reason}"]
+    return [f"GUI tests skipped: {QT_SKIP_REASON}"]
 
 
 _security_audit_dir = project_root / "reports" / "security_audit"
