@@ -129,3 +129,13 @@ function Get-PreferredPython {
     return $preferred
 }
 
+function Set-PSSLoggingPreset {
+    param(
+        [ValidateSet('normal', 'debug', 'trace')]
+        [string]$Preset = 'normal'
+    )
+
+    $env:PSS_LOG_PRESET = $Preset
+    return $Preset
+}
+

@@ -8,7 +8,10 @@ param(
 
     [int]$Tail = 150,
 
-    [switch]$CaseSensitive
+    [switch]$CaseSensitive,
+
+    [ValidateSet('normal', 'debug', 'trace')]
+    [string]$LogPreset
 )
 
 # Ensure consistent UTF-8 output
@@ -25,6 +28,11 @@ try {
         throw "Файл лога не найден: $LogPath"
     }
     $logFile = $resolvedPath.ProviderPath
+
+    if ($PSBoundParameters.ContainsKey('LogPreset') -and $LogPreset) {
+        $env:PSS_LOG_PRESET = $LogPreset
+        Write-Host "ℹ️ Logging preset: $LogPreset" -ForegroundColor Cyan
+    }
 
     $tailLines = if ($Tail -gt 0) { [int]$Tail } else { 1 }
 
