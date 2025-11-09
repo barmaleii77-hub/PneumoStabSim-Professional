@@ -146,7 +146,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     requires_gui = "gui" in item.keywords or fixturenames.intersection(gui_fixtures)
 
     if requires_gui:
-        pytest.fail(
+        pytest.skip(
             (
                 "Qt runtime prerequisites are not satisfied: "
                 f"{QT_SKIP_REASON}.\n"
