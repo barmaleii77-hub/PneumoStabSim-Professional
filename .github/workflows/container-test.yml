@@ -6,14 +6,14 @@ jobs:
   verify:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       - name: Build dev image
         run: docker build -t pneumo-dev:qt610 .
       - name: Run all checks
         run: docker run --rm -t -v ${{ github.workspace }}:/workdir -w /workdir pneumo-dev:qt610 /usr/local/bin/run_all.sh
       - name: Annotate collected warnings
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
             const core = require('@actions/core');
@@ -52,7 +52,7 @@ jobs:
               }
             }
       - name: Upload reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: reports
           path: reports/
