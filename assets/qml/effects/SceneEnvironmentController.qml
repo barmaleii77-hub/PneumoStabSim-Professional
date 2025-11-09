@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick 6.10
 import QtQuick.Window
 import QtQuick3D 6.10
@@ -10,6 +12,14 @@ import "." // Local helpers (QualityPresets)
  */
 ExtendedSceneEnvironment {
  id: root
+
+    // Optional context hooks supplied by the embedding scene bridge
+    property var initialSceneSettings: null
+    property var initialAnimationSettings: null
+    property var initialGeometrySettings: null
+    property var materialsDefaults: null
+    property var lightingAccess: null
+    property var qtRuntimeVersion: null
 
     // Источники контекста, передаются родителем для устранения не квалифицированных обращений
     // materialsDefaultsOverride: позволяет принудительно задать дефолтные материалы
@@ -147,19 +157,11 @@ ExtendedSceneEnvironment {
     property bool tonemapActive: effectsBoolDefault("tonemapActive", "tonemap_enabled", false)
     property string tonemapModeName: effectsStringDefault("tonemapModeName", "tonemap_mode", "filmic")
     property bool _tonemapModeGuard: false
+    property real tonemapExposureValue: effectsNumberDefault("tonemapExposure", "tonemap_exposure", 0.0)
+    property real tonemapWhitePointValue: effectsNumberDefault("tonemapWhitePoint", "tonemap_white_point", 1.0)
 
     onTonemapActiveChanged: {
         var value = !!tonemapActive
-        try {
-            if (root.setProperty) {
-                if (!root.property || root.property("tonemapActive") !== value)
-                    root.setProperty("tonemapActive", value)
-                if (!root.property || root.property("tonemapEnabled") !== value)
-                    root.setProperty("tonemapEnabled", value)
-            }
-        } catch (error) {
-            console.debug("SceneEnvironmentController: unable to sync tonemapEnabled", error)
-        }
         try {
             mirrorHostProperty("tonemapActive", value)
         } catch (error) {
@@ -324,16 +326,29 @@ ExtendedSceneEnvironment {
         }
         onStatusChanged: {
             if (status === Loader.Error) {
+                var message = qsTr("loader error")
                 root._emitFogSupportWarning(
-                    qsTr("Fog helpers disabled: %1").arg(errorString() || qsTr("loader error"))
+                    qsTr("Fog helpers disabled: %1").arg(message)
                 )
+                if (root.fog)
+                    root.fog = null
             } else if (status === Loader.Ready) {
                 console.log("🌫️ SceneEnvironmentController: fog helpers active (Qt", root.qtRuntimeVersionString || "unknown", ")")
+                root.fog = fogLoader.item
+            } else if (status === Loader.Null) {
+                if (root.fog)
+                    root.fog = null
             }
         }
+        Component.onCompleted: {
+            if (status === Loader.Ready)
+                root.fog = fogLoader.item
+        }
+        onActiveChanged: {
+            if (!active && root.fog)
+                root.fog = null
+        }
     }
-
-    fog: fogLoader.item
 
     depthOfFieldFocusDistance: root.toSceneLength(root.dofFocusDistanceMeters)
     depthOfFieldFocusRange: root.toSceneLength(root.dofFocusRangeMeters)
@@ -484,28 +499,14 @@ ExtendedSceneEnvironment {
     readonly property string qtRuntimeVersionString: {
         if (typeof qtRuntimeVersion === "string" && qtRuntimeVersion.length > 0)
             return qtRuntimeVersion
-        if (typeof Qt !== "undefined") {
-            if (Qt.application && typeof Qt.application.qtVersion === "function") {
-                try {
-                    var fromApp = Qt.application.qtVersion()
-                    if (fromApp)
-                        return String(fromApp)
-                } catch (qtVersionError) {
-                    console.debug("SceneEnvironmentController: unable to query Qt.application.qtVersion", qtVersionError)
-                }
-            }
-            if (typeof Qt.qVersion === "function") {
-                try {
-                    var direct = Qt.qVersion()
-                    if (direct)
-                        return String(direct)
-                } catch (qVersionError) {
-                    console.debug("SceneEnvironmentController: unable to query Qt.qVersion", qVersionError)
-                }
+        if (typeof Qt !== "undefined" && Qt.application && Qt.application.version !== undefined) {
+            var versionValue = Qt.application.version
+            if (versionValue !== undefined && versionValue !== null) {
+                var normalized = String(versionValue)
+                if (normalized.length)
+                    return normalized
             }
         }
-        if (typeof Qt !== "undefined" && Qt.application && Qt.application.version !== undefined)
-            return String(Qt.application.version)
         return ""
     }
     readonly property bool fogHelpersSupported: qtVersionAtLeast(6, 10) && typeof Fog !== "undefined"
@@ -1017,14 +1018,6 @@ ExtendedSceneEnvironment {
         if (tonemapActive !== value) {
             tonemapActive = value
             return
-        }
-        try {
-            if (root.setProperty) {
-                if (!root.property || root.property("tonemapEnabled") !== value)
-                    root.setProperty("tonemapEnabled", value)
-            }
-        } catch (error) {
-            console.debug("SceneEnvironmentController: unable to set tonemapEnabled", error)
         }
         try {
             mirrorHostProperty("tonemapActive", value)
@@ -1754,11 +1747,23 @@ ExtendedSceneEnvironment {
     if (tonemapModeKey !== undefined)
         assignTonemapModeProperty(tonemapModeKey)
     var tonemapExposureKey = numberFromKeys(params, "tonemapExposure", "tonemap_exposure")
-    if (tonemapExposureKey !== undefined)
-        tonemapExposure = tonemapExposureKey
+    if (tonemapExposureKey !== undefined) {
+        tonemapExposureValue = tonemapExposureKey
+        try {
+            mirrorHostProperty("tonemapExposure", tonemapExposureValue)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapExposure failed", error)
+        }
+    }
     var tonemapWhitePointKey = numberFromKeys(params, "tonemapWhitePoint", "tonemap_white_point")
-    if (tonemapWhitePointKey !== undefined)
-        tonemapWhitePoint = tonemapWhitePointKey
+    if (tonemapWhitePointKey !== undefined) {
+        tonemapWhitePointValue = tonemapWhitePointKey
+        try {
+            mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror tonemapWhitePoint failed", error)
+        }
+    }
 
     if (params.tonemap) {
         var tonemap = params.tonemap
@@ -1766,10 +1771,22 @@ ExtendedSceneEnvironment {
             setTonemapEnabledFlag(tonemap.enabled)
         if (tonemap.mode)
             assignTonemapModeProperty(tonemap.mode)
-        if (tonemap.exposure !== undefined)
-            tonemapExposure = Number(tonemap.exposure)
-        if (tonemap.white_point !== undefined)
-            tonemapWhitePoint = Number(tonemap.white_point)
+        if (tonemap.exposure !== undefined) {
+            tonemapExposureValue = Number(tonemap.exposure)
+            try {
+                mirrorHostProperty("tonemapExposure", tonemapExposureValue)
+            } catch (error) {
+                console.debug("SceneEnvironmentController: mirror tonemapExposure failed", error)
+            }
+        }
+        if (tonemap.white_point !== undefined) {
+            tonemapWhitePointValue = Number(tonemap.white_point)
+            try {
+                mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
+            } catch (error) {
+                console.debug("SceneEnvironmentController: mirror tonemapWhitePoint failed", error)
+            }
+        }
     }
 
     var fogEnabledValue = boolFromKeys(params, "fogEnabled", "fog_enabled")
