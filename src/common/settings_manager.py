@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_UNITS_VERSION = "si_v2"
 _MM_PER_M = 1000.0
 _WINDOWS_DRIVE_PATTERN = re.compile(r"^[a-zA-Z]:[\\/]")
@@ -480,6 +481,14 @@ class SettingsManager:
             resolved = candidate
 
         normalised = resolved.as_posix()
+
+        if resolved.is_absolute():
+            try:
+                relative = resolved.relative_to(PROJECT_ROOT)
+            except ValueError:
+                pass
+            else:
+                normalised = relative.as_posix()
 
         if _WINDOWS_DRIVE_PATTERN.match(text):
             windows_normalised = PureWindowsPath(text).as_posix()

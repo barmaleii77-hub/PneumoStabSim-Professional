@@ -67,6 +67,7 @@ def _load_base_payload() -> dict[str, Any]:
     return {}
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _SETTINGS_BASE_PAYLOAD = _load_base_payload()
 
 
@@ -377,6 +378,14 @@ class SettingsService:
             resolved = candidate
 
         normalised = resolved.as_posix()
+
+        if resolved.is_absolute():
+            try:
+                relative = resolved.relative_to(PROJECT_ROOT)
+            except ValueError:
+                pass
+            else:
+                normalised = relative.as_posix()
 
         if re.match(r"^[a-zA-Z]:[\\/].*", text):
             windows_normalised = PureWindowsPath(text).as_posix()
