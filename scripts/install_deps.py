@@ -76,7 +76,7 @@ def _is_supported_version(version: str) -> bool:
 def install_pyside() -> None:
     candidates = [
         version.strip()
-        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.2,6.10.1,6.10.0").split(
+        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.1,6.10.0").split(
             ","
         )
         if version.strip()
