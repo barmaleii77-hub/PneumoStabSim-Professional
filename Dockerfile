@@ -37,17 +37,17 @@ RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
     aqtinstall ruff mypy pytest pytest-xdist pytest-cov
 
-# Qt 6.10.1 with Quick 3D & tools (qmllint, qsb)
+# Qt 6.10.0 with Quick 3D & tools (qmllint, qsb)
 ARG AQT_BASE=https://download.qt.io/online/qtsdkrepository/linux_x64/desktop
-ENV QT_VER=6.10.1 QT_ROOT=/opt/Qt AQT_BASE=${AQT_BASE}
+ENV QT_VER=6.10.0 QT_ROOT=/opt/Qt AQT_BASE=${AQT_BASE}
 # Qt 6.10+ repositories require the repository root so that aqt can discover
 # the Updates.xml metadata for each version. Point to the desktop root rather
 # than the nested qt6_<version> directory and fail fast if the install payload
 # is missing.
-# ВНИМАНИЕ: Используется Qt 6.10.1, а не 6.10.2, поскольку 6.10.2 отсутствует
+# ВНИМАНИЕ: Используется Qt 6.10.0, а не 6.10.2, поскольку 6.10.2 отсутствует
 # в репозитории (qt6_6102 не существует на download.qt.io на момент написания).
 # Если появится 6.10.2, обновить QT_VER и qt6_6101 → qt6_6102. Проект использует
-# Qt 6.10+ API, но сборка возможна только на 6.10.1.
+# Qt 6.10+ API, но сборка возможна только на 6.10.0.
 RUN python -m aqt install-qt linux desktop ${QT_VER} gcc_64 \
     -b ${AQT_BASE} \
     -m qtquick3d qtshadertools qtimageformats -O ${QT_ROOT} \
