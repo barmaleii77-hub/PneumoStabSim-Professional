@@ -21,6 +21,7 @@ import argparse
 import importlib
 import json
 import os
+import platform
 import shlex
 import shutil
 import subprocess
@@ -28,7 +29,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, MutableMapping, Sequence
 
 from defusedxml import ElementTree as ET
 
@@ -248,6 +249,55 @@ def _safe_console_write(text: str) -> None:
         stream.flush()
         return
     stream.flush()
+
+
+def _prepare_cross_platform_test_environment(
+    env: MutableMapping[str, str] | None = None,
+    *,
+    platform_name: str | None = None,
+) -> str:
+    """Apply platform-specific defaults required for test execution.
+
+    The renovation programme mandates that automated quality gates log the
+    detected platform and normalise the Qt environment so the same workflow can
+    run on Windows, macOS, and Linux hosts.  This helper performs those steps in
+    a single place and keeps ``task_test*`` implementations tidy.
+
+    Parameters
+    ----------
+    env:
+        Mapping to mutate.  ``os.environ`` is used when *env* is ``None``.
+    platform_name:
+        Optional override used by tests to emulate different hosts.
+
+    Returns
+    -------
+    str
+        Normalised platform key (``"linux"``, ``"windows"``, ``"darwin"``, …).
+    """
+
+    target_env = env if env is not None else os.environ
+    detected = (platform_name or platform.system() or "unknown").strip()
+    normalised = detected.lower()
+
+    banner = f"[ci_tasks] Preparing cross-platform test environment for {detected}\n"
+    _safe_console_write(banner)
+
+    # Record the detected platform for downstream tooling (reports, logs).
+    target_env.setdefault("PSS_DETECTED_PLATFORM", detected)
+
+    if normalised.startswith("win"):
+        target_env.setdefault("QT_QUICK_BACKEND", "rhi")
+        target_env.setdefault("QSG_RHI_BACKEND", "d3d11")
+    elif normalised.startswith("darwin") or normalised.startswith("mac"):
+        target_env.setdefault("QT_QUICK_BACKEND", "rhi")
+        target_env.setdefault("QSG_RHI_BACKEND", "metal")
+    else:
+        target_env.setdefault("QT_QPA_PLATFORM", "offscreen")
+        target_env.setdefault("QT_QUICK_BACKEND", "software")
+        target_env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+
+    return normalised or "unknown"
 
 
 def _run_command(
@@ -750,8 +800,7 @@ def _collect_qml_targets() -> list[Path]:
 
 
 def task_test() -> None:
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    _prepare_cross_platform_test_environment()
     use_coverage = _coverage_enabled()
     primary_error: TaskError | None = None
     try:
@@ -789,16 +838,17 @@ def task_test() -> None:
 
 
 def task_test_unit() -> None:
+    _prepare_cross_platform_test_environment()
     _run_pytest_suites(["unit"], use_coverage=False)
 
 
 def task_test_integration() -> None:
+    _prepare_cross_platform_test_environment()
     _run_pytest_suites(["integration"], use_coverage=False)
 
 
 def task_test_ui() -> None:
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    os.environ.setdefault("QT_QUICK_BACKEND", "software")
+    _prepare_cross_platform_test_environment()
     _run_pytest_suites(["ui"], use_coverage=False)
 
 
