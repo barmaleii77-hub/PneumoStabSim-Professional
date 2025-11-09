@@ -166,6 +166,7 @@ validate-hdr-orientation:
 
 check: uv-sync
 	$(PYTHON) -m tools.ci_tasks verify
+	$(PYTHON) tools/check_workflow_pins.py
 	$(MAKE) check-shaders
 	$(MAKE) monitor-shader-logs
 	$(MAKE) validate-hdr-orientation
