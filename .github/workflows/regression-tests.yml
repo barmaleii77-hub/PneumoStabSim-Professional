@@ -35,10 +35,29 @@ jobs:
         run: |
           sudo add-apt-repository -y universe
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
-            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
+
+          pkgs=(
+            xvfb xauth mesa-utils mesa-utils-extra libosmesa6
+            libgl1-mesa-dri libglu1-mesa
             libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+            # Optional: only install when available on the runner image
+            libgl1-mesa-glx libegl1-mesa libegl1 libgles2-mesa libgles2
+          )
+
+          to_install=()
+          for pkg in "${pkgs[@]}"; do
+            if apt-cache show "$pkg" >/dev/null 2>&1; then
+              to_install+=("$pkg")
+            else
+              echo "Skipping unavailable package: $pkg"
+            fi
+          done
+
+          if [ "${#to_install[@]}" -gt 0 ]; then
+            sudo apt-get install -y --no-install-recommends "${to_install[@]}"
+          else
+            echo "No packages available for installation"
+          fi
 
       - name: Run pytest suite
         run: bash scripts/xvfb_wrapper.sh uv run pytest --maxfail=1
