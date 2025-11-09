@@ -175,6 +175,10 @@ check: uv-sync
 
 verify: check smoke integration
 
+.PHONY: full_verify
+full_verify:
+	PSS_ENV_PRESET=trace $(MAKE) verify
+
 .PHONY: security
 security:
 	$(PYTHON) -m tools.ci_tasks security
@@ -221,11 +225,11 @@ integration:
 
 run:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+	exit 1; \
 	fi
 	QT_QPA_PLATFORM=$${QT_QPA_PLATFORM} \
-	QT_LOGGING_RULES=$${QT_LOGGING_RULES:-*.debug=false;*.info=false} \
+	PSS_ENV_PRESET=$${PSS_ENV_PRESET:-normal} \
 	$(UV) run $(UV_RUN_ARGS) -- python app.py $(RUN_ARGS)
 
 sanitize:

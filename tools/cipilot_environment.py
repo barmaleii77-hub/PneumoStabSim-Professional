@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -34,12 +35,14 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Iterable, Mapping
 
+from tools import env_profiles
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env.cipilot"
 DEFAULT_REPORT_FILE = PROJECT_ROOT / "reports" / "quality" / "cipilot_environment.json"
 DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
-    "QT_QUICK_BACKEND": "software",
+    "QT_QUICK_BACKEND": "rhi",
     "QT_QUICK_CONTROLS_STYLE": "Basic",
 }
 ORDERED_KEYS: tuple[str, ...] = (
@@ -142,6 +145,10 @@ def _probe_via_python() -> EnvironmentSnapshot:
     translations_path = _enum_member("TranslationsPath", "Translations")
     _record(translations_path, "QT_TRANSLATIONS_PATH")
 
+    preset = os.environ.get("PSS_ENV_PRESET", "trace")
+    activation = env_profiles.resolve_activation(preset, env=env_vars)
+    env_profiles.apply_activation(activation, env_vars)
+
     metadata = QtMetadata(qt_version=qVersion(), pyside6_version=PySide6.__version__)
     return EnvironmentSnapshot(env_vars=env_vars, metadata=metadata)
 
@@ -172,12 +179,13 @@ def _path(location) -> str:
 
 env = {
     "QT_QPA_PLATFORM": os.environ.get("QT_QPA_PLATFORM", "offscreen"),
-    "QT_QUICK_BACKEND": os.environ.get("QT_QUICK_BACKEND", "software"),
+    "QT_QUICK_BACKEND": os.environ.get("QT_QUICK_BACKEND", "rhi"),
     "QT_QUICK_CONTROLS_STYLE": os.environ.get("QT_QUICK_CONTROLS_STYLE", "Basic"),
     "QT_PLUGIN_PATH": _path(_member("PluginsPath", "Plugins")),
     "QML2_IMPORT_PATH": _path(_member("QmlImportsPath", "ImportsPath", "QmlImports")),
     "QT_TRANSLATIONS_PATH": _path(_member("TranslationsPath", "Translations")),
 }
+env.update({"PSS_ENV_PRESET": os.environ.get("PSS_ENV_PRESET", "trace")})
 metadata = {
     "qt_version": qVersion(),
     "pyside6_version": PySide6.__version__,
@@ -210,6 +218,9 @@ def _probe_via_uv() -> EnvironmentSnapshot:
     )
     env_vars = dict(DEFAULTS)
     env_vars.update(payload["env"])
+    preset = os.environ.get("PSS_ENV_PRESET", "trace")
+    activation = env_profiles.resolve_activation(preset, env=env_vars)
+    env_profiles.apply_activation(activation, env_vars)
     return EnvironmentSnapshot(env_vars=env_vars, metadata=metadata)
 
 

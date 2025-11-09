@@ -32,11 +32,14 @@ from collections.abc import Iterable, Sequence
 
 from defusedxml import ElementTree as ET
 
+from tools import env_profiles
 from tools import merge_conflict_scan
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
-os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=false;qt.qml.debug=true")
+
+_CI_PRESET = os.environ.get("PSS_ENV_PRESET", env_profiles.DEFAULT_PRESET)
+env_profiles.apply_profile(_CI_PRESET, os.environ)
 
 QUALITY_REPORT_ROOT = PROJECT_ROOT / "reports" / "quality"
 PYTEST_REPORT_ROOT = PROJECT_ROOT / "reports" / "tests"

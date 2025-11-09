@@ -11,10 +11,12 @@ env:
   PYTHON_VERSION: "3.13"
   QT_VERSION: "6.10.0"
   QT_QPA_PLATFORM: offscreen
-  QT_QUICK_BACKEND: software
+  QT_QUICK_BACKEND: rhi
+  QSG_RHI_BACKEND: d3d11
   LIBGL_ALWAYS_SOFTWARE: "1"
   MESA_GL_VERSION_OVERRIDE: "4.1"
   MESA_GLSL_VERSION_OVERRIDE: "410"
+  PSS_ENV_PRESET: trace
 
 jobs:
   quality:
@@ -27,10 +29,12 @@ jobs:
     env:
       QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
       QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+      QSG_RHI_BACKEND: ${{ env.QSG_RHI_BACKEND }}
       LIBGL_ALWAYS_SOFTWARE: ${{ env.LIBGL_ALWAYS_SOFTWARE }}
       MESA_GL_VERSION_OVERRIDE: ${{ env.MESA_GL_VERSION_OVERRIDE }}
       MESA_GLSL_VERSION_OVERRIDE: ${{ env.MESA_GLSL_VERSION_OVERRIDE }}
       PYTHONPATH: src
+      PSS_ENV_PRESET: ${{ env.PSS_ENV_PRESET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
@@ -109,14 +113,14 @@ jobs:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
-      - name: Run make check
+      - name: Run make full_verify
         id: make-check
         continue-on-error: true
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
-            bash scripts/xvfb_wrapper.sh make check
+            bash scripts/xvfb_wrapper.sh make full_verify
           else
-            make check
+            make full_verify
           fi
 
       - name: Audit shader logs
@@ -214,6 +218,6 @@ jobs:
             logs/**
           if-no-files-found: warn
 
-      - name: Fail if make check failed
+      - name: Fail if make full_verify failed
         if: steps.make-check.conclusion == 'failure'
         run: exit 1

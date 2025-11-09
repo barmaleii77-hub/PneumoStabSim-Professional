@@ -19,7 +19,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     env:
       QT_QPA_PLATFORM: offscreen
-      QT_QUICK_BACKEND: software
+      QT_QUICK_BACKEND: rhi
+      QSG_RHI_BACKEND: d3d11
+      PSS_ENV_PRESET: trace
       PYTHONPATH: src
     steps:
       - name: Checkout repository
@@ -94,12 +96,12 @@ jobs:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
-      - name: Run make check
+      - name: Run make full_verify
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
-            bash scripts/xvfb_wrapper.sh make check
+            bash scripts/xvfb_wrapper.sh make full_verify
           else
-            make check
+            make full_verify
           fi
 
       - name: Run autonomous check with launch trace

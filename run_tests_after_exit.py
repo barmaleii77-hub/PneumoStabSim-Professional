@@ -15,6 +15,8 @@ from collections.abc import MutableMapping
 from functools import lru_cache
 from pathlib import Path
 
+from tools import env_profiles
+
 HEADLESS_FLAG = "PSS_HEADLESS"
 _TRUTHY = {"1", "true", "yes", "on"}
 _QT_HEADLESS_DEFAULTS: dict[str, str] = {
@@ -22,9 +24,6 @@ _QT_HEADLESS_DEFAULTS: dict[str, str] = {
     "QT_QUICK_BACKEND": "software",
     "QT_QUICK_CONTROLS_STYLE": "Basic",
 }
-_WINDOWS_GPU_BACKEND = "d3d11"
-
-
 def _normalise(value: str | None) -> str:
     return value.strip().lower() if value else ""
 
@@ -37,11 +36,6 @@ def _apply_headless_defaults(env: MutableMapping[str, str]) -> None:
     env[HEADLESS_FLAG] = "1"
     for key, value in _QT_HEADLESS_DEFAULTS.items():
         env.setdefault(key, value)
-
-
-def _apply_gpu_defaults(env: MutableMapping[str, str]) -> None:
-    if os.name == "nt" and _WINDOWS_GPU_BACKEND:
-        env.setdefault("QSG_RHI_BACKEND", _WINDOWS_GPU_BACKEND)
 
 
 @lru_cache(maxsize=1)
@@ -77,8 +71,17 @@ class PostExitTestRunner:
         self._headless_mode = _headless_requested(self.test_environment)
         if self._headless_mode:
             _apply_headless_defaults(self.test_environment)
-        else:
-            _apply_gpu_defaults(self.test_environment)
+
+        preset = self.test_environment.get(
+            "PSS_ENV_PRESET", env_profiles.DEFAULT_PRESET
+        )
+        activation = env_profiles.resolve_activation(
+            preset,
+            env=self.test_environment,
+            allow_gpu_overrides=not self._headless_mode,
+        )
+        env_profiles.apply_activation(activation, self.test_environment)
+        self._preset = activation.preset
 
         qt_environment = _detect_qt_environment()
         self.test_environment.update(qt_environment)
@@ -87,12 +90,15 @@ class PostExitTestRunner:
 
         print("🔧 Настройка окружения Qt для тестов:")
         reported_env = dict(qt_environment)
+        reported_env["PSS_ENV_PRESET"] = self._preset
         if self._headless_mode:
             for key in _QT_HEADLESS_DEFAULTS:
                 reported_env[key] = self.test_environment.get(key, "")
             reported_env[HEADLESS_FLAG] = self.test_environment.get(HEADLESS_FLAG, "1")
-        elif os.name == "nt" and "QSG_RHI_BACKEND" in self.test_environment:
-            reported_env["QSG_RHI_BACKEND"] = self.test_environment["QSG_RHI_BACKEND"]
+        else:
+            for key in ("QT_QUICK_BACKEND", "QSG_RHI_BACKEND"):
+                if key in self.test_environment:
+                    reported_env[key] = self.test_environment[key]
 
         for key, value in reported_env.items():
             print(f" • {key}={value}")
