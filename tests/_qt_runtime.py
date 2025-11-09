@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import importlib
 import os
 import sys
 from ctypes import util as ctypes_util
@@ -46,8 +47,8 @@ _PYSIDE_SPEC = importlib.util.find_spec("PySide6.QtWidgets")
 _PYSIDE_IMPORT_ERROR: Exception | None = None
 if _PYSIDE_SPEC is not None:
     try:  # noqa: SIM105 - capture platform-specific linker failures
-        import PySide6.QtWidgets  # type: ignore[import-not-found]
-        import PySide6.QtGui  # type: ignore[import-not-found]
+        import PySide6.QtWidgets  # type: ignore[import-not-found]  # noqa: F401
+        import PySide6.QtGui  # type: ignore[import-not-found]  # noqa: F401
     except Exception as exc:  # pragma: no cover - platform dependent
         _PYSIDE_IMPORT_ERROR = exc
 

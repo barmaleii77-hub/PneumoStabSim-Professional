@@ -475,9 +475,7 @@ class ComprehensiveTestSuite:
                     self.log_result("App Qt Import", False, "QApplication not found")
             except Exception as exc:
                 self.log_result("App Qt Import", False, "Import issues")
-                logger.warning(
-                    "Failed to validate QApplication import", error=str(exc)
-                )
+                logger.warning("Failed to validate QApplication import", error=str(exc))
 
             duration = time.time() - start
             self.log_result(

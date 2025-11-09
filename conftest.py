@@ -19,7 +19,9 @@ def pytest_load_initial_conftests(
     disable_pytestqt(early_config.pluginmanager)
 
 
-def pytest_plugin_registered(plugin: object, manager: pytest.PytestPluginManager) -> None:
+def pytest_plugin_registered(
+    plugin: object, manager: pytest.PytestPluginManager
+) -> None:
     """Ensure pytest-qt stays disabled even if auto-loaded by entry points."""
 
     if QT_SKIP_REASON is None:

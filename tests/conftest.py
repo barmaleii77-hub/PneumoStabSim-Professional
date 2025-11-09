@@ -1,8 +1,10 @@
 """Pytest configuration and shared fixtures."""
 
+import importlib
 import inspect
 import os
 import sys
+from ctypes import util as ctypes_util
 from pathlib import Path
 from collections.abc import Callable
 from collections.abc import Mapping
@@ -116,6 +118,7 @@ def _libgl_available() -> bool:
     return any(path.exists() for path in fallback_paths)
 
 
+_pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
 _qtwidgets_spec = importlib.util.find_spec("PySide6.QtWidgets")
 if _pytestqt_spec is None:
     _gui_skip_reason = "pytest-qt plugin is not installed"
@@ -129,6 +132,8 @@ else:
     _gui_skip_reason = None
     pytest_plugins = ("pytestqt.plugin",)
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
+
+
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:

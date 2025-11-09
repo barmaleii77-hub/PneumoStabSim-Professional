@@ -605,6 +605,20 @@ class ApplicationRunner:
         if self.use_legacy_ui:
             from src.ui.main_window_legacy import MainWindow as LegacyMainWindow
 
+            if use_qml_3d:
+                # Legacy mode renders with QWidget-based scenegraph; enforce consistency
+                self.use_qml_3d_schema = False
+                use_qml_3d = False
+                if self.app_logger:
+                    self.app_logger.debug(
+                        "Legacy UI requested — overriding Qt Quick 3D usage"
+                    )
+                else:
+                    self._log_with_fallback(
+                        "debug",
+                        "DEBUG: legacy UI requested — overriding Qt Quick 3D usage",
+                    )
+
             window = LegacyMainWindow(use_qml_3d=use_qml_3d)
             if self.app_logger:
                 self.app_logger.info(
@@ -666,6 +680,7 @@ class ApplicationRunner:
 
         if QMessageBoxType is not None:
             try:
+
                 def _show_dialog() -> None:
                     dialog = QMessageBoxType(window)
                     dialog.setIcon(QMessageBoxType.Icon.Warning)
@@ -690,7 +705,9 @@ class ApplicationRunner:
         """Retry loading the main window after a diagnostics warning."""
 
         try:
-            new_window = self._instantiate_main_window(use_qml_3d=self.use_qml_3d_schema)
+            new_window = self._instantiate_main_window(
+                use_qml_3d=self.use_qml_3d_schema
+            )
         except Exception as retry_exc:  # pragma: no cover - diagnostics only
             self._append_post_diag_trace(f"diagnostics-retry-failed:{retry_exc}")
             if self.app_logger:
