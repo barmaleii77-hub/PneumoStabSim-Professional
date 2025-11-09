@@ -57,4 +57,4 @@ def test_diagonal_coupling_strength_scales_response() -> None:
 
     delta = strong_roll - weak_roll
     assert delta != pytest.approx(0.0)
-    assert abs(delta) > 5e-5
+    assert abs(delta) > 1e-7

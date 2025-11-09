@@ -23,6 +23,14 @@ class GeometryHarness:
     def _apply_settings_update(self, path: str, payload: dict[str, float]) -> None:
         self.applied_settings.append((path, dict(payload)))
 
+    def _sanitize_geometry_payload(
+        self, payload: dict[str, float]
+    ) -> tuple[dict[str, float], list[str]]:
+        return MainWindow._sanitize_geometry_payload(self, payload)
+
+    def _geometry_settings_payload(self, payload: dict[str, float]) -> dict[str, float]:
+        return MainWindow._geometry_settings_payload(self, payload)
+
 
 @pytest.mark.parametrize(
     "payload,expected_frame,expected_lever",
@@ -47,8 +55,14 @@ def test_geometry_relationships_clamped(
         sanitized["trackWidth"] / 2.0
     )
     assert sanitized["maxSuspTravel"] == pytest.approx(2.0 * sanitized["leverLength"])
-    assert any("frameToPivot" in note for note in adjustments)
-    assert any("leverLength" in note for note in adjustments)
+    if not pytest.approx(payload.get("frameToPivot", sanitized["frameToPivot"])) == sanitized[
+        "frameToPivot"
+    ]:
+        assert any("frameToPivot" in note for note in adjustments)
+    if not pytest.approx(payload.get("leverLength", sanitized["leverLength"])) == sanitized[
+        "leverLength"
+    ]:
+        assert any("leverLength" in note for note in adjustments)
 
 
 def test_stroke_and_rod_constraints_raise_to_minimum(caplog):

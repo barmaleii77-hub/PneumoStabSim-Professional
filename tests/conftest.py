@@ -7,22 +7,15 @@ from pathlib import Path
 from collections.abc import Callable
 from collections.abc import Mapping
 
-import importlib.util
-from ctypes import util as ctypes_util
-
 import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
 
 from tests.physics.cases import build_case_loader
+from tests._qt_runtime import QT_SKIP_REASON
 
 
 pytest_plugins: tuple[str, ...] = ()
-
-try:
-    _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
-except ModuleNotFoundError:  # pragma: no cover - optional dependency missing
-    _pytestqt_spec = None
 
 if "raising" not in inspect.signature(MonkeyPatch.setitem).parameters:
 
@@ -58,62 +51,19 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 os.environ.setdefault("QT_QUICK_BACKEND", "software")
 os.environ.setdefault("PYTHONHASHSEED", "0")
 
-
-def _qt_display_available() -> bool:
-    """Return True when a Qt-compatible display backend can be used."""
-
-    qt_platform = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
-    if qt_platform in {"offscreen", "minimal"}:
-        return True
-
-    if sys.platform.startswith("linux"):
-        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-
-    return True
-
-
-def _libgl_available() -> bool:
-    """Return ``True`` when the system OpenGL runtime is present."""
-
-    if not sys.platform.startswith("linux"):
-        return True
-
-    if ctypes_util.find_library("GL"):
-        return True
-
-    fallback_paths = (
-        Path("/usr/lib/x86_64-linux-gnu/libGL.so.1"),
-        Path("/usr/lib64/libGL.so.1"),
-    )
-    return any(path.exists() for path in fallback_paths)
-
-
-_qtwidgets_spec = importlib.util.find_spec("PySide6.QtWidgets")
-if _pytestqt_spec is None:
-    _gui_skip_reason = "pytest-qt plugin is not installed"
-elif _qtwidgets_spec is None:
-    _gui_skip_reason = "PySide6 is not available"
-elif not _libgl_available():
-    _gui_skip_reason = "System OpenGL libraries (libGL) are missing"
-elif not _qt_display_available():
-    _gui_skip_reason = "No display backend detected for Qt"
-else:
-    _gui_skip_reason = None
-    pytest_plugins = ("pytestqt.plugin",)
+if QT_SKIP_REASON is None:
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
-
-
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
     """Automatically skip GUI-bound tests when Qt backends are unavailable."""
 
     _ = config
-    if _gui_skip_reason is None:
+    if QT_SKIP_REASON is None:
         return
 
     gui_fixtures = {"qtbot", "qapp"}
-    skip_marker = pytest.mark.skip(reason=_gui_skip_reason)
+    skip_marker = pytest.mark.skip(reason=QT_SKIP_REASON)
     for item in items:
         fixturenames = set(getattr(item, "fixturenames", ()))
         if "gui" in item.keywords or fixturenames.intersection(gui_fixtures):
@@ -122,9 +72,9 @@ def pytest_collection_modifyitems(
 
 def pytest_report_header(config: pytest.Config) -> list[str]:
     _ = config
-    if _gui_skip_reason is None:
+    if QT_SKIP_REASON is None:
         return []
-    return [f"GUI tests skipped: {_gui_skip_reason}"]
+    return [f"GUI tests skipped: {QT_SKIP_REASON}"]
 
 
 _security_audit_dir = project_root / "reports" / "security_audit"
@@ -429,6 +379,12 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "system: End-to-end system tests")
     config.addinivalue_line("markers", "slow: Tests that take significant time")
     config.addinivalue_line("markers", "gui: Tests requiring GUI/QML")
+    config.addinivalue_line(
+        "markers", "scenario: Scenario-driven end-to-end simulations coordinating multiple fixtures"
+    )
+    config.addinivalue_line(
+        "markers", "qtbot: Tests that rely on the pytest-qt qtbot fixture helpers"
+    )
 
 
 # Safe exit on test completion

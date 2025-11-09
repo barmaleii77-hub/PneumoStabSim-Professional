@@ -46,7 +46,7 @@ def test_detect_headless_environment(
 
 
 def test_bootstrap_graphics_environment_sets_backend_when_not_safe() -> None:
-    env: dict[str, str] = {"QT_QPA_PLATFORM": "xcb"}
+    env: dict[str, str] = {"QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"}
     state = bootstrap_graphics_environment(env, platform="win32", safe_mode=False)
 
     assert env["QSG_RHI_BACKEND"] == "d3d11"
@@ -92,7 +92,7 @@ def test_bootstrap_graphics_environment_respects_custom_headless_platform() -> N
 
 
 def test_bootstrap_graphics_environment_respects_safe_mode() -> None:
-    env: dict[str, str] = {"QT_QPA_PLATFORM": "xcb"}
+    env: dict[str, str] = {"QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"}
     state = bootstrap_graphics_environment(env, platform="darwin", safe_mode=True)
 
     assert "QSG_RHI_BACKEND" not in env
