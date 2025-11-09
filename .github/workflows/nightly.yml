@@ -7,7 +7,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  QT_VERSION: "6.10.2"
+  QT_VERSION: "6.10.1"
 
 jobs:
   nightly:
@@ -51,6 +51,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install uv aqtinstall
+
+      - name: Discover available Qt versions
+        run: |
+          python -m aqt list-qt linux desktop
+          python -m aqt list-qt windows desktop
 
       - name: Install project dependencies
         run: python -m pip install -r requirements-dev.txt
