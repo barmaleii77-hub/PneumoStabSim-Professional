@@ -480,6 +480,7 @@ check_*.py
 !tools/validate_settings.py
 !tools/validate_shaders.py
 !tools/graphics/validate_hdr_orientation.py
+!tools/check_workflow_pins.py
 !tools/test_artifact_analyzer.py
 !src/tools/validate_shaders.py
 !tests/unit/test_signal_tracing.py
