@@ -278,6 +278,8 @@ ExtendedSceneEnvironment {
     property real ssaoRadius: _number("environment", ["ao_radius", "ssao_radius"], 0.008)
     property real ssaoIntensity: _number("environment", ["ao_strength", "ssao_intensity"], 1.0)
     property real ssaoSoftness: _number("environment", ["ao_softness", "ssao_softness"], 20.0)
+    property real ssaoBias: _number("environment", ["ao_bias", "ssao_bias"], 0.025)
+    property bool ssaoDither: _bool("environment", ["ao_dither", "ssao_dither"], true)
 
     // Bloom/glow
     property bool bloomEnabled: _bool("effects", ["bloom_enabled", "glow_enabled"], true)
@@ -343,7 +345,8 @@ ExtendedSceneEnvironment {
     aoDistance: env.toSceneLength(env.ssaoRadius)
     aoStrength: env.ssaoIntensity
     aoSoftness: env.ssaoSoftness
-    aoDither: true
+    aoBias: env.ssaoBias
+    aoDither: env.ssaoDither
 
     oitMethod: SceneEnvironment.OITWeightedBlended
 

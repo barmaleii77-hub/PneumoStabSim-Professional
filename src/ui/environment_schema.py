@@ -201,6 +201,7 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "ao_radius", "float", min_value=0.001, max_value=0.1
     ),
+    EnvironmentParameterDefinition("ao_bias", "float", min_value=0.0, max_value=0.1),
     EnvironmentParameterDefinition(
         "ao_softness", "float", min_value=0.0, max_value=50.0
     ),
@@ -249,6 +250,7 @@ ENVIRONMENT_SLIDER_RANGE_DEFAULTS: dict[str, EnvironmentSliderRange] = {
     "ao_radius": EnvironmentSliderRange(
         "ao_radius", 0.001, 0.1, 0.001, decimals=3, unit="м"
     ),
+    "ao_bias": EnvironmentSliderRange("ao_bias", 0.0, 0.1, 0.001, decimals=3),
     "ao_softness": EnvironmentSliderRange("ao_softness", 0.0, 50.0, 1.0),
 }
 
@@ -353,6 +355,7 @@ ENVIRONMENT_CONTEXT_PROPERTIES: dict[str, str] = {
     "ao_enabled": "startAoEnabled",
     "ao_strength": "startAoStrength",
     "ao_radius": "startAoRadius",
+    "ao_bias": "startAoBias",
     "ao_softness": "startAoSoftness",
     "ao_dither": "startAoDither",
     "ao_sample_rate": "startAoSampleRate",

@@ -31,6 +31,7 @@ def test_environment_tab_preserves_default_radius(qapp):
     state = tab.get_state()
 
     assert state["ao_radius"] == pytest.approx(validated["ao_radius"])
+    assert state["ao_bias"] == pytest.approx(validated["ao_bias"])
 
 
 def test_environment_tab_applies_custom_slider_ranges(qapp, monkeypatch):

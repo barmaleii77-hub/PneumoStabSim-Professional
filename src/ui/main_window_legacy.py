@@ -844,6 +844,7 @@ class MainWindow(QMainWindow):
                 "ao_enabled": ("startAoEnabled", _as_bool),
                 "ao_strength": ("startAoStrength", _as_float),
                 "ao_radius": ("startAoRadius", _as_float),
+                "ao_bias": ("startAoBias", _as_float),
                 "ao_softness": ("startAoSoftness", _as_float),
                 "ao_dither": ("startAoDither", _as_bool),
                 "ao_sample_rate": ("startAoSampleRate", _as_int),

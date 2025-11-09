@@ -772,6 +772,10 @@
           "title": "Ao Radius",
           "type": "number"
         },
+        "ao_bias": {
+          "title": "Ao Bias",
+          "type": "number"
+        },
         "ao_softness": {
           "title": "Ao Softness",
           "type": "number"
@@ -822,6 +826,7 @@
         "ao_enabled",
         "ao_strength",
         "ao_radius",
+        "ao_bias",
         "ao_softness",
         "ao_dither",
         "ao_sample_rate"
@@ -3006,6 +3011,9 @@
         "ao_radius": {
           "$ref": "#/$defs/SliderRange"
         },
+        "ao_bias": {
+          "$ref": "#/$defs/SliderRange"
+        },
         "ao_softness": {
           "$ref": "#/$defs/SliderRange"
         }
@@ -3031,6 +3039,7 @@
         "fog_transmit_curve",
         "ao_strength",
         "ao_radius",
+        "ao_bias",
         "ao_softness"
       ],
       "title": "EnvironmentSliderRanges",

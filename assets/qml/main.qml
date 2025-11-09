@@ -76,6 +76,7 @@ Item {
     property real ssaoRadius: 0.008
     property real ssaoIntensity: 1.0
     property real ssaoSoftness: 20.0
+    property real ssaoBias: 0.025
     property bool ssaoDither: true
     property int ssaoSampleRate: 4
 
@@ -173,6 +174,7 @@ Item {
         ssaoRadius: root.ssaoRadius
         ssaoIntensity: root.ssaoIntensity
         ssaoSoftness: root.ssaoSoftness
+        ssaoBias: root.ssaoBias
         ssaoDither: root.ssaoDither
         ssaoSampleRate: root.ssaoSampleRate
 
