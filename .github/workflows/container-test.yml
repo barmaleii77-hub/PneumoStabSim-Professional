@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+      - name: List available Qt versions
+        run: |
+          python -m pip install --upgrade aqtinstall
+          python -m aqt list-qt linux desktop
       - name: Build dev image
         run: docker build -t pneumo-dev:qt610 .
       - name: Run all checks

@@ -57,9 +57,9 @@ make uv-export-requirements
 1. Скопируйте шаблон: `cp env.sample .env` (PowerShell: `Copy-Item env.sample .env`).
 2. Укажите путь к каталогу Qt в переменной `QT_SDK_ROOT` (по умолчанию Qt устанавливается в `<repo>/Qt`).
 3. Для первичной установки Qt выполните одну из команд:
-   - `python tools/setup_qt.py --qt-version 6.10.2 --modules qtquick3d,qtshadertools,qtimageformats`
-   - `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.2` (Windows)
-   - `source activate_environment.sh --setup --install-qt --qt-version 6.10.2`
+   - `python tools/setup_qt.py --qt-version 6.10.0 --modules qtquick3d,qtshadertools,qtimageformats`
+   - `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.0` (Windows)
+   - `source activate_environment.sh --setup --install-qt --qt-version 6.10.0`
 4. После установки перезапустите `make uv-sync-locked`, чтобы убедиться, что переменные из `.env` доступны в среде `uv`.
 
 ### Зачем нужны `activate_environment.*`
@@ -97,7 +97,7 @@ make uv-run CMD="python -m pytest -k smoke"
 
 ### Дополнительные шаги
 1. При необходимости установите **Visual Studio 2022** с рабочей нагрузкой **Desktop development with C++** (для Qt инструментов и отладчиков).
-2. Для переустановки Qt выполните `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.2`.
+2. Для переустановки Qt выполните `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.0`.
 3. Для запуска приложения используйте `make uv-run CMD="python app.py"` — команда автоматически активирует окружение.
 
 ### Интеграция с Visual Studio
@@ -128,7 +128,7 @@ make uv-run CMD="pytest -m 'not gui'"
 ### Qt и `.env`
 ```bash
 cp env.sample .env
-source activate_environment.sh --setup --install-qt --qt-version 6.10.2 \
+source activate_environment.sh --setup --install-qt --qt-version 6.10.0 \
     --qt-modules qtquick3d,qtshadertools,qtimageformats
 make uv-sync-locked
 ```

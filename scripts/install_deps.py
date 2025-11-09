@@ -76,7 +76,7 @@ def _is_supported_version(version: str) -> bool:
 def install_pyside() -> None:
     candidates = [
         version.strip()
-        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.2,6.10.1,6.10.0").split(
+        for version in os.environ.get("PYSIDE_VERSIONS", "6.10.0").split(
             ","
         )
         if version.strip()
@@ -95,7 +95,7 @@ def install_pyside() -> None:
         else:
             return
     print("[deps] falling back to latest PySide6/shiboken6 from PyPI")
-    pip_install(["pyside6>=6.10,<7", "shiboken6>=6.10,<7"])
+    pip_install(["pyside6>=6.10,<6.11", "shiboken6>=6.10,<6.11"])
 
 
 def install_critical_runtime() -> None:
