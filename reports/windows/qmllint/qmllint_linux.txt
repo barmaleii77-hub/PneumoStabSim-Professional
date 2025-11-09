@@ -1,0 +1,18 @@
+Running QML lint (qmllint)
+Warning: assets/qml/components/TelemetryChartPanel.qml:4:1: Warnings occurred while importing module "QtCharts": [import]
+import QtCharts 6.10
+^^^^^^
+---
+Warning: 4:1: /root/.pyenv/versions/3.13.8/lib/python3.13/site-packages/PySide6/Qt/qml/QtCharts/plugins.qmltypes:574:42: Meta object revision and export version differ.
+Revision 1536 corresponds to version 6.0; it should be 1.0.
+/root/.pyenv/versions/3.13.8/lib/python3.13/site-packages/PySide6/Qt/qml/QtCharts/plugins.qmltypes:574:48: Meta object revision and export version differ.
+Revision 1538 corresponds to version 6.2; it should be 6.0.
+/root/.pyenv/versions/3.13.8/lib/python3.13/site-packages/PySide6/Qt/qml/QtCharts/plugins.qmltypes:1754:42: Meta object revision and export version differ.
+Revision 515 corresponds to version 2.3; it should be 1.0.
+/root/.pyenv/versions/3.13.8/lib/python3.13/site-packages/PySide6/Qt/qml/QtCharts/plugins.qmltypes:1754:47: Meta object revision and export version differ.
+Revision 1536 corresponds to version 6.0; it should be 2.3.
+/root/.pyenv/versions/3.13.8/lib/python3.13/site-packages/PySide6/Qt/qml/QtCharts/plugins.qmltypes:1754:53: Meta object revision and export version differ.
+Revision 1538 corresponds to version 6.2; it should be 2.3.
+ [import]
+---
+
