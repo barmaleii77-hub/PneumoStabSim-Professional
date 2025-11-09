@@ -6,17 +6,10 @@ from collections.abc import Iterable
 from importlib import import_module
 from typing import Any, Callable, cast
 
-RegisterModule = Callable[[bytes | bytearray | memoryview[int], int, int], None]
-RegisterType = Callable[
-    [
-        type[Any],
-        bytes | bytearray | memoryview[int],
-        int,
-        int,
-        bytes | bytearray | memoryview[int],
-    ],
-    int,
-]
+QmlByteLike = bytes | bytearray | memoryview
+
+RegisterModule = Callable[[QmlByteLike, int, int], None]
+RegisterType = Callable[[type[Any], QmlByteLike, int, int, QmlByteLike], int]
 
 _runtime_register_module: Any = None
 _runtime_register_type: Any = None
@@ -30,7 +23,9 @@ except Exception:  # pragma: no cover - headless environments
 qml_register_module: RegisterModule | None = cast(
     RegisterModule | None, _runtime_register_module
 )
-qml_register_type: RegisterType | None = cast(RegisterType | None, _runtime_register_type)
+qml_register_type: RegisterType | None = cast(
+    RegisterType | None, _runtime_register_type
+)
 
 _QML_ELEMENT_MODULES: Iterable[str] = (
     "src.ui.example_geometry",
@@ -61,9 +56,7 @@ def register_qml_types() -> None:
     from src.ui.main_window_pkg import qml_bridge as _qml_bridge
 
     if not getattr(_qml_bridge.QMLBridge, "_scene_bridge_patched", False):
-        original_push: Callable[..., Any] = (
-            _qml_bridge.QMLBridge._push_batched_updates
-        )
+        original_push: Callable[..., Any] = _qml_bridge.QMLBridge._push_batched_updates
         original_set_state: Callable[..., Any] = (
             _qml_bridge.QMLBridge.set_simulation_state
         )

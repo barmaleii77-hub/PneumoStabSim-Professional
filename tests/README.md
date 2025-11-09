@@ -1,156 +1,114 @@
 # PneumoStabSim Test Suite
 
-Automated testing infrastructure for PneumoStabSim project.
+This guide documents the structure of the automated tests, platform-specific
+workflows, and the remediation plan for stabilising Windows test runs.
 
-## ?? Structure
+## Directory layout
 
 ```
 tests/
-??? __init__.py                 # Test package initialization
-??? conftest.py                 # Pytest configuration & fixtures
-??? unit/                       # Unit tests
-?   ??? test_geometry.py       # Geometry calculations
-?   ??? test_kinematics.py     # Kinematics tests
-?   ??? test_pneumatics.py     # Pneumatic system
-?   ??? test_ui_components.py  # UI widgets
-??? integration/                # Integration tests
-?   ??? test_python_qml.py     # Python?QML communication
-?   ??? test_simulation.py     # Full simulation loop
-?   ??? test_panels.py         # UI panels integration
-??? system/                     # System tests
-?   ??? test_full_app.py       # Full application test
-??? fixtures/                   # Test data & fixtures
-    ??? geometry_data.json
-    ??? simulation_scenarios.json
+├── bootstrap/               # Provisioning helpers used by CI smoke runs
+├── config/                  # Shared configuration payloads consumed by fixtures
+├── helpers/                 # Utility modules reused by multiple suites
+├── integration/             # Python↔QML integration flows and bridge checks
+├── physics/                 # Physics engine regression cases and fixtures
+├── pneumo/                  # Pneumatic subsystem behaviour tests
+├── qml/                     # QML snapshots, bindings, and regression harnesses
+├── quality/                 # Quality gates (lint/typecheck) verification hooks
+├── scenarios/               # JSON/YAML scenarios for simulation-driven tests
+├── simulation/              # Simulation loop and telemetry validation
+├── smoke/                   # Minimal environment verification for CI sanity
+├── system/                  # End-to-end orchestration and launch validations
+├── ui/                      # Qt widgets, panel controllers, and state sync
+├── unit/                    # Pure unit tests covering isolated modules
+└── tools/                   # Harnesses invoked by pytest and task runner
 ```
 
-## ?? Running Tests
+Fixtures live in `tests/conftest.py`, and Qt-specific headless defaults are
+centralised in `tests/_qt_headless.py`.
 
-### All Tests
-```bash
-pytest
+## Environment prerequisites
+
+1. **Synchronise Python dependencies**
+   - Linux/macOS (`make` available): `make uv-sync`
+   - Windows / make-less shells: `python -m tools.task_runner uv-sync`
+2. **Install Qt runtime** (only when missing): `python tools/setup_qt.py --qt-version 6.10.0`
+3. **Verify graphics backend**
+   - GPU mode: ensure `PSS_HEADLESS` is unset and `QSG_RHI_BACKEND=d3d11` on Windows.
+   - Headless mode: set `PSS_HEADLESS=1` or use the pytest `--pss-headless` flag to
+     apply the defaults defined in `tests/_qt_headless.py`.
+
+Cross-platform provisioning and optional automated runs are also available through
+`python -m tools.cross_platform_test_prep --use-uv [--run-tests]`, which installs
+OS prerequisites and executes pytest with the correct Qt overrides.
+
+## Running the test suites
+
+### Aggregated quality gate
+
+- Linux/macOS: `make check`
+- Windows / make-less shells: `python -m tools.task_runner check`
+
+The aggregated gate performs linting, type checks, shader validation, environment
+verification, and smoke/integration pytest sweeps.
+
+### Pytest entry points
+
+| Scope            | Linux/macOS (`make`) | Windows (`python -m tools.task_runner …`) |
+| ---------------- | -------------------- | ----------------------------------------- |
+| Full CI parity   | `make test-local`    | `python -m tools.task_runner test`        |
+| Unit tests       | `make test-unit`     | `python -m tools.task_runner test-unit`   |
+| Integration flow | `make test-integration` | `python -m tools.task_runner test-integration` |
+| UI/Qt suite      | `make test-ui`       | `python -m tools.task_runner test-ui`     |
+
+For manual Windows executions that need fine-grained control over Qt variables,
+use `.\scripts\run_tests_ci.ps1 -Target tests\ui` (PowerShell). The script applies
+D3D11 defaults when `PSS_HEADLESS` is unset and records console output under
+`reports/tests/` for later inspection.
+
+### Direct pytest usage
+
+When calling pytest manually, prefer the `-p pytestqt.plugin` flag to ensure the
+Qt plugin loads even when `PYTEST_DISABLE_PLUGIN_AUTOLOAD` is set. Example:
+
+```powershell
+# PowerShell 7+
+$env:PSS_HEADLESS = '1'
+python -m pytest -p pytestqt.plugin tests/ui
 ```
 
-### Specific Test Suite
-```bash
-pytest tests/unit/                    # Unit tests only
-pytest tests/integration/             # Integration tests
-pytest tests/system/                  # System tests
-```
+Artifacts such as `pytest_console.txt` and environment captures are stored in
+`reports/tests/`. Keep these under version control only when referenced by a
+tracking document.
 
-### With Coverage
-```bash
-pytest --cov=src --cov-report=html
-```
+## Writing and extending tests
 
-### Verbose Output
-```bash
-pytest -v
-```
+- Reuse fixtures from `tests/conftest.py` for settings management, simulation
+  seeds, and Qt application bootstrapping.
+- Shared helpers in `tests/helpers/` provide assertions for telemetry snapshots
+  and graphics payload comparisons.
+- Scenario-driven suites under `tests/scenarios/` and `tests/simulation/` rely on
+  JSON/YAML payloads; validate new schemas against `schemas/` before committing.
+- Prefer `pytest.mark.qt_log_level('WARNING')` for noisy Qt modules instead of
+  silencing logs globally.
+- Record long-running or stateful tests in `tests/system/` with descriptive
+  docstrings to aid triage.
 
-### Specific Test
-```bash
-pytest tests/unit/test_geometry.py::test_geometry_bridge
-```
+## Windows remediation plan
 
-## ?? Test Coverage Goals
+1. **Baseline reproduction** – Run `python -m tools.cross_platform_test_prep --use-uv --run-tests --pytest-args tests/ui`
+   on a Windows workstation to collect the failing categories and capture the
+   generated `reports/tests/pytest_console.txt` artefact.
+2. **Stabilise environment scripts** – Audit `scripts/run_tests_ci.ps1` for missing
+   Qt overrides, ensuring GPU (D3D11) defaults apply when `PSS_HEADLESS` is unset
+   and that headless executions honour the values from `tests/_qt_headless.py`.
+3. **Fix flaky suites** – Prioritise `tests/ui/` and `tests/integration/` flows that
+   rely on timing-sensitive Qt operations. Use the per-suite commands listed above
+   to iterate quickly while inspecting logs in `reports/tests/`.
+4. **Document findings** – Update the Phase 4 testing plan and relevant reports
+   under `docs/` with remediation outcomes, linking to captured artefacts for CI
+   traceability.
 
-- **Unit Tests:** >80% coverage
-- **Integration Tests:** Key workflows tested
-- **System Tests:** End-to-end scenarios
-
-## ?? Writing Tests
-
-### Unit Test Example
-```python
-import pytest
-from src.mechanics.kinematics import CylinderKinematics
-from src.core.geometry import Point2
-
-def test_cylinder_kinematics():
-    """Test cylinder kinematics calculations"""
-    # Arrange
-    kinematics = CylinderKinematics(
-        frame_hinge=Point2(0, 0),
-        inner_diameter=0.08,
-        rod_diameter=0.035,
-        piston_thickness=0.02,
-        body_length=0.25,
-        dead_zone_rod=0.001,
-        dead_zone_head=0.001
-    )
-
-    # Act
-    # ... perform test
-
-    # Assert
-    assert result == expected
-```
-
-### Integration Test Example
-```python
-import pytest
-from src.ui.main_window import MainWindow
-
-def test_geometry_update_flow(qapp):
-    """Test geometry parameter update through entire stack"""
-    window = MainWindow()
-
-    # Update geometry
-    window.update_geometry({'frameLength': 2500.0})
-
-    # Verify QML received update
-    assert window.qml_root.property('frameLength') == 2500.0
-```
-
-## ?? Test Naming Convention
-
-- `test_<module>_<function>` for unit tests
-- `test_<workflow>_<scenario>` for integration tests
-- `test_<feature>_end_to_end` for system tests
-
-## ? Performance Tests
-
-Performance benchmarks in `tests/performance/`:
-- Simulation loop speed
-- Rendering FPS
-- Memory usage
-
-## ?? Debugging Failed Tests
-
-```bash
-# Run with pdb on failure
-pytest --pdb
-
-# Show local variables on failure
-pytest -l
-
-# Stop on first failure
-pytest -x
-```
-
-## ?? Dependencies
-
-Test dependencies (see `requirements-dev.txt`):
-- pytest
-- pytest-qt
-- pytest-cov
-- pytest-benchmark
-
-## ?? CI/CD Integration
-
-Tests run automatically on:
-- Every commit (via GitHub Actions)
-- Pull requests
-- Before releases
-
-## ?? Coverage Reports
-
-HTML coverage reports generated in `htmlcov/` directory.
-View with: `open htmlcov/index.html`
-
----
-
-**Last Updated:** 2025-01-05
-**Test Framework:** pytest
-**Coverage Tool:** pytest-cov
+Following this plan keeps Windows parity aligned with Linux runners and ensures
+future contributors can reproduce, diagnose, and resolve platform-specific test
+failures consistently.
