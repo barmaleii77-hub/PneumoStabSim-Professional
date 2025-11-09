@@ -114,7 +114,7 @@ def task_check(extra: Sequence[str]) -> None:
         "--fail-on-warnings",
         "--expect-fallback",
     )
-    _run_python_script("tools/graphics/validate_hdr_orientation.py")
+    _run_python_script("tools/render_checks/validate_hdr_orientation.py")
     _run_python_script("tools/update_translations.py", "--check")
     _ensure_reports_dir("reports/environment")
     _run_python_module(

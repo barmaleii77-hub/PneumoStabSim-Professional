@@ -112,7 +112,9 @@ class MaterialsTab(QWidget):
         r = self._add_slider_control(
             grid, r, "Specular Amount", "specular", 0.0, 1.0, 0.01
         )
-        r = self._add_color_control(grid, r, "Specular Tint", "specular_tint")
+        r = self._add_slider_control(
+            grid, r, "Specular Tint", "specular_tint", 0.0, 1.0, 0.01
+        )
 
         # Clearcoat
         r = self._add_slider_control(grid, r, "Clearcoat", "clearcoat", 0.0, 1.0, 0.01)
@@ -256,15 +258,20 @@ class MaterialsTab(QWidget):
         # Цвета
         for ckey in (
             "base_color",
-            "specular_tint",
             "attenuation_color",
             "emissive_color",
         ):
             if ckey in normalized:
                 normalized[ckey] = self._coerce_color(
                     normalized.get(ckey),
-                    default=("#000000" if ckey == "specular_tint" else "#ffffff"),
+                    default="#ffffff",
                 )
+        if "specular_tint" in normalized:
+            try:
+                tint_value = float(normalized["specular_tint"])
+            except (TypeError, ValueError):
+                tint_value = 0.0
+            normalized["specular_tint"] = max(0.0, min(1.0, tint_value))
         return normalized
 
     def _apply_controls_from_state(self, state: dict[str, Any]) -> None:
@@ -451,7 +458,7 @@ class MaterialsTab(QWidget):
             "metalness": self._controls["metalness"].value(),
             "roughness": self._controls["roughness"].value(),
             "specular": self._controls["specular"].value(),
-            "specular_tint": self._controls["specular_tint"].color().name(),
+            "specular_tint": self._controls["specular_tint"].value(),
             "opacity": self._controls["opacity"].value(),
             "clearcoat": self._controls.get("clearcoat").value(),
             "clearcoat_roughness": self._controls.get("clearcoat_roughness").value(),

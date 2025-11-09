@@ -21,7 +21,7 @@ def materials_payload():
         "metalness": 1.0,
         "roughness": 0.3,
         "specular": 0.0,
-        "specular_tint": "#ffffff",
+        "specular_tint": 0.0,
         "opacity": 1.0,
         "clearcoat": 0.0,
         "clearcoat_roughness": 0.0,

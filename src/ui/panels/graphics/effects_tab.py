@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from .widgets import LabeledSlider
 from src.common.logging_widgets import LoggingCheckBox
+from src.ui.panels.tonemapping_panel import TonemappingPanel
 
 
 class EffectsTab(QWidget):
@@ -30,6 +31,7 @@ class EffectsTab(QWidget):
         self._controls: dict[str, Any] = {}
         self._state: dict[str, Any] = {}
         self._updating_ui = False
+        self._tonemapping_panel: TonemappingPanel | None = None
 
         self._dependencies: dict[str, tuple[str, ...]] = {
             "bloom.enabled": (
@@ -201,6 +203,13 @@ class EffectsTab(QWidget):
         row = self._add_slider(
             grid, row, "Белая точка", "tonemap.white_point", 0.5, 5.0, 0.1
         )
+
+        panel = TonemappingPanel(self)
+        panel.preset_applied.connect(self._on_preset_applied)
+        self._tonemapping_panel = panel
+        grid.addWidget(panel, row, 0, 1, 2)
+        row += 1
+
         return group
 
     def _build_dof_group(self) -> QGroupBox:
@@ -434,6 +443,7 @@ class EffectsTab(QWidget):
 
         payload = self.get_state()
         self._state = payload
+        self._sync_tonemap_panel(payload)
         self.effects_changed.emit(payload)
 
     def get_state(self) -> dict[str, Any]:
@@ -497,3 +507,14 @@ class EffectsTab(QWidget):
             self._refresh_dependencies()
             self._update_dof_focus_enabled()
             self._state = self.get_state()
+            self._sync_tonemap_panel(self._state)
+
+    def _sync_tonemap_panel(self, state: Mapping[str, Any]) -> None:
+        if self._tonemapping_panel is not None:
+            self._tonemapping_panel.sync_with_effects(state)
+
+    def _on_preset_applied(self, payload: Mapping[str, Any]) -> None:
+        state = self.get_state()
+        state.update(payload)
+        self.set_state(state)
+        self.effects_changed.emit(self.get_state())

@@ -93,7 +93,7 @@ Track panel completion status, performance runs, and localization updates here.
 
 ### 2025-09-18 – Material calibration and HDR validation
 - Re-tuned glass and metal presets in `config/baseline/materials.json` using calibrated IOR and attenuation references.
-- Automated skybox alignment validation via `tools/graphics/validate_hdr_orientation.py`, exporting the inaugural
+- Automated skybox alignment validation via `tools/render_checks/validate_hdr_orientation.py`, exporting the inaugural
   report to `reports/performance/hdr_orientation.md` for design review sign-off.
 
 ### 2025-09-24 – Modular panel MVP landed

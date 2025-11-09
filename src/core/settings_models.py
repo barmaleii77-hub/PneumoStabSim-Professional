@@ -300,7 +300,7 @@ class MaterialSettings(_StrictModel):
     metalness: float
     roughness: float
     specular: float
-    specular_tint: str
+    specular_tint: float
     opacity: float
     clearcoat: float
     clearcoat_roughness: float

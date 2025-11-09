@@ -25,12 +25,31 @@ class BaselineLoadError(RuntimeError):
 
 @dataclass(frozen=True)
 class MaterialDefinition:
-    """Normalised material preset."""
+    """Normalised material preset aligned with the Phase 3 calibration targets."""
 
     id: str
     base_color: str
     roughness: float
     metalness: float
+    specular: float | None = None
+    specular_tint: float | None = None
+    transmission: float | None = None
+    opacity: float | None = None
+    clearcoat: float | None = None
+    clearcoat_roughness: float | None = None
+    ior: float | None = None
+    thickness: float | None = None
+    attenuation_distance: float | None = None
+    attenuation_color: str | None = None
+    emissive_color: str | None = None
+    emissive_intensity: float | None = None
+    normal_strength: float | None = None
+    texture_path: str | None = None
+    occlusion_amount: float | None = None
+    alpha_mode: str | None = None
+    alpha_cutoff: float | None = None
+    warning_color: str | None = None
+    ok_color: str | None = None
     label_key: str | None = None
     extras: Mapping[str, Any] = field(default_factory=dict)
 
@@ -41,6 +60,44 @@ class MaterialDefinition:
             "roughness": self.roughness,
             "metalness": self.metalness,
         }
+        if self.specular is not None:
+            payload["specular"] = self.specular
+        if self.specular_tint is not None:
+            payload["specular_tint"] = self.specular_tint
+        if self.transmission is not None:
+            payload["transmission"] = self.transmission
+        if self.opacity is not None:
+            payload["opacity"] = self.opacity
+        if self.clearcoat is not None:
+            payload["clearcoat"] = self.clearcoat
+        if self.clearcoat_roughness is not None:
+            payload["clearcoat_roughness"] = self.clearcoat_roughness
+        if self.ior is not None:
+            payload["ior"] = self.ior
+        if self.thickness is not None:
+            payload["thickness"] = self.thickness
+        if self.attenuation_distance is not None:
+            payload["attenuation_distance"] = self.attenuation_distance
+        if self.attenuation_color is not None:
+            payload["attenuation_color"] = self.attenuation_color
+        if self.emissive_color is not None:
+            payload["emissive_color"] = self.emissive_color
+        if self.emissive_intensity is not None:
+            payload["emissive_intensity"] = self.emissive_intensity
+        if self.normal_strength is not None:
+            payload["normal_strength"] = self.normal_strength
+        if self.texture_path is not None:
+            payload["texture_path"] = self.texture_path
+        if self.occlusion_amount is not None:
+            payload["occlusion_amount"] = self.occlusion_amount
+        if self.alpha_mode is not None:
+            payload["alpha_mode"] = self.alpha_mode
+        if self.alpha_cutoff is not None:
+            payload["alpha_cutoff"] = self.alpha_cutoff
+        if self.warning_color is not None:
+            payload["warning_color"] = self.warning_color
+        if self.ok_color is not None:
+            payload["ok_color"] = self.ok_color
         if self.label_key:
             payload["label_key"] = self.label_key
         if self.extras:
@@ -225,6 +282,21 @@ def _coerce_float(value: Any, *, field_name: str) -> float:
         raise BaselineLoadError(f"{field_name} must be a numeric value") from None
 
 
+def _coerce_optional_float(value: Any, *, field_name: str) -> float | None:
+    if value is None:
+        return None
+    return _coerce_float(value, field_name=field_name)
+
+
+def _normalise_optional_color(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    try:
+        return _normalise_color(value)
+    except BaselineLoadError as exc:  # pragma: no cover - defensive guard
+        raise BaselineLoadError(f"{field_name} must be a hex colour string") from exc
+
+
 def _normalise_materials(
     raw_materials: Mapping[str, Any],
 ) -> dict[str, MaterialDefinition]:
@@ -236,16 +308,120 @@ def _normalise_materials(
         roughness = _coerce_float(value.get("roughness", 0.5), field_name="roughness")
         metalness = _coerce_float(value.get("metalness", 0.0), field_name="metalness")
         label_key = value.get("label_key")
+        specular = _coerce_optional_float(value.get("specular"), field_name="specular")
+        specular_tint = _coerce_optional_float(
+            value.get("specular_tint"), field_name="specular_tint"
+        )
+        transmission = _coerce_optional_float(
+            value.get("transmission"), field_name="transmission"
+        )
+        opacity = _coerce_optional_float(value.get("opacity"), field_name="opacity")
+        clearcoat = _coerce_optional_float(
+            value.get("clearcoat"), field_name="clearcoat"
+        )
+        clearcoat_roughness = _coerce_optional_float(
+            value.get("clearcoat_roughness"), field_name="clearcoat_roughness"
+        )
+        ior = _coerce_optional_float(value.get("ior"), field_name="ior")
+        thickness = _coerce_optional_float(
+            value.get("thickness"), field_name="thickness"
+        )
+        attenuation_distance = _coerce_optional_float(
+            value.get("attenuation_distance"), field_name="attenuation_distance"
+        )
+        attenuation_color = _normalise_optional_color(
+            value.get("attenuation_color"), field_name="attenuation_color"
+        )
+        emissive_color = _normalise_optional_color(
+            value.get("emissive_color"), field_name="emissive_color"
+        )
+        emissive_intensity = _coerce_optional_float(
+            value.get("emissive_intensity"), field_name="emissive_intensity"
+        )
+        normal_strength = _coerce_optional_float(
+            value.get("normal_strength"), field_name="normal_strength"
+        )
+        occlusion_amount = _coerce_optional_float(
+            value.get("occlusion_amount"), field_name="occlusion_amount"
+        )
+        alpha_cutoff = _coerce_optional_float(
+            value.get("alpha_cutoff"), field_name="alpha_cutoff"
+        )
+        warning_color = _normalise_optional_color(
+            value.get("warning_color"), field_name="warning_color"
+        )
+        ok_color = _normalise_optional_color(
+            value.get("ok_color"), field_name="ok_color"
+        )
+
+        alpha_mode_raw = value.get("alpha_mode")
+        alpha_mode = (
+            str(alpha_mode_raw).strip() if isinstance(alpha_mode_raw, str) else None
+        )
+        if alpha_mode == "":
+            alpha_mode = None
+
+        texture_path_raw = value.get("texture_path")
+        texture_path = None
+        if isinstance(texture_path_raw, str):
+            texture_path = texture_path_raw.strip()
+            if texture_path_raw == "":
+                texture_path = ""
+
         extras = {
             extra_key: extra_value
             for extra_key, extra_value in value.items()
-            if extra_key not in {"base_color", "roughness", "metalness", "label_key"}
+            if extra_key
+            not in {
+                "base_color",
+                "roughness",
+                "metalness",
+                "label_key",
+                "specular",
+                "specular_tint",
+                "transmission",
+                "opacity",
+                "clearcoat",
+                "clearcoat_roughness",
+                "ior",
+                "thickness",
+                "attenuation_distance",
+                "attenuation_color",
+                "emissive_color",
+                "emissive_intensity",
+                "normal_strength",
+                "texture_path",
+                "occlusion_amount",
+                "alpha_mode",
+                "alpha_cutoff",
+                "warning_color",
+                "ok_color",
+            }
         }
         materials[key] = MaterialDefinition(
             id=key,
             base_color=base_color,
             roughness=roughness,
             metalness=metalness,
+            specular=specular,
+            specular_tint=specular_tint,
+            transmission=transmission,
+            opacity=opacity,
+            clearcoat=clearcoat,
+            clearcoat_roughness=clearcoat_roughness,
+            ior=ior,
+            thickness=thickness,
+            attenuation_distance=attenuation_distance,
+            attenuation_color=attenuation_color,
+            emissive_color=emissive_color,
+            emissive_intensity=emissive_intensity,
+            normal_strength=normal_strength,
+            texture_path=texture_path,
+            occlusion_amount=occlusion_amount,
+            alpha_mode=alpha_mode,
+            alpha_cutoff=alpha_cutoff,
+            warning_color=warning_color,
+            ok_color=ok_color,
             label_key=label_key if isinstance(label_key, str) else None,
             extras=extras,
         )
