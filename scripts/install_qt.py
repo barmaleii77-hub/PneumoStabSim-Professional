@@ -17,9 +17,7 @@ QT_ROOT.mkdir(parents=True, exist_ok=True)
 DEFAULT_ARCH_CANDIDATES = ["gcc_64", "linux_gcc_64"]
 
 _env_arches = [
-    arch.strip()
-    for arch in os.environ.get("QT_ARCHES", "").split(",")
-    if arch.strip()
+    arch.strip() for arch in os.environ.get("QT_ARCHES", "").split(",") if arch.strip()
 ]
 
 if not _env_arches:
@@ -92,8 +90,7 @@ def _list_available_arches(version: str) -> list[str]:
 
     try:
         out = subprocess.check_output(
-            AQT_BASE_CMD
-            + ["list-qt", "linux", "desktop", "--arch", version],
+            AQT_BASE_CMD + ["list-qt", "linux", "desktop", "--arch", version],
             text=True,
         )
     except subprocess.CalledProcessError as exc:  # pragma: no cover - diagnostic path
@@ -488,7 +485,9 @@ def main() -> int:
         try:
             _install(version, arch, modules)
         except subprocess.CalledProcessError as exc:
-            raise SystemExit(f"[qt] Installation failed for {version}/{arch}: {exc}") from exc
+            raise SystemExit(
+                f"[qt] Installation failed for {version}/{arch}: {exc}"
+            ) from exc
 
     _update_symlink(version)
 

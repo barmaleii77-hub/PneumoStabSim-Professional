@@ -55,13 +55,15 @@ def test_geometry_relationships_clamped(
         sanitized["trackWidth"] / 2.0
     )
     assert sanitized["maxSuspTravel"] == pytest.approx(2.0 * sanitized["leverLength"])
-    if not pytest.approx(payload.get("frameToPivot", sanitized["frameToPivot"])) == sanitized[
-        "frameToPivot"
-    ]:
+    if (
+        not pytest.approx(payload.get("frameToPivot", sanitized["frameToPivot"]))
+        == sanitized["frameToPivot"]
+    ):
         assert any("frameToPivot" in note for note in adjustments)
-    if not pytest.approx(payload.get("leverLength", sanitized["leverLength"])) == sanitized[
-        "leverLength"
-    ]:
+    if (
+        not pytest.approx(payload.get("leverLength", sanitized["leverLength"]))
+        == sanitized["leverLength"]
+    ):
         assert any("leverLength" in note for note in adjustments)
 
 
