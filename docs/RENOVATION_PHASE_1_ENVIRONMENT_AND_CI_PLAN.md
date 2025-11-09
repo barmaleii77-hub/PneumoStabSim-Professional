@@ -75,3 +75,6 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
   `libxkbcommon.so.0`, but the existing Phase 1 environment guidance remains
   accurate; follow-up fixes belong to application code and dependency packaging
   tasks rather than environment documentation updates.
+- 2025-11-09 – Added preset-aware environment helpers with Windows-specific RHI
+  pinning and promoted `make full_verify` as the CI default to preserve verbose
+  launch traces.

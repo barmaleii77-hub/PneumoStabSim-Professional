@@ -1,0 +1,12 @@
+{
+  "preset": "trace",
+  "set": {
+    "QT_LOGGING_RULES": "js.debug=true;qt.qml.debug=true",
+    "DEBUG_ENABLED": "true",
+    "DEVELOPMENT_MODE": "true",
+    "PSS_ENV_PRESET": "trace",
+    "QT_QUICK_BACKEND": "rhi",
+    "QSG_RHI_BACKEND": "d3d11"
+  },
+  "unset": []
+}

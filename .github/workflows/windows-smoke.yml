@@ -11,8 +11,10 @@ env:
   PYTHON_VERSION: "3.13"
   QT_VERSION: "6.10.0"
   QT_QPA_PLATFORM: offscreen
-  QT_QUICK_BACKEND: software
+  QT_QUICK_BACKEND: rhi
   QT_OPENGL: software
+  QSG_RHI_BACKEND: d3d11
+  PSS_ENV_PRESET: trace
 
 jobs:
   smoke:
@@ -23,6 +25,8 @@ jobs:
       QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
       QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
       QT_OPENGL: ${{ env.QT_OPENGL }}
+      QSG_RHI_BACKEND: ${{ env.QSG_RHI_BACKEND }}
+      PSS_ENV_PRESET: ${{ env.PSS_ENV_PRESET }}
     steps:
       - name: Checkout repository
         # Pin to actions/checkout v4.3.0 from the official GitHub Actions repository.
@@ -99,6 +103,8 @@ jobs:
           QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
           QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
           QT_OPENGL: ${{ env.QT_OPENGL }}
+          QSG_RHI_BACKEND: ${{ env.QSG_RHI_BACKEND }}
+          PSS_ENV_PRESET: ${{ env.PSS_ENV_PRESET }}
         run: |
           Set-StrictMode -Version Latest
           Write-Host "Launching PneumoStabSim in safe mode to validate DirectX fallback."

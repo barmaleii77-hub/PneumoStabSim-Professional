@@ -1,0 +1,13 @@
+{
+  "preset": "normal",
+  "set": {
+    "PSS_ENV_PRESET": "normal",
+    "QT_QUICK_BACKEND": "rhi",
+    "QSG_RHI_BACKEND": "d3d11"
+  },
+  "unset": [
+    "QT_LOGGING_RULES",
+    "DEBUG_ENABLED",
+    "DEVELOPMENT_MODE"
+  ]
+}
