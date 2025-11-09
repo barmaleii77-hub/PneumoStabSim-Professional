@@ -23,8 +23,8 @@ Paste the following block into the assistant's system message to brief CODEX:
 НЕ ИЗМЕНЯЙ бизнес-код симулятора, PBR/IBL и физику. Вся логика — только в Docker/скриптах/CI.
 
 Технические требования
-• Python 3.13.x, PySide6/Qt 6.10.1 (как в логах запуска).
-• Qt CLI-утилиты в контейнере: qmllint, qsb (через aqtinstall Qt 6.10.1).
+• Python 3.13.x, PySide6/Qt 6.10.1 (как в логах запуска и в `tools/setup_qt.py`).
+• Qt CLI-утилиты в контейнере: qmllint, qsb (через aqtinstall Qt 6.10.1 — та же версия, что использует CI).
 • Headless рендер: Xvfb + Mesa (llvmpipe OpenGL), Lavapipe (Vulkan).
 • Проверка шейдеров: нет BOM, #version первой строкой, профили GLSL валидные.
 • Параметры запуска Qt: тесты в OpenGL и Vulkan (QSG_RHI_BACKEND=opengl / QSG_RHI_BACKEND=vulkan), QT_QUICK_CONTROLS_STYLE=Fusion, headless-профиль Qt (QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software) при отсутствии DISPLAY и VK_ICD_FILENAMES для Lavapipe. Эти же дефолты прописаны в env.sample и применяются configure_qt_environment().
