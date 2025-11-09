@@ -7,6 +7,7 @@
 | Инструмент | Назначение | Основные опции |
 |------------|-----------|----------------|
 | `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), быстрая синхронизация зависимостей | `--sync`, `--lock`, `--export-requirements`, `--project-dir`, `--force`, `--executable` |
+| `tools/environment/bootstrap_tests.py` | Кросс-платформенная подготовка окружения: синхронизация uv, проверка Qt и запуск `tools.task_runner` задач (по умолчанию `verify`) | `--task`, `--skip-tests`, `--skip-qt-check`, `--force-uv-install` + аргументы после `--` |
 | `make uv-sync`, `make uv-sync-locked`, `make uv-run`, `make uv-lock`, `make uv-export-requirements`, `make uv-release-refresh` | Синхронизация окружения, генерация lock-файла и экспорт requirements | `UV_PROJECT_DIR`, `CMD`, `UV_SYNC_ARGS`, `UV_RUN_ARGS`, `UV_LOCKFILE` |
 | `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм (значение по умолчанию: Qt 6.10.0) | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir`, `--refresh-requirements` |
 | `activate_environment.(sh|ps1)` | Генерация `.env`, запуск установки Qt и вспомогательных проверок | `--setup`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file` |
