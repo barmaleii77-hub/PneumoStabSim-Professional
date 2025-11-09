@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Window
 import QtQuick3D 6.10
@@ -44,7 +46,14 @@ Item {
         if (!diagnosticsLoggingEnabled)
             return
 
-        var windowRef = typeof window !== "undefined" ? window : null
+        var windowRef = null
+        try {
+            var globalScope = Function("return this")()
+            if (globalScope && globalScope.window)
+                windowRef = globalScope.window
+        } catch (globalError) {
+            windowRef = null
+        }
         if (windowRef && typeof windowRef.logQmlEvent === "function") {
             try {
                 windowRef.logQmlEvent("function_called", eventName)
@@ -1214,7 +1223,12 @@ Item {
                 if (!root.attachShaderLogHandler(bloomFragmentShader, "bloom.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: bloomFragmentShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
             }
         }
@@ -1227,7 +1241,12 @@ Item {
                 if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: bloomFallbackShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
             }
         }
@@ -1354,7 +1373,12 @@ Item {
                 if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: ssaoFragmentShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
             }
         }
@@ -1367,7 +1391,12 @@ Item {
                 if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: ssaoFallbackShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
             }
         }
@@ -1486,7 +1515,12 @@ Item {
                 if (!root.attachShaderLogHandler(dofFragmentShader, "dof.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: dofFragmentShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
             }
         }
@@ -1499,7 +1533,12 @@ Item {
                 if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: dofFallbackShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
             }
         }
@@ -1609,7 +1648,12 @@ Item {
                 if (!root.attachShaderLogHandler(motionBlurFragmentShader, "motion_blur.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: motionBlurFragmentShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
             }
         }
@@ -1622,7 +1666,12 @@ Item {
                 if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag"))
                     console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag")
             }
-            onStatusChanged: {
+        }
+
+        Connections {
+            target: motionBlurFallbackShader
+            ignoreUnknownSignals: true
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
             }
         }
