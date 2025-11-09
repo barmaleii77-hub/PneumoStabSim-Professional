@@ -1,0 +1,31 @@
+{
+  "tooltips": {
+    "color_correction_toggle": "Активирует или отключает модуль цветокоррекции и синхронизирует состояние с вкладкой эффектов.",
+    "reset_button": "Возвращает настройки вкладок графики к профилю defaults_snapshot без мгновенного сохранения.",
+    "save_defaults_button": "Запоминает текущие параметры графики как новые значения defaults_snapshot в settings.",
+    "export_button": "Экспортирует снимок настроек графики и отчёт синхронизации в каталог reports/graphics."
+  },
+  "presets": {
+    "quality.cinematic": {
+      "label": "Cinematic Quality",
+      "description": "Активирует плавное TAA и повышает силу цветокоррекции для кинематографического вида.",
+      "patch": {
+        "quality": {
+          "preset": "custom",
+          "antialiasing": {
+            "primary": "taa",
+            "quality": "ultra"
+          },
+          "taa_enabled": true,
+          "taa_strength": 0.85,
+          "taa_motion_adaptive": true,
+          "fxaa_enabled": false,
+          "render_scale": 1.0
+        },
+        "effects": {
+          "color_adjustments_active": true
+        }
+      }
+    }
+  }
+}

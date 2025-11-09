@@ -49,6 +49,9 @@ from .panel_graphics_settings_manager import (
 from src.ui.panels.graphics_logger import get_graphics_logger
 from src.common.event_logger import get_event_logger
 from src.common.logging_widgets import LoggingCheckBox
+from src.core.history import HistoryStack
+from src.core.settings_sync_controller import SettingsSyncController
+from src.ui.panels.preset_manager import PanelPresetManager
 
 
 class GraphicsPanel(QWidget):
@@ -83,6 +86,12 @@ class GraphicsPanel(QWidget):
 
         # Загружаем текущее состояние из JSON (не дефолты)
         self.state: dict[str, Any] = {}
+
+        self._history = HistoryStack()
+        self._sync_controller = SettingsSyncController(history=self._history)
+        self._sync_controller.register_listener(self._on_state_synced)
+        self.preset_manager = PanelPresetManager("graphics", self._sync_controller)
+        self._sync_guard = 0
 
         self._color_adjustments_toggle: LoggingCheckBox | None = None
         self._syncing_color_toggle = False
@@ -163,13 +172,17 @@ class GraphicsPanel(QWidget):
         self.lighting_tab.lighting_changed.connect(self._on_lighting_changed)
         if hasattr(self.lighting_tab, "preset_applied"):
             self.lighting_tab.preset_applied.connect(
-                lambda _: self.preset_applied.emit(self.collect_state())
+                lambda label: self._on_tab_preset(
+                    "lighting", label, self.lighting_tab.get_state()
+                )
             )
 
         self.environment_tab.environment_changed.connect(self._on_environment_changed)
         self.quality_tab.quality_changed.connect(self._on_quality_changed)
         self.quality_tab.preset_applied.connect(
-            lambda _: self.preset_applied.emit(self.collect_state())
+            lambda label: self._on_tab_preset(
+                "quality", label, self.quality_tab.get_state()
+            )
         )
         self.scene_tab.scene_changed.connect(self._on_scene_changed)
         self.camera_tab.camera_changed.connect(self._on_camera_changed)
@@ -181,34 +194,99 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
     # ------------------------------------------------------------------
-    def _log_state_changes(self, category: str, new_state: dict[str, Any]) -> None:
-        if not isinstance(new_state, dict):
+    def _log_state_changes(
+        self,
+        category: str,
+        previous_state: Mapping[str, Any] | None,
+        new_state: Mapping[str, Any],
+    ) -> None:
+        if not isinstance(new_state, Mapping):
             return
 
-        raw_previous = self.state.get(category)
-        if isinstance(raw_previous, Mapping):
-            previous_state = dict(raw_previous)
-        elif isinstance(raw_previous, dict):
-            previous_state = raw_previous
+        if isinstance(previous_state, Mapping):
+            before_snapshot = {
+                key: deepcopy(value) for key, value in previous_state.items()
+            }
         else:
-            previous_state = {}
-
-        updated_state: dict[str, Any] = deepcopy(previous_state)
+            before_snapshot = {}
 
         for key, new_value in new_state.items():
-            old_value = previous_state.get(key)
+            old_value = before_snapshot.get(key)
             if old_value != new_value:
                 self.event_logger.log_state_change(category, key, old_value, new_value)
-            updated_state[key] = deepcopy(new_value)
-
-        self.state[category] = updated_state
 
     def _emit_with_logging(
         self, signal_name: str, payload: dict[str, Any], category: str
     ) -> None:
-        self._log_state_changes(category, payload)
-        getattr(self, signal_name).emit(payload)
+        if self._sync_guard:
+            return
+
+        previous_state = self._sync_controller.snapshot().get(category, {})
+        self._log_state_changes(category, previous_state, payload)
+        self._sync_controller.apply_patch(
+            {category: deepcopy(payload)},
+            description=f"Update graphics.{category}",
+            source=signal_name,
+            origin="local",
+            metadata={"category": category},
+        )
+        getattr(self, signal_name).emit(deepcopy(payload))
         self.event_logger.log_signal_emit(signal_name, payload)
+
+    def _apply_state_to_tabs(self, state: Mapping[str, Any]) -> None:
+        try:
+            if self.lighting_tab is not None:
+                self.lighting_tab.set_state(deepcopy(state.get("lighting", {})))
+            if self.environment_tab is not None:
+                self.environment_tab.set_state(deepcopy(state.get("environment", {})))
+            if self.quality_tab is not None:
+                self.quality_tab.set_state(deepcopy(state.get("quality", {})))
+            if self.scene_tab is not None:
+                self.scene_tab.set_state(deepcopy(state.get("scene", {})))
+            if self.animation_tab is not None:
+                self.animation_tab.set_state(deepcopy(state.get("animation", {})))
+            if self.camera_tab is not None:
+                self.camera_tab.set_state(deepcopy(state.get("camera", {})))
+            if self.materials_tab is not None:
+                self.materials_tab.set_state(deepcopy(state.get("materials", {})))
+            if self.effects_tab is not None:
+                self.effects_tab.set_state(deepcopy(state.get("effects", {})))
+                self._update_color_adjustments_toggle(state.get("effects"))
+        except Exception as exc:  # pragma: no cover - defensive logging
+            self.logger.error("Failed to apply graphics state to tabs: %s", exc)
+
+    def _on_state_synced(
+        self, state: Mapping[str, Any], context: Mapping[str, Any]
+    ) -> None:
+        self.state = dict(state)
+        origin = str(context.get("origin", ""))
+        if origin == "local" and not context.get("force_refresh"):
+            return
+
+        self._sync_guard += 1
+        try:
+            self._apply_state_to_tabs(state)
+        finally:
+            self._sync_guard -= 1
+
+    def _on_tab_preset(
+        self, category: str, label: str | None, payload: Mapping[str, Any]
+    ) -> None:
+        metadata = self.preset_manager.record_application(category, label)
+        description = metadata.get(
+            "description", f"Apply {category} preset '{label or 'custom'}'"
+        )
+        source = metadata.get("preset_id") or (label or category)
+        self._sync_controller.apply_patch(
+            {category: deepcopy(payload)},
+            description=description,
+            source=str(source),
+            origin="preset",
+            metadata={**metadata, "force_refresh": True},
+        )
+        state = self.collect_state()
+        self.preset_applied.emit(state)
+        self.event_logger.log_signal_emit("preset_applied", state)
 
     def _on_lighting_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("lighting_changed", data, "lighting")
@@ -246,7 +324,10 @@ class GraphicsPanel(QWidget):
             self,
         )
         toggle.setToolTip(
-            "Включить или выключить цветокоррекцию (яркость, контраст, насыщенность)"
+            self.preset_manager.get_tooltip(
+                "color_correction_toggle",
+                "Включить или выключить цветокоррекцию (яркость, контраст, насыщенность)",
+            )
         )
         toggle.blockSignals(True)
         toggle.setChecked(True)
@@ -259,19 +340,30 @@ class GraphicsPanel(QWidget):
 
         reset_btn = QPushButton("↩︎ Сброс к дефолтам", self)
         reset_btn.setToolTip(
-            "Сбросить к значениям из config/app_settings.json (defaults_snapshot)"
+            self.preset_manager.get_tooltip(
+                "reset_button",
+                "Сбросить к значениям из config/app_settings.json (defaults_snapshot)",
+            )
         )
         reset_btn.clicked.connect(self.reset_to_defaults)
         row.addWidget(reset_btn)
 
         save_default_btn = QPushButton("💾 Сохранить как дефолт", self)
-        save_default_btn.setToolTip("Сохранить текущие настройки в defaults_snapshot")
+        save_default_btn.setToolTip(
+            self.preset_manager.get_tooltip(
+                "save_defaults_button",
+                "Сохранить текущие настройки в defaults_snapshot",
+            )
+        )
         save_default_btn.clicked.connect(self.save_current_as_defaults)
         row.addWidget(save_default_btn)
 
         export_btn = QPushButton("📦 Экспорт пресета", self)
         export_btn.setToolTip(
-            "Сохранить текущие графические настройки и отчёт синхронизации"
+            self.preset_manager.get_tooltip(
+                "export_button",
+                "Сохранить текущие графические настройки и отчёт синхронизации",
+            )
         )
         export_btn.clicked.connect(self.export_sync_analysis)
         row.addWidget(export_btn)
@@ -339,18 +431,8 @@ class GraphicsPanel(QWidget):
             if settings_path is not None:
                 self.logger.info(f"Settings file path: {settings_path}")
 
-            self.state = self.settings_service.load_current()
-
-            self.lighting_tab.set_state(self.state["lighting"])
-            self.environment_tab.set_state(self.state["environment"])
-            self.quality_tab.set_state(self.state["quality"])
-            self.scene_tab.set_state(self.state["scene"])
-            if self.animation_tab is not None:
-                self.animation_tab.set_state(self.state["animation"])
-            self.camera_tab.set_state(self.state["camera"])
-            self.materials_tab.set_state(self.state["materials"])
-            self.effects_tab.set_state(self.state["effects"])
-            self._update_color_adjustments_toggle(self.state["effects"])
+            state = self.settings_service.load_current()
+            self._sync_controller.bootstrap(state)
 
             self.logger.info("✅ Graphics settings loaded from app_settings.json")
         except GraphicsSettingsError as exc:
@@ -381,21 +463,17 @@ class GraphicsPanel(QWidget):
     @Slot()
     def reset_to_defaults(self) -> None:
         try:
-            self.state = self.settings_service.reset_to_defaults()
-            self.lighting_tab.set_state(self.state["lighting"])
-            self.environment_tab.set_state(self.state["environment"])
-            self.quality_tab.set_state(self.state["quality"])
-            self.scene_tab.set_state(self.state["scene"])
-            if self.animation_tab is not None:
-                self.animation_tab.set_state(self.state["animation"])
-            self.camera_tab.set_state(self.state["camera"])
-            self.materials_tab.set_state(self.state["materials"])
-            self.effects_tab.set_state(self.state["effects"])
-            self._update_color_adjustments_toggle(self.state["effects"])
+            state = self.settings_service.reset_to_defaults()
+            self._sync_controller.apply_state(
+                state,
+                description="Reset graphics defaults",
+                source="reset_button",
+                origin="preset",
+                metadata={"preset_id": "defaults", "force_refresh": True},
+            )
             self.logger.info("✅ Graphics reset to defaults completed")
-            self._emit_all_initial()
-            # передаём полный state для MainWindow
             payload = self.collect_state()
+            self._emit_all_initial()
             self.preset_applied.emit(payload)
             self.event_logger.log_signal_emit("preset_applied", payload)
         except GraphicsSettingsError as exc:
@@ -421,22 +499,17 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     def collect_state(self) -> dict[str, Any]:
         try:
-            state = {
-                "lighting": self.lighting_tab.get_state(),
-                "environment": self.environment_tab.get_state(),
-                "quality": self.quality_tab.get_state(),
-                "camera": self.camera_tab.get_state(),
-                # Для сохранения берём ВСЕ материалы из кэша таба
-                "materials": self.materials_tab.get_all_state(),
-                "effects": self.effects_tab.get_state(),
-                "scene": self.scene_tab.get_state(),
-                "animation": (
-                    self.animation_tab.get_state()
-                    if self.animation_tab is not None
-                    else deepcopy(self.state.get("animation", {}))
-                ),
-            }
-            validated = self.settings_service.ensure_valid_state(state)
+            snapshot = self._sync_controller.snapshot()
+            validated = self.settings_service.ensure_valid_state(snapshot)
+            if validated != snapshot:
+                self._sync_controller.apply_state(
+                    validated,
+                    description="Validate graphics state",
+                    source="collect_state",
+                    origin="validation",
+                    record=False,
+                    metadata={"force_refresh": True},
+                )
             self.state = validated
             return validated
         except GraphicsSettingsError as exc:
@@ -483,6 +556,22 @@ class GraphicsPanel(QWidget):
             self.logger.info("✅ Graphics preset exported to %s", preset_path)
         except Exception as e:
             self.logger.error(f"❌ Failed to export graphics preset: {e}")
+
+    def undo_last_change(self) -> bool:
+        return self._sync_controller.undo() is not None
+
+    def redo_last_change(self) -> bool:
+        return self._sync_controller.redo() is not None
+
+    def apply_registered_preset(self, preset_id: str) -> bool:
+        definition = self.preset_manager.apply_registered_preset(preset_id)
+        if definition is None:
+            return False
+        state = self.collect_state()
+        self.preset_applied.emit(state)
+        self.event_logger.log_signal_emit("preset_applied", state)
+        self.logger.info("Applied registered preset %s", preset_id)
+        return True
 
     # Не сохраняем здесь — централизованно в MainWindow.closeEvent()
     def closeEvent(self, event) -> None:  # type: ignore[override]
