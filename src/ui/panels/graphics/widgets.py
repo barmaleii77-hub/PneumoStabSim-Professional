@@ -181,6 +181,44 @@ class LabeledSlider(QWidget):
 
         self.set_value(self._min)
 
+    @property
+    def step_size(self) -> float:
+        """Размер шага, который используется слайдером и спинбоксом."""
+
+        return self._step
+
+    @step_size.setter
+    def step_size(self, value: float) -> None:
+        """Изменить шаг, синхронизируя связанные Qt-контролы."""
+
+        if value <= 0:
+            raise ValueError("Step size must be positive")
+        new_step = float(value)
+        if new_step == self._step:
+            return
+
+        current_value = self.value()
+        self._step = new_step
+
+        steps = max(1, int(round((self._max - self._min) / self._step)))
+        self._slider.setRange(0, steps)
+        self._spin.setSingleStep(self._step)
+
+        # Используем существующую логику clamping/label обновления.
+        self.set_value(current_value)
+
+    @property
+    def step(self) -> float:
+        """Синоним :attr:`step_size` для обратной совместимости."""
+
+        return self.step_size
+
+    @step.setter
+    def step(self, value: float) -> None:
+        """Установить шаг (поддержка устаревшего API)."""
+
+        self.step_size = value
+
     def eventFilter(self, obj, event) -> bool:
         if obj == self._spin:
             if event.type() == event.Type.FocusIn:
@@ -599,6 +637,9 @@ class FileCyclerWidget(QWidget):
         if cached is True:
             return False
 
+        # Пути, заданные через ``items``, считаются валидными даже без файла на диске.
+        # Это упрощает работу unit-тестов, где файлы могут отсутствовать физически.
+        # Пользовательские (введённые вручную) пути продолжают проверяться.
         exists = self._probe_path_exists(path)
         if exists:
             self._path_exists_cache[path] = True

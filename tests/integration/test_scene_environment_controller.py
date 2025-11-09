@@ -16,10 +16,13 @@ pytestmark = pytest.mark.usefixtures("qt_runtime_ready")
 def test_scene_environment_controller_applies_initial_defaults(qapp, settings_manager):
     try:
         from src.ui.main_window_pkg.ui_setup import UISetup
-    except ImportError as exc:  # pragma: no cover - import behaviour depends on Qt packaging
+    except (
+        ImportError
+    ) as exc:  # pragma: no cover - import behaviour depends on Qt packaging
         pytest.fail(
             "UISetup dependencies unavailable. Install Qt runtime via "
-            "`python -m tools.cross_platform_test_prep --run-tests` and retry."
+            "`python -m tools.cross_platform_test_prep --run-tests` and retry. "
+            f"Original error: {exc}"
         )
 
     engine = QQmlEngine()

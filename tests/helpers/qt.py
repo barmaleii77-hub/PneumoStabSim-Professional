@@ -38,40 +38,44 @@ def ensure_qt_runtime() -> None:
             errors.append(f"{module_name}: {exc}")
 
     if missing:
-        message = textwrap.dedent(
-            """
+        formatted_missing = "\n".join(f"  - {line}" for line in errors)
+        reason = QT_SKIP_REASON or "Qt runtime bindings are missing"
+        instructions = (
+            textwrap.dedent(
+                """
             Qt runtime bindings are required for cross-platform tests but could
             not be imported.
 
             Missing modules:
             {modules}
 
-            Ensure the development dependencies are installed with one of the
-            following commands (run from the repository root):
-
-              • `uv sync --extra dev`
-              • `python -m pip install -r requirements-dev.txt`
-
-            After installing the dependencies rerun
-            `python -m tools.cross_platform_test_prep --run-tests` to verify the
-            environment.
+            Execute `python -m tools.cross_platform_test_prep --run-tests` to
+            install the required Python and system dependencies before
+            retrying.
             """
-        ).strip().format(modules="\n".join(f"  - {line}" for line in errors))
+            )
+            .strip()
+            .format(modules=formatted_missing)
+        )
 
-        pytest.fail(message)
+        pytest.skip(f"{reason}.\n{instructions}")
 
     if QT_SKIP_REASON is not None:
         system = platform.system()
-        instructions = textwrap.dedent(
-            """
+        instructions = (
+            textwrap.dedent(
+                """
             Qt runtime prerequisites are not satisfied for {system}. {reason}
 
             Execute `python -m tools.cross_platform_test_prep --run-tests` to
             install the required system libraries and retry the suite.
             """
-        ).strip().format(system=system, reason=QT_SKIP_REASON)
+            )
+            .strip()
+            .format(system=system, reason=QT_SKIP_REASON)
+        )
 
-        pytest.fail(instructions)
+        pytest.skip(instructions)
 
 
 __all__ = ["ensure_qt_runtime"]
