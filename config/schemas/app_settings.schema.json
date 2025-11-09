@@ -1315,7 +1315,14 @@
         },
         "specular_tint": {
           "title": "Specular Tint",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
         },
         "opacity": {
           "title": "Opacity",

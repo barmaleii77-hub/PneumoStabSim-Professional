@@ -162,7 +162,7 @@ shader-artifacts:
 	$(PYTHON) tools/validate_shaders.py --emit-qsb
 
 validate-hdr-orientation:
-	$(PYTHON) tools/graphics/validate_hdr_orientation.py
+	$(PYTHON) tools/render_checks/validate_hdr_orientation.py
 
 check: uv-sync
 	$(PYTHON) -m tools.ci_tasks verify

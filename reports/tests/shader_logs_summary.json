@@ -1,7 +1,7 @@
 [
   {
-    "source": "/workspace/PneumoStabSim-Professional/reports/shaders/fallback_placeholder.log",
-    "generated_at": "2025-11-08T16:25:05Z",
+    "source": "reports/shaders/fallback_placeholder.log",
+    "generated_at": "2025-11-09T07:43:27Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,

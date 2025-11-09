@@ -1,3 +1,5 @@
-timestamp,coverage_lines_covered,coverage_lines_total,coverage_percent,lint_duration_seconds,lint_issues,pytest_duration_seconds,pytest_flaky,tests_total_cases,tests_total_duration_seconds,tests_unit_cases,tests_unit_duration_seconds
-2025-10-30T12:30:45+00:00,,,78.0,12.4,0,95.1,0,,,,
-2025-11-08T16:25:23.957445+00:00,8168,29828,27.38,,,,,278,10.158,278,10.158
+timestamp,coverage_lines_covered,coverage_lines_total,coverage_percent,lint_duration_seconds,lint_issues,pytest_duration_seconds,pytest_flaky,tests_extra_cases,tests_extra_duration_seconds,tests_integration_cases,tests_integration_duration_seconds,tests_total_cases,tests_total_duration_seconds,tests_ui_cases,tests_ui_duration_seconds,tests_unit_cases,tests_unit_duration_seconds
+2025-10-30T12:30:45+00:00,,,78.0,12.4,0,95.1,0,,,,,,,,,,
+2025-11-08T16:25:23.957445+00:00,8168,29828,27.38,,,,,,,,,278,10.158,,,278,10.158
+2025-11-09T07:36:58.015362+00:00,3768,30622,12.30,,,,,,,,,17,8.699,,,17,8.699
+2025-11-09T07:43:26.358372+00:00,9776,30691,31.85,,,,,31,2.093,27,4.154,385,21.555,49,4.662,278,10.646

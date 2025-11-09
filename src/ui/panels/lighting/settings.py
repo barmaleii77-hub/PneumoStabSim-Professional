@@ -19,7 +19,7 @@ from src.infrastructure.container import (
     get_default_container,
 )
 
-from .baseline import MaterialsBaseline, SkyboxOrientation
+from .baseline import MaterialsBaseline, SkyboxOrientation, TonemapPreset
 
 
 class LightingSettingsFacade:
@@ -56,6 +56,11 @@ class LightingSettingsFacade:
         return [
             preset.to_qml_payload() for preset in self._baseline.list_tonemap_presets()
         ]
+
+    def iter_tonemap_presets(self) -> tuple[TonemapPreset, ...]:
+        """Return the calibrated preset models for Python consumers."""
+
+        return self._baseline.list_tonemap_presets()
 
     def resolve_active_tonemap_preset(self) -> str | None:
         """Return the preset id matching the current settings, if any."""
