@@ -117,7 +117,7 @@ package-all:
 	$(MAKE) uv-run CMD="python -m tools.packaging.write_checksums --directory dist/packages"
 
 install-qt-runtime:
-	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1)"
+	@echo "Installing Qt runtime system libraries (libgl1, libxkbcommon0, libegl1, libgles2)"
 	@bash tools/install_qt_runtime.sh
 
 format:

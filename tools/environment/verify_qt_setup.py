@@ -41,6 +41,7 @@ RUNTIME_DEPENDENCY_HINTS: dict[str, str] = {
     "libxkbcommon.so.0": "Install the system package 'libxkbcommon0' or run 'make install-qt-runtime'.",
     "libGL.so.1": "Install the system package 'libgl1' or run 'make install-qt-runtime'.",
     "libEGL.so.1": "Install the system package 'libegl1' or run 'make install-qt-runtime'.",
+    "libGLESv2.so.2": "Install the system package 'libgles2' or run 'make install-qt-runtime'.",
 }
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -89,6 +90,9 @@ RUNTIME_DEPENDENCY_HINTS = {
     "libGL.so.1": DEFAULT_OPENGL_HINT,
     "libEGL.so.1": (
         "Install the system package 'libegl1' (for example 'apt-get install -y libegl1')."
+    ),
+    "libGLESv2.so.2": (
+        "Install the system package 'libgles2' (for example 'apt-get install -y libgles2')."
     ),
 }
 
