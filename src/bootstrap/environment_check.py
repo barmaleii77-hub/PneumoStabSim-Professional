@@ -46,6 +46,31 @@ class EnvironmentReport:
     def is_successful(self) -> bool:
         return all(not check.is_error for check in self.checks)
 
+    def to_markdown(self) -> str:
+        """Render the report as a human-readable Markdown document."""
+
+        lines = [
+            "# PneumoStabSim Environment Report",
+            "",
+            f"- Python: `{self.python_version}`",
+            f"- Platform: `{self.platform}`",
+            f"- Qt: `{self.qt_version or 'unavailable'}`",
+            "",
+            "## Checks",
+            "",
+        ]
+
+        if not self.checks:
+            lines.append("- No checks were executed.")
+        else:
+            for check in self.checks:
+                detail_suffix = f" — {check.detail}" if check.detail else ""
+                lines.append(
+                    f"- **{check.status.upper()}** {check.name}{detail_suffix}"
+                )
+
+        return "\n".join(lines)
+
 
 def _python_version() -> str:
     return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -165,17 +190,33 @@ def collect_env() -> EnvironmentReport:
     )
 
 
-def main() -> int:
-    report = collect_env()
-    print("ENVIRONMENT CHECK")
-    print(f"Python: {report.python_version}")
-    print(f"Platform: {report.platform}")
-    print(f"Qt: {report.qt_version or 'unavailable'}")
+def generate_environment_report() -> EnvironmentReport:
+    """Generate a full environment report for bootstrap checks."""
+
+    return collect_env()
+
+
+def render_console_report(report: EnvironmentReport) -> str:
+    """Render a console-friendly string representation of the report."""
+
+    lines = [
+        "ENVIRONMENT CHECK",
+        f"Python: {report.python_version}",
+        f"Platform: {report.platform}",
+        f"Qt: {report.qt_version or 'unavailable'}",
+        "",
+    ]
 
     for check in report.checks:
         detail_suffix = f": {check.detail}" if check.detail else ""
-        print(f"[{check.status.upper()}] {check.name}{detail_suffix}")
+        lines.append(f"[{check.status.upper()}] {check.name}{detail_suffix}")
 
+    return "\n".join(lines)
+
+
+def main() -> int:
+    report = generate_environment_report()
+    print(render_console_report(report))
     return 0 if report.is_successful else 1
 
 
