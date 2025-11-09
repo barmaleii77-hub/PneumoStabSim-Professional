@@ -22,7 +22,7 @@ from collections.abc import Callable
 from collections.abc import Iterable, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_QT_VERSION = "6.10.2"
+DEFAULT_QT_VERSION = "6.10.1"
 MINIMUM_QT_VERSION = (6, 10, 0)
 DEFAULT_MODULES = ("qtquick3d", "qtshadertools", "qtimageformats")
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "Qt"
