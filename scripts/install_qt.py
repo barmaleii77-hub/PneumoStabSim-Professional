@@ -336,10 +336,12 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
     for version in QT_VERSIONS:
         options = _collect_module_catalogue(version)
         module_catalogue[version] = options
-        unknown_arches: list[str] = []
+        unknown_arch: str | None = None
+        partial_choice: tuple[str, Sequence[str], Sequence[str]] | None = None
         for arch, available in options:
             if available is None:
-                unknown_arches.append(arch)
+                if unknown_arch is None:
+                    unknown_arch = arch
                 continue
             if QT_BASE_MODULE not in available:
                 print(
@@ -348,41 +350,60 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
                 )
                 continue
             missing = [m for m in QT_MODULES if m.lower() not in available]
+            present = [m for m in QT_MODULES if m.lower() in available]
             if not missing:
                 return version, arch, QT_MODULES, []
             print(
                 f"[qt] {version}/{arch} missing modules: {missing}; attempting fallback if available",
                 file=sys.stderr,
             )
-        if unknown_arches:
-            arch = unknown_arches[0]
+            if partial_choice is None:
+                partial_choice = (arch, present or [QT_BASE_MODULE], missing)
+        if partial_choice:
+            return version, *partial_choice
+        if unknown_arch:
             print(
-                f"[qt] Proceeding without module metadata for {version}/{arch}; attempting configured modules",
+                f"[qt] Proceeding without module metadata for {version}/{unknown_arch}; attempting configured modules",
                 file=sys.stderr,
             )
-            return version, arch, QT_MODULES, []
+            return version, unknown_arch, QT_MODULES, []
 
     preferred = QT_VERSIONS[0] if QT_VERSIONS else None
     if not preferred:
         raise RuntimeError("QT_VERSIONS is empty; cannot install Qt")
 
-    preferred_options = module_catalogue[preferred] if preferred in module_catalogue else _collect_module_catalogue(preferred)
+    preferred_options = (
+        module_catalogue[preferred]
+        if preferred in module_catalogue
+        else _collect_module_catalogue(preferred)
+    )
+    unknown_arch: str | None = None
+    partial_choice: tuple[str, Sequence[str], Sequence[str]] | None = None
     for arch, available in preferred_options:
         if available is None:
-            print(
-                f"[qt] Preferred version {preferred} lacks module metadata for {arch}; attempting configured modules",
-                file=sys.stderr,
-            )
-            return preferred, arch, QT_MODULES, []
+            if unknown_arch is None:
+                unknown_arch = arch
+            continue
         if QT_BASE_MODULE not in available:
             continue
         present = [m for m in QT_MODULES if m.lower() in available]
         missing = [m for m in QT_MODULES if m.lower() not in available]
+        if not missing:
+            return preferred, arch, QT_MODULES, []
         print(
             f"[qt] Proceeding with partial module set for {preferred}/{arch}; missing: {missing}",
             file=sys.stderr,
         )
-        return preferred, arch, present or [QT_BASE_MODULE], missing
+        if partial_choice is None:
+            partial_choice = (arch, present or [QT_BASE_MODULE], missing)
+    if partial_choice:
+        return preferred, *partial_choice
+    if unknown_arch:
+        print(
+            f"[qt] Preferred version {preferred} lacks module metadata for {unknown_arch}; attempting configured modules",
+            file=sys.stderr,
+        )
+        return preferred, unknown_arch, QT_MODULES, []
     if preferred_options:
         print(
             f"[qt] Preferred version {preferred} lacks '{QT_BASE_MODULE}' on all discovered architectures",
@@ -395,22 +416,33 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
     )
     for candidate in _list_available_versions():
         options = _collect_module_catalogue(candidate)
+        unknown_arch: str | None = None
+        partial_choice: tuple[str, Sequence[str], Sequence[str]] | None = None
         for arch, available in options:
             if available is None:
-                print(
-                    f"[qt] Falling back to {candidate}/{arch} without module metadata; attempting configured modules",
-                    file=sys.stderr,
-                )
-                return candidate, arch, QT_MODULES, []
+                if unknown_arch is None:
+                    unknown_arch = arch
+                continue
             if QT_BASE_MODULE not in available:
                 continue
             present = [m for m in QT_MODULES if m.lower() in available]
             missing = [m for m in QT_MODULES if m.lower() not in available]
+            if not missing:
+                return candidate, arch, QT_MODULES, []
             print(
                 f"[qt] Falling back to {candidate}/{arch}; missing modules: {missing}",
                 file=sys.stderr,
             )
-            return candidate, arch, present or [QT_BASE_MODULE], missing
+            if partial_choice is None:
+                partial_choice = (arch, present or [QT_BASE_MODULE], missing)
+        if partial_choice:
+            return candidate, *partial_choice
+        if unknown_arch:
+            print(
+                f"[qt] Falling back to {candidate}/{unknown_arch} without module metadata; attempting configured modules",
+                file=sys.stderr,
+            )
+            return candidate, unknown_arch, QT_MODULES, []
 
     raise RuntimeError("Unable to locate any Qt version with available modules via aqt")
 
