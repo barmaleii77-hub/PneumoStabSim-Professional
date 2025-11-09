@@ -301,7 +301,7 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
     if not preferred:
         raise RuntimeError("QT_VERSIONS is empty; cannot install Qt")
 
-    preferred_options = module_catalogue.get(preferred) or _collect_module_catalogue(preferred)
+    preferred_options = module_catalogue[preferred] if preferred in module_catalogue else _collect_module_catalogue(preferred)
     for arch, available in preferred_options:
         if QT_BASE_MODULE not in available:
             continue
