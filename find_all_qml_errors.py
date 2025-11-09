@@ -6,6 +6,8 @@ import subprocess
 import sys
 import re
 
+from tools.headless import prepare_launch_environment
+
 
 def find_all_qml_errors():
     print("=" * 70)
@@ -21,9 +23,10 @@ def find_all_qml_errors():
             timeout=15,
             encoding="utf-8",
             errors="replace",
+            env=prepare_launch_environment(),
         )
 
-        output = result.stdout + result.stderr
+        output = (result.stdout or "") + (result.stderr or "")
 
         # Ищем все ошибки "Cannot assign"
         cannot_assign_pattern = r'Cannot assign to non-existent property "([^"]+)"'

@@ -4,6 +4,14 @@
 # Настройка для запуска PneumoStabSim
 $PneumoPath = "C:\Users\Алексей\source\repos\barmaleii77-hub\PneumoStabSim-Professional"
 
+# Shared helper so launch commands honour the headless toggle.
+function Test-PssHeadless {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    $normalised = $Value.Trim().ToLowerInvariant()
+    return @('1', 'true', 'yes', 'on') -contains $normalised
+}
+
 # Псевдонимы для быстрого запуска
 function Start-PneumoStabSim {
     [CmdletBinding()]
@@ -25,6 +33,23 @@ function Start-PneumoStabSim {
     if ($Legacy) { $arguments += "--legacy" }
     if ($Debug) { $arguments += "--debug" }
     if ($NoBlock) { $arguments += "--no-block" }
+
+    $headlessRequested = Test-PssHeadless $env:PSS_HEADLESS
+    if ($headlessRequested) {
+        $env:PSS_HEADLESS = '1'
+        if (-not $env:QT_QPA_PLATFORM) { $env:QT_QPA_PLATFORM = 'offscreen' }
+        if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'software' }
+    } else {
+        if ($env:QT_QPA_PLATFORM -eq 'offscreen') {
+            Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
+        }
+        if ($env:QT_QUICK_BACKEND -eq 'software') {
+            Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue
+        }
+        Remove-Item Env:PSS_FORCE_NO_QML_3D -ErrorAction SilentlyContinue
+        $env:QSG_RHI_BACKEND = 'd3d11'
+        if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'rhi' }
+    }
 
     Write-Host "🚀 Запуск PneumoStabSim..." -ForegroundColor Green
     py app.py @arguments

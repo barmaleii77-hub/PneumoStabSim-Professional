@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any
 import logging
 
+from tools.headless import prepare_launch_environment
+
 
 class ProjectTester:
     """Comprehensive project testing and validation"""
@@ -47,7 +49,11 @@ class ProjectTester:
         self.logger.info(f"Test session started - Log file: {log_file}")
 
     def run_command(
-        self, command: list[str], cwd: Path | None = None, timeout: int = 60
+        self,
+        command: list[str],
+        cwd: Path | None = None,
+        timeout: int = 60,
+        env: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Run a command and capture output"""
         cwd = cwd or self.project_root
@@ -63,6 +69,7 @@ class ProjectTester:
                 timeout=timeout,
                 encoding="utf-8",
                 errors="replace",
+                env=env,
             )
 
             return {
@@ -172,8 +179,9 @@ except Exception as e:
         self.logger.info("Testing Python application startup...")
 
         # Test with --test-mode for automatic shutdown
+        app_env = prepare_launch_environment()
         app_result = self.run_command(
-            [sys.executable, "app.py", "--test-mode"], timeout=30
+            [sys.executable, "app.py", "--test-mode"], timeout=30, env=app_env
         )
 
         self.results["tests"]["python_app_startup"] = {

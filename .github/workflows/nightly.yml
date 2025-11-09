@@ -18,9 +18,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     env:
-      QT_QPA_PLATFORM: offscreen
-      QT_QUICK_BACKEND: rhi
-      QSG_RHI_BACKEND: d3d11
       PSS_ENV_PRESET: trace
       PYTHONPATH: src
     steps:
@@ -109,13 +106,24 @@ jobs:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
-      - name: Run make full_verify
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            bash scripts/xvfb_wrapper.sh make full_verify
-          else
-            make full_verify
-          fi
+      - name: Run make full_verify (Linux)
+        if: runner.os == 'Linux'
+        env:
+          PSS_HEADLESS: "1"
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          QSG_RHI_BACKEND: opengl
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "4.1"
+          MESA_GLSL_VERSION_OVERRIDE: "410"
+        run: bash scripts/xvfb_wrapper.sh make full_verify
+
+      - name: Run make full_verify (Windows)
+        if: runner.os == 'Windows'
+        env:
+          QSG_RHI_BACKEND: d3d11
+          QT_QUICK_BACKEND: rhi
+        run: make full_verify
 
       - name: Run autonomous check with launch trace
         env:

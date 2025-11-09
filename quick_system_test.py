@@ -8,6 +8,8 @@ import sys
 import time
 from pathlib import Path
 
+from tools.headless import prepare_launch_environment
+
 
 def test_app_launch():
     """Тест запуска приложения в тестовом режиме"""
@@ -25,6 +27,7 @@ def test_app_launch():
             capture_output=True,
             text=True,
             timeout=10,  # Максимум 10 секунд
+            env=prepare_launch_environment(),
         )
 
         duration = time.time() - start_time

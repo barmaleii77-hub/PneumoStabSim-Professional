@@ -51,6 +51,9 @@ def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str
     if _is_truthy(env.get("CI")):
         reasons.append("ci-flag")
 
+    if _is_truthy(env.get("PSS_HEADLESS")):
+        reasons.append("flag:pss-headless")
+
     qt_qpa_raw = env.get("QT_QPA_PLATFORM")
     qt_qpa = (qt_qpa_raw or "").strip().lower()
     has_display = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))

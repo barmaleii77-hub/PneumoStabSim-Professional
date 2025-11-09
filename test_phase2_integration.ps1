@@ -7,7 +7,34 @@ Write-Host "══════════════════════�
 Write-Host ""
 
 Write-Host "🧪 Testing camera module integration..." -ForegroundColor Yellow
-Write-Host ""
+Write-Host "" 
+
+# Headless toggle support mirrors run.ps1 so GPU/D3D11 stays the default.
+function Test-PssHeadless {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    $normalised = $Value.Trim().ToLowerInvariant()
+    return @('1', 'true', 'yes', 'on') -contains $normalised
+}
+
+$headlessRequested = Test-PssHeadless $env:PSS_HEADLESS
+if ($headlessRequested) {
+    $env:PSS_HEADLESS = '1'
+    if (-not $env:QT_QPA_PLATFORM) { $env:QT_QPA_PLATFORM = 'offscreen' }
+    if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'software' }
+    Write-Host "ℹ️ Headless mode active — Qt offscreen/software paths enabled." -ForegroundColor Cyan
+} else {
+    if ($env:QT_QPA_PLATFORM -eq 'offscreen') {
+        Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
+    }
+    if ($env:QT_QUICK_BACKEND -eq 'software') {
+        Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue
+    }
+    Remove-Item Env:PSS_FORCE_NO_QML_3D -ErrorAction SilentlyContinue
+    $env:QSG_RHI_BACKEND = 'd3d11'
+    if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'rhi' }
+    Write-Host "ℹ️ GPU mode active — forcing Direct3D 11 scene graph backend." -ForegroundColor Cyan
+}
 
 # Check if Python is available
 Write-Host "1. Checking Python..." -ForegroundColor Cyan

@@ -35,6 +35,11 @@ from defusedxml import ElementTree as ET
 
 from tools import env_profiles
 from tools import merge_conflict_scan
+from tools.headless import (
+    apply_gpu_defaults,
+    apply_headless_defaults,
+    headless_requested,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
@@ -286,16 +291,18 @@ def _prepare_cross_platform_test_environment(
     # Record the detected platform for downstream tooling (reports, logs).
     target_env.setdefault("PSS_DETECTED_PLATFORM", detected)
 
-    if normalised.startswith("win"):
-        target_env.setdefault("QT_QUICK_BACKEND", "rhi")
-        target_env.setdefault("QSG_RHI_BACKEND", "d3d11")
-    elif normalised.startswith("darwin") or normalised.startswith("mac"):
-        target_env.setdefault("QT_QUICK_BACKEND", "rhi")
-        target_env.setdefault("QSG_RHI_BACKEND", "metal")
+    if headless_requested(target_env):
+        apply_headless_defaults(target_env)
+        mode = "headless"
     else:
-        target_env.setdefault("QT_QPA_PLATFORM", "offscreen")
-        target_env.setdefault("QT_QUICK_BACKEND", "software")
-        target_env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+        apply_gpu_defaults(target_env, platform_name=detected)
+        mode = "gpu"
+        if normalised.startswith("linux"):
+            target_env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+
+    target_env.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+
+    _safe_console_write(f"[ci_tasks] Qt launch mode: {mode}\n")
 
     return normalised or "unknown"
 
