@@ -15,6 +15,13 @@ param(
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
+function Get-PssHeadlessPreference {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    $normalised = $Value.Trim().ToLowerInvariant()
+    return @('1', 'true', 'yes', 'on') -contains $normalised
+}
+
 # Проверка venv
 if (-not (Test-Path "venv\Scripts\python.exe")) {
     Write-Host "❌ Виртуальное окружение не найдено!" -ForegroundColor Red
@@ -35,7 +42,18 @@ $env:QT_AUTO_SCREEN_SCALE_FACTOR = "1"
 $env:QT_SCALE_FACTOR_ROUNDING_POLICY = "PassThrough"
 $env:QT_ENABLE_HIGHDPI_SCALING = "1"
 
-$backendLabel = "OpenGL RHI (forced for advanced effects)"
+$headlessRequested = Get-PssHeadlessPreference $env:PSS_HEADLESS
+if ($headlessRequested) {
+    $env:PSS_HEADLESS = '1'
+    if (-not $env:QT_QPA_PLATFORM) { $env:QT_QPA_PLATFORM = 'offscreen' }
+    if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'software' }
+}
+
+$backendLabel = if ($headlessRequested) {
+    "Headless (offscreen/software)"
+} else {
+    "Direct3D 11 (GPU)"
+}
 
 if ($SafeMode) {
     if (Test-Path Env:\QSG_RHI_BACKEND) {
@@ -49,9 +67,11 @@ if ($SafeMode) {
     }
     $backendLabel = "auto (Qt runtime default)"
     Write-Host "ℹ️ Safe mode detected — Qt will auto-select the scene graph backend." -ForegroundColor Yellow
+} elseif (-not $headlessRequested) {
+    $env:QSG_RHI_BACKEND = "d3d11"
+    Write-Host "ℹ️ Standard mode active — forcing Direct3D 11 scene graph backend for full feature support." -ForegroundColor Cyan
 } else {
-    $env:QSG_RHI_BACKEND = "opengl"
-    Write-Host "ℹ️ Standard mode active — forcing OpenGL scene graph backend for full feature support." -ForegroundColor Cyan
+    Write-Host "ℹ️ Headless mode active — Qt will render offscreen using software paths." -ForegroundColor Cyan
 }
 
 Write-Host "ℹ️ Scene graph backend configuration: $backendLabel" -ForegroundColor Cyan
@@ -60,8 +80,12 @@ if ($Debug) {
     $env:QSG_INFO = "1"
     $env:QT_LOGGING_RULES = "qt.qml.connections=true;qt.quick.3d=true"
     $env:PSS_DIAG = "1"
+} elseif ($headlessRequested) {
+    if (-not $env:QSG_INFO) { $env:QSG_INFO = "1" }
+    $env:QT_LOGGING_RULES = "*.debug=false;*.info=false"
+    $env:PSS_DIAG = "1"
 } else {
-    $env:QSG_INFO = "0"
+    if (-not $env:QSG_INFO) { $env:QSG_INFO = "0" }
     $env:QT_LOGGING_RULES = "*.debug=false;*.info=false"
     $env:PSS_DIAG = "1"
 }
