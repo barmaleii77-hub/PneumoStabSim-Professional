@@ -160,6 +160,10 @@ ExtendedSceneEnvironment {
     property real tonemapExposureValue: effectsNumberDefault("tonemapExposure", "tonemap_exposure", 0.0)
     property real tonemapWhitePointValue: effectsNumberDefault("tonemapWhitePoint", "tonemap_white_point", 1.0)
 
+    // Прямое связывание: значения из настроек применяются к ExtendedSceneEnvironment
+    exposure: tonemapExposureValue
+    whitePoint: tonemapWhitePointValue
+
     onTonemapActiveChanged: {
         var value = !!tonemapActive
         try {
