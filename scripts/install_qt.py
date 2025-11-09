@@ -64,6 +64,24 @@ def _aqt_install_args() -> list[str]:
 
 
 _arch_cache: dict[str, list[str]] = {}
+_logged_versions: bool = False
+_logged_arches: set[str] = set()
+
+
+def _run_diagnostic_command(args: Sequence[str], *, label: str) -> None:
+    """Run an aqt helper command and stream its output for diagnostics."""
+
+    print(f"[qt] {label}: aqt {' '.join(args)}", file=sys.stderr)
+    try:
+        output = subprocess.check_output(AQT_BASE_CMD + list(args), text=True)
+    except subprocess.CalledProcessError as exc:  # pragma: no cover - diagnostic path
+        print(
+            f"[qt] Diagnostic command failed for {label}: {exc}",
+            file=sys.stderr,
+        )
+        return
+
+    print(output, file=sys.stderr)
 
 
 def _list_available_arches(version: str) -> list[str]:
@@ -131,6 +149,11 @@ def _list_available_modules(version: str, arch: str) -> set[str]:
             f"[qt] Unable to list modules for {version}/{arch}: {exc}",
             file=sys.stderr,
         )
+        global _logged_versions
+        if not _logged_versions:
+            _log_available_versions()
+        if version not in _logged_arches:
+            _log_available_architectures(version)
         return set()
 
     available: set[str] = set()
@@ -196,6 +219,28 @@ def _list_available_versions() -> Sequence[str]:
 
     versions.sort(key=_version_sort_key, reverse=True)
     return versions
+
+
+def _log_available_versions() -> None:
+    global _logged_versions
+    if _logged_versions:
+        return
+    _run_diagnostic_command(
+        ["list-qt", "linux", "desktop"],
+        label="Available Qt versions",
+    )
+    _logged_versions = True
+
+
+def _log_available_architectures(version: str) -> None:
+    global _logged_arches
+    if version in _logged_arches:
+        return
+    _run_diagnostic_command(
+        ["list-qt", "linux", "desktop", "--arch", version],
+        label=f"Architectures for Qt {version}",
+    )
+    _logged_arches.add(version)
 
 
 def _normalise_modules(modules: Iterable[str]) -> list[str]:
