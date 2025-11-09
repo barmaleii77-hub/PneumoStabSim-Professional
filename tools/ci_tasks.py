@@ -994,9 +994,31 @@ def task_shaders() -> None:
     )
 
 
+def task_migrate_settings() -> None:
+    """Apply JSON settings migrations to the working configuration."""
+
+    command = [
+        sys.executable,
+        "-m",
+        "tools.migrations.apply",
+        "--settings",
+        str(PROJECT_ROOT / "config" / "app_settings.json"),
+        "--migrations",
+        str(PROJECT_ROOT / "config" / "migrations"),
+        "--in-place",
+    ]
+
+    _run_command(
+        command,
+        task_name="settings-migrate",
+        log_name="settings_migrate.log",
+    )
+
+
 def task_verify() -> None:
     """Run linting, type-checking and tests sequentially."""
 
+    task_migrate_settings()
     task_lint()
     task_typecheck()
     task_qml_lint()

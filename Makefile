@@ -15,7 +15,7 @@ PYTEST_FLAGS ?= -vv --color=yes --maxfail=1
 AUTONOMOUS_CHECK_ARGS ?= --task verify --history-limit 10 --sanitize --launch-trace
 CHECK_AUTONOMOUS_ARGS ?= --task verify --history-limit 5 --sanitize-history 3
 SMOKE_TARGET ?= tests/smoke
-INTEGRATION_TARGET ?= tests/integration/test_main_window_qml.py
+INTEGRATION_TARGET ?= tests/integration
 RUN_ARGS ?=
 
 .PHONY: format lint typecheck qml-lint test-local test-unit test-integration test-ui analyze-logs \
@@ -165,6 +165,8 @@ validate-hdr-orientation:
 	$(PYTHON) tools/render_checks/validate_hdr_orientation.py
 
 check: uv-sync
+	$(PYTHON) -m json.tool config/app_settings.json >/dev/null
+	$(PYTHON) tools/validate_settings.py --quiet
 	$(PYTHON) -m tools.ci_tasks verify
 	$(PYTHON) tools/check_workflow_pins.py
 	$(MAKE) check-shaders

@@ -1,0 +1,27 @@
+{
+  "id": "0002_remove_geometry_mesh_extras",
+  "description": "Remove legacy mesh detail parameters from geometry sections and refresh metadata.",
+  "operations": [
+    {
+      "op": "delete",
+      "path": "current.geometry.cylinder_segments"
+    },
+    {
+      "op": "delete",
+      "path": "current.geometry.cylinder_rings"
+    },
+    {
+      "op": "delete",
+      "path": "defaults_snapshot.geometry.cylinder_segments"
+    },
+    {
+      "op": "delete",
+      "path": "defaults_snapshot.geometry.cylinder_rings"
+    },
+    {
+      "op": "set",
+      "path": "metadata.last_migration",
+      "value": "0002_remove_geometry_mesh_extras"
+    }
+  ]
+}

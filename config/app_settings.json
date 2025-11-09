@@ -5,9 +5,10 @@
     "last_modified": "2025-11-06T03:20:46.958Z",
     "units_version": "si_v2",
     "migrations": [
-      "0001_add_diagnostics_defaults"
+      "0001_add_diagnostics_defaults",
+      "0002_remove_geometry_mesh_extras"
     ],
-    "last_migration": "0001_add_diagnostics_defaults",
+    "last_migration": "0002_remove_geometry_mesh_extras",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
     "total_parameters": 317,

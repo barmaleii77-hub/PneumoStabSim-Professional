@@ -147,7 +147,7 @@ class MigrationDescriptor:
     source: Path
 
     def apply(self, payload: dict[str, Any]) -> bool:
-        """Apply the migration to *payload*.
+        """Apply the migration to *payload* with basic logging.
 
         Returns ``True`` if any operation mutated the payload.
         """
@@ -156,6 +156,12 @@ class MigrationDescriptor:
         for operation in self.operations:
             if _apply_operation(payload, operation):
                 changed = True
+                op_type = operation.get("op", "<unknown>")
+                path = operation.get("path")
+                if path:
+                    print(f"[migration:{self.identifier}] {op_type} {path}")
+                else:
+                    print(f"[migration:{self.identifier}] {op_type}")
         return changed
 
 

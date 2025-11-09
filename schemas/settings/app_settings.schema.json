@@ -1151,6 +1151,24 @@
           "type": "string"
         }
       },
+      "allOf": [
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "cylinder_segments"
+                ]
+              },
+              {
+                "required": [
+                  "cylinder_rings"
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "required": [
         "wheelbase",
         "track",

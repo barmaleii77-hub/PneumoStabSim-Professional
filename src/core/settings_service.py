@@ -14,7 +14,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path, PureWindowsPath
 from typing import Any
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping
 from collections.abc import Mapping as MappingABC
 
 from src.infrastructure.container import (
@@ -52,23 +52,7 @@ class _LooseAppSettings:
 _MISSING = object()
 
 
-def _load_base_payload() -> dict[str, Any]:
-    template_path = Path(__file__).resolve().parents[2] / "config" / "app_settings.json"
-    try:
-        content = template_path.read_text(encoding="utf-8")
-    except OSError:
-        return {}
-    try:
-        payload = json.loads(content)
-    except json.JSONDecodeError:
-        return {}
-    if isinstance(payload, dict):
-        return payload
-    return {}
-
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_SETTINGS_BASE_PAYLOAD = _load_base_payload()
 
 
 class SettingsValidationError(ValueError):
@@ -171,44 +155,29 @@ class SettingsService:
         try:
             return model_factory.model_validate(payload)
         except ValidationError as exc:  # pragma: no cover - validated via tests
-            if not self._validate_schema:
-                sanitized = self._sanitize_payload_for_model(payload, exc)
-                enriched = self._merge_with_template(sanitized)
-                try:
-                    return AppSettings.model_validate(enriched)
-                except ValidationError as nested:
-                    raise SettingsValidationError(
-                        "Settings payload failed typed validation"
-                    ) from nested
             raise SettingsValidationError(
                 "Settings payload failed typed validation"
             ) from exc
-
-    def _sanitize_payload_for_model(
-        self, payload: Mapping[str, Any], exc: ValidationError
-    ) -> dict[str, Any]:
-        sanitized: dict[str, Any] = json.loads(json.dumps(payload))
-        for error in exc.errors():
-            if error.get("type") != "extra_forbidden":
-                continue
-            location = error.get("loc")
-            if not location:
-                continue
-            self._prune_location(sanitized, location)
-        return sanitized
-
-    def _merge_with_template(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        if not isinstance(_SETTINGS_BASE_PAYLOAD, dict):
-            return json.loads(json.dumps(payload))
-        template = deepcopy(_SETTINGS_BASE_PAYLOAD)
-        self._deep_merge(template, payload)
-        return template
 
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None
     ) -> None:
         if not isinstance(payload, MutableMapping):
             return
+
+        alias_pairs: tuple[tuple[str, str], ...] = (
+            ("fog_depth_near", "fog_near"),
+            ("fog_depth_far", "fog_far"),
+        )
+
+        def _copy_alias(section: MutableMapping[str, Any] | None) -> None:
+            if not isinstance(section, MutableMapping):
+                return
+            for primary, alias in alias_pairs:
+                if primary in section and alias not in section:
+                    section[alias] = deepcopy(section[primary])
+                elif alias in section and primary not in section:
+                    section[primary] = deepcopy(section[alias])
 
         def _environment_section(
             root: MutableMapping[str, Any] | None,
@@ -236,104 +205,17 @@ class SettingsService:
                 return None
             return ranges
 
-        def _mirror_value(
-            section: MutableMapping[str, Any],
-            primary: str,
-            legacy: str,
-        ) -> None:
-            if primary in section and legacy not in section:
-                section[legacy] = section[primary]
-            elif legacy in section and primary not in section:
-                section[primary] = section[legacy]
+        for section in (
+            payload.get("current"),
+            payload.get("defaults_snapshot"),
+        ):
+            _copy_alias(_environment_section(section))
+            _copy_alias(_environment_ranges(section))
 
-        def _sync_environment(section: MutableMapping[str, Any]) -> None:
-            _mirror_value(section, "fog_depth_near", "fog_near")
-            _mirror_value(section, "fog_depth_far", "fog_far")
-            if "fog_depth_enabled" not in section:
-                section["fog_depth_enabled"] = bool(section.get("fog_enabled", True))
-            if "fog_depth_curve" not in section:
-                fallback = section.get("fog_height_curve")
-                if isinstance(fallback, (int, float)):
-                    section["fog_depth_curve"] = fallback
-                else:
-                    section["fog_depth_curve"] = 1.0
-
-        def _sync_ranges(section: MutableMapping[str, Any]) -> None:
-            if "fog_depth_near" in section and "fog_near" not in section:
-                section["fog_near"] = deepcopy(section["fog_depth_near"])
-            elif "fog_near" in section and "fog_depth_near" not in section:
-                section["fog_depth_near"] = deepcopy(section["fog_near"])
-
-            if "fog_depth_far" in section and "fog_far" not in section:
-                section["fog_far"] = deepcopy(section["fog_depth_far"])
-            elif "fog_far" in section and "fog_depth_far" not in section:
-                section["fog_depth_far"] = deepcopy(section["fog_far"])
-
-            if "fog_depth_curve" not in section and "fog_height_curve" in section:
-                section["fog_depth_curve"] = deepcopy(section["fog_height_curve"])
-            elif "fog_height_curve" not in section and "fog_depth_curve" in section:
-                section["fog_height_curve"] = deepcopy(section["fog_depth_curve"])
-
-        current = payload.get("current")
-        defaults_snapshot = payload.get("defaults_snapshot")
         metadata = payload.get("metadata")
-
-        for section in (
-            _environment_section(current),
-            _environment_section(defaults_snapshot),
-        ):
-            if section is not None:
-                _sync_environment(section)
-
-        for section in (
-            _environment_ranges(current),
-            _environment_ranges(defaults_snapshot),
-        ):
-            if section is not None:
-                _sync_ranges(section)
-
         if isinstance(metadata, MutableMapping):
             slider_ranges = metadata.get("environment_slider_ranges")
-            if isinstance(slider_ranges, MutableMapping):
-                _sync_ranges(slider_ranges)
-
-    @staticmethod
-    def _prune_location(payload: Any, location: Sequence[Any]) -> None:
-        if not location:
-            return
-
-        target: Any = payload
-        for segment in location[:-1]:
-            if isinstance(segment, int):
-                if isinstance(target, list) and 0 <= segment < len(target):
-                    target = target[segment]
-                else:
-                    return
-            else:
-                if isinstance(target, MutableMapping):
-                    target = target.get(segment)
-                else:
-                    return
-
-        final = location[-1]
-        if isinstance(final, int):
-            if isinstance(target, list) and 0 <= final < len(target):
-                target.pop(final)
-        else:
-            if isinstance(target, MutableMapping):
-                target.pop(final, None)
-
-    @staticmethod
-    def _deep_merge(
-        target: MutableMapping[str, Any], source: Mapping[str, Any]
-    ) -> None:
-        for key, value in source.items():
-            if isinstance(value, Mapping) and isinstance(
-                target.get(key), MutableMapping
-            ):
-                SettingsService._deep_merge(target[key], value)
-            else:
-                target[key] = deepcopy(value)
+            _copy_alias(slider_ranges)
 
     @staticmethod
     def _prune_slider_metadata_nulls(payload: Any) -> None:
@@ -468,6 +350,7 @@ class SettingsService:
             payload_dict = json.loads(json.dumps(payload))
             self._prune_slider_metadata_nulls(payload_dict)
 
+        self._normalise_fog_depth_aliases(payload_dict)
         self._normalise_hdr_paths(payload_dict)
         self._strip_null_slider_metadata(payload_dict)
 
@@ -913,28 +796,9 @@ class SettingsService:
         *,
         extra_unknown_paths: Iterable[str] | None = None,
     ) -> Mapping[str, Any]:
-        """Return payload stripped of unknown paths for typed validation."""
+        """Return the payload for typed validation without pruning extras."""
 
-        if self._validate_schema:
-            return payload
-
-        skip_paths: set[str] = set(self._unknown_paths)
-        if extra_unknown_paths:
-            skip_paths.update(extra_unknown_paths)
-        if not skip_paths:
-            return payload
-
-        clone = json.loads(json.dumps(payload))
-        for candidate in skip_paths:
-            self._prune_path(clone, candidate)
-        return clone
-
-    def _prune_path(self, payload: MutableMapping[str, Any], path: str) -> None:
-        segments = list(self._split_path(path))
-        if not segments:
-            return
-
-        self._prune_location(payload, segments)
+        return payload
 
     def _capture_last_modified(self, payload: MappingABC[str, Any]) -> None:
         metadata = payload.get("metadata") if isinstance(payload, MappingABC) else None
