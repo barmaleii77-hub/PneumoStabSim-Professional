@@ -222,7 +222,7 @@ class SignalsRouter:
                 "probe_horizon": "probe_horizon",
                 "rotation": "ibl_rotation",
                 "rotation_x": "ibl_offset_x",
-                "rotation_y": "ibl_rotation_deg",
+                "rotation_y": "ibl_rotation",
                 "rotation_z": "ibl_offset_y",
                 "bind_to_camera": "ibl_bind_to_camera",
             }
