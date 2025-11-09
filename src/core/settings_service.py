@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from copy import deepcopy
-from collections.abc import Mapping as MappingABC
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping as MappingABC
 
 from src.infrastructure.container import (
     ServiceContainer,
@@ -150,6 +151,7 @@ class SettingsService:
                 f"Failed to read settings file '{path}': {exc}"
             ) from exc
         self._normalise_fog_depth_aliases(payload)
+        self._normalise_hdr_paths(payload)
 
         if self._validate_schema:
             self.validate(payload)
@@ -345,6 +347,66 @@ class SettingsService:
             for item in payload:
                 SettingsService._prune_slider_metadata_nulls(item)
 
+    @staticmethod
+    def _normalise_hdr_path_value(value: Any) -> str:
+        if value is None:
+            return ""
+        try:
+            text = str(value).strip()
+        except Exception:
+            return ""
+        if not text:
+            return ""
+
+        lowered = text.lower()
+        if lowered.startswith("file://"):
+            text = text[7:]
+        elif lowered.startswith("file:/"):
+            text = text[6:]
+
+        text = text.replace("\\", "/")
+
+        try:
+            candidate = Path(text).expanduser()
+        except Exception:
+            return text
+
+        try:
+            resolved = candidate.resolve(strict=False)
+        except Exception:
+            resolved = candidate
+
+        normalised = resolved.as_posix()
+
+        if re.match(r"^[a-zA-Z]:[\\/].*", text):
+            windows_normalised = PureWindowsPath(text).as_posix()
+            if windows_normalised and windows_normalised not in normalised:
+                normalised = windows_normalised
+
+        return normalised
+
+    def _normalise_hdr_paths(self, payload: MutableMapping[str, Any] | None) -> None:
+        if not isinstance(payload, MutableMapping):
+            return
+
+        def _normalise_section(root: MutableMapping[str, Any] | None) -> None:
+            if not isinstance(root, MutableMapping):
+                return
+            graphics = root.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+            environment = graphics.get("environment")
+            if not isinstance(environment, MutableMapping):
+                return
+            if "ibl_source" in environment:
+                current_value = environment.get("ibl_source")
+                normalised = self._normalise_hdr_path_value(current_value)
+                if normalised != current_value:
+                    environment["ibl_source"] = normalised
+
+        _normalise_section(payload.get("current"))
+        _normalise_section(payload.get("defaults_snapshot"))
+
     def _write_file(self, payload: dict[str, Any]) -> None:
         path = self.resolve_path()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -397,6 +459,7 @@ class SettingsService:
             payload_dict = json.loads(json.dumps(payload))
             self._prune_slider_metadata_nulls(payload_dict)
 
+        self._normalise_hdr_paths(payload_dict)
         self._strip_null_slider_metadata(payload_dict)
 
         last_modified = self._ensure_last_modified(payload_dict)

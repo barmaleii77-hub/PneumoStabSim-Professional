@@ -65,6 +65,8 @@ def init_logging(
     max_bytes: int = 10 * 1024 * 1024,  # 10 MB
     backup_count: int = 5,
     console_output: bool = False,
+    *,
+    level: int = logging.DEBUG,
 ) -> logging.Logger:
     """Initialize application logging with non-blocking queue handler
 
@@ -88,6 +90,7 @@ def init_logging(
         max_bytes: Maximum log file size before rotation (default 10MB)
         backup_count: Number of backup files to keep (default 5)
         console_output: Enable console output (default False)
+        level: Minimum log level captured by the root logger (default DEBUG)
 
     Returns:
         Root logger instance
@@ -118,7 +121,7 @@ def init_logging(
 
     # Get root logger (or app-specific root)
     root_logger = logging.getLogger(app_name)
-    root_logger.setLevel(logging.DEBUG)  # Capture all levels
+    root_logger.setLevel(level)
     root_logger.propagate = False  # Don't propagate to Python root logger
 
     # Remove existing handlers

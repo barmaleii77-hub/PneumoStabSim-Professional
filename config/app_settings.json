@@ -307,7 +307,7 @@
         "skybox_brightness": 1.0,
         "probe_horizon": 0.0,
         "ibl_rotation": 0.0,
-        "ibl_source": "file:/C:/Users/%D0%90%D0%BB%D0%B5%D0%BA%D1%81%D0%B5%D0%B9/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/hdr/university_workshop_8k.exr",
+        "ibl_source": "assets/hdr/university_workshop_8k.exr",
         "skybox_blur": 0.08,
         "ibl_offset_x": 0.0,
         "ibl_offset_y": 0.0,

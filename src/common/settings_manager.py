@@ -29,7 +29,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from collections.abc import Iterable
 
@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SETTINGS_PATH = Path("config/app_settings.json")
 _DEFAULT_UNITS_VERSION = "si_v2"
 _MM_PER_M = 1000.0
+_WINDOWS_DRIVE_PATTERN = re.compile(r"^[a-zA-Z]:[\\/]")
 
 _GEOMETRY_LINEAR_KEYS: dict[str, None] = {
     "wheelbase": None,
@@ -449,6 +450,66 @@ class SettingsManager:
                 changed = True
         return changed
 
+    @staticmethod
+    def _normalise_hdr_path_value(value: Any) -> str:
+        if value is None:
+            return ""
+        try:
+            text = str(value).strip()
+        except Exception:
+            return ""
+        if not text:
+            return ""
+
+        lowered = text.lower()
+        if lowered.startswith("file://"):
+            text = text[7:]
+        elif lowered.startswith("file:/"):
+            text = text[6:]
+
+        text = text.replace("\\", "/")
+
+        try:
+            candidate = Path(text).expanduser()
+        except Exception:
+            return text
+
+        try:
+            resolved = candidate.resolve(strict=False)
+        except Exception:
+            resolved = candidate
+
+        normalised = resolved.as_posix()
+
+        if _WINDOWS_DRIVE_PATTERN.match(text):
+            windows_normalised = PureWindowsPath(text).as_posix()
+            if windows_normalised and windows_normalised not in normalised:
+                normalised = windows_normalised
+
+        return normalised
+
+    def _normalise_hdr_paths(self) -> bool:
+        changed = False
+
+        for container in (self._data, self._defaults):
+            if not isinstance(container, dict):
+                continue
+            graphics = container.get("graphics")
+            if not isinstance(graphics, dict):
+                continue
+            environment = graphics.get("environment")
+            if not isinstance(environment, dict):
+                continue
+
+            if "ibl_source" in environment:
+                current_value = environment.get("ibl_source")
+                normalised = self._normalise_hdr_path_value(current_value)
+                if normalised != current_value:
+                    environment["ibl_source"] = normalised
+                    changed = True
+
+        return changed
+
     def _assign_sections(self, payload: dict[str, Any]) -> None:
         def _section_payload(name: str) -> dict[str, Any]:
             raw = payload.get(name)
@@ -482,6 +543,8 @@ class SettingsManager:
         if self._normalise_units():
             dirty = True
         if self._normalise_graphics_sections():
+            dirty = True
+        if self._normalise_hdr_paths():
             dirty = True
         self._dirty = dirty
         self._warn_missing_required_paths()
@@ -928,6 +991,10 @@ class SettingsManager:
         if not isinstance(node, dict):
             raise TypeError(f"Cannot set value on non-mapping node at '{dotted_path}'")
         node[leaf] = _deep_copy(value)
+
+        # Normalise HDR paths after applying the new value so that Windows
+        # style separators never leak back into the stored payload or events.
+        self._normalise_hdr_paths()
 
         self._dirty = True
         if auto_save:

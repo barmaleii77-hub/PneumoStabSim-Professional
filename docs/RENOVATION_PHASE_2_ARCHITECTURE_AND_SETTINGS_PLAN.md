@@ -90,3 +90,13 @@ Log architectural decisions, ADR references, and schema revisions here.
 - Updated the legacy bridge and `SignalsRouter` to consume the shared metadata
   map, enabling consistent documentation and introspection.
 
+### 2025-11-12 – Windows HDR normalisation & logging presets
+- `SettingsService` и `SettingsManager` теперь прогоняют `graphics.environment.ibl_source`
+  через `Path.resolve().as_posix()`, устраняя обратные слэши в QML на Windows.
+- Для регрессионной проверки запускаем приложение в PowerShell:
+  `pwsh .\run_app.ps1 -LogPreset debug --% --safe-mode`, выбираем новый HDR и
+  убеждаемся, что `config/app_settings.json` содержит POSIX-путь.
+- Введена переменная `PSS_LOG_PRESET` (`normal|debug|trace`), чтобы не прибегать
+  к `QT_DEBUG_PLUGINS=1` при сборе Qt-логов. Скрипты в `tools/*.ps1` и `run_app.ps1`
+  принимают параметр `-LogPreset`, что фиксирует профиль до запуска приложения.
+

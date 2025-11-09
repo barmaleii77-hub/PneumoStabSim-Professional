@@ -19,6 +19,7 @@ for candidate in _PATH_CANDIDATES:
 
 from src.cli.arguments import create_bootstrap_parser  # noqa: E402
 from src.diagnostics.logger_factory import get_logger  # noqa: E402
+from src.diagnostics.logging_presets import apply_logging_preset  # noqa: E402
 from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 
 
@@ -78,6 +79,8 @@ try:
     load_dotenv()
 except Exception:
     pass
+
+SELECTED_LOG_PRESET = apply_logging_preset(os.environ)
 
 # =============================================================================
 # Bootstrap Phase1: Environment & Terminal
@@ -196,7 +199,13 @@ def main() -> int:
     )
     setattr(args, "safe_cli_mode", safe_cli_mode)
 
-    runner = ApplicationRunner(QApplication, qInstallMessageHandler, Qt, QTimer)
+    runner = ApplicationRunner(
+        QApplication,
+        qInstallMessageHandler,
+        Qt,
+        QTimer,
+        logging_preset=SELECTED_LOG_PRESET,
+    )
     return runner.run(args)
 
 

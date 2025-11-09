@@ -19,6 +19,7 @@ from typing import Any, cast
 
 from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
+from src.diagnostics.logging_presets import LoggingPreset
 
 from src.core.settings_validation import (
     SettingsValidationError,
@@ -33,7 +34,13 @@ class ApplicationRunner:
     """Менеджер жизненного цикла Qt приложения."""
 
     def __init__(
-        self, QApplication: Any, qInstallMessageHandler: Any, Qt: Any, QTimer: Any
+        self,
+        QApplication: Any,
+        qInstallMessageHandler: Any,
+        Qt: Any,
+        QTimer: Any,
+        *,
+        logging_preset: LoggingPreset | None = None,
     ) -> None:
         """
         Инициализация runner'а приложения.
@@ -48,6 +55,7 @@ class ApplicationRunner:
         self.qInstallMessageHandler = qInstallMessageHandler
         self.Qt = Qt
         self.QTimer = QTimer
+        self.logging_preset = logging_preset
 
         self.app_instance: Any | None = None
         self.window_instance: Any | None = None
@@ -378,18 +386,34 @@ class ApplicationRunner:
             logs_dir = Path("logs")
             rotate_old_logs(logs_dir, keep_count=0)
 
+            level = (
+                self.logging_preset.python_level
+                if self.logging_preset is not None
+                else logging.DEBUG
+            )
+
             logger = init_logging(
                 "PneumoStabSim",
                 logs_dir,
                 max_bytes=10 * 1024 * 1024,
                 backup_count=5,
                 console_output=bool(verbose_console),
+                level=level,
             )
 
             logger.info("=" * 60)
             logger.info("PneumoStabSim v4.9.5 - Application Started")
             logger.info("=" * 60)
             logger.info(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
+            if self.logging_preset is not None:
+                logger.info(
+                    "Logging preset selected",
+                    extra={
+                        "preset": self.logging_preset.name,
+                        "qt_logging_rules": self.logging_preset.qt_logging_rules,
+                        "qsg_info": self.logging_preset.qsg_info,
+                    },
+                )
 
             # Глобальные хуки ошибок: sys.excepthook, asyncio и Qt
             try:
