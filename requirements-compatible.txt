@@ -21,9 +21,9 @@ pydantic-core==2.41.4
 pyopengl==3.1.10
 pyopengl-accelerate==3.1.10
 pyparsing==3.2.5
-pyside6>=6.10,<7
-pyside6-addons>=6.10,<7
-pyside6-essentials>=6.10,<7
+pyside6==6.10.0
+pyside6-addons==6.10.0
+pyside6-essentials==6.10.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pyyaml==6.0.3
@@ -31,7 +31,7 @@ referencing==0.37.0
 requests==2.32.5
 rpds-py==0.28.0
 scipy==1.16.2
-shiboken6>=6.10,<7
+shiboken6==6.10.0
 six==1.17.0
 structlog==24.4.0
 typing-extensions==4.15.0
