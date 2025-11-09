@@ -36,12 +36,12 @@ jobs:
           sudo add-apt-repository -y universe
           sudo apt-get update
 
+          # Packages are installed conditionally; unavailable entries are skipped.
           pkgs=(
             xvfb xauth mesa-utils mesa-utils-extra libosmesa6
             libgl1-mesa-dri libglu1-mesa
             libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
-            # Optional: only install when available on the runner image
-            libgl1-mesa-glx libegl1-mesa libegl1 libgles2-mesa libgles2
+            libgl1-mesa-glx libegl1-mesa libgles2-mesa
           )
 
           to_install=()
