@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 from PySide6.QtCore import Qt, QTimer, Slot, QSettings, QUrl
-from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtQuickWidgets import (
     QQuickWidget,
 )  # Используем QQuickWidget вместо QQuickView
@@ -1338,7 +1338,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Close Event
     # ------------------------------------------------------------------
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         self.logger.info("Main window closing")
         self.render_timer.stop()
         self._save_settings()

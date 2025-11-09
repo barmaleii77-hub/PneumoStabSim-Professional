@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import importlib.util
 import importlib
+import importlib.util
 import os
 import sys
 from ctypes import util as ctypes_util
@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Final
 
 from pytest import PytestPluginManager
+
+from tests._qt_headless import apply_headless_defaults
 
 
 def _qt_display_available() -> bool:
@@ -20,10 +22,10 @@ def _qt_display_available() -> bool:
     if qt_platform in {"offscreen", "minimal"}:
         return True
 
-    if sys.platform.startswith("linux"):
-        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+    if not sys.platform.startswith("linux"):
+        return True
 
-    return True
+    return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
 def _libgl_available() -> bool:
@@ -47,8 +49,8 @@ _PYSIDE_SPEC = importlib.util.find_spec("PySide6.QtWidgets")
 _PYSIDE_IMPORT_ERROR: Exception | None = None
 if _PYSIDE_SPEC is not None:
     try:  # noqa: SIM105 - capture platform-specific linker failures
-        import PySide6.QtWidgets  # type: ignore[import-not-found]  # noqa: F401
-        import PySide6.QtGui  # type: ignore[import-not-found]  # noqa: F401
+        importlib.import_module("PySide6.QtWidgets")
+        importlib.import_module("PySide6.QtGui")
     except Exception as exc:  # pragma: no cover - platform dependent
         _PYSIDE_IMPORT_ERROR = exc
 
@@ -63,7 +65,9 @@ def _build_skip_reason() -> str | None:
     if not _libgl_available():
         return "System OpenGL libraries (libGL) are missing"
     if not _qt_display_available():
-        return "No display backend detected for Qt"
+        apply_headless_defaults()
+        if not _qt_display_available():
+            return "No display backend detected for Qt"
     return None
 
 

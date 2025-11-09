@@ -6,21 +6,25 @@
 # from .gl_scene import GLScene
 
 # ИСПРАВЛЕНО: Используем относительные импорты
-try:  # pragma: no cover - UI widgets unavailable in headless tests
-    from .hud import PressureScaleWidget, TankOverlayHUD
-except Exception:  # pragma: no cover - PySide6 or OpenGL not installed
+from typing import TYPE_CHECKING, Any
 
-    class _HeadlessWidget:  # type: ignore[too-many-ancestors]
-        """Minimal stub used when Qt widgets are unavailable."""
+if TYPE_CHECKING:  # pragma: no cover - imported for typing only
+    from .hud import PressureScaleWidget as PressureScaleWidget
+    from .hud import TankOverlayHUD as TankOverlayHUD
+else:  # pragma: no cover - executed only at runtime
+    try:
+        from .hud import PressureScaleWidget as PressureScaleWidget
+        from .hud import TankOverlayHUD as TankOverlayHUD
+    except Exception:
 
-        def __init__(self, *args, **kwargs):  # noqa: D401 - simple stub
-            """Ignore any construction arguments."""
+        class PressureScaleWidget:
+            """Minimal stub used when Qt widgets are unavailable."""
 
-    class PressureScaleWidget(_HeadlessWidget):
-        pass
+            def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
+                """Ignore any construction arguments."""
 
-    class TankOverlayHUD(_HeadlessWidget):
-        pass
+        class TankOverlayHUD(PressureScaleWidget):
+            pass
 
 
 __all__ = ["PressureScaleWidget", "TankOverlayHUD"]
@@ -29,7 +33,7 @@ __all__ = ["PressureScaleWidget", "TankOverlayHUD"]
 # See: assets/qml/main.qml
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     # Ленивая загрузка компонентов интерфейса пользователя
     # Например, MainWindow, ChartWidget и т. д.
     from .main_window import MainWindow

@@ -19,6 +19,7 @@ from tests._qt_headless import apply_headless_defaults
 from tests._qt_headless import headless_requested
 from tests.physics.cases import build_case_loader
 from tests._qt_runtime import QT_SKIP_REASON
+from tests._qt_runtime import disable_pytestqt
 from tests.helpers import ensure_qt_runtime
 
 
@@ -131,7 +132,20 @@ elif not _qt_display_available():
     _gui_skip_reason = "No display backend detected for Qt"
 else:
     _gui_skip_reason = None
-    pytest_plugins = ("pytestqt.plugin",)
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Ensure pytest-qt plugin state matches the runtime availability."""
+
+    pluginmanager = config.pluginmanager
+
+    if QT_SKIP_REASON is not None:
+        disable_pytestqt(pluginmanager)
+        return
+
+    if pluginmanager.get_plugin("pytestqt.plugin") is None:
+        pluginmanager.import_plugin("pytestqt.plugin")
+
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
 
 
