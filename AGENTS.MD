@@ -39,7 +39,7 @@ ensure the master plan accurately reflects the intended scope.
   - Before executing build or test commands, re-run dependency installation for
     the active platform (`make uv-sync` on Linux containers, `scripts/setup_dev.py`
     on Windows desktops) so that agents never rely on stale environments.
-- **Qt / PySide**: 6.10 installed by `python tools/setup_qt.py`.
+- **Qt / PySide**: 6.10.1 installed by `python tools/setup_qt.py`.
   - Launch scripts (`activate_environment.sh`, `.ps1`) export `QT_PLUGIN_PATH`,
     `QML2_IMPORT_PATH`, and set `QT_QUICK_CONTROLS_STYLE=Basic`.
 - **Linters & formatters**: `ruff`, `mypy`, `qmllint` (QML), optional
