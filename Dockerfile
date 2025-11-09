@@ -47,9 +47,9 @@ RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
     aqtinstall ruff mypy pytest pytest-xdist pytest-cov
 
-# Qt 6.9.x with Quick 3D & tooling support (qmllint, qsb)
+# Qt 6.10.x with Quick 3D & tooling support (qmllint, qsb)
 ARG AQT_BASE=https://download.qt.io/online/qtsdkrepository/linux_x64/desktop
-ARG QT_VERSION=6.9.3
+ARG QT_VERSION=6.10.0
 ENV QT_VERSIONS=${QT_VERSION} QT_ROOT=/opt/Qt QT_ARCH=gcc_64 AQT_BASE=${AQT_BASE}
 
 # Workdir

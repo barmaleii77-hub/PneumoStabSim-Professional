@@ -18,8 +18,8 @@ QT_ARCH = os.environ.get("QT_ARCH", "gcc_64")
 
 AQT_BASE_URL = os.environ.get("AQT_BASE")
 
-DEFAULT_VERSIONS = "6.9.3"
-MINIMUM_QT_VERSION = (6, 9, 0)
+DEFAULT_VERSIONS = "6.10.0"
+MINIMUM_QT_VERSION = (6, 10, 0)
 QT_VERSIONS = [
     ver.strip()
     for ver in os.environ.get("QT_VERSIONS", DEFAULT_VERSIONS).split(",")
