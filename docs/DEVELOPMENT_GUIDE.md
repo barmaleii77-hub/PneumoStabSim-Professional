@@ -15,7 +15,7 @@ uv-first environment strategy captured in the renovation master plan.
 | uv | Latest | Installed automatically by `scripts/bootstrap_uv.py`. |
 | Qt runtime | 6.10 | Provisioned via `tools/setup_qt.py` and the `activate_environment.*` scripts. |
 
-> **Linux-only dependency note**: установите системные пакеты Mesa software GL (`xvfb`, `xauth`, `dbus-x11`, `mesa-utils`, `mesa-utils-extra`, `libosmesa6(-dev)`, `libglu1-mesa(-dev)`, `libegl1-mesa(-dev)`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`) чтобы локальная среда совпадала с CI.
+> **Linux-only dependency note**: установите системные пакеты Mesa software GL (`xvfb`, `xauth`, `dbus-x11`, `mesa-utils`, `mesa-utils-extra`, `libosmesa6(-dev)`, `libglu1-mesa(-dev)`, `libegl1`, `libegl1-mesa(-dev)`, `libgles2`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`) чтобы локальная среда совпадала с CI.
 
 ### Step-by-step onboarding
 

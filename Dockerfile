@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xvfb xauth dbus-x11 \
     mesa-utils mesa-utils-extra \
     libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev \
-    libegl1 libegl1-mesa libegl1-mesa-dev libgles2-mesa libgles2-mesa-dev \
+    libegl1 libegl1-mesa libegl1-mesa-dev libgles2 libgles2-mesa libgles2-mesa-dev \
     libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
     libx11-6 libxext6 libxrender1 libxi6 libxfixes3 libxrandr2 libxcursor1 libxinerama1 libxdamage1 \
     libxcb1 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libxcb-xinerama0 \

@@ -321,6 +321,7 @@ class EnvironmentSetup:
 
         required_packages = [
             "libegl1",
+            "libgles2",
             "libgl1",
             "libxkbcommon0",
             "libxcb-cursor0",
