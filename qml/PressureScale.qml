@@ -8,26 +8,31 @@ Item {
 
     /**
      * Minimum simulated pressure (Pa).
+     * Bound by SimulationPanel to SettingsManager snapshot: current.pneumatic.* thresholds.
      */
     property real minPressure: 0.0
 
     /**
      * Maximum simulated pressure (Pa).
+     * Bound by SimulationPanel to SettingsManager snapshot: current.pneumatic.* thresholds.
      */
     property real maxPressure: 250000.0
 
     /**
      * User supplied minimum pressure override (Pa).
+     * Mirrors config key receiver.user_min_pressure_pa when provided.
      */
     property real userMinPressure: minPressure
 
     /**
      * User supplied maximum pressure override (Pa).
+     * Mirrors config key receiver.user_max_pressure_pa when provided.
      */
     property real userMaxPressure: maxPressure
 
     /**
      * Atmospheric pressure used as reference (Pa).
+     * Linked to graphics.scene.environment.atmosphere.pressure or default 101325 Па.
      */
     property real atmosphericPressure: 101325.0
 

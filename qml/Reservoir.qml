@@ -6,10 +6,19 @@ Item {
     implicitWidth: 220
     implicitHeight: 160
 
+    /**
+     * Pressure bounds provided by SimulationPanel from SettingsManager snapshots.
+     * Keys: current.pneumatic.relief_* and receiver.user_*_pressure_pa when available.
+     */
     property real minPressure: 0.0
     property real maxPressure: 250000.0
     property real userMinPressure: minPressure
     property real userMaxPressure: maxPressure
+
+    /**
+     * Atmospheric and reservoir pressures (Па) resolved via graphics.scene.environment
+     * and pneumo.receiver.initial_pressure_pa respectively.
+     */
     property real atmosphericPressure: 101325.0
     property real pressure: minPressure
 
