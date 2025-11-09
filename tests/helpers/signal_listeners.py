@@ -14,7 +14,10 @@ class SignalListener:
     mirrors the behaviour of ``QSignalSpy``.
     """
 
-    __slots__ = ("_signal", "_records")
+    # Qt 6.7+ stores signal connections as weak references; exposing a weakref
+    # slot ensures ``SignalListener`` instances can be used directly without
+    # PySide raising ``TypeError: cannot create weak reference``.
+    __slots__ = ("_signal", "_records", "__weakref__")
 
     def __init__(self, signal: Any) -> None:
         self._signal = signal
