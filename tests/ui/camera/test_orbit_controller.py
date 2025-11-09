@@ -4,12 +4,20 @@ import json
 from typing import Any
 
 import pytest
-from PySide6.QtCore import Qt
+
+QtCore = pytest.importorskip("PySide6.QtCore")
+pytest.importorskip("PySide6.QtGui")
+pytest.importorskip("PySide6.QtWidgets")
+Qt = QtCore.Qt
 
 from src.common.settings_manager import SettingsManager
-from src.ui.camera import CameraWidget, OrbitController
-from src.ui.hud.diagnostics_overlay import DiagnosticsOverlay
-from src.ui.hud.diagnostics_service import DiagnosticsService
+
+try:  # pragma: no cover - skip when Qt dependencies are unavailable
+    from src.ui.camera import CameraWidget, OrbitController
+    from src.ui.hud.diagnostics_overlay import DiagnosticsOverlay
+    from src.ui.hud.diagnostics_service import DiagnosticsService
+except ImportError as exc:  # pragma: no cover - exercised in Qt-enabled environments
+    pytest.skip(f"PySide6 runtime dependencies missing: {exc}")
 
 
 class _StubVisualizationService:

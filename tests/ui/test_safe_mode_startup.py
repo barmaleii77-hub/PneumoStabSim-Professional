@@ -8,8 +8,12 @@ import logging
 import pytest
 from pytestqt.qtbot import QtBot
 
-from PySide6.QtCore import QTimer, Qt, qInstallMessageHandler
-from PySide6.QtWidgets import QApplication
+QtCore = pytest.importorskip("PySide6.QtCore")
+QtWidgets = pytest.importorskip("PySide6.QtWidgets")
+QTimer = QtCore.QTimer
+Qt = QtCore.Qt
+qInstallMessageHandler = QtCore.qInstallMessageHandler
+QApplication = QtWidgets.QApplication
 
 from src.app_runner import ApplicationRunner
 from src.cli.arguments import parse_arguments

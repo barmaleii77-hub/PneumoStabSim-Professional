@@ -938,7 +938,7 @@ class ApplicationRunner:
             self._print_header()
 
             # ✅ Инициализация
-            self.app_logger = self.setup_logging(verbose_console=args.verbose)
+            self.app_logger = self.setup_logging(args.verbose)
 
             self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
             self.safe_cli_mode = bool(getattr(args, "safe_cli_mode", False))

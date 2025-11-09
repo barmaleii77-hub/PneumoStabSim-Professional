@@ -3,6 +3,7 @@ Physics simulation loop with fixed timestep
 Runs in dedicated QThread with QTimer for precise timing
 """
 
+import logging
 import math
 import sys
 import time
@@ -46,7 +47,6 @@ from src.pneumo.enums import (
 from src.pneumo.receiver import ReceiverState, ReceiverSpec
 from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.gas_state import apply_instant_volume_change
-from src.pneumo.network import GasNetwork
 from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name
@@ -612,6 +612,25 @@ class PhysicsWorker(QObject):
 
             self.gas_network = gas_network
 
+            tank_state = getattr(gas_network, "tank", None)
+            if tank_state is not None:
+                self._latest_tank_state = TankState(
+                    pressure=float(
+                        getattr(tank_state, "p", getattr(tank_state, "pressure", 0.0))
+                    ),
+                    temperature=float(
+                        getattr(
+                            tank_state, "T", getattr(tank_state, "temperature", 0.0)
+                        )
+                    ),
+                    mass=float(
+                        getattr(tank_state, "m", getattr(tank_state, "mass", 0.0))
+                    ),
+                    volume=float(
+                        getattr(tank_state, "V", getattr(tank_state, "volume", 0.0))
+                    ),
+                )
+
             head_fraction = 0.0
             rod_fraction = 0.0
             try:
@@ -641,13 +660,6 @@ class PhysicsWorker(QObject):
                 self.gas_network,
                 dead_zone_head_fraction=head_fraction,
                 dead_zone_rod_fraction=rod_fraction,
-            )
-
-            self._latest_tank_state = TankState(
-                pressure=tank_state.p,
-                temperature=tank_state.T,
-                mass=tank_state.m,
-                volume=tank_state.V,
             )
 
             for wheel, cylinder in self.pneumatic_system.cylinders.items():
@@ -920,17 +932,30 @@ class PhysicsWorker(QObject):
                     exc_info=True,
                 )
 
-        self.logger.info(
-            "Receiver volume updated",
-            volume_m3=float(volume),
-            mode=mode_token,
-            tank_pressure_pa=tank_pressure,
-            tank_mass_kg=tank_mass,
-            tank_temperature_k=tank_temperature,
-            receiver_pressure_pa=receiver_pressure,
-            receiver_temperature_k=receiver_temperature,
-            pneumatic_tank_volume_m3=pneumatic_tank_volume,
-        )
+        log_payload = {
+            "volume_m3": float(volume),
+            "mode": mode_token,
+            "tank_pressure_pa": tank_pressure,
+            "tank_mass_kg": tank_mass,
+            "tank_temperature_k": tank_temperature,
+            "receiver_pressure_pa": receiver_pressure,
+            "receiver_temperature_k": receiver_temperature,
+            "pneumatic_tank_volume_m3": pneumatic_tank_volume,
+        }
+
+        supports_structured = callable(
+            getattr(self.logger, "bind", None)
+        ) and not isinstance(self.logger, logging.Logger)
+        if supports_structured:
+            self.logger.info("Receiver volume updated", **log_payload)
+        else:
+            details = ", ".join(
+                f"{key}={log_payload[key]!r}" for key in sorted(log_payload)
+            )
+            message = "Receiver volume updated"
+            if details:
+                message = f"{message} | {details}"
+            self.logger.info(message)
 
     @Slot(float)
     def set_physics_dt(self, dt: float):

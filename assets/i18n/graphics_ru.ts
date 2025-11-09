@@ -189,119 +189,12 @@
         <oldsource>Zoom</oldsource>
         <translation type="unfinished">Зум</translation>
     </message>
-    <message id="simulation.panel.section.pneumatics">
-        <location filename="../qml/panels/SimulationPanel.qml" line="838"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.volumeMode.manual">
-        <location filename="../qml/panels/SimulationPanel.qml" line="850"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.volumeMode.geometric">
-        <location filename="../qml/panels/SimulationPanel.qml" line="855"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.receiverVolume">
-        <location filename="../qml/panels/SimulationPanel.qml" line="875"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.cvAtmoDp">
-        <location filename="../qml/panels/SimulationPanel.qml" line="911"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.cvTankDp">
-        <location filename="../qml/panels/SimulationPanel.qml" line="925"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.cvAtmoDia">
-        <location filename="../qml/panels/SimulationPanel.qml" line="939"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.cvTankDia">
-        <location filename="../qml/panels/SimulationPanel.qml" line="955"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.reliefMin">
-        <location filename="../qml/panels/SimulationPanel.qml" line="971"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.reliefStiff">
-        <location filename="../qml/panels/SimulationPanel.qml" line="985"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.reliefSafety">
-        <location filename="../qml/panels/SimulationPanel.qml" line="999"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.throttleMin">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1013"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.throttleStiff">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1029"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.airTemperature">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1045"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.masterIsolation">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1061"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.section.simulation">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1073"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.physicsDt">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1084"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.vsync">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1100"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.stepsPerFrame">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1114"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.maxFrameTime">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1128"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.section.cylinder">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1146"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.deadZoneHead">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1157"/>
-        <source></source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message id="simulation.panel.deadZoneRod">
-        <location filename="../qml/panels/SimulationPanel.qml" line="1173"/>
-        <source></source>
+</context>
+<context>
+    <name>AssetsLoader</name>
+    <message>
+        <location filename="../qml/components/AssetsLoader.qml" line="64"/>
+        <source>Fallback</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -588,49 +481,49 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="839"/>
+        <location filename="../qml/effects/FogEffect.qml" line="841"/>
         <source>Depth texture support forcibly disabled; using fallback shader</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="840"/>
+        <location filename="../qml/effects/FogEffect.qml" line="842"/>
         <source>Depth texture unavailable; using fallback shader</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="844"/>
-        <location filename="../qml/effects/FogEffect.qml" line="876"/>
+        <location filename="../qml/effects/FogEffect.qml" line="846"/>
+        <location filename="../qml/effects/FogEffect.qml" line="878"/>
         <source>Fog shader compilation failed; fallback shader active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="849"/>
+        <location filename="../qml/effects/FogEffect.qml" line="851"/>
         <source>FogEffect: forcing GLSL 330 fallback shader for legacy OpenGL profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="893"/>
+        <location filename="../qml/effects/FogEffect.qml" line="895"/>
         <source>Fog shader compilation failed; fallback pass engaged</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="894"/>
+        <location filename="../qml/effects/FogEffect.qml" line="896"/>
         <source>Depth texture unavailable; using fallback shader pass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="895"/>
+        <location filename="../qml/effects/FogEffect.qml" line="897"/>
         <source>Primary fog shader path restored</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="920"/>
-        <location filename="../qml/effects/FogEffect.qml" line="936"/>
+        <location filename="../qml/effects/FogEffect.qml" line="931"/>
+        <location filename="../qml/effects/FogEffect.qml" line="947"/>
         <source>FogEffect shader %1 compilation failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/FogEffect.qml" line="930"/>
+        <location filename="../qml/effects/FogEffect.qml" line="941"/>
         <source>FogEffect fallback shader %1 compilation failed</source>
         <translation type="unfinished"></translation>
     </message>
@@ -886,6 +779,14 @@
     </message>
 </context>
 <context>
+    <name>IblProbeLoader</name>
+    <message>
+        <location filename="../qml/components/IblProbeLoader.qml" line="74"/>
+        <source>HDR Fallback</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Knob</name>
     <message>
         <source>%1 title</source>
@@ -988,92 +889,97 @@
 <context>
     <name>PostEffects</name>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="83"/>
+        <location filename="../qml/effects/PostEffects.qml" line="88"/>
         <source>%1: fallback shader active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="132"/>
+        <location filename="../qml/effects/PostEffects.qml" line="126"/>
+        <source>Rendering pipeline failure</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/effects/PostEffects.qml" line="166"/>
         <source>%1: persistent shader failure</source>
         <translation type="unfinished">%1: постоянная ошибка шейдера</translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="265"/>
+        <location filename="../qml/effects/PostEffects.qml" line="299"/>
         <source>Legacy OpenGL profile detected (OpenGL %1); forcing GLSL 330 fallback shaders.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="744"/>
+        <location filename="../qml/effects/PostEffects.qml" line="787"/>
         <source>%1 fallback shader %2 compilation failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="745"/>
+        <location filename="../qml/effects/PostEffects.qml" line="788"/>
         <source>%1 shader %2 compilation failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1115"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1158"/>
         <source>Bloom: fallback shader active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1120"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1163"/>
         <source>Bloom: forcing GLSL 330 fallback shader for OpenGL %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1218"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1261"/>
         <source>SSAO: fallback shader active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1223"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1266"/>
         <source>SSAO: forcing GLSL 330 fallback shader for OpenGL %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1247"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1290"/>
         <source>SSAO: depth and normal textures are not supported; disabling advanced SSAO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1249"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1292"/>
         <source>SSAO: depth texture buffer is not supported; disabling advanced SSAO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1251"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1294"/>
         <source>SSAO: normal texture buffer is not supported; disabling advanced SSAO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1357"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1400"/>
         <source>Depth of Field: fallback shader active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1362"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1405"/>
         <source>Depth of Field: forcing GLSL 330 fallback shader for OpenGL %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1392"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1435"/>
         <source>Depth of Field: depth texture unavailable; using fallback shader</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1489"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1532"/>
         <source>Motion Blur: fallback shader active</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1494"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1537"/>
         <source>Motion Blur: forcing GLSL 330 fallback shader for OpenGL %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/effects/PostEffects.qml" line="1518"/>
+        <location filename="../qml/effects/PostEffects.qml" line="1561"/>
         <source>Motion Blur: velocity texture unavailable; using fallback shader</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1241,8 +1147,67 @@
 <context>
     <name>SceneEnvironmentController</name>
     <message>
-        <location filename="../qml/effects/SceneEnvironmentController.qml" line="583"/>
+        <location filename="../qml/effects/SceneEnvironmentController.qml" line="312"/>
+        <source>Fog helpers disabled: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/effects/SceneEnvironmentController.qml" line="312"/>
+        <source>loader error</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/effects/SceneEnvironmentController.qml" line="531"/>
+        <location filename="../qml/effects/SceneEnvironmentController.qml" line="536"/>
+        <source>Fog helpers require Qt 6.10 or newer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/effects/SceneEnvironmentController.qml" line="1051"/>
         <source>Fog effect fallback active</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>SharedMaterials</name>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="392"/>
+        <source>Frame</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="406"/>
+        <source>Lever</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="420"/>
+        <source>Tail rod</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="434"/>
+        <source>Cylinder</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="448"/>
+        <source>Piston body</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="462"/>
+        <source>Piston rod</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="476"/>
+        <source>Joint tail</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/scene/SharedMaterials.qml" line="490"/>
+        <source>Joint arm</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1270,32 +1235,32 @@
 <context>
     <name>SimulationFallbackRoot</name>
     <message>
-        <location filename="../qml/SimulationFallbackRoot.qml" line="491"/>
+        <location filename="../qml/SimulationFallbackRoot.qml" line="492"/>
         <source>Сигналы</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SimulationFallbackRoot.qml" line="503"/>
+        <location filename="../qml/SimulationFallbackRoot.qml" line="504"/>
         <source>Оверлей</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SimulationFallbackRoot.qml" line="519"/>
+        <location filename="../qml/SimulationFallbackRoot.qml" line="520"/>
         <source>Запись</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SimulationFallbackRoot.qml" line="533"/>
+        <location filename="../qml/SimulationFallbackRoot.qml" line="534"/>
         <source>Скрыть</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SimulationFallbackRoot.qml" line="533"/>
+        <location filename="../qml/SimulationFallbackRoot.qml" line="534"/>
         <source>Показать</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/SimulationFallbackRoot.qml" line="540"/>
+        <location filename="../qml/SimulationFallbackRoot.qml" line="541"/>
         <source>Очистить</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1303,312 +1268,364 @@
 <context>
     <name>SimulationPanel</name>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="71"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="81"/>
         <source>Пресет</source>
         <translation>Пресет</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="391"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="457"/>
         <source>Управление симуляцией</source>
         <translation>Управление симуляцией</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="403"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="469"/>
         <source>▶ Старт</source>
         <translation>▶ Старт</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="409"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="475"/>
         <source>⏹ Стоп</source>
         <translation>⏹ Стоп</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="357"/>
-        <location filename="../qml/panels/SimulationPanel.qml" line="415"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="423"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="481"/>
         <source>⏸ Пауза</source>
         <translation>⏸ Пауза</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="359"/>
-        <location filename="../qml/panels/SimulationPanel.qml" line="421"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="425"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="487"/>
         <source>🔄 Сброс</source>
         <translation>🔄 Сброс</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="429"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="495"/>
         <source>Статус: %1</source>
         <translation>Статус: %1</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="436"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="502"/>
         <source>Используйте кнопки выше или горячие клавиши: Space — старт/пауза, R — сброс.</source>
         <translation>Используйте кнопки выше или горячие клавиши: Space — старт/пауза, R — сброс.</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="446"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="512"/>
         <source>Режим и пресеты</source>
         <translation>Режим и пресеты</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="456"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="522"/>
         <source>Быстрые пресеты</source>
         <translation>Быстрые пресеты</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="471"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="537"/>
         <source>Кинематика</source>
         <translation>Кинематика</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="472"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="538"/>
         <source>Динамика</source>
         <translation>Динамика</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="491"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="557"/>
         <source>Изотермический</source>
         <translation>Изотермический</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="492"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="558"/>
         <source>Адиабатический</source>
         <translation>Адиабатический</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="510"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="576"/>
         <source>Опции физики</source>
         <translation>Опции физики</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="519"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="585"/>
         <source>Учитывать пружины</source>
         <translation>Учитывать пружины</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="529"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="595"/>
         <source>Учитывать демпферы</source>
         <translation>Учитывать демпферы</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="539"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="605"/>
         <source>Учитывать пневматику</source>
         <translation>Учитывать пневматику</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="551"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="617"/>
         <source>Дорожное воздействие</source>
         <translation>Дорожное воздействие</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="561"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="627"/>
         <source>Амплитуда (м)</source>
         <translation>Амплитуда (м)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="592"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="664"/>
         <source>Частота (Гц)</source>
         <translation>Частота (Гц)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="623"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="701"/>
         <source>Глобальная фаза (°)</source>
         <translation>Глобальная фаза (°)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="657"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="735"/>
         <source>Фаза ЛП (°)</source>
         <translation>Фаза ЛП (°)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="671"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="749"/>
         <source>Фаза ПП (°)</source>
         <translation>Фаза ПП (°)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="685"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="763"/>
         <source>Фаза ЛЗ (°)</source>
         <translation>Фаза ЛЗ (°)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="699"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="777"/>
         <source>Фаза ПЗ (°)</source>
         <translation>Фаза ПЗ (°)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="716"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="794"/>
         <source>Плавное сглаживание движения</source>
         <translation>Плавное сглаживание движения</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="727"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="805"/>
         <source>Длительность сглаживания (мс)</source>
         <translation>Длительность сглаживания (мс)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="758"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="836"/>
         <source>Угол привязки (°)</source>
         <translation>Угол привязки (°)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="789"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="867"/>
         <source>Порог хода поршня (м)</source>
         <translation>Порог хода поршня (м)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="821"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="905"/>
         <source>OutCubic</source>
         <translation>OutCubic</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="822"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="906"/>
         <source>OutQuad</source>
         <translation>OutQuad</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="823"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="907"/>
         <source>Linear</source>
         <translation>Linear</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="824"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="908"/>
         <source>InOutSine</source>
         <translation>InOutSine</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="838"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="922"/>
         <source>Пневматика</source>
         <translation>Пневматика</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="851"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="934"/>
         <source>Ручной объём</source>
         <translation>Ручной объём</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="856"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="938"/>
         <source>Геометрический расчёт</source>
         <translation>Геометрический расчёт</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="876"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="957"/>
         <source>Объём ресивера (м³)</source>
         <translation>Объём ресивера (м³)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="912"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="996"/>
         <source>ΔP атмосферного клапана (Па)</source>
         <translation>ΔP атмосферного клапана (Па)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="926"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1009"/>
         <source>ΔP клапана ресивера (Па)</source>
         <translation>ΔP клапана ресивера (Па)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="940"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1022"/>
         <source>Диаметр атмосферного клапана (м)</source>
         <translation>Диаметр атмосферного клапана (м)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="956"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1041"/>
         <source>Диаметр клапана ресивера (м)</source>
         <translation>Диаметр клапана ресивера (м)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="972"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1060"/>
         <source>Порог открытия сброса (Па)</source>
         <translation>Порог открытия сброса (Па)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="986"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1073"/>
         <source>Жёсткий сброс (Па)</source>
         <translation>Жёсткий сброс (Па)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1000"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1086"/>
         <source>Аварийный сброс (Па)</source>
         <translation>Аварийный сброс (Па)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1014"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1099"/>
         <source>Диаметр дросселя min (м)</source>
         <translation>Диаметр дросселя min (м)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1030"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1118"/>
         <source>Диаметр дросселя жёстк. (м)</source>
         <translation>Диаметр дросселя жёстк. (м)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1046"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1137"/>
+        <source>Диаметр дросселя диагоналей (м)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1156"/>
         <source>Температура воздуха (°C)</source>
         <translation>Температура воздуха (°C)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1062"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1171"/>
         <source>Главный отсечной клапан открыт</source>
         <translation>Главный отсечной клапан открыт</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1074"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1182"/>
         <source>Настройки симуляции</source>
         <translation>Настройки симуляции</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1085"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1192"/>
         <source>Шаг физики dt (с)</source>
         <translation>Шаг физики dt (с)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1101"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1211"/>
         <source>Ограничение FPS (Гц)</source>
         <translation>Ограничение FPS (Гц)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1115"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1224"/>
         <source>Шагов на кадр (шт)</source>
         <translation>Шагов на кадр (шт)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1129"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1237"/>
         <source>Макс. время кадра (с)</source>
         <translation>Макс. время кадра (с)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1147"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1258"/>
         <source>Мёртвые зоны цилиндров</source>
         <translation>Мёртвые зоны цилиндров</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1158"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1268"/>
         <source>Головная камера (м³)</source>
         <translation>Головная камера (м³)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="1174"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="1287"/>
         <source>Штоковая камера (м³)</source>
         <translation>Штоковая камера (м³)</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="19"/>
-        <location filename="../qml/panels/SimulationPanel.qml" line="355"/>
-        <location filename="../qml/panels/SimulationPanel.qml" line="361"/>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="11"/>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="51"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="19"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="421"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="427"/>
         <source>▶ Запущено</source>
         <translation>▶ Запущено</translation>
     </message>
     <message>
-        <location filename="../qml/panels/SimulationPanel.qml" line="19"/>
-        <location filename="../qml/panels/SimulationPanel.qml" line="361"/>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="11"/>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="51"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="19"/>
+        <location filename="../qml/Panels/SimulationPanel.qml" line="427"/>
         <source>⏹ Остановлено</source>
         <translation>⏹ Остановлено</translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="68"/>
+        <source>Состояние симуляции</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="83"/>
+        <source>Статус:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="97"/>
+        <source>Анимация активна. Скриншот должен показать зелёную панель.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/+screenshots/SimulationPanel.qml" line="98"/>
+        <source>Анимация остановлена. Скриншот должен показать красную панель.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>SimulationRoot</name>
     <message>
-        <location filename="../qml/PneumoStabSim/SimulationRoot.qml" line="543"/>
+        <location filename="../qml/PneumoStabSim/SimulationRoot.qml" line="933"/>
+        <source>Rendering pipeline failure</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/PneumoStabSim/SimulationRoot.qml" line="968"/>
         <source>%1: compilation failed</source>
         <translation type="unfinished">%1: ошибка компиляции</translation>
+    </message>
+</context>
+<context>
+    <name>StabilizerPanel</name>
+    <message>
+        <location filename="../qml/Panels/StabilizerPanel.qml" line="19"/>
+        <source>Пневматический стабилизатор</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/StabilizerPanel.qml" line="25"/>
+        <source>Настройка дросселя между диагоналями позволяет управлять скоростью выравнивания давления. Значение 0 мм означает полное перекрытие.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../qml/Panels/StabilizerPanel.qml" line="35"/>
+        <source>Диаметр (мм)</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -1689,22 +1706,22 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/TelemetryChartPanel.qml" line="215"/>
+        <location filename="../qml/components/TelemetryChartPanel.qml" line="223"/>
         <source>Макс</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/TelemetryChartPanel.qml" line="235"/>
+        <location filename="../qml/components/TelemetryChartPanel.qml" line="251"/>
         <source>Показатели</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/TelemetryChartPanel.qml" line="291"/>
+        <location filename="../qml/components/TelemetryChartPanel.qml" line="313"/>
         <source>Время, с</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../qml/components/TelemetryChartPanel.qml" line="299"/>
+        <location filename="../qml/components/TelemetryChartPanel.qml" line="321"/>
         <source>Значение</source>
         <translation type="unfinished"></translation>
     </message>
