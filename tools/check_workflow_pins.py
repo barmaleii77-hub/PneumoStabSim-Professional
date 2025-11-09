@@ -35,7 +35,9 @@ def check_workflow(path: Path) -> list[str]:
     """Return a list of human-readable error descriptions for ``path``."""
 
     errors: list[str] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         match = _USES_PATTERN.search(line)
         if not match:
             continue
@@ -56,7 +58,9 @@ def main() -> int:
         return 0
 
     failures: list[str] = []
-    for workflow in sorted(WORKFLOW_ROOT.glob("*.yml")) + sorted(WORKFLOW_ROOT.glob("*.yaml")):
+    for workflow in sorted(WORKFLOW_ROOT.glob("*.yml")) + sorted(
+        WORKFLOW_ROOT.glob("*.yaml")
+    ):
         failures.extend(check_workflow(workflow))
 
     if failures:

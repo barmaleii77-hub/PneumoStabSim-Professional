@@ -44,6 +44,10 @@ ENV QT_VER=6.10.1 QT_ROOT=/opt/Qt AQT_BASE=${AQT_BASE}
 # the Updates.xml metadata for each version. Point to the desktop root rather
 # than the nested qt6_<version> directory and fail fast if the install payload
 # is missing.
+# ВНИМАНИЕ: Используется Qt 6.10.1, а не 6.10.2, поскольку 6.10.2 отсутствует
+# в репозитории (qt6_6102 не существует на download.qt.io на момент написания).
+# Если появится 6.10.2, обновить QT_VER и qt6_6101 → qt6_6102. Проект использует
+# Qt 6.10+ API, но сборка возможна только на 6.10.1.
 RUN python -m aqt install-qt linux desktop ${QT_VER} gcc_64 \
     -b ${AQT_BASE} \
     -m qtquick3d qtshadertools qtimageformats -O ${QT_ROOT} \
