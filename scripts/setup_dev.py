@@ -111,25 +111,40 @@ def activate_and_install():
     if not run_command(f"{activate_cmd} pip install --upgrade pip", "Обновление pip"):
         return False
 
-    # Устанавливаем основные зависимости
-    if not run_command(
-        f"{activate_cmd} pip install -r requirements.txt",
-        "Установка основных зависимостей",
-    ):
-        return False
+    requirements_dev = Path("requirements-dev.txt")
+    requirements_base = Path("requirements.txt")
 
-    # Устанавливаем dev зависимости
-    dev_packages = [
-        "pytest>=7.0.0",
-        "pytest-qt>=4.0.0",
-        "pytest-cov>=4.0.0",
-        "black>=22.0.0",
-        "flake8>=5.0.0",
-        "mypy>=1.0.0",
-    ]
+    if requirements_dev.exists():
+        if not run_command(
+            f"{activate_cmd} pip install -r {requirements_dev}",
+            "Установка зависимостей для полного тестирования",
+        ):
+            return False
+    elif requirements_base.exists():
+        if not run_command(
+            f"{activate_cmd} pip install -r {requirements_base}",
+            "Установка основных зависимостей",
+        ):
+            return False
 
-    dev_cmd = f"{activate_cmd} pip install " + " ".join(dev_packages)
-    if not run_command(dev_cmd, "Установка dev зависимостей"):
+        fallback_dev_packages = [
+            "pytest>=8.0.0",
+            "pytest-qt>=4.5.0",
+            "pytest-cov>=4.1.0",
+            "black>=24.0.0",
+            "flake8>=7.0.0",
+            "mypy>=1.8.0",
+            "ruff>=0.14.0",
+            "bandit>=1.7.0",
+            "coverage[toml]>=7.6.0",
+            "pre-commit>=3.7.0",
+        ]
+
+        dev_cmd = f"{activate_cmd} pip install " + " ".join(fallback_dev_packages)
+        if not run_command(dev_cmd, "Установка дополнительных dev-зависимостей"):
+            return False
+    else:
+        print("❌ Не найдены файлы requirements.txt или requirements-dev.txt")
         return False
 
     return True

@@ -39,6 +39,36 @@ def parse_args() -> argparse.Namespace:
         help="Run `uv sync` after ensuring uv is installed.",
     )
     parser.add_argument(
+        "--sync-extra",
+        action="append",
+        dest="sync_extras",
+        default=None,
+        help=(
+            "Include an optional dependency extra when running `uv sync`. Provide "
+            "multiple times to include several extras."
+        ),
+    )
+    parser.add_argument(
+        "--sync-group",
+        action="append",
+        dest="sync_groups",
+        default=None,
+        help=(
+            "Include a dependency group when running `uv sync`. Provide multiple "
+            "times to include several groups."
+        ),
+    )
+    parser.add_argument(
+        "--sync-no-default-extras",
+        action="store_true",
+        help="Do not automatically include the 'dev' extra when syncing dependencies.",
+    )
+    parser.add_argument(
+        "--sync-locked",
+        action="store_true",
+        help="Use `--locked` instead of `--frozen` when running `uv sync`.",
+    )
+    parser.add_argument(
         "--lock",
         action="store_true",
         help="Run `uv lock` to refresh the lockfile after ensuring uv is installed.",
@@ -107,6 +137,20 @@ def ensure_uv(executable: str, force: bool) -> str:
     return refreshed
 
 
+def _normalise_unique(items: list[str] | None) -> list[str]:
+    if not items:
+        return []
+    seen: set[str] = set()
+    result: list[str] = []
+    for raw in items:
+        text = str(raw).strip()
+        if not text or text in seen:
+            continue
+        result.append(text)
+        seen.add(text)
+    return result
+
+
 def run_uv_command(uv_executable: str, project_dir: Path, args: list[str]) -> None:
     command = [uv_executable, *args]
     print(f"Running {' '.join(command)} in {project_dir}", file=sys.stderr)
@@ -169,7 +213,20 @@ def main() -> None:
         uv_path = ensure_uv(args.executable, args.force)
         print(f"uv executable: {uv_path}")
         if args.sync:
-            run_uv_command(uv_path, args.project_dir, ["sync", "--locked", "--frozen"])
+            sync_args: list[str] = ["sync"]
+            sync_args.append("--locked" if args.sync_locked else "--frozen")
+
+            extras = args.sync_extras or []
+            if not args.sync_no_default_extras:
+                extras = ["dev", *extras]
+            for extra in _normalise_unique(extras):
+                sync_args.extend(["--extra", extra])
+
+            groups = _normalise_unique(args.sync_groups or [])
+            for group in groups:
+                sync_args.extend(["--group", group])
+
+            run_uv_command(uv_path, args.project_dir, sync_args)
         if args.lock or args.export_requirements:
             run_uv_command(uv_path, args.project_dir, ["lock"])
         if args.export_requirements:
