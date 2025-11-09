@@ -17,6 +17,8 @@ best practices for scientific visualisation software.
 >
 > **Target release**: PneumoStabSim Professional v4.9.8
 
+Target release: PneumoStabSim Professional v4.9.8
+
 ---
 
 ## 0. Baseline Snapshot

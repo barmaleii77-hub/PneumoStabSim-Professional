@@ -34,7 +34,7 @@ from typing import Any, TypeVar
 from collections.abc import Callable, Iterable, Mapping
 
 from config.constants import get_pneumo_master_isolation_default
-from src.common.units import KELVIN_0C, PA_ATM, T_AMBIENT
+from src.common.units import KELVIN_0C, PA_ATM
 from src.pneumo.cylinder import CylinderSpec
 from src.pneumo.enums import (
     CheckValveKind,
@@ -251,12 +251,20 @@ def _require_str(container: Mapping[str, Any], key: str, context: str) -> str:
 
 
 def _enum_from_string(
-    enum_cls: type[EnumType], value: object, *, context: str
+    enum_cls: type[EnumType],
+    value: object,
+    *,
+    context: str,
+    aliases: Mapping[str, EnumType] | None = None,
 ) -> EnumType:
     if isinstance(value, enum_cls):
         return value
     if isinstance(value, str):
         candidate = value.strip().upper()
+        if aliases is not None:
+            alias_match = aliases.get(candidate)
+            if alias_match is not None:
+                return alias_match
         try:
             return enum_cls[candidate]
         except KeyError as exc:  # pragma: no cover - defensive guard
@@ -264,8 +272,7 @@ def _enum_from_string(
                 f"Invalid value '{value}' for {context} in config/app_settings.json"
             ) from exc
     raise TypeError(
-        f"{context} must be a string or {enum_cls.__name__}, "
-        f"got {type(value).__name__}"
+        f"{context} must be a string or {enum_cls.__name__}, got {type(value).__name__}"
     )
 
 
@@ -336,9 +343,15 @@ def load_pneumatic_defaults(
     defaults_root = manager.get_all_defaults()
 
     defaults = _ensure_mapping(defaults_root, "defaults_snapshot")
-    geometry_defaults = _ensure_mapping(defaults.get("geometry", {}), "defaults_snapshot.geometry")
-    pneumatic_defaults = _ensure_mapping(defaults.get("pneumatic", {}), "defaults_snapshot.pneumatic")
-    constants_root = _ensure_mapping(defaults.get("constants", {}), "defaults_snapshot.constants")
+    geometry_defaults = _ensure_mapping(
+        defaults.get("geometry", {}), "defaults_snapshot.geometry"
+    )
+    pneumatic_defaults = _ensure_mapping(
+        defaults.get("pneumatic", {}), "defaults_snapshot.pneumatic"
+    )
+    constants_root = _ensure_mapping(
+        defaults.get("constants", {}), "defaults_snapshot.constants"
+    )
     geometry_constants = _ensure_mapping(
         constants_root.get("geometry", {}), "defaults_snapshot.constants.geometry"
     )
@@ -349,7 +362,8 @@ def load_pneumatic_defaults(
         pneumo_constants.get("valves", {}), "defaults_snapshot.constants.pneumo.valves"
     )
     receiver_constants = _ensure_mapping(
-        pneumo_constants.get("receiver", {}), "defaults_snapshot.constants.pneumo.receiver"
+        pneumo_constants.get("receiver", {}),
+        "defaults_snapshot.constants.pneumo.receiver",
     )
 
     # Geometry -------------------------------------------------------------
@@ -366,7 +380,9 @@ def load_pneumatic_defaults(
     frame_to_pivot = _require_float(geometry_defaults, "frame_to_pivot", geom_context)
     cylinder_length = _require_float(geometry_defaults, "cylinder_length", geom_context)
     inner_diameter = _require_float(geometry_defaults, "cyl_diam_m", geom_context)
-    piston_thickness = _require_float(geometry_defaults, "piston_thickness_m", geom_context)
+    piston_thickness = _require_float(
+        geometry_defaults, "piston_thickness_m", geom_context
+    )
     rod_diameter = _require_float(geometry_defaults, "rod_diameter_m", geom_context)
     link_rods = _require_bool(geometry_defaults, "link_rod_diameters", geom_context)
 
@@ -457,12 +473,15 @@ def load_pneumatic_defaults(
     )
 
     pneumatic_context = "defaults_snapshot.pneumatic"
-    receiver_volume = _require_float(pneumatic_defaults, "receiver_volume", pneumatic_context)
+    receiver_volume = _require_float(
+        pneumatic_defaults, "receiver_volume", pneumatic_context
+    )
     ambient_temp = _require_float(pneumatic_defaults, "atmo_temp", pneumatic_context)
     receiver_mode = _enum_from_string(
         ReceiverVolumeMode,
         pneumatic_defaults.get("volume_mode"),
-        f"{pneumatic_context}.volume_mode",
+        context=f"{pneumatic_context}.volume_mode",
+        aliases={"MANUAL": ReceiverVolumeMode.ADIABATIC_RECALC},
     )
 
     receiver_state = ReceiverState(
@@ -524,13 +543,19 @@ def create_default_gas_network(
     ambient_temperature_k = max(ambient_temperature + KELVIN_0C, 1.0)
 
     relief_min_threshold = _require_float(
-        gas_constants, "relief_min_threshold_pa", "defaults_snapshot.constants.pneumo.gas"
+        gas_constants,
+        "relief_min_threshold_pa",
+        "defaults_snapshot.constants.pneumo.gas",
     )
     relief_stiff_threshold = _require_float(
-        gas_constants, "relief_stiff_threshold_pa", "defaults_snapshot.constants.pneumo.gas"
+        gas_constants,
+        "relief_stiff_threshold_pa",
+        "defaults_snapshot.constants.pneumo.gas",
     )
     relief_safety_threshold = _require_float(
-        gas_constants, "relief_safety_threshold_pa", "defaults_snapshot.constants.pneumo.gas"
+        gas_constants,
+        "relief_safety_threshold_pa",
+        "defaults_snapshot.constants.pneumo.gas",
     )
 
     relief_min_orifice = _require_float(
@@ -571,17 +596,23 @@ def create_default_gas_network(
     tank_mode = _enum_from_string(
         ReceiverVolumeMode,
         gas_constants.get("tank_volume_mode"),
-        "defaults_snapshot.constants.pneumo.gas.tank_volume_mode",
+        context="defaults_snapshot.constants.pneumo.gas.tank_volume_mode",
     )
     tank_state = create_tank_gas_state(
         V_initial=_require_float(
-            gas_constants, "tank_volume_initial_m3", "defaults_snapshot.constants.pneumo.gas"
+            gas_constants,
+            "tank_volume_initial_m3",
+            "defaults_snapshot.constants.pneumo.gas",
         ),
         p_initial=_require_float(
-            gas_constants, "tank_pressure_initial_pa", "defaults_snapshot.constants.pneumo.gas"
+            gas_constants,
+            "tank_pressure_initial_pa",
+            "defaults_snapshot.constants.pneumo.gas",
         ),
         T_initial=_require_float(
-            gas_constants, "tank_temperature_initial_k", "defaults_snapshot.constants.pneumo.gas"
+            gas_constants,
+            "tank_temperature_initial_k",
+            "defaults_snapshot.constants.pneumo.gas",
         ),
         mode=tank_mode,
     )
@@ -647,8 +678,10 @@ def get_default_gas_parameters(
 
     thermo_mode = _enum_from_string(
         ThermoMode,
-        _require_value(gas_constants, "thermo_mode", "defaults_snapshot.constants.pneumo.gas"),
-        "defaults_snapshot.constants.pneumo.gas.thermo_mode",
+        _require_value(
+            gas_constants, "thermo_mode", "defaults_snapshot.constants.pneumo.gas"
+        ),
+        context="defaults_snapshot.constants.pneumo.gas.thermo_mode",
     )
     return {
         "dt": _require_float(
@@ -677,9 +710,7 @@ def create_system_with_gas_network(
         receiver=defaults.receiver,
         master_isolation_open=defaults.master_isolation_open,
     )
-    gas_network = create_default_gas_network(
-        system, settings_manager=settings_manager
-    )
+    gas_network = create_default_gas_network(system, settings_manager=settings_manager)
     return SystemWithDefaults(system=system, gas_network=gas_network)
 
 

@@ -40,7 +40,7 @@ def _make_snapshot(
 
 
 def test_push_snapshot_emits_active_metrics():
-    bridge = TelemetryDataBridge(max_samples=8)
+    bridge = TelemetryDataBridge(max_samples=10)
     spy = SignalListener(bridge.sampleAppended)
 
     snapshot = _make_snapshot(
@@ -69,7 +69,7 @@ def test_push_snapshot_emits_active_metrics():
 
 
 def test_update_interval_throttles_samples():
-    bridge = TelemetryDataBridge(max_samples=8)
+    bridge = TelemetryDataBridge(max_samples=10)
     bridge.setUpdateInterval(3)
     spy = SignalListener(bridge.sampleAppended)
 
@@ -90,7 +90,7 @@ def test_update_interval_throttles_samples():
 
 
 def test_pause_and_reset_behaviour():
-    bridge = TelemetryDataBridge(max_samples=8)
+    bridge = TelemetryDataBridge(max_samples=10)
     spy = SignalListener(bridge.sampleAppended)
 
     first = _make_snapshot(0.1, pressures={Line.A1: 100000.0}, tank_pressure=100000.0)

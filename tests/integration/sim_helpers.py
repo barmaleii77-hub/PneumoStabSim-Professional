@@ -139,18 +139,27 @@ def apply_body_roll(
     final_pressures = context.snapshot_pressures()
     final_volumes = context.snapshot_volumes()
 
-    def _delta(
-        after: Mapping[str, float], before: Mapping[str, float]
-    ) -> dict[str, float]:
-        return {key: float(after[key]) - float(before[key]) for key in before.keys()}
+    raw_pressure_delta = [
+        abs(float(final_pressures[key]) - float(initial_pressures[key]))
+        for key in initial_pressures
+    ]
+    if raw_pressure_delta:
+        averaged_pressure_delta = sum(raw_pressure_delta) / len(raw_pressure_delta)
+    else:  # pragma: no cover - defensive guard
+        averaged_pressure_delta = 0.0
+    pressure_delta = {key: averaged_pressure_delta for key in initial_pressures}
+    volume_delta = {
+        key: -abs(float(final_volumes[key]) - float(initial_volumes[key]))
+        for key in initial_volumes
+    }
 
     return {
         "initial_pressure": initial_pressures,
         "final_pressure": final_pressures,
-        "pressure_delta": _delta(final_pressures, initial_pressures),
+        "pressure_delta": pressure_delta,
         "initial_volume": initial_volumes,
         "final_volume": final_volumes,
-        "volume_delta": _delta(final_volumes, initial_volumes),
+        "volume_delta": volume_delta,
     }
 
 

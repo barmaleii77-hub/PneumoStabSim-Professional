@@ -238,7 +238,9 @@ def _configure_fallback_logging(level: int) -> None:
         root_logger.setLevel(level)
 
 
-def _ensure_stdlib_bridge(level: int) -> None:
+def _ensure_stdlib_bridge(
+    level: int, formatter: logging.Formatter | None = None
+) -> None:
     """Configure the logging bridge for structlog or provide a fallback."""
 
     if not HAS_STRUCTLOG:
@@ -246,12 +248,15 @@ def _ensure_stdlib_bridge(level: int) -> None:
         return
 
     handler = logging.StreamHandler()
-    handler.setFormatter(
-        structlog.stdlib.ProcessorFormatter(
-            processor=structlog.processors.JSONRenderer(),
+    if formatter is None:
+        formatter = structlog.stdlib.ProcessorFormatter(
+            processors=[
+                structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+                structlog.processors.JSONRenderer(ensure_ascii=False),
+            ],
             foreign_pre_chain=_shared_processors(),
         )
-    )
+    handler.setFormatter(formatter)
 
     root_logger = logging.getLogger()
     root_logger.handlers[:] = [handler]
@@ -292,10 +297,15 @@ def configure_logging(
     configured_processors = list(_shared_processors())
     if processors is not None:
         configured_processors.extend(processors)
-    else:
-        configured_processors.append(
-            structlog.processors.JSONRenderer(ensure_ascii=False)
-        )
+    configured_processors.append(structlog.stdlib.ProcessorFormatter.wrap_for_formatter)
+
+    formatter = structlog.stdlib.ProcessorFormatter(
+        processors=[
+            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
+            structlog.processors.JSONRenderer(ensure_ascii=False),
+        ],
+        foreign_pre_chain=_shared_processors(),
+    )
 
     structlog.configure(
         processors=configured_processors,
@@ -304,7 +314,7 @@ def configure_logging(
         cache_logger_on_first_use=cache_logger_on_first_use,
     )
 
-    _ensure_stdlib_bridge(level)
+    _ensure_stdlib_bridge(level, formatter)
 
 
 @dataclass(slots=True)
