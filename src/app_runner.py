@@ -15,7 +15,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
@@ -25,6 +25,7 @@ from src.core.settings_validation import (
     determine_settings_source,
     validate_settings_file,
 )
+from src.core.settings_models import AppSettings, dump_settings
 from src.ui.qml_registration import register_qml_types
 
 
@@ -318,7 +319,7 @@ class ApplicationRunner:
         try:
             service = get_default_container().resolve(SETTINGS_SERVICE_TOKEN)
             try:
-                payload = service.load(use_cache=False)
+                payload_model: Any = service.load(use_cache=False)
             except Exception as load_exc:
                 # Попробуем починить файл настроек и повторить
                 try:
@@ -337,15 +338,17 @@ class ApplicationRunner:
                     raise
                 else:
                     # Retry after migration
-                    payload = service.load(use_cache=False)
+                    payload_model = service.load(use_cache=False)
+
+            payload_dict = self._coerce_settings_payload(payload_model)
 
             # Дополнительная защита: если за сессию кто-то снова записал legacy поле
-            if isinstance(payload, dict) and _promote_animation_in_memory(payload):
+            if _promote_animation_in_memory(payload_dict):
                 if logger:
                     logger.info(
                         "Normalized in-memory settings payload (promoted graphics.animation) before final save"
                     )
-            service.save(payload)
+            service.save(payload_dict)
             if logger:
                 logger.info("SettingsService payload persisted on exit")
         except Exception as exc:  # pragma: no cover - avoid raising during shutdown
@@ -545,26 +548,7 @@ class ApplicationRunner:
             return
 
         try:
-            if self.use_legacy_ui:
-                from src.ui.main_window_legacy import MainWindow as MW  # type: ignore
-
-                window = MW(use_qml_3d=False)
-                if self.app_logger:
-                    self.app_logger.info(
-                        "Legacy UI mode enabled — QML scene initialisation skipped"
-                    )
-                else:
-                    self._log_with_fallback(
-                        "info",
-                        "INFO: legacy UI mode enabled — QML scene initialisation skipped",
-                    )
-            else:
-                from src.ui.main_window import MainWindow as MW  # type: ignore
-
-                register_qml_types()
-
-                window = MW(use_qml_3d=self.use_qml_3d_schema)
-                self._check_qml_initialization(window)
+            window = self._instantiate_main_window(use_qml_3d=self.use_qml_3d_schema)
         except Exception as exc:
             # Переводим причину в пост-диагностику
             self._append_post_diag_trace(f"qml-create-window-failed:{exc}")
@@ -578,48 +562,7 @@ class ApplicationRunner:
                     f"WARNING: fallback window due to startup error: {exc}",
                 )
 
-            from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget, QPushButton
-
-            window = QWidget()
-            window.setWindowTitle("PneumoStabSim (headless diagnostics mode)")
-            layout = QVBoxLayout(window)
-
-            label = QLabel(
-                "Main window could not be initialised.\n"
-                "Running in diagnostics mode without the full UI.\n\n"
-                "Нажмите 'Повторить' для повторной попытки загрузки QML."
-            )
-            label.setWordWrap(True)
-            layout.addWidget(label)
-
-            retry_btn = QPushButton("Повторить загрузку QML")
-            layout.addWidget(retry_btn)
-
-            def _retry():
-                try:
-                    # Пытаемся ещё раз создать окно и загрузить QML
-                    from src.ui.main_window import MainWindow as MW2  # type: ignore
-
-                    new_window = MW2(use_qml_3d=self.use_qml_3d_schema)
-                    self._check_qml_initialization(new_window)
-                except Exception as e2:
-                    self._append_post_diag_trace(f"qml-retry-failed:{e2}")
-                    if self.app_logger:
-                        self.app_logger.error("Retry failed: %s", e2, exc_info=True)
-                    else:
-                        self._log_with_fallback(
-                            "error",
-                            f"ERROR: retry failed while creating main window: {e2}",
-                        )
-                else:
-                    # Заменяем fallback-окно реальным окном
-                    window.close()
-                    self.window_instance = new_window
-                    new_window.show()
-                    new_window.raise_()
-                    new_window.activateWindow()
-
-            retry_btn.clicked.connect(_retry)
+            window = self._create_diagnostics_main_window(str(exc))
 
         self.window_instance = window
 
@@ -631,6 +574,136 @@ class ApplicationRunner:
             self.app_logger.info("MainWindow created and shown")
 
         self._log_runtime_scenegraph_backend()
+
+    def _instantiate_main_window(self, *, use_qml_3d: bool) -> Any:
+        """Create a :class:`MainWindow` instance with the preferred backend."""
+
+        if self.use_legacy_ui:
+            from src.ui.main_window_legacy import MainWindow as LegacyMainWindow
+
+            window = LegacyMainWindow(use_qml_3d=use_qml_3d)
+            if self.app_logger:
+                self.app_logger.info(
+                    "Legacy UI mode enabled — QML scene initialisation skipped"
+                )
+            else:
+                self._log_with_fallback(
+                    "info",
+                    "INFO: legacy UI mode enabled — QML scene initialisation skipped",
+                )
+            return window
+
+        from src.ui.main_window import MainWindow as ModernMainWindow
+
+        register_qml_types()
+
+        window = ModernMainWindow(use_qml_3d=use_qml_3d)
+        self._check_qml_initialization(window)
+        return window
+
+    def _create_diagnostics_main_window(self, failure_reason: str) -> Any:
+        """Instantiate a diagnostics-aware main window after a startup failure."""
+
+        try:
+            diagnostics_window = self._instantiate_main_window(use_qml_3d=False)
+        except Exception as diag_exc:  # pragma: no cover - defensive fallback
+            self._append_post_diag_trace(f"diagnostics-window-fallback:{diag_exc}")
+            from src.ui.main_window_backup import MainWindow as BackupMainWindow
+
+            diagnostics_window = BackupMainWindow(use_qml_3d=False)
+
+        self._schedule_diagnostics_banner(diagnostics_window, failure_reason)
+        if hasattr(diagnostics_window, "setWindowTitle"):
+            try:
+                diagnostics_window.setWindowTitle(
+                    "PneumoStabSim (diagnostics mode — QML disabled)"
+                )
+            except Exception:
+                pass
+        return diagnostics_window
+
+    def _schedule_diagnostics_banner(self, window: Any, failure_reason: str) -> None:
+        """Show a deferred diagnostics notification with retry guidance."""
+
+        QMessageBoxType: Any | None
+        try:
+            from PySide6.QtWidgets import QMessageBox as QMessageBoxImported
+        except Exception:
+            QMessageBoxType = None
+        else:
+            QMessageBoxType = cast(Any, QMessageBoxImported)
+
+        message = (
+            "Main window initialisation failed."
+            "\nDiagnostics mode is running with the Qt Quick scene disabled."
+            "\n\nПричина: "
+            f"{failure_reason}"
+        )
+
+        if QMessageBoxType is not None:
+            try:
+                def _show_dialog() -> None:
+                    dialog = QMessageBoxType(window)
+                    dialog.setIcon(QMessageBoxType.Icon.Warning)
+                    dialog.setWindowTitle("Диагностика запуска")
+                    dialog.setText(message)
+                    dialog.setStandardButtons(
+                        QMessageBoxType.StandardButton.Retry
+                        | QMessageBoxType.StandardButton.Close
+                    )
+                    result = dialog.exec()
+                    if result == int(QMessageBoxType.StandardButton.Retry):
+                        self._retry_main_window_from_banner(window)
+
+                self.QTimer.singleShot(0, _show_dialog)
+                return
+            except Exception:
+                pass
+
+        self._log_with_fallback("warning", f"WARNING: {message}")
+
+    def _retry_main_window_from_banner(self, previous_window: Any) -> None:
+        """Retry loading the main window after a diagnostics warning."""
+
+        try:
+            new_window = self._instantiate_main_window(use_qml_3d=self.use_qml_3d_schema)
+        except Exception as retry_exc:  # pragma: no cover - diagnostics only
+            self._append_post_diag_trace(f"diagnostics-retry-failed:{retry_exc}")
+            if self.app_logger:
+                self.app_logger.error("Retry failed: %s", retry_exc, exc_info=True)
+            else:
+                self._log_with_fallback(
+                    "error",
+                    f"ERROR: retry failed while creating main window: {retry_exc}",
+                )
+            return
+
+        try:
+            previous_window.close()
+        except Exception:
+            pass
+
+        self.window_instance = new_window
+        new_window.show()
+        new_window.raise_()
+        new_window.activateWindow()
+
+    def _coerce_settings_payload(self, payload: Any) -> dict[str, Any]:
+        """Convert settings payload objects into mutable dictionaries."""
+
+        if isinstance(payload, AppSettings):
+            return dump_settings(payload)
+
+        raw_dump = getattr(payload, "model_dump", None)
+        if callable(raw_dump):
+            candidate = raw_dump()
+            if isinstance(candidate, dict):
+                return candidate
+
+        if isinstance(payload, dict):
+            return cast(dict[str, Any], json.loads(json.dumps(payload)))
+
+        return {}
 
     def _log_runtime_scenegraph_backend(self) -> None:
         """Report the runtime Qt Quick Scene Graph backend selection."""
@@ -787,10 +860,13 @@ class ApplicationRunner:
         """Строгая валидация конфигурации до создания MainWindow."""
         from src.common.settings_manager import get_settings_manager
 
+        QMessageBoxType: Any | None
         try:
-            from PySide6.QtWidgets import QMessageBox
+            from PySide6.QtWidgets import QMessageBox as QMessageBoxImported
         except Exception:  # pragma: no cover - headless environments
-            QMessageBox = None
+            QMessageBoxType = None
+        else:
+            QMessageBoxType = cast(Any, QMessageBoxImported)
 
         def _fail(
             message: str,
@@ -798,8 +874,8 @@ class ApplicationRunner:
         ) -> None:
             if self.app_logger:
                 self.app_logger.critical(message)
-            if QMessageBox is not None:
-                QMessageBox.critical(None, "Ошибка конфигурации", message)
+            if QMessageBoxType is not None:
+                QMessageBoxType.critical(None, "Ошибка конфигурации", message)
             else:
                 print(f"❌ {message}")
             raise exc_type(message)
@@ -898,7 +974,17 @@ class ApplicationRunner:
             if target is None:
                 target = app_instance
             if target is not None:
-                target.exit(0)
+                exit_method = getattr(target, "exit", None)
+                if callable(exit_method):
+                    exit_method(0)
+                    return
+                quit_method = getattr(target, "quit", None)
+                if callable(quit_method):
+                    quit_method()
+                    return
+            fallback_quit = getattr(app_instance, "quit", None)
+            if callable(fallback_quit):
+                fallback_quit()
 
         timer.timeout.connect(_quit_app)
         timer.start(timer_ms)
@@ -1038,6 +1124,9 @@ class ApplicationRunner:
                 self.setup_test_mode(args.test_mode)
 
             # ✅ Запуск event loop
+            if self.app_instance is None:
+                raise RuntimeError("QApplication instance is not initialised.")
+
             result = self.app_instance.exec()
 
             if self.app_logger:
