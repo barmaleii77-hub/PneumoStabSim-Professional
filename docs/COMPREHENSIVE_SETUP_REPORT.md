@@ -33,7 +33,7 @@
 ##3. Регулярный аудит конфигурации
 
 Новая утилита `tools/audit_config.py` автоматически выполняет:
-- проверку схемы `config/app_settings.json` по `config/schemas/app_settings.schema.json`;
+- проверку схемы `config/app_settings.json` по `schemas/settings/app_settings.schema.json`;
 - сравнение c эталоном `config/baseline/app_settings.json`;
 - контроль контрольной суммы из `config/config_hashes.json`;
 - генерацию отчёта `reports/config_audit_report.md`.
@@ -71,7 +71,7 @@ GitHub Actions запускает `python tools/audit_config.py --update-report`
 | ---------- | ---- |
 | Рабочая конфигурация | `config/app_settings.json` |
 | Эталон | `config/baseline/app_settings.json` |
-| JSON Schema | `config/schemas/app_settings.schema.json` |
+| JSON Schema | `schemas/settings/app_settings.schema.json` |
 | Контрольные суммы | `config/config_hashes.json` |
 | Отчёт аудита | `reports/config_audit_report.md` |
 

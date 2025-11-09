@@ -10,7 +10,7 @@ This blueprint assembles the canonical requirements for large language model cod
 - Prefer the `SettingsManager` and related abstractions in `src/core/settings_service.py` instead of manual file IO.
 
 ## 2. Parameter Management Strategy
-- Declare every adjustable value in `config/app_settings.json` with accompanying schema updates in `config/schemas/app_settings.schema.json`.
+- Declare every adjustable value in `config/app_settings.json` with accompanying schema updates in `schemas/settings/app_settings.schema.json`.
 - Load parameters exclusively through the settings service. Do not introduce new `@dataclass` defaults or inline constants that duplicate configuration values.
 - Surface each parameter in the UI module that owns it (e.g., graphics, simulation, diagnostics). Use descriptive names consistent with the master plan’s terminology.
 

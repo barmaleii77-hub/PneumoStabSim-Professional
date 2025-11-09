@@ -53,7 +53,7 @@ PneumoStabSim-Professional/
 ### Как запустить
 
 ```bash
-python -m src.tools.settings_migrate --settings config/app_settings.json \
+python tools/migrations/apply.py --settings config/app_settings.json \
     --migrations config/migrations --in-place --verbose
 ```
 
@@ -111,7 +111,7 @@ python -m src.tools.settings_audit \
 
 - `src/core/settings_service.SettingsService` автоматически валидирует
   `config/app_settings.json` по схеме
-  `config/schemas/app_settings.schema.json`.
+  `schemas/settings/app_settings.schema.json`.
 - Указать альтернативный путь к схеме можно через переменную окружения
   `PSS_SETTINGS_SCHEMA` или аргумент ``schema_path`` конструктора.
 - При нарушении структуры выбрасывается `SettingsValidationError` с полным
@@ -365,7 +365,7 @@ settings_manager.save_settings(state)
    - Сканирует `config/migrations/` и выполняет `upgrade()` для каждой версии между `metadata.version` и `SettingsManager.SETTINGS_VERSION`.
    - После успешной миграции записывает `metadata.previous_version` и новую `metadata.version`.
 2. **Проверка схемы**
-   - Загружается `config/schemas/app_settings.schema.json` и выполняется валидация через `jsonschema`.
+   - Загружается `schemas/settings/app_settings.schema.json` и выполняется валидация через `jsonschema`.
    - Любая ошибка выводит путь до параметра и прерывает запуск, исключая «тихие» расхождения.
 3. **Автосохранение**
    - Если миграция или конверсия единиц изменила данные, SettingsManager автоматически сохраняет файл с обновлённой версией.

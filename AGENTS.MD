@@ -47,7 +47,7 @@ ensure the master plan accurately reflects the intended scope.
 - **Testing**: `pytest` (with `pytest-qt`) and scenario runners under `tests/`.
 - **Logging**: Use `structlog` JSON logger configured in `src/diagnostics`.
 - **Configuration**: `config/app_settings.json` validated against
-  `config/schemas/app_settings.schema.json`; prefer using `src/core/settings_service.py`
+  `schemas/settings/app_settings.schema.json`; prefer using `src/core/settings_service.py`
   or `SettingsManager` abstractions instead of raw file IO.
 
 ---

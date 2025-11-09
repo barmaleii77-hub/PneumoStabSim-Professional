@@ -33,7 +33,7 @@ It aligns with the Renovation Master Plan objectives for tooling, privacy, and r
 ## 5. Logging & Diagnostics
 - Encourage assistants to leverage `src/diagnostics` utilities for structured logging and warning capture.
 - Highlight the requirement to keep `logs/` out of source control as per `.gitignore`.
-- Mention the JSON settings schema under `config/schemas/app_settings.schema.json` when discussing configuration.
+- Mention the JSON settings schema under `schemas/settings/app_settings.schema.json` when discussing configuration.
 
 ## 6. Testing Workflow
 - Default recommendation: run `pytest` and `ruff` before finalizing any patch.
