@@ -19,6 +19,7 @@ from tests._qt_headless import apply_headless_defaults
 from tests._qt_headless import headless_requested
 from tests.physics.cases import build_case_loader
 from tests._qt_runtime import QT_SKIP_REASON
+from tests.helpers import ensure_qt_runtime
 
 
 pytest_plugins: tuple[str, ...] = ()
@@ -134,28 +135,35 @@ else:
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
-    """Automatically skip GUI-bound tests when Qt backends are unavailable."""
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Fail fast when Qt prerequisites are missing for GUI-bound tests."""
 
-    _ = config
     if QT_SKIP_REASON is None:
         return
 
     gui_fixtures = {"qtbot", "qapp"}
-    skip_marker = pytest.mark.skip(reason=QT_SKIP_REASON)
-    for item in items:
-        fixturenames = set(getattr(item, "fixturenames", ()))
-        if "gui" in item.keywords or fixturenames.intersection(gui_fixtures):
-            item.add_marker(skip_marker)
+    fixturenames = set(getattr(item, "fixturenames", ()))
+    requires_gui = "gui" in item.keywords or fixturenames.intersection(gui_fixtures)
+
+    if requires_gui:
+        pytest.fail(
+            (
+                "Qt runtime prerequisites are not satisfied: "
+                f"{QT_SKIP_REASON}.\n"
+                "Run `python -m tools.cross_platform_test_prep --run-tests` to "
+                "install cross-platform test dependencies before retrying."
+            )
+        )
 
 
 def pytest_report_header(config: pytest.Config) -> list[str]:
     _ = config
     if QT_SKIP_REASON is None:
-        return []
-    return [f"GUI tests skipped: {QT_SKIP_REASON}"]
+        return ["Qt runtime validation: ready"]
+    return [
+        "Qt runtime validation: missing prerequisites",
+        f"Reason: {QT_SKIP_REASON}",
+    ]
 
 
 _security_audit_dir = project_root / "reports" / "security_audit"
@@ -211,6 +219,13 @@ def integration_reports_dir(reports_tests_dir: Path) -> Path:
     target = reports_tests_dir / "integration"
     target.mkdir(parents=True, exist_ok=True)
     return target
+
+
+@pytest.fixture(scope="session")
+def qt_runtime_ready() -> None:
+    """Ensure Qt runtime bindings are installed before GUI/QML tests run."""
+
+    ensure_qt_runtime()
 
 
 @pytest.fixture(scope="session")

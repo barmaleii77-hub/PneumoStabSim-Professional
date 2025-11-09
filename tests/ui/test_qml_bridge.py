@@ -5,20 +5,12 @@ from __future__ import annotations
 import pytest
 
 from src.common.settings_manager import SettingsManager
-from importlib import import_module
 
 from src.ui.scene_bridge import SceneBridge
 from src.ui.qml_bridge import QMLBridge
 from tests.helpers import SignalListener
 
-try:  # pragma: no cover - optional dependency for headless environments
-    import_module("PySide6.QtCore")
-except (
-    Exception
-):  # pragma: no cover - allow tests to be skipped when PySide6 is missing
-    PYSIDE_AVAILABLE = False
-else:  # pragma: no cover - executed only when PySide6 is present
-    PYSIDE_AVAILABLE = True
+pytestmark = pytest.mark.usefixtures("qt_runtime_ready")
 
 
 def test_prepare_for_qml_adds_camel_case_aliases() -> None:
@@ -77,7 +69,6 @@ def test_settings_manager_loads_orbit_presets() -> None:
     assert pytest.approx(baseline["values"]["orbit_inertia"], rel=1e-3) == 0.4
 
 
-@pytest.mark.skipif(not PYSIDE_AVAILABLE, reason="PySide6 is required for SceneBridge")
 def test_camera_hud_context() -> None:
     manager = SettingsManager()
     bridge = SceneBridge(settings_manager=manager)
@@ -101,7 +92,6 @@ def test_camera_hud_context() -> None:
     assert "camera" in latest
 
 
-@pytest.mark.skipif(not PYSIDE_AVAILABLE, reason="PySide6 is required for SceneBridge")
 def test_scene_bridge_initial_graphics_payload() -> None:
     manager = SettingsManager()
     bridge = SceneBridge(settings_manager=manager)
@@ -158,7 +148,6 @@ def test_scene_bridge_augments_camera_updates() -> None:
     assert camera_state.get("orbitPresetDefault")
 
 
-@pytest.mark.skipif(not PYSIDE_AVAILABLE, reason="PySide6 is required for SceneBridge")
 def test_scene_bridge_refresh_orbit_presets_emits_updates(monkeypatch) -> None:
     manager = SettingsManager()
     bridge = SceneBridge(settings_manager=manager)

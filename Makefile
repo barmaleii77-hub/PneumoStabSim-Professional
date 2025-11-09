@@ -250,8 +250,15 @@ cipilot-env:
 CONTAINER_IMAGE ?= pneumo-dev:qt610
 CONTAINER_WORKDIR ?= /workdir
 
+.PHONY: cross-platform-prep cross-platform-test
+cross-platform-prep:
+	$(PYTHON) -m tools.cross_platform_test_prep --use-uv
+
+cross-platform-test:
+	$(PYTHON) -m tools.cross_platform_test_prep --use-uv --run-tests
+
 .PHONY: container-build container-shell container-test container-test-opengl \
-	container-test-vulkan container-verify-all container-analyze-logs
+container-test-vulkan container-verify-all container-analyze-logs
 
 container-build:
 	docker build -t $(CONTAINER_IMAGE) .
