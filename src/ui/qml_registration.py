@@ -2,14 +2,35 @@
 
 from __future__ import annotations
 
-from importlib import import_module
 from collections.abc import Iterable
+from importlib import import_module
+from typing import Any, Callable, cast
+
+RegisterModule = Callable[[bytes | bytearray | memoryview[int], int, int], None]
+RegisterType = Callable[
+    [
+        type[Any],
+        bytes | bytearray | memoryview[int],
+        int,
+        int,
+        bytes | bytearray | memoryview[int],
+    ],
+    int,
+]
+
+_runtime_register_module: Any = None
+_runtime_register_type: Any = None
 
 try:
-    from PySide6.QtQml import qmlRegisterModule, qmlRegisterType
+    from PySide6.QtQml import qmlRegisterModule as _runtime_register_module
+    from PySide6.QtQml import qmlRegisterType as _runtime_register_type
 except Exception:  # pragma: no cover - headless environments
-    qmlRegisterModule = None
-    qmlRegisterType = None
+    pass
+
+qml_register_module: RegisterModule | None = cast(
+    RegisterModule | None, _runtime_register_module
+)
+qml_register_type: RegisterType | None = cast(RegisterType | None, _runtime_register_type)
 
 _QML_ELEMENT_MODULES: Iterable[str] = (
     "src.ui.example_geometry",
@@ -25,14 +46,14 @@ _QML_ELEMENT_MODULES: Iterable[str] = (
 def register_qml_types() -> None:
     """Register QML modules and load Python QML elements."""
 
-    if qmlRegisterModule is None or qmlRegisterType is None:
+    if qml_register_module is None or qml_register_type is None:
         return
 
-    qmlRegisterModule("PneumoStabSim", 1, 0)
+    qml_register_module(b"PneumoStabSim", 1, 0)
 
     from src.ui.scene_bridge import SceneBridge
 
-    qmlRegisterType(SceneBridge, "PneumoStabSim", 1, 0, "SceneBridge")
+    qml_register_type(SceneBridge, b"PneumoStabSim", 1, 0, b"SceneBridge")
 
     for module_name in _QML_ELEMENT_MODULES:
         import_module(module_name)
@@ -40,12 +61,20 @@ def register_qml_types() -> None:
     from src.ui.main_window_pkg import qml_bridge as _qml_bridge
 
     if not getattr(_qml_bridge.QMLBridge, "_scene_bridge_patched", False):
-        original_push = _qml_bridge.QMLBridge._push_batched_updates
-        original_set_state = _qml_bridge.QMLBridge.set_simulation_state
+        original_push: Callable[..., Any] = (
+            _qml_bridge.QMLBridge._push_batched_updates
+        )
+        original_set_state: Callable[..., Any] = (
+            _qml_bridge.QMLBridge.set_simulation_state
+        )
 
         def _push_with_scene_bridge(
-            window, updates, *, detailed=False, raise_on_error=False
-        ):
+            window: Any,
+            updates: dict[str, Any],
+            *,
+            detailed: bool = False,
+            raise_on_error: bool = False,
+        ) -> Any:
             if not updates:
                 return _qml_bridge.QMLBridge._make_update_result(True, detailed)
 
@@ -69,7 +98,7 @@ def register_qml_types() -> None:
                 raise_on_error=raise_on_error,
             )
 
-        def _set_state_with_scene_bridge(window, snapshot):
+        def _set_state_with_scene_bridge(window: Any, snapshot: Any) -> bool:
             scene_bridge = getattr(window, "_scene_bridge", None)
             if scene_bridge is not None and snapshot is not None:
                 try:
@@ -88,15 +117,20 @@ def register_qml_types() -> None:
                         exc_info=True,
                     )
 
-            return original_set_state(window, snapshot)
+            result = original_set_state(window, snapshot)
+            return bool(result)
 
-        _qml_bridge.QMLBridge._push_batched_updates = staticmethod(
-            _push_with_scene_bridge
+        setattr(
+            _qml_bridge.QMLBridge,
+            "_push_batched_updates",
+            staticmethod(_push_with_scene_bridge),
         )
-        _qml_bridge.QMLBridge.set_simulation_state = staticmethod(
-            _set_state_with_scene_bridge
+        setattr(
+            _qml_bridge.QMLBridge,
+            "set_simulation_state",
+            staticmethod(_set_state_with_scene_bridge),
         )
-        _qml_bridge.QMLBridge._scene_bridge_patched = True
+        setattr(_qml_bridge.QMLBridge, "_scene_bridge_patched", True)
 
 
 __all__ = ["register_qml_types"]

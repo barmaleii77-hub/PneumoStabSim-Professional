@@ -8,7 +8,7 @@ from typing import Any, Mapping
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
-from PySide6.QtGui import QFont
+from PySide6.QtGui import QCloseEvent, QFont
 
 from .state_manager import GeometryStateManager
 from .frame_tab import FrameTab
@@ -526,7 +526,7 @@ class GeometryPanel(QWidget):
             "piston_thickness_m",
         }
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle close event - save settings
 
         Args:

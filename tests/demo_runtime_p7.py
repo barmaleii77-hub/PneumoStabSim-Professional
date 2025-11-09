@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
 )
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtCore import QTimer, QThread, QObject, Signal, Slot, Qt
 
 # Add src to path
@@ -200,7 +201,7 @@ class DemoMainWindow(QMainWindow):
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Handle close"""
         self.render_timer.stop()
         if self.physics_thread.isRunning():
