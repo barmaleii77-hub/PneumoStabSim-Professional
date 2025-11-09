@@ -343,14 +343,17 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
                 if unknown_arch is None:
                     unknown_arch = arch
                 continue
-            if QT_BASE_MODULE not in available:
-                print(
-                    f"[qt] Skipping {version}/{arch}: required module '{QT_BASE_MODULE}' missing",
-                    file=sys.stderr,
-                )
-                continue
             missing = [m for m in QT_MODULES if m.lower() not in available]
             present = [m for m in QT_MODULES if m.lower() in available]
+            missing_report = [m for m in missing if m.lower() != QT_BASE_MODULE]
+            if QT_BASE_MODULE not in available:
+                print(
+                    f"[qt] {version}/{arch} does not report '{QT_BASE_MODULE}' in module metadata; proceeding optimistically",
+                    file=sys.stderr,
+                )
+                if partial_choice is None:
+                    partial_choice = (arch, present or [QT_BASE_MODULE], missing_report)
+                continue
             if not missing:
                 return version, arch, QT_MODULES, []
             print(
@@ -384,10 +387,17 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
             if unknown_arch is None:
                 unknown_arch = arch
             continue
-        if QT_BASE_MODULE not in available:
-            continue
-        present = [m for m in QT_MODULES if m.lower() in available]
         missing = [m for m in QT_MODULES if m.lower() not in available]
+        present = [m for m in QT_MODULES if m.lower() in available]
+        missing_report = [m for m in missing if m.lower() != QT_BASE_MODULE]
+        if QT_BASE_MODULE not in available:
+            print(
+                f"[qt] Preferred version {preferred}/{arch} does not report '{QT_BASE_MODULE}' in module metadata; proceeding optimistically",
+                file=sys.stderr,
+            )
+            if partial_choice is None:
+                partial_choice = (arch, present or [QT_BASE_MODULE], missing_report)
+            continue
         if not missing:
             return preferred, arch, QT_MODULES, []
         print(
@@ -423,10 +433,17 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
                 if unknown_arch is None:
                     unknown_arch = arch
                 continue
-            if QT_BASE_MODULE not in available:
-                continue
-            present = [m for m in QT_MODULES if m.lower() in available]
             missing = [m for m in QT_MODULES if m.lower() not in available]
+            present = [m for m in QT_MODULES if m.lower() in available]
+            missing_report = [m for m in missing if m.lower() != QT_BASE_MODULE]
+            if QT_BASE_MODULE not in available:
+                print(
+                    f"[qt] Fallback candidate {candidate}/{arch} does not report '{QT_BASE_MODULE}' in module metadata; proceeding optimistically",
+                    file=sys.stderr,
+                )
+                if partial_choice is None:
+                    partial_choice = (arch, present or [QT_BASE_MODULE], missing_report)
+                continue
             if not missing:
                 return candidate, arch, QT_MODULES, []
             print(
