@@ -712,6 +712,22 @@
           "title": "Fog Density",
           "type": "number"
         },
+        "fog_depth_enabled": {
+          "title": "Fog Depth Enabled",
+          "type": "boolean"
+        },
+        "fog_depth_near": {
+          "title": "Fog Depth Near",
+          "type": "number"
+        },
+        "fog_depth_far": {
+          "title": "Fog Depth Far",
+          "type": "number"
+        },
+        "fog_depth_curve": {
+          "title": "Fog Depth Curve",
+          "type": "number"
+        },
         "fog_near": {
           "title": "Fog Near",
           "type": "number"
@@ -791,6 +807,10 @@
         "fog_enabled",
         "fog_color",
         "fog_density",
+        "fog_depth_enabled",
+        "fog_depth_near",
+        "fog_depth_far",
+        "fog_depth_curve",
         "fog_near",
         "fog_far",
         "fog_height_enabled",
@@ -2953,7 +2973,13 @@
         "fog_density": {
           "$ref": "#/$defs/SliderRange"
         },
+        "fog_depth_near": {
+          "$ref": "#/$defs/SliderRange"
+        },
         "fog_near": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_depth_far": {
           "$ref": "#/$defs/SliderRange"
         },
         "fog_far": {
@@ -2966,6 +2992,9 @@
           "$ref": "#/$defs/SliderRange"
         },
         "fog_height_curve": {
+          "$ref": "#/$defs/SliderRange"
+        },
+        "fog_depth_curve": {
           "$ref": "#/$defs/SliderRange"
         },
         "fog_transmit_curve": {
@@ -2991,11 +3020,14 @@
         "ibl_offset_y",
         "reflection_padding_m",
         "fog_density",
+        "fog_depth_near",
         "fog_near",
+        "fog_depth_far",
         "fog_far",
         "fog_least_intense_y",
         "fog_most_intense_y",
         "fog_height_curve",
+        "fog_depth_curve",
         "fog_transmit_curve",
         "ao_strength",
         "ao_radius",

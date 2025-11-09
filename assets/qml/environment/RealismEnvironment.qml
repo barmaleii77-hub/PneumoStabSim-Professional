@@ -309,8 +309,8 @@ ExtendedSceneEnvironment {
     property bool fogEnabled: _bool("environment", ["fog_enabled", "fog_active"], false)
     property color fogColor: _color("environment", ["fog_color", "fogColor"], "#d0d8e8")
     property real fogDensity: _number("environment", ["fog_density", "fogDensity"], 0.06)
-    property real fogDepthNear: _number("environment", ["fog_near", "fog_depth_near"], 2.0)
-    property real fogDepthFar: _number("environment", ["fog_far", "fog_depth_far"], 20.0)
+    property real fogDepthNear: _number("environment", ["fog_depth_near", "fog_near"], 2.0)
+    property real fogDepthFar: _number("environment", ["fog_depth_far", "fog_far"], 20.0)
 
     // Vignette & color adjustments
     property bool vignetteActive: _bool("effects", ["vignette", "vignette_enabled"], true)

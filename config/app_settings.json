@@ -72,7 +72,21 @@
         "decimals": 2,
         "units": "м"
       },
+      "fog_depth_near": {
+        "min": 0.0,
+        "max": 200.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
       "fog_far": {
+        "min": 0.0,
+        "max": 500.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_depth_far": {
         "min": 0.0,
         "max": 500.0,
         "step": 0.1,
@@ -94,6 +108,11 @@
         "units": "м"
       },
       "fog_height_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "fog_depth_curve": {
         "min": 0.0,
         "max": 4.0,
         "step": 0.05
@@ -295,6 +314,10 @@
         "fog_enabled": false,
         "fog_color": "#aab9cf",
         "fog_density": 0.06,
+        "fog_depth_enabled": true,
+        "fog_depth_near": 2.0,
+        "fog_depth_far": 20.0,
+        "fog_depth_curve": 1.0,
         "fog_near": 2.0,
         "fog_far": 20.0,
         "fog_height_enabled": false,
@@ -708,7 +731,21 @@
           "decimals": 2,
           "units": "м"
         },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
         "fog_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
           "min": 0.0,
           "max": 500.0,
           "step": 0.1,
@@ -730,6 +767,11 @@
           "units": "м"
         },
         "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
           "min": 0.0,
           "max": 4.0,
           "step": 0.05
@@ -1510,6 +1552,10 @@
         "fog_enabled": true,
         "fog_color": "#aab9cf",
         "fog_density": 0.06,
+        "fog_depth_enabled": true,
+        "fog_depth_near": 2.0,
+        "fog_depth_far": 20.0,
+        "fog_depth_curve": 1.0,
         "fog_near": 2.0,
         "fog_far": 20.0,
         "fog_height_enabled": false,
@@ -1916,9 +1962,23 @@
           "max": 1.0,
           "step": 0.01
         },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
         "fog_near": {
           "min": 0.0,
           "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
+          "min": 0.0,
+          "max": 500.0,
           "step": 0.1,
           "decimals": 2,
           "units": "м"
@@ -1945,6 +2005,11 @@
           "units": "м"
         },
         "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
           "min": 0.0,
           "max": 4.0,
           "step": 0.05

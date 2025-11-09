@@ -149,6 +149,8 @@ class SettingsService:
             raise SettingsValidationError(
                 f"Failed to read settings file '{path}': {exc}"
             ) from exc
+        self._normalise_fog_depth_aliases(payload)
+
         if self._validate_schema:
             self.validate(payload)
         self._capture_last_modified(payload)
@@ -198,6 +200,99 @@ class SettingsService:
         template = deepcopy(_SETTINGS_BASE_PAYLOAD)
         self._deep_merge(template, payload)
         return template
+
+    def _normalise_fog_depth_aliases(
+        self, payload: MutableMapping[str, Any] | None
+    ) -> None:
+        if not isinstance(payload, MutableMapping):
+            return
+
+        def _environment_section(
+            root: MutableMapping[str, Any] | None,
+        ) -> MutableMapping[str, Any] | None:
+            if not isinstance(root, MutableMapping):
+                return None
+            graphics = root.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return None
+            environment = graphics.get("environment")
+            if not isinstance(environment, MutableMapping):
+                return None
+            return environment
+
+        def _environment_ranges(
+            root: MutableMapping[str, Any] | None,
+        ) -> MutableMapping[str, Any] | None:
+            if not isinstance(root, MutableMapping):
+                return None
+            graphics = root.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return None
+            ranges = graphics.get("environment_ranges")
+            if not isinstance(ranges, MutableMapping):
+                return None
+            return ranges
+
+        def _mirror_value(
+            section: MutableMapping[str, Any],
+            primary: str,
+            legacy: str,
+        ) -> None:
+            if primary in section and legacy not in section:
+                section[legacy] = section[primary]
+            elif legacy in section and primary not in section:
+                section[primary] = section[legacy]
+
+        def _sync_environment(section: MutableMapping[str, Any]) -> None:
+            _mirror_value(section, "fog_depth_near", "fog_near")
+            _mirror_value(section, "fog_depth_far", "fog_far")
+            if "fog_depth_enabled" not in section:
+                section["fog_depth_enabled"] = bool(section.get("fog_enabled", True))
+            if "fog_depth_curve" not in section:
+                fallback = section.get("fog_height_curve")
+                if isinstance(fallback, (int, float)):
+                    section["fog_depth_curve"] = fallback
+                else:
+                    section["fog_depth_curve"] = 1.0
+
+        def _sync_ranges(section: MutableMapping[str, Any]) -> None:
+            if "fog_depth_near" in section and "fog_near" not in section:
+                section["fog_near"] = deepcopy(section["fog_depth_near"])
+            elif "fog_near" in section and "fog_depth_near" not in section:
+                section["fog_depth_near"] = deepcopy(section["fog_near"])
+
+            if "fog_depth_far" in section and "fog_far" not in section:
+                section["fog_far"] = deepcopy(section["fog_depth_far"])
+            elif "fog_far" in section and "fog_depth_far" not in section:
+                section["fog_depth_far"] = deepcopy(section["fog_far"])
+
+            if "fog_depth_curve" not in section and "fog_height_curve" in section:
+                section["fog_depth_curve"] = deepcopy(section["fog_height_curve"])
+            elif "fog_height_curve" not in section and "fog_depth_curve" in section:
+                section["fog_height_curve"] = deepcopy(section["fog_depth_curve"])
+
+        current = payload.get("current")
+        defaults_snapshot = payload.get("defaults_snapshot")
+        metadata = payload.get("metadata")
+
+        for section in (
+            _environment_section(current),
+            _environment_section(defaults_snapshot),
+        ):
+            if section is not None:
+                _sync_environment(section)
+
+        for section in (
+            _environment_ranges(current),
+            _environment_ranges(defaults_snapshot),
+        ):
+            if section is not None:
+                _sync_ranges(section)
+
+        if isinstance(metadata, MutableMapping):
+            slider_ranges = metadata.get("environment_slider_ranges")
+            if isinstance(slider_ranges, MutableMapping):
+                _sync_ranges(slider_ranges)
 
     @staticmethod
     def _prune_location(payload: Any, location: Sequence[Any]) -> None:
