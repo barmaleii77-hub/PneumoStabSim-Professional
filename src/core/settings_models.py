@@ -202,6 +202,10 @@ class EnvironmentSettings(_StrictModel):
     fog_enabled: bool
     fog_color: str
     fog_density: float
+    fog_depth_enabled: bool
+    fog_depth_near: float
+    fog_depth_far: float
+    fog_depth_curve: float
     fog_near: float
     fog_far: float
     fog_height_enabled: bool
@@ -543,11 +547,14 @@ class EnvironmentSliderRanges(_StrictModel):
     ibl_offset_y: SliderRange
     reflection_padding_m: SliderRange
     fog_density: SliderRange
+    fog_depth_near: SliderRange
     fog_near: SliderRange
+    fog_depth_far: SliderRange
     fog_far: SliderRange
     fog_least_intense_y: SliderRange
     fog_most_intense_y: SliderRange
     fog_height_curve: SliderRange
+    fog_depth_curve: SliderRange
     fog_transmit_curve: SliderRange
     ao_strength: SliderRange
     ao_radius: SliderRange

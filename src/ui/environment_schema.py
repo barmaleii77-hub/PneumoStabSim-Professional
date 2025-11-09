@@ -168,6 +168,16 @@ ENVIRONMENT_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition(
         "fog_density", "float", min_value=0.0, max_value=1.0
     ),
+    EnvironmentParameterDefinition("fog_depth_enabled", "bool"),
+    EnvironmentParameterDefinition(
+        "fog_depth_near", "float", min_value=0.0, max_value=200.0
+    ),
+    EnvironmentParameterDefinition(
+        "fog_depth_far", "float", min_value=0.0, max_value=500.0
+    ),
+    EnvironmentParameterDefinition(
+        "fog_depth_curve", "float", min_value=0.0, max_value=4.0
+    ),
     EnvironmentParameterDefinition("fog_near", "float", min_value=0.0, max_value=200.0),
     EnvironmentParameterDefinition("fog_far", "float", min_value=0.0, max_value=500.0),
     EnvironmentParameterDefinition("fog_height_enabled", "bool"),
@@ -216,8 +226,14 @@ ENVIRONMENT_SLIDER_RANGE_DEFAULTS: dict[str, EnvironmentSliderRange] = {
         "reflection_padding_m", 0.0, 1.0, 0.01, decimals=2, unit="м"
     ),
     "fog_density": EnvironmentSliderRange("fog_density", 0.0, 1.0, 0.01),
+    "fog_depth_near": EnvironmentSliderRange(
+        "fog_depth_near", 0.0, 200.0, 0.1, decimals=2, unit="м"
+    ),
     "fog_near": EnvironmentSliderRange(
         "fog_near", 0.0, 200.0, 0.1, decimals=2, unit="м"
+    ),
+    "fog_depth_far": EnvironmentSliderRange(
+        "fog_depth_far", 0.0, 500.0, 0.1, decimals=2, unit="м"
     ),
     "fog_far": EnvironmentSliderRange("fog_far", 0.0, 500.0, 0.1, decimals=2, unit="м"),
     "fog_least_intense_y": EnvironmentSliderRange(
@@ -227,6 +243,7 @@ ENVIRONMENT_SLIDER_RANGE_DEFAULTS: dict[str, EnvironmentSliderRange] = {
         "fog_most_intense_y", -100.0, 100.0, 0.1, decimals=2, unit="м"
     ),
     "fog_height_curve": EnvironmentSliderRange("fog_height_curve", 0.0, 4.0, 0.05),
+    "fog_depth_curve": EnvironmentSliderRange("fog_depth_curve", 0.0, 4.0, 0.05),
     "fog_transmit_curve": EnvironmentSliderRange("fog_transmit_curve", 0.0, 4.0, 0.05),
     "ao_strength": EnvironmentSliderRange("ao_strength", 0.0, 100.0, 1.0),
     "ao_radius": EnvironmentSliderRange(
@@ -285,7 +302,20 @@ ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
-ENVIRONMENT_REQUIRED_KEYS = frozenset(defn.key for defn in ENVIRONMENT_PARAMETERS)
+ENVIRONMENT_OPTIONAL_KEYS = frozenset(
+    {
+        "fog_depth_enabled",
+        "fog_depth_near",
+        "fog_depth_far",
+        "fog_depth_curve",
+    }
+)
+
+ENVIRONMENT_OPTIONAL_SLIDER_KEYS = frozenset(
+    ENVIRONMENT_OPTIONAL_KEYS & set(ENVIRONMENT_SLIDER_RANGE_DEFAULTS.keys())
+)
+ENVIRONMENT_ALL_KEYS = frozenset(defn.key for defn in ENVIRONMENT_PARAMETERS)
+ENVIRONMENT_REQUIRED_KEYS = ENVIRONMENT_ALL_KEYS
 ENVIRONMENT_CONTEXT_PROPERTIES: dict[str, str] = {
     "background_mode": "startBackgroundMode",
     "background_color": "startBackgroundColor",
@@ -308,6 +338,10 @@ ENVIRONMENT_CONTEXT_PROPERTIES: dict[str, str] = {
     "fog_enabled": "startFogEnabled",
     "fog_color": "startFogColor",
     "fog_density": "startFogDensity",
+    "fog_depth_enabled": "startFogDepthEnabled",
+    "fog_depth_near": "startFogDepthNear",
+    "fog_depth_far": "startFogDepthFar",
+    "fog_depth_curve": "startFogDepthCurve",
     "fog_near": "startFogNear",
     "fog_far": "startFogFar",
     "fog_height_enabled": "startFogHeightEnabled",
@@ -359,9 +393,9 @@ def _normalise_environment_key(key: str) -> str:
     if alias:
         return alias
 
-    if trimmed in ENVIRONMENT_REQUIRED_KEYS:
+    if trimmed in ENVIRONMENT_ALL_KEYS:
         return trimmed
-    if snake in ENVIRONMENT_REQUIRED_KEYS:
+    if snake in ENVIRONMENT_ALL_KEYS:
         return snake
     return snake
 
@@ -453,7 +487,11 @@ def validate_environment_slider_ranges(
 
     required: tuple[str, ...]
     if required_keys is None:
-        required = ENVIRONMENT_SLIDER_RANGE_KEYS
+        required = tuple(
+            key
+            for key in ENVIRONMENT_SLIDER_RANGE_KEYS
+            if key not in ENVIRONMENT_OPTIONAL_SLIDER_KEYS
+        )
     else:
         required = tuple(required_keys)
 
@@ -478,6 +516,8 @@ def _validate_section(
     seen: set[str] = set()
     for defn in definitions:
         if defn.key not in payload:
+            if section_name == "environment" and defn.key in ENVIRONMENT_OPTIONAL_KEYS:
+                continue
             raise EnvironmentValidationError(f"Missing {section_name} key: {defn.key}")
         raw = payload[defn.key]
         if defn.value_type == "bool":

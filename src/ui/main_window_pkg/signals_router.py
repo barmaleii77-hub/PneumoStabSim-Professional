@@ -238,6 +238,10 @@ class SignalsRouter:
                 "enabled": "fog_enabled",
                 "color": "fog_color",
                 "density": "fog_density",
+                "depth_enabled": "fog_depth_enabled",
+                "depth_near": "fog_depth_near",
+                "depth_far": "fog_depth_far",
+                "depth_curve": "fog_depth_curve",
                 "near": "fog_near",
                 "far": "fog_far",
                 "least_intense_y": "fog_least_intense_y",
@@ -252,6 +256,20 @@ class SignalsRouter:
                 _setdefault(env_payload, target_key, value)
                 if target_key in env_payload:
                     params.setdefault(target_key, env_payload[target_key])
+
+            def _sync_depth_alias(primary: str, legacy: str) -> None:
+                if primary in env_payload and legacy not in env_payload:
+                    env_payload[legacy] = env_payload[primary]
+                if primary in params and legacy not in params:
+                    params[legacy] = params[primary]
+                if legacy in env_payload and primary not in env_payload:
+                    env_payload[primary] = env_payload[legacy]
+                if legacy in params and primary not in params:
+                    params[primary] = params[legacy]
+
+            _sync_depth_alias("fog_depth_enabled", "fog_enabled")
+            _sync_depth_alias("fog_depth_near", "fog_near")
+            _sync_depth_alias("fog_depth_far", "fog_far")
 
         ambient_section = _first_mapping(
             env_payload.get("ambient_occlusion"), params.get("ambient_occlusion")

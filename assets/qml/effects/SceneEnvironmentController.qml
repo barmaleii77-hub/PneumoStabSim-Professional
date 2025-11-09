@@ -276,10 +276,26 @@ ExtendedSceneEnvironment {
     property bool fogEnabled: environmentBoolDefault("fogEnabled", "fog_enabled", true)
     property color fogColor: environmentColorDefault("fogColor", "fog_color", "#aab9cf")
     property real fogDensity: environmentNumberDefault("fogDensity", "fog_density", 0.06)
-    property bool fogDepthEnabled: environmentBoolDefault("fogDepthEnabled", "fog_depth_enabled", true)
-    property real fogDepthCurve: environmentNumberDefault("fogDepthCurve", "fog_depth_curve", 1.0)
-    property real fogDepthNear: environmentNumberDefault("fogDepthNear", "fog_depth_near", 2.0)
-    property real fogDepthFar: environmentNumberDefault("fogDepthFar", "fog_depth_far", 20.0)
+    property bool fogDepthEnabled: environmentBoolDefault(
+        ["fogDepthEnabled", "fog_depth_enabled"],
+        ["fogEnabled", "fog_enabled"],
+        true
+    )
+    property real fogDepthCurve: environmentNumberDefault(
+        ["fogDepthCurve", "fog_depth_curve"],
+        ["fogHeightCurve", "fog_height_curve"],
+        1.0
+    )
+    property real fogDepthNear: environmentNumberDefault(
+        ["fogDepthNear", "fog_depth_near"],
+        ["fogNear", "fog_near"],
+        2.0
+    )
+    property real fogDepthFar: environmentNumberDefault(
+        ["fogDepthFar", "fog_depth_far"],
+        ["fogFar", "fog_far"],
+        20.0
+    )
     property bool fogHeightEnabled: environmentBoolDefault("fogHeightEnabled", "fog_height_enabled", false)
     property real fogLeastIntenseY: environmentNumberDefault("fogLeastIntenseY", "fog_least_intense_y", 0.0)
     property real fogMostIntenseY: environmentNumberDefault("fogMostIntenseY", "fog_most_intense_y", 3.0)
@@ -547,13 +563,31 @@ ExtendedSceneEnvironment {
         return numeric * scale
     }
 
+    function _normalizeKeyList(candidate) {
+        if (candidate === undefined || candidate === null)
+            return []
+        if (Array.isArray(candidate))
+            return candidate
+        return [candidate]
+    }
+
     function valueFromKeys(params, primaryKey, secondaryKey) {
         if (!params)
             return undefined
-        if (primaryKey && params.hasOwnProperty(primaryKey))
-            return params[primaryKey]
-        if (secondaryKey && params.hasOwnProperty(secondaryKey))
-            return params[secondaryKey]
+        var keys = _normalizeKeyList(primaryKey).concat(_normalizeKeyList(secondaryKey))
+        for (var index = 0; index < keys.length; ++index) {
+            var key = keys[index]
+            if (key === undefined || key === null)
+                continue
+            try {
+                if (params.hasOwnProperty && params.hasOwnProperty(key))
+                    return params[key]
+            } catch (error) {
+                // fall through to `in` operator
+            }
+            if (key in params)
+                return params[key]
+        }
         return undefined
     }
 
@@ -1741,7 +1775,11 @@ ExtendedSceneEnvironment {
     var fogEnabledValue = boolFromKeys(params, "fogEnabled", "fog_enabled")
     if (fogEnabledValue !== undefined)
         fogEnabled = fogEnabledValue
-    var fogDepthEnabledValue = boolFromKeys(params, "fogDepthEnabled", "fog_depth_enabled")
+    var fogDepthEnabledValue = boolFromKeys(
+        params,
+        ["fogDepthEnabled", "fog_depth_enabled"],
+        ["fogEnabled", "fog_enabled"]
+    )
     if (fogDepthEnabledValue !== undefined)
         fogDepthEnabled = !!fogDepthEnabledValue
     var fogColorValue = valueFromKeys(params, "fogColor", "fog_color")
@@ -1750,17 +1788,25 @@ ExtendedSceneEnvironment {
     var fogDensityValue = numberFromKeys(params, "fogDensity", "fog_density")
     if (fogDensityValue !== undefined)
         fogDensity = fogDensityValue
-    var fogDepthCurveValue = numberFromKeys(params, "fogDepthCurve", "fog_depth_curve")
+    var fogDepthCurveValue = numberFromKeys(
+        params,
+        ["fogDepthCurve", "fog_depth_curve"],
+        ["fogHeightCurve", "fog_height_curve"]
+    )
     if (fogDepthCurveValue !== undefined && isFinite(fogDepthCurveValue))
         fogDepthCurve = fogDepthCurveValue
-    var fogNearValue = numberFromKeys(params, "fogDepthNear", "fog_near")
-    if (fogNearValue === undefined)
-        fogNearValue = numberFromKeys(params, "fogNear", "fog_near")
+    var fogNearValue = numberFromKeys(
+        params,
+        ["fogDepthNear", "fog_depth_near"],
+        ["fogNear", "fog_near"]
+    )
     if (fogNearValue !== undefined && isFinite(fogNearValue))
         fogDepthNear = fogNearValue
-    var fogFarValue = numberFromKeys(params, "fogDepthFar", "fog_far")
-    if (fogFarValue === undefined)
-        fogFarValue = numberFromKeys(params, "fogFar", "fog_far")
+    var fogFarValue = numberFromKeys(
+        params,
+        ["fogDepthFar", "fog_depth_far"],
+        ["fogFar", "fog_far"]
+    )
     if (fogFarValue !== undefined && isFinite(fogFarValue))
         fogDepthFar = fogFarValue
     var fogHeightFlag = boolFromKeys(params, "fogHeightEnabled", "fog_height_enabled")
