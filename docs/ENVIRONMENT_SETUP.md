@@ -8,7 +8,7 @@
 |------------|-----------|----------------|
 | `scripts/bootstrap_uv.py` | Проверка и установка [uv](https://github.com/astral-sh/uv), быстрая синхронизация зависимостей | `--sync`, `--lock`, `--export-requirements`, `--project-dir`, `--force`, `--executable` |
 | `make uv-sync`, `make uv-sync-locked`, `make uv-run`, `make uv-lock`, `make uv-export-requirements`, `make uv-release-refresh` | Синхронизация окружения, генерация lock-файла и экспорт requirements | `UV_PROJECT_DIR`, `CMD`, `UV_SYNC_ARGS`, `UV_RUN_ARGS`, `UV_LOCKFILE` |
-| `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir`, `--refresh-requirements` |
+| `tools/setup_qt.py` | Установка Qt SDK с проверкой контрольных сумм (значение по умолчанию: Qt 6.10.1) | `--qt-version`, `--modules`, `--output-dir`, `--archives-dir`, `--refresh-requirements` |
 | `activate_environment.(sh|ps1)` | Генерация `.env`, запуск установки Qt и вспомогательных проверок | `--setup`, `--install-qt`, `--qt-version`, `--qt-modules`, `--hash-file` |
 | `setup_environment.py` | Совместимость со старыми сценариями: заполнение `.env`, проверка зависимостей | `--python-version`, `--install-qt`, `--hash-file`, `--qt-output-dir` |
 
@@ -56,7 +56,7 @@ make uv-export-requirements
 
 1. Скопируйте шаблон: `cp env.sample .env` (PowerShell: `Copy-Item env.sample .env`).
 2. Укажите путь к каталогу Qt в переменной `QT_SDK_ROOT` (по умолчанию Qt устанавливается в `<repo>/Qt`).
-3. Для первичной установки Qt выполните одну из команд:
+3. Для первичной установки Qt выполните одну из команд (каждая затягивает Qt 6.10.1, совпадая с настройками CI):
    - `python tools/setup_qt.py --qt-version 6.10.1 --modules qtquick3d,qtshadertools,qtimageformats`
    - `./activate_environment.ps1 -Setup -InstallQt -QtVersion 6.10.1` (Windows)
    - `source activate_environment.sh --setup --install-qt --qt-version 6.10.1`
