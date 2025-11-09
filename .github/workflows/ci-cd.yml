@@ -47,6 +47,19 @@ jobs:
           pip install .[dev]
           pip install "PySide6>=6.10,<7" "PySide6-Addons>=6.10,<7" "PySide6-Essentials>=6.10,<7"
 
+      - name: Check dependency graph with uv
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports/dependencies
+          uv pip check | tee reports/dependencies/uv-pip-check.log
+          {
+            echo "### uv pip check";
+            echo '```';
+            cat reports/dependencies/uv-pip-check.log;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Configure Qt runtime paths
         shell: python
         run: |
@@ -176,6 +189,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install .[dev]
 
+      - name: Check dependency graph with uv
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports/dependencies
+          uv pip check | tee reports/dependencies/uv-pip-check.log
+          {
+            echo "### uv pip check";
+            echo '```';
+            cat reports/dependencies/uv-pip-check.log;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Configure Qt runtime paths
         shell: python
         run: |
@@ -228,6 +254,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install .[docs]
+
+    - name: Check dependency graph with uv
+      shell: bash
+      run: |
+        set -o pipefail
+        mkdir -p reports/dependencies
+        uv pip check | tee reports/dependencies/uv-pip-check.log
+        {
+          echo "### uv pip check";
+          echo '```';
+          cat reports/dependencies/uv-pip-check.log;
+          echo '```';
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Build documentation
       run: |
