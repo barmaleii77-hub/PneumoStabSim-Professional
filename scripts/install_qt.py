@@ -129,8 +129,14 @@ def _candidate_arches(version: str) -> list[str]:
     return ordered
 
 
-def _list_available_modules(version: str, arch: str) -> set[str]:
-    """Return a lower-case set of modules available for the version/arch."""
+def _list_available_modules(version: str, arch: str) -> set[str] | None:
+    """Return a lower-case set of modules available for the version/arch.
+
+    When aqt does not expose module metadata for the requested combination we
+    return ``None`` so that the caller can decide how to proceed. Returning an
+    empty set would otherwise be indistinguishable from a configuration that
+    definitively lacks every module.
+    """
     try:
         out = subprocess.check_output(
             AQT_BASE_CMD
@@ -154,7 +160,7 @@ def _list_available_modules(version: str, arch: str) -> set[str]:
             _log_available_versions()
         if version not in _logged_arches:
             _log_available_architectures(version)
-        return set()
+        return None
 
     available: set[str] = set()
     for line in out.splitlines():
@@ -303,12 +309,15 @@ def _install(version: str, arch: str, modules: Sequence[str]) -> None:
     subprocess.check_call(base_cmd)
 
 
-def _collect_module_catalogue(version: str) -> list[tuple[str, set[str]]]:
+def _collect_module_catalogue(version: str) -> list[tuple[str, set[str] | None]]:
     """Return (arch, modules) pairs with available metadata for a version."""
 
-    catalogue: list[tuple[str, set[str]]] = []
+    catalogue: list[tuple[str, set[str] | None]] = []
     for arch in _candidate_arches(version):
         available = _list_available_modules(version, arch)
+        if available is None:
+            catalogue.append((arch, None))
+            continue
         if not available:
             continue
         catalogue.append((arch, available))
@@ -323,11 +332,15 @@ def _collect_module_catalogue(version: str) -> list[tuple[str, set[str]]]:
 def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
     """Pick the best Qt version, architecture, and module set available."""
 
-    module_catalogue: dict[str, list[tuple[str, set[str]]]] = {}
+    module_catalogue: dict[str, list[tuple[str, set[str] | None]]] = {}
     for version in QT_VERSIONS:
         options = _collect_module_catalogue(version)
         module_catalogue[version] = options
+        unknown_arches: list[str] = []
         for arch, available in options:
+            if available is None:
+                unknown_arches.append(arch)
+                continue
             if QT_BASE_MODULE not in available:
                 print(
                     f"[qt] Skipping {version}/{arch}: required module '{QT_BASE_MODULE}' missing",
@@ -341,6 +354,13 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
                 f"[qt] {version}/{arch} missing modules: {missing}; attempting fallback if available",
                 file=sys.stderr,
             )
+        if unknown_arches:
+            arch = unknown_arches[0]
+            print(
+                f"[qt] Proceeding without module metadata for {version}/{arch}; attempting configured modules",
+                file=sys.stderr,
+            )
+            return version, arch, QT_MODULES, []
 
     preferred = QT_VERSIONS[0] if QT_VERSIONS else None
     if not preferred:
@@ -348,6 +368,12 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
 
     preferred_options = module_catalogue[preferred] if preferred in module_catalogue else _collect_module_catalogue(preferred)
     for arch, available in preferred_options:
+        if available is None:
+            print(
+                f"[qt] Preferred version {preferred} lacks module metadata for {arch}; attempting configured modules",
+                file=sys.stderr,
+            )
+            return preferred, arch, QT_MODULES, []
         if QT_BASE_MODULE not in available:
             continue
         present = [m for m in QT_MODULES if m.lower() in available]
@@ -370,6 +396,12 @@ def _select_version() -> tuple[str, str, Sequence[str], Sequence[str]]:
     for candidate in _list_available_versions():
         options = _collect_module_catalogue(candidate)
         for arch, available in options:
+            if available is None:
+                print(
+                    f"[qt] Falling back to {candidate}/{arch} without module metadata; attempting configured modules",
+                    file=sys.stderr,
+                )
+                return candidate, arch, QT_MODULES, []
             if QT_BASE_MODULE not in available:
                 continue
             present = [m for m in QT_MODULES if m.lower() in available]
