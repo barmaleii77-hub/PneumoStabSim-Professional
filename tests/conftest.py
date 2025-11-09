@@ -14,6 +14,10 @@ import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
 
+from tests._qt_headless import HEADLESS_DEFAULTS
+from tests._qt_headless import HEADLESS_FLAG
+from tests._qt_headless import apply_headless_defaults
+from tests._qt_headless import headless_requested
 from tests.physics.cases import build_case_loader
 
 
@@ -53,10 +57,41 @@ if src_path not in sys.path:
     # Вставляем src на позицию 1, чтобы project_root имел приоритет при разрешении импортов (Insert at position 1 to preserve project_root priority)
     sys.path.insert(1, src_path)
 
-# Set up environment variables for testing
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
-os.environ.setdefault("QT_QUICK_BACKEND", "software")
+# Set up deterministic Python behaviour; Qt configuration is applied lazily
 os.environ.setdefault("PYTHONHASHSEED", "0")
+
+
+def _register_headless_marker(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "headless: request Qt headless defaults (sets PSS_HEADLESS=1,"
+        " QT_QPA_PLATFORM=offscreen)",
+    )
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--pss-headless",
+        action="store_true",
+        default=False,
+        help=(
+            "Force Qt headless defaults for the entire test session. "
+            "Equivalent to setting PSS_HEADLESS=1."
+        ),
+    )
+
+
+def _configure_session_headless(config: pytest.Config) -> None:
+    cli_headless: bool = bool(config.getoption("--pss-headless"))
+    env_headless = headless_requested()
+    session_headless = cli_headless or env_headless
+
+    setattr(config, "_pss_headless_session", session_headless)
+    if cli_headless and not env_headless:
+        os.environ[HEADLESS_FLAG] = "1"
+
+    if session_headless:
+        apply_headless_defaults()
 
 
 def _qt_display_available() -> bool:
@@ -138,6 +173,24 @@ _SETTINGS_TEMPLATE = Path("config/app_settings.json").read_text(encoding="utf-8"
 def _write_settings_payload(target: Path) -> Path:
     target.write_text(_SETTINGS_TEMPLATE, encoding="utf-8")
     return target
+
+
+@pytest.fixture(autouse=True)
+def _apply_headless_marker(
+    request: pytest.FixtureRequest, monkeypatch: MonkeyPatch
+) -> None:
+    """Apply headless Qt defaults when a test declares the ``headless`` marker."""
+
+    if getattr(request.config, "_pss_headless_session", False):
+        return
+
+    marker = request.node.get_closest_marker("headless")
+    if marker is None:
+        return
+
+    monkeypatch.setenv(HEADLESS_FLAG, "1")
+    for key, value in HEADLESS_DEFAULTS.items():
+        monkeypatch.setenv(key, value)
 
 
 @pytest.fixture(scope="session")
@@ -419,8 +472,12 @@ def geometry_bridge(sample_geometry_params):
 
 
 # Markers for organizing tests
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     """Configure custom markers"""
+
+    _register_headless_marker(config)
+    _configure_session_headless(config)
+
     config.addinivalue_line("markers", "unit: Unit tests for individual components")
     config.addinivalue_line(
         "markers", "integration: Integration tests for component interactions"
@@ -429,6 +486,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "system: End-to-end system tests")
     config.addinivalue_line("markers", "slow: Tests that take significant time")
     config.addinivalue_line("markers", "gui: Tests requiring GUI/QML")
+    config.addinivalue_line(
+        "markers", "scenario: Scenario-driven physics regression suites"
+    )
 
 
 # Safe exit on test completion

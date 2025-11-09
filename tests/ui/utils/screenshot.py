@@ -22,13 +22,16 @@ from PySide6.QtQuick import QQuickView, QQuickWindow
 
 from src.ui.qml_bridge import QMLBridge
 from src.ui.scene_bridge import SceneBridge
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-os.environ.setdefault("QT_QUICK_BACKEND", "software")
-os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+from tests._qt_headless import apply_headless_defaults
+from tests._qt_headless import headless_requested
 
 _ASSETS_IMPORT = Path("assets/qml").resolve()
 _BASELINE_VERSION = 1
+
+
+def _ensure_qt_environment() -> None:
+    if headless_requested():
+        apply_headless_defaults()
 
 
 def _process_events(qapp, iterations: int = 10) -> None:
@@ -88,6 +91,7 @@ def _initialise_view(
     height: int = 450,
     scene_bridge: SceneBridge | None = None,
 ) -> QMLScene:
+    _ensure_qt_environment()
     view = QQuickView()
     view.setColor(QColor(Qt.black))
     view.setResizeMode(QQuickView.SizeRootObjectToView)

@@ -10,22 +10,45 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 from functools import lru_cache
 from pathlib import Path
 
-QT_ENV_DEFAULTS: dict[str, str] = {
+HEADLESS_FLAG = "PSS_HEADLESS"
+_TRUTHY = {"1", "true", "yes", "on"}
+_QT_HEADLESS_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
     "QT_QUICK_BACKEND": "software",
-    "QT_PLUGIN_PATH": "",
-    "QML2_IMPORT_PATH": "",
+    "QT_QUICK_CONTROLS_STYLE": "Basic",
 }
+_WINDOWS_GPU_BACKEND = "d3d11"
+
+
+def _normalise(value: str | None) -> str:
+    return value.strip().lower() if value else ""
+
+
+def _headless_requested(env: Mapping[str, str]) -> bool:
+    return _normalise(env.get(HEADLESS_FLAG)) in _TRUTHY
+
+
+def _apply_headless_defaults(env: MutableMapping[str, str]) -> None:
+    env[HEADLESS_FLAG] = "1"
+    for key, value in _QT_HEADLESS_DEFAULTS.items():
+        env.setdefault(key, value)
+
+
+def _apply_gpu_defaults(env: MutableMapping[str, str]) -> None:
+    if os.name == "nt" and _WINDOWS_GPU_BACKEND:
+        env.setdefault("QSG_RHI_BACKEND", _WINDOWS_GPU_BACKEND)
 
 
 @lru_cache(maxsize=1)
 def _detect_qt_environment() -> dict[str, str]:
     """Возвращает значения переменных окружения для корректной работы Qt."""
 
-    environment = dict(QT_ENV_DEFAULTS)
+    environment: dict[str, str] = {}
 
     try:
         from PySide6.QtCore import LibraryLocation, QLibraryInfo  # type: ignore
@@ -51,12 +74,27 @@ class PostExitTestRunner:
         self.project_root = Path(__file__).parent
         self.test_results: list[dict[str, object]] = []
         self.test_environment = os.environ.copy()
-        self.test_environment.update(_detect_qt_environment())
+        self._headless_mode = _headless_requested(self.test_environment)
+        if self._headless_mode:
+            _apply_headless_defaults(self.test_environment)
+        else:
+            _apply_gpu_defaults(self.test_environment)
+
+        qt_environment = _detect_qt_environment()
+        self.test_environment.update(qt_environment)
         self.logs_dir = self.project_root / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
 
         print("🔧 Настройка окружения Qt для тестов:")
-        for key, value in _detect_qt_environment().items():
+        reported_env = dict(qt_environment)
+        if self._headless_mode:
+            for key in _QT_HEADLESS_DEFAULTS:
+                reported_env[key] = self.test_environment.get(key, "")
+            reported_env[HEADLESS_FLAG] = self.test_environment.get(HEADLESS_FLAG, "1")
+        elif os.name == "nt" and "QSG_RHI_BACKEND" in self.test_environment:
+            reported_env["QSG_RHI_BACKEND"] = self.test_environment["QSG_RHI_BACKEND"]
+
+        for key, value in reported_env.items():
             print(f" • {key}={value}")
 
         print(f"🗂️ Логи тестов будут сохраняться в: {self.logs_dir}")
