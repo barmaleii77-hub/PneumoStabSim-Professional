@@ -16,8 +16,10 @@ QT_ROOT.mkdir(parents=True, exist_ok=True)
 
 QT_ARCH = os.environ.get("QT_ARCH", "gcc_64")
 
-DEFAULT_VERSIONS = "6.10.0"
-MINIMUM_QT_VERSION = (6, 10, 0)
+AQT_BASE_URL = os.environ.get("AQT_BASE")
+
+DEFAULT_VERSIONS = "6.9.3"
+MINIMUM_QT_VERSION = (6, 9, 0)
 QT_VERSIONS = [
     ver.strip()
     for ver in os.environ.get("QT_VERSIONS", DEFAULT_VERSIONS).split(",")
@@ -34,6 +36,14 @@ QT_MODULES = [
 QT_BASE_MODULE = "qtbase"
 
 AQT_BASE_CMD = [sys.executable, "-m", "aqt"]
+
+
+def _aqt_install_args() -> list[str]:
+    """Return shared aqt arguments for the configured repository base."""
+
+    if AQT_BASE_URL:
+        return ["-b", AQT_BASE_URL]
+    return []
 
 
 def _list_available_modules(version: str) -> set[str]:
@@ -142,15 +152,18 @@ def _normalise_modules(modules: Iterable[str]) -> list[str]:
 
 
 def _install(version: str, modules: Sequence[str]) -> None:
-    base_cmd = AQT_BASE_CMD + [
-        "install-qt",
-        "linux",
-        "desktop",
-        version,
-        QT_ARCH,
-        "-O",
-        str(QT_ROOT),
-    ]
+    base_cmd = (
+        AQT_BASE_CMD
+        + [
+            "install-qt",
+            "linux",
+            "desktop",
+            version,
+            QT_ARCH,
+        ]
+        + _aqt_install_args()
+        + ["-O", str(QT_ROOT)]
+    )
 
     modules = _normalise_modules(modules)
 
