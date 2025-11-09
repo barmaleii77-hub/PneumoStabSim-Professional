@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  QT_VERSION: "6.10.2"
+  QT_VERSION: "6.10.1"
   QT_QPA_PLATFORM: offscreen
   QT_QUICK_BACKEND: software
   LIBGL_ALWAYS_SOFTWARE: "1"
