@@ -69,12 +69,14 @@ layout(std140) UBO_BINDING(10) uniform QsbSsaoParams {
     float uIntensity;
     float uRadius;
     float uBias;
+    float uDitherToggle;
     int uSamples;
 };
 #else
 uniform float uIntensity;
 uniform float uRadius;
 uniform float uBias;
+uniform float uDitherToggle;
 uniform int uSamples;
 #endif
 
@@ -88,6 +90,11 @@ vec3 generateSampleVector(int index)
         sin(angle) * radius,
         radius * 0.5 + 0.5
     );
+}
+
+float randomValue(vec2 co)
+{
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 void ssaoESMain(inout vec4 fragColor)
@@ -111,7 +118,17 @@ void ssaoESMain(inout vec4 fragColor)
             sampleVec = -sampleVec;
         }
 
-        vec2 sampleCoord = INPUT_UV + sampleVec.xy * uRadius * texelSize;
+        vec2 offset = sampleVec.xy * uRadius;
+        if (uDitherToggle > 0.5) {
+            vec2 noiseSeed = INPUT_UV * 2048.0 + vec2(float(i), float(sampleCount));
+            vec2 jitter = vec2(
+                randomValue(noiseSeed + 0.12345),
+                randomValue(noiseSeed.yx + 0.98765)
+            ) - 0.5;
+            offset += jitter * uRadius * 0.35;
+        }
+
+        vec2 sampleCoord = INPUT_UV + offset * texelSize;
         float sampleDepth = texture(qt_DepthTexture, sampleCoord).r;
 
         float depthDiff = depth - sampleDepth;

@@ -978,6 +978,7 @@ Item {
     property alias ssaoRadius: ssaoEffect.radius
     property alias ssaoBias: ssaoEffect.bias
     property alias ssaoSamples: ssaoEffect.samples
+    property alias ssaoDither: ssaoEffect.dither
 
     property bool depthOfFieldEnabled: false
     property alias dofFocusDistance: dofEffect.focusDistance
@@ -1354,6 +1355,7 @@ Item {
         property real intensity: 0.5      // Интенсивность затенения
         property real radius: 2.0         // Радиус сэмплинга
         property real bias: 0.025         // Смещение для избежания самозатенения
+        property bool dither: true        // Включение рандомизации сэмплов
         property int samples: 16          // Количество сэмплов
 
         onSamplesChanged: {
@@ -1368,6 +1370,7 @@ Item {
             property real uRadius: ssaoEffect.radius
             property real uBias: ssaoEffect.bias
             property int uSamples: ssaoEffect.samples
+            property real uDitherToggle: ssaoEffect.dither ? 1.0 : 0.0
             shader: root.shaderPath("ssao.frag")
             Component.onCompleted: {
                 if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag"))
@@ -1807,6 +1810,12 @@ Item {
                 }
             }
 
+            if (envHasProperty("ssaoBias")) {
+                var envSsaoBias = coerceNumber(env.ssaoBias)
+                if (envSsaoBias !== undefined)
+                    assignEffectProperty(ssaoEffect, "bias", Math.max(0.0, envSsaoBias))
+            }
+
             if (envHasProperty("ssaoSampleRate")) {
                 var envSsaoSamples = coerceInt(env.ssaoSampleRate)
                 if (envSsaoSamples !== undefined)
@@ -1817,6 +1826,12 @@ Item {
                 var envSsaoSamplesAlias = coerceInt(env.ssaoSamples)
                 if (envSsaoSamplesAlias !== undefined)
                     assignEffectProperty(ssaoEffect, "samples", Math.max(1, envSsaoSamplesAlias))
+            }
+
+            if (envHasProperty("ssaoDither")) {
+                var envSsaoDither = env.ssaoDither
+                if (envSsaoDither !== undefined)
+                    assignEffectProperty(ssaoEffect, "dither", !!envSsaoDither)
             }
 
             if (envHasProperty("internalDepthOfFieldEnabled"))
@@ -1894,6 +1909,10 @@ Item {
             var ssaoBiasValue = numberFromPayload(params, ["ssaoBias", "ao_bias"], "ssao")
             if (ssaoBiasValue !== undefined)
                 assignEffectProperty(ssaoEffect, "bias", Math.max(0.0, ssaoBiasValue))
+
+            var ssaoDitherValue = boolFromPayload(params, ["ssaoDither", "ao_dither"], "ssao")
+            if (ssaoDitherValue !== undefined)
+                assignEffectProperty(ssaoEffect, "dither", !!ssaoDitherValue)
 
             var ssaoSamplesValue = numberFromPayload(params, ["ssaoSamples", "ao_sample_rate"], "ssao")
             if (ssaoSamplesValue !== undefined)

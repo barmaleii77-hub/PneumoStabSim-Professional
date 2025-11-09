@@ -227,6 +227,7 @@ def test_environment_validation_accepts_validations_payload():
         "ao_enabled": True,
         "ao_strength": 50.0,
         "ao_radius": 0.03,
+        "ao_bias": 0.02,
         "ao_softness": 10.0,
         "ao_dither": True,
         "ao_sample_rate": 8,

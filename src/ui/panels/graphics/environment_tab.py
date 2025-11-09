@@ -673,6 +673,12 @@ class EnvironmentTab(QWidget):
         grid.addWidget(radius, row, 0, 1, 2)
         row += 1
 
+        bias = self._create_slider("ao_bias", "Смещение", decimals=3)
+        bias.valueChanged.connect(lambda v: self._on_control_changed("ao_bias", v))
+        self._controls["ao.bias"] = bias
+        grid.addWidget(bias, row, 0, 1, 2)
+        row += 1
+
         softness = self._create_slider("ao_softness", "Мягкость", decimals=0)
         softness.valueChanged.connect(
             lambda v: self._on_control_changed("ao_softness", v)
@@ -794,6 +800,7 @@ class EnvironmentTab(QWidget):
             "ao_enabled": self._require_control("ao.enabled").isChecked(),
             "ao_strength": self._require_control("ao.strength").value(),
             "ao_radius": self._require_control("ao.radius").value(),
+            "ao_bias": self._require_control("ao.bias").value(),
             "ao_softness": self._require_control("ao.softness").value(),
             "ao_dither": self._require_control("ao.dither").isChecked(),
             "ao_sample_rate": self._require_control("ao.sample_rate").currentData(),
@@ -889,6 +896,7 @@ class EnvironmentTab(QWidget):
             self._require_control("ao.enabled").setChecked(validated["ao_enabled"])
             self._require_control("ao.strength").set_value(validated["ao_strength"])
             self._require_control("ao.radius").set_value(validated["ao_radius"])
+            self._require_control("ao.bias").set_value(validated["ao_bias"])
             self._require_control("ao.softness").set_value(validated["ao_softness"])
             self._require_control("ao.dither").setChecked(validated["ao_dither"])
             combo = self._require_control("ao.sample_rate")

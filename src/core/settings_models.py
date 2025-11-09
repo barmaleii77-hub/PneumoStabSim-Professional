@@ -217,6 +217,7 @@ class EnvironmentSettings(_StrictModel):
     ao_enabled: bool
     ao_strength: float
     ao_radius: float
+    ao_bias: float
     ao_softness: float
     ao_dither: bool
     ao_sample_rate: int
@@ -558,6 +559,7 @@ class EnvironmentSliderRanges(_StrictModel):
     fog_transmit_curve: SliderRange
     ao_strength: SliderRange
     ao_radius: SliderRange
+    ao_bias: SliderRange
     ao_softness: SliderRange
 
 

@@ -303,6 +303,8 @@ class SignalsRouter:
                 ssao_patch["dither"] = ambient_section["dither"]
             if "sample_rate" in ambient_section:
                 ssao_patch["sample_rate"] = ambient_section["sample_rate"]
+            if "bias" in ambient_section:
+                ssao_patch["bias"] = ambient_section["bias"]
             if ssao_patch:
                 existing_ssao = env_payload.get("ssao")
                 if isinstance(existing_ssao, Mapping):

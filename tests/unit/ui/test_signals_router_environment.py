@@ -134,6 +134,8 @@ def test_handle_environment_changed_supports_nested_sections() -> None:
             "enabled": True,
             "strength": 0.6,
             "radius": 5.0,
+            "bias": 0.035,
+            "dither": False,
             "sample_rate": 6,
         },
     }
@@ -152,13 +154,18 @@ def test_handle_environment_changed_supports_nested_sections() -> None:
     assert payload["fog_density"] == 0.42
     assert payload["ao_strength"] == 0.6
     assert payload["ao_radius"] == 5.0
+    assert payload["ao_bias"] == 0.035
     assert payload["ao_sample_rate"] == 6
+    assert payload["ao_dither"] is False
     assert "ssao" in payload
     assert payload["ssao"]["intensity"] == 0.6
+    assert payload["ssao"]["bias"] == 0.035
+    assert payload["ssao"]["dither"] is False
 
     assert params["ibl_source"] == "assets/hdr/nested.hdr"
     assert params["ao_strength"] == 0.6
     assert params["ssao"]["radius"] == 5.0
+    assert params["ao_bias"] == 0.035
 
 
 def test_environment_change_invoke_failure_queues_payload() -> None:

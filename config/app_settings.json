@@ -134,6 +134,12 @@
         "decimals": 3,
         "units": "м"
       },
+      "ao_bias": {
+        "min": 0.0,
+        "max": 0.1,
+        "step": 0.001,
+        "decimals": 3
+      },
       "ao_softness": {
         "min": 0.0,
         "max": 50.0,
@@ -329,6 +335,7 @@
         "ao_enabled": false,
         "ao_strength": 1.0,
         "ao_radius": 0.008,
+        "ao_bias": 0.025,
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
@@ -792,6 +799,12 @@
           "step": 0.001,
           "decimals": 3,
           "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
         },
         "ao_softness": {
           "min": 0.0,
@@ -1567,6 +1580,7 @@
         "ao_enabled": true,
         "ao_strength": 1.0,
         "ao_radius": 0.008,
+        "ao_bias": 0.025,
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
@@ -2030,6 +2044,12 @@
           "step": 0.001,
           "decimals": 3,
           "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
         },
         "ao_softness": {
           "min": 0.0,
