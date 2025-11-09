@@ -10,13 +10,18 @@ ENV QT_QPA_PLATFORM=offscreen \
     MESA_GLSL_VERSION_OVERRIDE=410
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 
+ARG INSTALL_PROXY_CERT=true
+
+COPY config/certs/envoy-mitmproxy-ca-cert.crt /tmp/envoy-mitmproxy-ca-cert.crt
+COPY config/aqt-docker.ini /tmp/aqt-docker.ini
+
 # X11 + OpenGL/Vulkan headless stack
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git curl ca-certificates pkg-config build-essential \
     xvfb xauth dbus-x11 \
     mesa-utils mesa-utils-extra \
-    libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev \
-    libegl1 libegl1-mesa libegl1-mesa-dev libgles2 libgles2-mesa libgles2-mesa-dev \
+    libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev \
+    libegl1 libegl-dev libgles2 libgles-dev \
     libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
     libx11-6 libxext6 libxrender1 libxi6 libxfixes3 libxrandr2 libxcursor1 libxinerama1 libxdamage1 \
     libxcb1 libx11-xcb1 libxkbcommon0 libxkbcommon-x11-0 libxcb-xinerama0 \
@@ -25,39 +30,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Trust the egress proxy certificate so that Python tooling (aqt/requests)
-# can download Qt payloads during image build.
-ARG INSTALL_PROXY_CERT=false
+# can download Qt payloads during image build. The certificate is present in
+# the repository and copied into the build context so that we can opt-in during
+# image builds that sit behind the envoy MITM proxy.
 RUN if [ "$INSTALL_PROXY_CERT" = "true" ]; then \
-        cp config/certs/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/ && \
+        cp /tmp/envoy-mitmproxy-ca-cert.crt /usr/local/share/ca-certificates/ && \
         update-ca-certificates; \
-    fi
+    fi && rm -f /tmp/envoy-mitmproxy-ca-cert.crt
+
+# Provide a stable aqt configuration that pins the base URL and avoids
+# untrusted mirrors when resolving metadata.
+ENV AQT_CONFIG=/tmp/aqt-docker.ini
 
 # Python tooling
 RUN pipx ensurepath || true
 RUN python -m pip install --no-cache-dir -U pip wheel setuptools \
     aqtinstall ruff mypy pytest pytest-xdist pytest-cov
 
-# Qt 6.10.0 with Quick 3D & tools (qmllint, qsb)
+# Qt 6.9.x with Quick 3D & tooling support (qmllint, qsb)
 ARG AQT_BASE=https://download.qt.io/online/qtsdkrepository/linux_x64/desktop
-ENV QT_VER=6.10.0 QT_ROOT=/opt/Qt AQT_BASE=${AQT_BASE}
-# Qt 6.10+ repositories require the repository root so that aqt can discover
-# the Updates.xml metadata for each version. Point to the desktop root rather
-# than the nested qt6_<version> directory and fail fast if the install payload
-# is missing.
-# ВНИМАНИЕ: Используется Qt 6.10.0, а не 6.10.2, поскольку 6.10.2 отсутствует
-# в репозитории (qt6_6102 не существует на download.qt.io на момент написания).
-# Если появится 6.10.2, обновить QT_VER и qt6_6100 → qt6_6102. Проект использует
-# Qt 6.10+ API, но сборка возможна только на 6.10.0.
-RUN python -m aqt install-qt linux desktop ${QT_VER} gcc_64 \
-    -b ${AQT_BASE} \
-    -m qtquick3d qtshadertools qtimageformats -O ${QT_ROOT} \
-    && test -d ${QT_ROOT}/${QT_VER}/gcc_64
-ENV QT_HOME=${QT_ROOT}/${QT_VER}/gcc_64
-ENV PATH=${QT_HOME}/bin:${PATH}
+ARG QT_VERSION=6.9.3
+ENV QT_VERSIONS=${QT_VERSION} QT_ROOT=/opt/Qt QT_ARCH=gcc_64 AQT_BASE=${AQT_BASE}
 
 # Workdir
 WORKDIR /workdir
 COPY . /workdir
+
+# Use the repository-managed aqt configuration once the sources are present.
+ENV AQT_CONFIG=/workdir/config/aqt-docker.ini
 
 # Install Qt after sources are available so the helper script can run
 RUN python scripts/install_qt.py
