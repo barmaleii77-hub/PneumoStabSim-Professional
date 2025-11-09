@@ -71,7 +71,7 @@ def check_dependencies():
     required_packages = (
         {
             "display": "PySide6",
-            "min_version": "6.9.0",
+            "min_version": "6.10.0",
             "import_names": ("PySide6",),
             "distributions": ("PySide6", "PySide6-Essentials", "PySide6-Addons"),
         },
