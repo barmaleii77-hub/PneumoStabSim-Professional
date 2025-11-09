@@ -17,6 +17,7 @@
    - Introduce physics scenario descriptors (`*.test.json`/`*.scene.yaml`) with shared fixtures in `tests/conftest.py` and automate report generation via `tools/run_test_case.py`.
    - Extend graphics/UI regression checks with baseline image comparisons, shader log triage, and pytest-qt workflows that surface indicator states.
    - Configure coverage thresholds (>=85%) enforced in CI.
+   - Enforce cross-platform readiness with `tools/cross_platform_test_prep.py` and the `make cross-platform-test` target so Linux и Windows агентов выполняют полный набор без пропусков.
 2. **Static Analysis Enforcement**
    - Wire `ruff`, `mypy`, `pyright`, and `qmllint` into pre-commit hooks.
    - Generate baseline reports and track regressions via GitHub Actions artifacts.

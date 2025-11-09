@@ -4,26 +4,23 @@ from pathlib import Path
 
 import pytest
 
-try:  # pragma: no cover - optional dependency for CI images without Qt
-    from PySide6.QtCore import QUrl
-    from PySide6.QtQml import QQmlComponent, QQmlEngine
-except Exception:  # pragma: no cover - PySide6 not available in environment
-    PYSIDE_AVAILABLE = False
-else:  # pragma: no cover - executed only when Qt bindings are present
-    PYSIDE_AVAILABLE = True
+from PySide6.QtCore import QUrl
+from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 
 QML_PATH = Path("assets/qml/effects/SceneEnvironmentController.qml")
 
+pytestmark = pytest.mark.usefixtures("qt_runtime_ready")
 
-@pytest.mark.skipif(
-    not PYSIDE_AVAILABLE, reason="PySide6 is required for QML integration tests"
-)
+
 def test_scene_environment_controller_applies_initial_defaults(qapp, settings_manager):
     try:
         from src.ui.main_window_pkg.ui_setup import UISetup
-    except ImportError as exc:  # pragma: no cover - skip when Qt libraries missing
-        pytest.skip(f"UISetup dependencies unavailable: {exc}")
+    except ImportError as exc:  # pragma: no cover - import behaviour depends on Qt packaging
+        pytest.fail(
+            "UISetup dependencies unavailable. Install Qt runtime via "
+            "`python -m tools.cross_platform_test_prep --run-tests` and retry."
+        )
 
     engine = QQmlEngine()
     context = engine.rootContext()
