@@ -101,6 +101,15 @@ def test_load_uses_cache_until_explicit_reload(settings_file: Path) -> None:
     assert refreshed["metadata"]["version"] == "9.9.9"
 
 
+def test_load_does_not_modify_file(settings_file: Path) -> None:
+    original_bytes = settings_file.read_bytes()
+    service = SettingsService(settings_path=settings_file, schema_path=SCHEMA_PATH)
+
+    service.load(use_cache=False)
+
+    assert settings_file.read_bytes() == original_bytes
+
+
 def test_save_persists_changes_and_emits_event(
     settings_file: Path, event_bus_override: EventBus
 ) -> None:
@@ -206,6 +215,40 @@ def test_defaults_snapshot_materials_include_ids() -> None:
     assert defaults_graphics["quality"]["mesh"] == current_graphics["quality"]["mesh"]
 
 
+def test_save_normalises_fog_aliases_and_hdr_path(settings_file: Path) -> None:
+    service = SettingsService(settings_path=settings_file, schema_path=SCHEMA_PATH)
+    payload = dump_settings(service.load(use_cache=False))
+
+    environment = payload["current"]["graphics"]["environment"]
+    environment.pop("fog_near", None)
+    environment.pop("fog_far", None)
+    environment["ibl_source"] = "  ./assets\\hdr\\migrated_env.exr  "
+
+    ranges = payload["current"]["graphics"].get("environment_ranges", {})
+    ranges.pop("fog_near", None)
+    ranges.pop("fog_far", None)
+
+    slider_ranges = payload["metadata"].get("environment_slider_ranges", {})
+    slider_ranges.pop("fog_near", None)
+    slider_ranges.pop("fog_far", None)
+
+    service.save(payload)
+
+    persisted = json.loads(settings_file.read_text(encoding="utf-8"))
+    current_env = persisted["current"]["graphics"]["environment"]
+    assert current_env["fog_near"] == current_env["fog_depth_near"]
+    assert current_env["fog_far"] == current_env["fog_depth_far"]
+    assert current_env["ibl_source"] == "assets/hdr/migrated_env.exr"
+
+    current_ranges = persisted["current"]["graphics"].get("environment_ranges", {})
+    assert current_ranges["fog_near"] == current_ranges["fog_depth_near"]
+    assert current_ranges["fog_far"] == current_ranges["fog_depth_far"]
+
+    current_slider_ranges = persisted["metadata"].get("environment_slider_ranges", {})
+    assert current_slider_ranges["fog_near"] == current_slider_ranges["fog_depth_near"]
+    assert current_slider_ranges["fog_far"] == current_slider_ranges["fog_depth_far"]
+
+
 def test_validate_detects_material_key_mismatch(
     settings_payload: dict[str, Any],
 ) -> None:
@@ -247,3 +290,18 @@ def test_validate_rejects_material_id_mismatch(
         service.validate(settings_payload)
 
     assert "frame has id 'FRAME'" in str(exc.value)
+
+
+def test_validate_rejects_geometry_mesh_fields(
+    settings_payload: dict[str, Any],
+) -> None:
+    settings_payload["current"]["geometry"]["cylinder_segments"] = 8
+    settings_payload["defaults_snapshot"]["geometry"]["cylinder_rings"] = 4
+
+    service = SettingsService(schema_path=SCHEMA_PATH)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        service.validate(settings_payload)
+
+    message = str(exc.value)
+    assert "cylinder_segments" in message or "cylinder_rings" in message
