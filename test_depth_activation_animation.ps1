@@ -1,11 +1,27 @@
 # Скрипт для тестирования depth texture activation и анимации
 # PneumoStabSim Professional - Animation Test with Full QML Logging
 
+function Test-PssHeadless {
+    param([string]$Value)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $false }
+    $normalised = $Value.Trim().ToLowerInvariant()
+    return @('1', 'true', 'yes', 'on') -contains $normalised
+}
+
+$headlessRequested = Test-PssHeadless $env:PSS_HEADLESS
+if ($headlessRequested) {
+    $env:PSS_HEADLESS = '1'
+    if (-not $env:QT_QPA_PLATFORM) { $env:QT_QPA_PLATFORM = 'offscreen' }
+    if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'software' }
+}
+
 Write-Host "🎬 Starting PneumoStabSim with full QML logging..." -ForegroundColor Cyan
 
 # Включить все QML/JS логи
 $env:QT_LOGGING_RULES = "js.debug=true;qt.qml.*=true;qt.quick.*=true"
-$env:QSG_INFO = "1"
+if ($headlessRequested -or -not $env:QSG_INFO) {
+    $env:QSG_INFO = if ($headlessRequested) { '1' } else { '0' }
+}
 $env:QT_DEBUG_PLUGINS = "0"
 
 # Настройки для animation

@@ -128,11 +128,11 @@ class PerformanceMetrics:
 
     timestamp: float
     cpu_percent: float
+    memory_mb: float
+    memory_percent: float
     cpu_time_user: float | None = None
     cpu_time_system: float | None = None
     cpu_time_total: float | None = None
-    memory_mb: float
-    memory_percent: float
     fps: float | None = None
     frame_time_ms: float | None = None
     gpu_utilization_percent: float | None = None
@@ -606,7 +606,7 @@ def _write_html_report(json_path: Path, html_path: Path | None = None) -> Path:
     with html_path.open("w", encoding="utf-8") as handle:
         handle.write(html_content)
 
-    LOGGER.info("performance_html_report_written", path=str(html_path))
+    LOGGER.info("performance_html_report_written path=%s", html_path)
     return html_path
 
 
@@ -627,7 +627,11 @@ def _run_phase3_scenario(
     monitor = PerformanceMonitor()
     monitor.start_monitoring(interval)
     try:
-        time.sleep(duration)
+        frame_interval = 1.0 / 60.0  # emulate a 60 FPS render loop in headless mode
+        deadline = time.time() + duration
+        while time.time() < deadline:
+            monitor.record_frame()
+            time.sleep(frame_interval)
     finally:
         monitor.stop_monitoring()
 

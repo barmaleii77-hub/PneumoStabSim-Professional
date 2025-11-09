@@ -11,6 +11,10 @@ import pytest
 from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
 
+from tests._qt_headless import HEADLESS_DEFAULTS
+from tests._qt_headless import HEADLESS_FLAG
+from tests._qt_headless import apply_headless_defaults
+from tests._qt_headless import headless_requested
 from tests.physics.cases import build_case_loader
 from tests._qt_runtime import QT_SKIP_REASON
 
@@ -46,12 +50,84 @@ if src_path not in sys.path:
     # Вставляем src на позицию 1, чтобы project_root имел приоритет при разрешении импортов (Insert at position 1 to preserve project_root priority)
     sys.path.insert(1, src_path)
 
-# Set up environment variables for testing
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
-os.environ.setdefault("QT_QUICK_BACKEND", "software")
+# Set up deterministic Python behaviour; Qt configuration is applied lazily
 os.environ.setdefault("PYTHONHASHSEED", "0")
 
-if QT_SKIP_REASON is None:
+
+def _register_headless_marker(config: pytest.Config) -> None:
+    config.addinivalue_line(
+        "markers",
+        "headless: request Qt headless defaults (sets PSS_HEADLESS=1,"
+        " QT_QPA_PLATFORM=offscreen)",
+    )
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--pss-headless",
+        action="store_true",
+        default=False,
+        help=(
+            "Force Qt headless defaults for the entire test session. "
+            "Equivalent to setting PSS_HEADLESS=1."
+        ),
+    )
+
+
+def _configure_session_headless(config: pytest.Config) -> None:
+    cli_headless: bool = bool(config.getoption("--pss-headless"))
+    env_headless = headless_requested()
+    session_headless = cli_headless or env_headless
+
+    setattr(config, "_pss_headless_session", session_headless)
+    if cli_headless and not env_headless:
+        os.environ[HEADLESS_FLAG] = "1"
+
+    if session_headless:
+        apply_headless_defaults()
+
+
+def _qt_display_available() -> bool:
+    """Return True when a Qt-compatible display backend can be used."""
+
+    qt_platform = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
+    if qt_platform in {"offscreen", "minimal"}:
+        return True
+
+    if sys.platform.startswith("linux"):
+        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+
+    return True
+
+
+def _libgl_available() -> bool:
+    """Return ``True`` when the system OpenGL runtime is present."""
+
+    if not sys.platform.startswith("linux"):
+        return True
+
+    if ctypes_util.find_library("GL"):
+        return True
+
+    fallback_paths = (
+        Path("/usr/lib/x86_64-linux-gnu/libGL.so.1"),
+        Path("/usr/lib64/libGL.so.1"),
+    )
+    return any(path.exists() for path in fallback_paths)
+
+
+_qtwidgets_spec = importlib.util.find_spec("PySide6.QtWidgets")
+if _pytestqt_spec is None:
+    _gui_skip_reason = "pytest-qt plugin is not installed"
+elif _qtwidgets_spec is None:
+    _gui_skip_reason = "PySide6 is not available"
+elif not _libgl_available():
+    _gui_skip_reason = "System OpenGL libraries (libGL) are missing"
+elif not _qt_display_available():
+    _gui_skip_reason = "No display backend detected for Qt"
+else:
+    _gui_skip_reason = None
+    pytest_plugins = ("pytestqt.plugin",)
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
@@ -88,6 +164,24 @@ _SETTINGS_TEMPLATE = Path("config/app_settings.json").read_text(encoding="utf-8"
 def _write_settings_payload(target: Path) -> Path:
     target.write_text(_SETTINGS_TEMPLATE, encoding="utf-8")
     return target
+
+
+@pytest.fixture(autouse=True)
+def _apply_headless_marker(
+    request: pytest.FixtureRequest, monkeypatch: MonkeyPatch
+) -> None:
+    """Apply headless Qt defaults when a test declares the ``headless`` marker."""
+
+    if getattr(request.config, "_pss_headless_session", False):
+        return
+
+    marker = request.node.get_closest_marker("headless")
+    if marker is None:
+        return
+
+    monkeypatch.setenv(HEADLESS_FLAG, "1")
+    for key, value in HEADLESS_DEFAULTS.items():
+        monkeypatch.setenv(key, value)
 
 
 @pytest.fixture(scope="session")
@@ -369,8 +463,12 @@ def geometry_bridge(sample_geometry_params):
 
 
 # Markers for organizing tests
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     """Configure custom markers"""
+
+    _register_headless_marker(config)
+    _configure_session_headless(config)
+
     config.addinivalue_line("markers", "unit: Unit tests for individual components")
     config.addinivalue_line(
         "markers", "integration: Integration tests for component interactions"
@@ -380,10 +478,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: Tests that take significant time")
     config.addinivalue_line("markers", "gui: Tests requiring GUI/QML")
     config.addinivalue_line(
-        "markers", "scenario: Scenario-driven end-to-end simulations coordinating multiple fixtures"
-    )
-    config.addinivalue_line(
-        "markers", "qtbot: Tests that rely on the pytest-qt qtbot fixture helpers"
+        "markers", "scenario: Scenario-driven physics regression suites"
     )
 
 

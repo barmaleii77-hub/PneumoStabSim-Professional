@@ -324,7 +324,7 @@ Item {
         return Number.isFinite(numeric) ? numeric : fallback
     }
 
-    function _pneumaticNumber(section, fallback) {
+    function _numberFromSources(sourceAccessor, section, fallback) {
         var sections = []
         var keys
         if (Array.isArray(section) && Array.isArray(section[0])) {
@@ -333,34 +333,21 @@ Item {
         } else {
             keys = section
         }
-        var value = sections.length ? _valueFromSubsection(_pneumaticSources(), sections, keys) : _valueFromSources(_pneumaticSources(), keys)
+        var sources = sourceAccessor()
+        var value = sections.length ? _valueFromSubsection(sources, sections, keys) : _valueFromSources(sources, keys)
         return _coerceNumber(value, fallback)
+    }
+
+    function _pneumaticNumber(section, fallback) {
+        return _numberFromSources(_pneumaticSources, section, fallback)
     }
 
     function _simulationNumber(section, fallback) {
-        var sections = []
-        var keys
-        if (Array.isArray(section) && Array.isArray(section[0])) {
-            sections = section[0]
-            keys = section[1]
-        } else {
-            keys = section
-        }
-        var value = sections.length ? _valueFromSubsection(_simulationSources(), sections, keys) : _valueFromSources(_simulationSources(), keys)
-        return _coerceNumber(value, fallback)
+        return _numberFromSources(_simulationSources, section, fallback)
     }
 
     function _sceneEnvironmentNumber(section, fallback) {
-        var sections = []
-        var keys
-        if (Array.isArray(section) && Array.isArray(section[0])) {
-            sections = section[0]
-            keys = section[1]
-        } else {
-            keys = section
-        }
-        var value = sections.length ? _valueFromSubsection(_sceneEnvironmentSources(), sections, keys) : _valueFromSources(_sceneEnvironmentSources(), keys)
-        return _coerceNumber(value, fallback)
+        return _numberFromSources(_sceneEnvironmentSources, section, fallback)
     }
 
     function _applySettingsPayload(payload) {
