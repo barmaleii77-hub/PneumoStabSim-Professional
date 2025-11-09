@@ -6,6 +6,7 @@ Combines QDial with QDoubleSpinBox for precise value control
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable, override
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -40,10 +41,12 @@ class _UnitsLabel(QLabel):
         self._requested_visible = bool(visible)
         super().setVisible(bool(visible))
 
-    def setVisible(self, visible: bool) -> None:  # type: ignore[override]
+    @override
+    def setVisible(self, visible: bool) -> None:
         super().setVisible(bool(visible))
 
-    def isVisible(self) -> bool:  # type: ignore[override]
+    @override
+    def isVisible(self) -> bool:
         return self._requested_visible
 
 
@@ -66,13 +69,13 @@ class Knob(QWidget):
         decimals: int = 2,
         units: str = "",
         title: str = "",
-        parent=None,
+        parent: QWidget | None = None,
         accessible_name: str | None = None,
         accessible_role: str | None = None,
         increase_shortcut: str = "Ctrl+Alt+Up",
         decrease_shortcut: str = "Ctrl+Alt+Down",
         reset_shortcut: str = "Ctrl+Alt+0",
-    ):
+    ) -> None:
         """Initialize knob widget
 
         Args:
@@ -98,6 +101,7 @@ class Knob(QWidget):
         self._shortcut_metadata: list[AccessibilityShortcut] = []
 
         # Create UI
+        self.units_label: QLabel | None = None
         self._setup_ui(title)
 
         # Accessibility configuration
@@ -115,7 +119,7 @@ class Knob(QWidget):
         # Size policy
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
-    def _setup_ui(self, title: str):
+    def _setup_ui(self, title: str) -> None:
         """Setup user interface"""
         layout = QVBoxLayout(self)
         layout.setSpacing(2)
@@ -222,7 +226,7 @@ class Knob(QWidget):
         self.setAccessibleDescription(description)
         self.spinbox.setAccessibleDescription(description)
 
-        if hasattr(self, "units_label") and self._units:
+        if self.units_label is not None and self._units:
             self.units_label.setAccessibleName(
                 self.tr("%1 units").replace("%1", display_label)
             )
@@ -276,7 +280,7 @@ class Knob(QWidget):
         self,
         identifier: str,
         sequence_str: str,
-        callback,
+        callback: Callable[[], None],
         description_template: str,
         replacements: dict[str, str] | None = None,
     ) -> QShortcut:
@@ -331,7 +335,7 @@ class Knob(QWidget):
         self.setValue(midpoint)
         self.valueChanged.emit(self.value())
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         """Connect internal signals"""
         self.dial.valueChanged.connect(self._on_dial_changed)
         self.spinbox.valueChanged.connect(self._on_spinbox_changed)
@@ -362,7 +366,7 @@ class Knob(QWidget):
         return max(self._minimum, min(self._maximum, value))
 
     @Slot(int)
-    def _on_dial_changed(self, dial_value: int):
+    def _on_dial_changed(self, dial_value: int) -> None:
         """Handle dial value change"""
         real_value = self._dial_to_value(dial_value)
 
@@ -375,7 +379,7 @@ class Knob(QWidget):
         self.valueChanged.emit(real_value)
 
     @Slot(float)
-    def _on_spinbox_changed(self, spinbox_value: float):
+    def _on_spinbox_changed(self, spinbox_value: float) -> None:
         """Handle spinbox value change"""
         # Update dial without triggering its signal
         dial_pos = self._value_to_dial(spinbox_value)
@@ -386,7 +390,7 @@ class Knob(QWidget):
         # Emit our signal
         self.valueChanged.emit(spinbox_value)
 
-    def setValue(self, value: float):
+    def setValue(self, value: float) -> None:
         """Set knob value
 
         Args:
@@ -414,7 +418,9 @@ class Knob(QWidget):
         """
         return self.spinbox.value()
 
-    def setRange(self, minimum: float, maximum: float, step: float = None):
+    def setRange(
+        self, minimum: float, maximum: float, step: float | None = None
+    ) -> None:
         """Set value range
 
         Args:
@@ -443,7 +449,7 @@ class Knob(QWidget):
         self.setValue(current_value)
         self._refresh_accessible_descriptions()
 
-    def setDecimals(self, decimals: int):
+    def setDecimals(self, decimals: int) -> None:
         """Set number of decimal places
 
         Args:
@@ -455,7 +461,7 @@ class Knob(QWidget):
     def _create_or_update_units_label(self, units: str) -> None:
         """Ensure the units label exists and reflects *units*."""
 
-        if hasattr(self, "units_label"):
+        if self.units_label is not None:
             self.units_label.setText(units)
             if isinstance(self.units_label, _UnitsLabel):
                 self.units_label.set_units_visibility(bool(units))
@@ -477,7 +483,7 @@ class Knob(QWidget):
         self.units_label.set_units_visibility(True)
         self._value_layout.addWidget(self.units_label)
 
-    def setUnits(self, units: str):
+    def setUnits(self, units: str) -> None:
         """Set units label text and visibility."""
 
         units = units or ""
@@ -485,7 +491,7 @@ class Knob(QWidget):
         self._create_or_update_units_label(units)
         self._refresh_accessible_descriptions()
 
-    def setEnabled(self, enabled: bool):
+    def setEnabled(self, enabled: bool) -> None:
         """Enable/disable the knob
 
         Args:

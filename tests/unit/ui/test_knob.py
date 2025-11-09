@@ -27,11 +27,11 @@ def test_set_units_creates_label_when_missing(qtbot):
     knob = Knob()
     qtbot.addWidget(knob)
 
-    assert not hasattr(knob, "units_label")
+    assert knob.units_label is None
 
     knob.setUnits("мм")
 
-    assert hasattr(knob, "units_label")
+    assert knob.units_label is not None
     assert knob.units_label.text() == "мм"
     assert knob.units_label.isVisible()
 
