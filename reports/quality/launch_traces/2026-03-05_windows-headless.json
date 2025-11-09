@@ -1,0 +1,14 @@
+{
+  "preset": "trace",
+  "mode": "headless",
+  "set": {
+    "PSS_HEADLESS": "1",
+    "QT_QPA_PLATFORM": "offscreen",
+    "QT_QUICK_BACKEND": "software",
+    "QT_QUICK_CONTROLS_STYLE": "Basic"
+  },
+  "unset": [
+    "QSG_RHI_BACKEND",
+    "PSS_FORCE_NO_QML_3D"
+  ]
+}

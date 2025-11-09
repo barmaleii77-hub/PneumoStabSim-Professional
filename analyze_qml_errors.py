@@ -6,6 +6,8 @@ import subprocess
 import sys
 import re
 
+from tools.headless import prepare_launch_environment
+
 
 def run_app_and_analyze():
     """Запустить приложение и проанализировать вывод"""
@@ -23,9 +25,10 @@ def run_app_and_analyze():
             timeout=15,
             encoding="utf-8",
             errors="replace",
+            env=prepare_launch_environment(),
         )
 
-        output = result.stdout + result.stderr
+        output = (result.stdout or "") + (result.stderr or "")
 
         # Ищем ошибки
         error_patterns = [

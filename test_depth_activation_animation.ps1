@@ -13,6 +13,16 @@ if ($headlessRequested) {
     $env:PSS_HEADLESS = '1'
     if (-not $env:QT_QPA_PLATFORM) { $env:QT_QPA_PLATFORM = 'offscreen' }
     if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'software' }
+} else {
+    if ($env:QT_QPA_PLATFORM -eq 'offscreen') {
+        Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
+    }
+    if ($env:QT_QUICK_BACKEND -eq 'software') {
+        Remove-Item Env:QT_QUICK_BACKEND -ErrorAction SilentlyContinue
+    }
+    Remove-Item Env:PSS_FORCE_NO_QML_3D -ErrorAction SilentlyContinue
+    $env:QSG_RHI_BACKEND = 'd3d11'
+    if (-not $env:QT_QUICK_BACKEND) { $env:QT_QUICK_BACKEND = 'rhi' }
 }
 
 Write-Host "🎬 Starting PneumoStabSim with full QML logging..." -ForegroundColor Cyan

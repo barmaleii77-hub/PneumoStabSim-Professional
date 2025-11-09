@@ -1,0 +1,15 @@
+{
+  "preset": "normal",
+  "mode": "gpu",
+  "set": {
+    "PSS_ENV_PRESET": "normal",
+    "QSG_RHI_BACKEND": "d3d11",
+    "QT_QUICK_BACKEND": "rhi"
+  },
+  "unset": [
+    "PSS_HEADLESS",
+    "QT_QPA_PLATFORM",
+    "QT_QUICK_BACKEND",
+    "PSS_FORCE_NO_QML_3D"
+  ]
+}

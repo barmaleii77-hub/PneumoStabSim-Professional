@@ -4,9 +4,10 @@ Quick Performance Test
 Быстрый тест основной функциональности оптимизированного приложения
 """
 
-import sys
 import time
 import subprocess
+
+from tools.headless import prepare_launch_environment
 
 
 def quick_startup_test():
@@ -23,6 +24,7 @@ def quick_startup_test():
             timeout=20,
             encoding="utf-8",
             errors="ignore",
+            env=prepare_launch_environment(),
         )
 
         elapsed = time.time() - start_time
@@ -59,6 +61,7 @@ def quick_monitoring_test():
             timeout=15,
             encoding="utf-8",
             errors="ignore",
+            env=prepare_launch_environment(),
         )
 
         # Проверяем по коду возврата
@@ -85,6 +88,7 @@ def quick_diagnostic_test():
             timeout=10,
             encoding="utf-8",
             errors="ignore",
+            env=prepare_launch_environment(),
         )
 
         success = result.returncode == 0
@@ -117,6 +121,7 @@ def quick_caching_test():
             timeout=5,
             encoding="utf-8",
             errors="ignore",
+            env=prepare_launch_environment(),
         )
 
         cache_works = "Cache works: True" in result.stdout

@@ -34,6 +34,10 @@ def test_choose_scenegraph_backend(platform: str, expected: str) -> None:
             {"QT_QPA_PLATFORM": "", "DISPLAY": ""},
             ("no-display-server", "qt-qpa-platform-missing"),
         ),
+        (
+            {"PSS_HEADLESS": "1"},
+            ("flag:pss-headless",),
+        ),
         ({"QT_QPA_PLATFORM": "xcb", "DISPLAY": ":0"}, ()),
     ],
 )
@@ -100,3 +104,13 @@ def test_bootstrap_graphics_environment_respects_safe_mode() -> None:
     assert state.backend == "metal"
     assert state.safe_mode is True
     assert state.use_qml_3d is True
+
+
+def test_bootstrap_graphics_environment_respects_pss_headless_flag() -> None:
+    env: dict[str, str] = {"PSS_HEADLESS": "1"}
+
+    state = bootstrap_graphics_environment(env, platform="win32", safe_mode=False)
+
+    assert state.headless is True
+    assert state.use_qml_3d is False
+    assert env["QT_QPA_PLATFORM"] == "offscreen"

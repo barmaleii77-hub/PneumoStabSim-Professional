@@ -41,6 +41,9 @@
   `QSG_RHI_BACKEND=d3d11` whenever `PSS_HEADLESS` is unset. This ensures test and
   application launchers exercise the Direct3D 11 backend unless headless mode is
   explicitly requested.
+- Launchers and developer utilities now reuse
+  `tools.headless.prepare_launch_environment(...)` so `app.py --test-mode` calls
+  inherit the toggle automatically and clean up stale headless overrides.
 - Set `PSS_HEADLESS=1` (or pass `--pss-headless` to pytest) to enable
   `QT_QPA_PLATFORM=offscreen` and `QT_QUICK_BACKEND=software` overrides.
 - Tests that depend on offscreen rendering should use the `@pytest.mark.headless`
@@ -51,6 +54,13 @@
   - `set PSS_HEADLESS=1; python -m pytest --pss-headless`
   - `set PSS_HEADLESS=1; .\scripts\run_tests_ci.ps1`
   - `Remove-Item Env:PSS_HEADLESS; .\run.ps1` *(restores GPU/D3D11 rendering)*
+- CI pipelines set `PSS_HEADLESS=1` only on Linux runners so Windows smoke and
+  integration sweeps continue to initialise Qt Quick 3D with
+  `use_qml_3d=true`.
+- Launch trace fixtures
+  (`reports/quality/launch_traces/2026-03-05_windows-gpu.json` and
+  `reports/quality/launch_traces/2026-03-05_windows-headless.json`) document the
+  environment deltas for both GPU and headless modes.
 
 ## Deliverables
 - Passing automated test suite with coverage report stored under `docs/reports/`.

@@ -9,6 +9,8 @@ import time
 import psutil
 from pathlib import Path
 
+from tools.headless import prepare_launch_environment
+
 
 def find_pneumostab_process():
     """Find running PneumoStabSim process"""
@@ -45,7 +47,7 @@ def profile_startup():
 
     print(f"🔍 Profiling startup... Output: {output_file}")
     try:
-        subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True, env=prepare_launch_environment())
         print(f"✅ Startup profile saved: {output_file}")
     except subprocess.CalledProcessError as e:
         print(f"❌ Profiling failed: {e}")

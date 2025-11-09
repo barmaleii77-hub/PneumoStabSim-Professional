@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 from collections.abc import Mapping
 
+from tools.headless import prepare_launch_environment
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = PROJECT_ROOT / "app.py"
 SETTINGS_TEMPLATE = PROJECT_ROOT / "config" / "app_settings.json"
@@ -420,8 +422,7 @@ def run_cycle() -> None:
 
         env = os.environ.copy()
         env["PSS_SETTINGS_FILE"] = str(settings_path)
-        env.setdefault("QT_QPA_PLATFORM", "offscreen")
-        env.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+        env = prepare_launch_environment(env)
 
         for scenario in SCENARIOS:
             print(f"\n=== Scenario: {scenario.name} ===")

@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from tools.headless import prepare_launch_environment
+
 
 def analyze_startup():
     """Детальный анализ запуска"""
@@ -21,6 +23,7 @@ def analyze_startup():
 
     # Запускаем с перенаправлением в файл
     cmd = [sys.executable, "app.py", "--test-mode"]
+    launch_env = prepare_launch_environment()
 
     try:
         with open(log_file, "w", encoding="utf-8", errors="replace") as f:
@@ -31,6 +34,7 @@ def analyze_startup():
                 text=True,
                 encoding="utf-8",
                 errors="replace",
+                env=launch_env,
             )
 
             # Ждём завершения (макс 10 секунд)

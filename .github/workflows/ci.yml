@@ -10,12 +10,6 @@ on:
 env:
   PYTHON_VERSION: "3.13"
   QT_VERSION: "6.10.0"
-  QT_QPA_PLATFORM: offscreen
-  QT_QUICK_BACKEND: rhi
-  QSG_RHI_BACKEND: d3d11
-  LIBGL_ALWAYS_SOFTWARE: "1"
-  MESA_GL_VERSION_OVERRIDE: "4.1"
-  MESA_GLSL_VERSION_OVERRIDE: "410"
   PSS_ENV_PRESET: trace
 
 jobs:
@@ -27,12 +21,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     env:
-      QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
-      QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
-      QSG_RHI_BACKEND: ${{ env.QSG_RHI_BACKEND }}
-      LIBGL_ALWAYS_SOFTWARE: ${{ env.LIBGL_ALWAYS_SOFTWARE }}
-      MESA_GL_VERSION_OVERRIDE: ${{ env.MESA_GL_VERSION_OVERRIDE }}
-      MESA_GLSL_VERSION_OVERRIDE: ${{ env.MESA_GLSL_VERSION_OVERRIDE }}
       PYTHONPATH: src
       PSS_ENV_PRESET: ${{ env.PSS_ENV_PRESET }}
     steps:
@@ -126,15 +114,28 @@ jobs:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
 
-      - name: Run make full_verify
-        id: make-check
+      - name: Run make full_verify (Linux)
+        if: runner.os == 'Linux'
+        id: make-check-linux
         continue-on-error: true
-        run: |
-          if [ "${{ runner.os }}" = "Linux" ]; then
-            bash scripts/xvfb_wrapper.sh make full_verify
-          else
-            make full_verify
-          fi
+        env:
+          PSS_HEADLESS: "1"
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          QSG_RHI_BACKEND: opengl
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          MESA_GL_VERSION_OVERRIDE: "4.1"
+          MESA_GLSL_VERSION_OVERRIDE: "410"
+        run: bash scripts/xvfb_wrapper.sh make full_verify
+
+      - name: Run make full_verify (Windows)
+        if: runner.os == 'Windows'
+        id: make-check-windows
+        continue-on-error: true
+        env:
+          QSG_RHI_BACKEND: d3d11
+          QT_QUICK_BACKEND: rhi
+        run: make full_verify
 
       - name: Audit shader logs
         run: python tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
@@ -232,5 +233,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Fail if make full_verify failed
-        if: steps.make-check.conclusion == 'failure'
+        if: |
+          (steps.make-check-linux.conclusion == 'failure') ||
+          (steps.make-check-windows.conclusion == 'failure')
         run: exit 1
