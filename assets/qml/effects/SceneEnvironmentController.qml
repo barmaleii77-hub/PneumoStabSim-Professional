@@ -96,6 +96,31 @@ ExtendedSceneEnvironment {
     property var diagnosticsTrace: sceneBridge && sceneBridge.signalTrace ? sceneBridge.signalTrace : null
     property var _settingsWarningCache: ({})
 
+    function _ownKeys(value) {
+        if (!value || typeof value !== "object")
+            return []
+        var keys = []
+        for (var key in value) {
+            if (Object.prototype.hasOwnProperty.call(value, key))
+                keys.push(key)
+        }
+        return keys
+    }
+
+    function _sectionSummary(value) {
+        var summary = {}
+        if (!value || typeof value !== "object")
+            return summary
+        for (var key in value) {
+            if (!Object.prototype.hasOwnProperty.call(value, key))
+                continue
+            var nested = value[key]
+            if (nested && typeof nested === "object")
+                summary[key] = _ownKeys(nested).length
+        }
+        return summary
+    }
+
     function logStructured(eventName, params) {
         if (!diagnosticsLoggingEnabled)
             return
@@ -109,37 +134,12 @@ ExtendedSceneEnvironment {
             }
         }
 
-        function ownKeys(value) {
-            if (!value || typeof value !== "object")
-                return []
-            var keys = []
-            for (var key in value) {
-                if (Object.prototype.hasOwnProperty.call(value, key))
-                    keys.push(key)
-            }
-            return keys
-        }
-
-        function sectionSummary(value) {
-            var summary = {}
-            if (!value || typeof value !== "object")
-                return summary
-            for (var key in value) {
-                if (!Object.prototype.hasOwnProperty.call(value, key))
-                    continue
-                var nested = value[key]
-                if (nested && typeof nested === "object")
-                    summary[key] = ownKeys(nested).length
-            }
-            return summary
-        }
-
         var payload = {
             level: "info",
             logger: "qml.scene_environment",
             event: eventName,
-            keys: ownKeys(params),
-            sections: sectionSummary(params),
+            keys: _ownKeys(params),
+            sections: _sectionSummary(params),
             timestamp: new Date().toISOString()
         }
 
