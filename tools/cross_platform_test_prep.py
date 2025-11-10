@@ -26,22 +26,41 @@ from typing import Iterable, Sequence
 
 
 LINUX_SYSTEM_PACKAGES: tuple[str, ...] = (
+    "git",
+    "curl",
+    "ca-certificates",
+    "pkg-config",
+    "build-essential",
     "xvfb",
     "xauth",
     "dbus-x11",
     "mesa-utils",
+    "mesa-utils-extra",
     "libgl1",
     "libgl1-mesa-dri",
     "libglu1-mesa",
     "libglu1-mesa-dev",
     "libegl1",
+    "libegl-dev",
     "libegl-mesa0",
     "libgles2",
+    "libgles-dev",
     "libgles2-mesa-dev",
     "libosmesa6",
     "libosmesa6-dev",
     "libgbm1",
     "libdrm2",
+    "libx11-6",
+    "libx11-xcb1",
+    "libxext6",
+    "libxrender1",
+    "libxi6",
+    "libxfixes3",
+    "libxrandr2",
+    "libxcursor1",
+    "libxinerama1",
+    "libxdamage1",
+    "libxcb1",
     "libxcb-xinerama0",
     "libxkbcommon0",
     "libxkbcommon-x11-0",
@@ -237,6 +256,7 @@ def run_test_suite(extra_args: Sequence[str]) -> None:
     env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
     env.setdefault("PYTEST_QT_API", "pyside6")
     env.setdefault("PSS_ENV_PRESET", "trace")
+    env.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
 
     if system == "Linux":
         env.setdefault("PSS_HEADLESS", "1")
@@ -251,7 +271,11 @@ def run_test_suite(extra_args: Sequence[str]) -> None:
         env.setdefault("QT_QUICK_BACKEND", "rhi")
         env.setdefault("QSG_RHI_BACKEND", "d3d11")
 
-    command = [sys.executable, "-m", "pytest", "-vv", *extra_args]
+    pytest_args = list(extra_args)
+    if not pytest_args:
+        pytest_args = ["tests"]
+
+    command = [sys.executable, "-m", "pytest", "-vv", *pytest_args]
     _run_step(CommandStep(command, "Run cross-platform pytest suite", env=env))
 
 

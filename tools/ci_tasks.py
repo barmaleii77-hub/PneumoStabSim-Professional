@@ -300,7 +300,7 @@ def _prepare_cross_platform_test_environment(
         if normalised.startswith("linux"):
             target_env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
 
-    target_env.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+    target_env.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
 
     _safe_console_write(f"[ci_tasks] Qt launch mode: {mode}\n")
 

@@ -1,5 +1,4 @@
-tests/quality/test_sample_vector.py
-tests/unit/physics/test_forces.py
-tests/unit/physics/test_physics_loop.py
-tests/unit/physics/test_gas_network.py
-tests/unit/pneumo/test_diagonal_linking.py
+# Intentionally left blank. The default pytest suites (unit, integration, UI)
+# cover the entire ``tests/`` tree, and adding explicit targets here would hide
+# new modules from automated runs. Leave this file empty unless you need to run
+# additional one-off suites on top of the defaults.
