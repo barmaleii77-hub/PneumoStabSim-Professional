@@ -201,6 +201,60 @@ class LeverGeom:
         lever_radius = self.rod_joint_frac * self.L_lever
         return lever_radius * math.sin(angle)
 
+    def displacement_to_angle(
+        self,
+        displacement: float,
+        *,
+        initial_guess: float | None = None,
+        max_iterations: int = 16,
+        tolerance: float = 1e-9,
+    ) -> float:
+        """Return the lever angle that produces ``displacement``.
+
+        The solver performs a Newton iteration using :meth:`angle_to_displacement`
+        and :meth:`mechanical_advantage`.  When the detailed cylinder geometry is
+        attached, this accounts for the blended projection logic; otherwise it
+        reduces to the analytic inverse of the circular arc model.
+        """
+
+        # Provide a reasonable starting point.  For the pure lever model the
+        # displacement is :math:`r \sin(\theta)` which inverts to ``asin``.
+        lever_radius = max(self.rod_joint_frac * self.L_lever, 1e-9)
+        if initial_guess is None:
+            ratio = displacement / lever_radius
+            # Clamp to the valid asin domain while preserving sign information.
+            clamped = max(-1.0, min(1.0, ratio))
+            try:
+                guess = math.asin(clamped)
+            except ValueError:  # pragma: no cover - domain guard
+                guess = math.copysign(math.pi / 2.0, displacement)
+            if abs(ratio) > 1.0:
+                # When the projected kinematics exceed the simple lever range
+                # the Newton solver refines the saturated initial angle.
+                guess = math.copysign(math.pi / 2.0, displacement)
+        else:
+            guess = float(initial_guess)
+
+        # Keep the iterate inside the mechanical limits of the lever arm.
+        lower_bound = -math.pi / 2.0
+        upper_bound = math.pi / 2.0
+        angle = max(lower_bound, min(upper_bound, guess))
+
+        for _ in range(max(1, max_iterations)):
+            delta = self.angle_to_displacement(angle) - displacement
+            if abs(delta) <= tolerance:
+                break
+
+            derivative = self.mechanical_advantage(angle)
+            if abs(derivative) <= 1e-9:
+                # Degenerate Jacobian – fall back to the current approximation.
+                break
+
+            angle -= delta / derivative
+            angle = max(lower_bound, min(upper_bound, angle))
+
+        return angle
+
     def mechanical_advantage(self, angle: float) -> float:
         """Return the instantaneous displacement/angle derivative.
 
