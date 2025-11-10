@@ -562,7 +562,7 @@ ExtendedSceneEnvironment {
         var numeric = Number(value)
         if (!isFinite(numeric))
             return 0.0
-        var scale = Number(sceneScaleFactor)
+        var scale = Number(root.sceneScaleFactor)
         if (!isFinite(scale) || scale <= 0)
             return numeric
         return numeric * scale
@@ -577,21 +577,30 @@ ExtendedSceneEnvironment {
     }
 
     function valueFromKeys(params, primaryKey, secondaryKey) {
-        if (!params)
+        if (!params || typeof params !== "object")
             return undefined
         var keys = _normalizeKeyList(primaryKey).concat(_normalizeKeyList(secondaryKey))
         for (var index = 0; index < keys.length; ++index) {
             var key = keys[index]
             if (key === undefined || key === null)
                 continue
+            var candidate
             try {
                 if (params.hasOwnProperty && params.hasOwnProperty(key))
-                    return params[key]
+                    candidate = params[key]
             } catch (error) {
                 // fall through to `in` operator
             }
-            if (key in params)
-                return params[key]
+            if (candidate === undefined && key in params) {
+                try {
+                    candidate = params[key]
+                } catch (error) {
+                    candidate = undefined
+                }
+            }
+            if (candidate === undefined || candidate === null)
+                continue
+            return candidate
         }
         return undefined
     }
@@ -605,16 +614,30 @@ ExtendedSceneEnvironment {
         } catch (error) {
             // ignore and fall back to `in` operator
         }
-        return name in host
+        try {
+            return name in host
+        } catch (error) {
+            return false
+        }
     }
 
     function mirrorHostProperty(propertyName, value) {
         var host = root.parent
         if (!hostHasProperty(host, propertyName))
             return
-        if (host[propertyName] === value)
+        var currentValue
+        try {
+            currentValue = host[propertyName]
+        } catch (error) {
             return
-        host[propertyName] = value
+        }
+        if (currentValue === value)
+            return
+        try {
+            host[propertyName] = value
+        } catch (error) {
+            console.debug("SceneEnvironmentController: mirror", propertyName, "failed", error)
+        }
     }
 
     function _settingKey(primaryKey, secondaryKey) {
@@ -685,6 +708,8 @@ ExtendedSceneEnvironment {
             if (lowered === "false" || lowered === "0" || lowered === "no" || lowered === "off")
                 return false
         }
+        if (raw === null)
+            return undefined
         return !!raw
     }
 
@@ -704,11 +729,12 @@ ExtendedSceneEnvironment {
     }
 
     function environmentBoolDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEnvironmentDefaults) {
+        var defaults = root.contextEnvironmentDefaults
+        if (!defaults || typeof defaults !== "object") {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
-        var value = boolFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
+        var value = boolFromKeys(defaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing", fallback)
             return fallback
@@ -717,11 +743,12 @@ ExtendedSceneEnvironment {
     }
 
     function environmentNumberDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEnvironmentDefaults) {
+        var defaults = root.contextEnvironmentDefaults
+        if (!defaults || typeof defaults !== "object") {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
-        var value = numberFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
+        var value = numberFromKeys(defaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing", fallback)
             return fallback
@@ -730,11 +757,12 @@ ExtendedSceneEnvironment {
     }
 
     function environmentStringDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEnvironmentDefaults) {
+        var defaults = root.contextEnvironmentDefaults
+        if (!defaults || typeof defaults !== "object") {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
-        var value = stringFromKeys(root.contextEnvironmentDefaults, primaryKey, secondaryKey)
+        var value = stringFromKeys(defaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing", fallback)
             return fallback
@@ -753,11 +781,12 @@ ExtendedSceneEnvironment {
     }
 
     function effectsBoolDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEffectsDefaults) {
+        var defaults = root.contextEffectsDefaults
+        if (!defaults || typeof defaults !== "object") {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
-        var value = boolFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
+        var value = boolFromKeys(defaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
             return fallback
@@ -766,11 +795,12 @@ ExtendedSceneEnvironment {
     }
 
     function effectsNumberDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEffectsDefaults) {
+        var defaults = root.contextEffectsDefaults
+        if (!defaults || typeof defaults !== "object") {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
-        var value = numberFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
+        var value = numberFromKeys(defaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
             return fallback
@@ -779,11 +809,12 @@ ExtendedSceneEnvironment {
     }
 
     function effectsStringDefault(primaryKey, secondaryKey, fallback) {
-        if (!root.contextEffectsDefaults) {
+        var defaults = root.contextEffectsDefaults
+        if (!defaults || typeof defaults !== "object") {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
-        var value = stringFromKeys(root.contextEffectsDefaults, primaryKey, secondaryKey)
+        var value = stringFromKeys(defaults, primaryKey, secondaryKey)
         if (value === undefined) {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing", fallback)
             return fallback
@@ -876,19 +907,22 @@ ExtendedSceneEnvironment {
 
     function _applyInitialContextDefaults() {
         var environmentPayload = _cloneContextPayload(root.contextEnvironmentDefaults)
-        if (environmentPayload && Object.keys(environmentPayload).length)
+        if (environmentPayload && typeof environmentPayload === "object" && Object.keys(environmentPayload).length)
             root.applyEnvironmentPayload(environmentPayload)
 
         var qualityPayload = _qualityContextPayload()
-        if (qualityPayload && Object.keys(qualityPayload).length)
+        if (qualityPayload && typeof qualityPayload === "object" && Object.keys(qualityPayload).length)
             root.applyQualityPayload(qualityPayload)
 
         var effectsPayload = _cloneContextPayload(root.contextEffectsDefaults)
-        if (effectsPayload && Object.keys(effectsPayload).length)
+        if (effectsPayload && typeof effectsPayload === "object" && Object.keys(effectsPayload).length)
             root.applyEffectsPayload(effectsPayload)
     }
 
     function backgroundModeForKey(key) {
+        if (typeof SceneEnvironment === "undefined")
+            return root.backgroundMode
+
         var normalized = String(key || "skybox").trim().toLowerCase()
         if (normalized === "color")
             return SceneEnvironment.Color
