@@ -1,6 +1,6 @@
-"""
-Geometry and invariants for pneumatic system
-All calculations in SI units (meters)
+"""Геометрия узлов пневмосистемы.
+
+Все расчёты выполняются в СИ (метры, радианы, паскали).
 """
 
 import math
@@ -12,31 +12,39 @@ from .types import ValidationResult
 
 @dataclass
 class FrameGeom:
-    """Frame geometry with symmetry plane YZ at X=0
+    """Геометрия рамы с плоскостью симметрии YZ при ``X = 0``.
 
-    Coordinate system:
-    - Rear lower point of frame: (0, 0, 0)
-    - Front lower point: (0, 0, L_wb)
-    - Symmetry plane: YZ (X=0)
+    Система координат:
+    * задняя нижняя точка рамы: ``(0, 0, 0)``;
+    * передняя нижняя точка: ``(0, 0, L_wb)``;
+    * плоскость симметрии: ``YZ`` (``X = 0``).
     """
 
-    L_wb: float  # Wheelbase length (m)
+    L_wb: float  # Длина колёсной базы (м)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.L_wb <= 0:
-            raise GeometryError(f"Wheelbase L_wb must be positive, got {self.L_wb}")
+            raise GeometryError(
+                f"Длина базы L_wb должна быть положительной, получено {self.L_wb}"
+            )
 
     def validate_invariants(self) -> ValidationResult:
-        """Validate frame geometry invariants"""
-        errors = []
-        warnings = []
+        """Проверить инварианты рамы."""
+        errors: list[str] = []
+        warnings: list[str] = []
 
         if self.L_wb <= 0:
-            errors.append(f"Wheelbase L_wb must be positive, got {self.L_wb}")
+            errors.append(
+                f"Длина базы L_wb должна быть положительной, получено {self.L_wb}"
+            )
         elif self.L_wb < 2.0:
-            warnings.append(f"Wheelbase L_wb={self.L_wb}m seems too small for vehicle")
+            warnings.append(
+                f"Длина базы L_wb={self.L_wb} м выглядит слишком маленькой для шасси"
+            )
         elif self.L_wb > 10.0:
-            warnings.append(f"Wheelbase L_wb={self.L_wb}m seems too large for vehicle")
+            warnings.append(
+                f"Длина базы L_wb={self.L_wb} м выглядит чрезмерно большой для шасси"
+            )
 
         return ValidationResult(
             is_valid=len(errors) == 0, errors=errors, warnings=warnings
@@ -45,14 +53,11 @@ class FrameGeom:
 
 @dataclass
 class LeverGeom:
-    """Lever geometry with invariants
+    """Геометрия рычага с проверкой инвариантов."""
 
-    Maintains consistency between lever length and frame-to-hinge distance
-    """
-
-    L_lever: float  # Lever length (m)
-    rod_joint_frac: float  # Rod joint position as fraction of lever length (0.1..0.9)
-    d_frame_to_lever_hinge: float  # Distance from symmetry plane to lever hinge (m)
+    L_lever: float  # Длина рычага (м)
+    rod_joint_frac: float  # Доля длины до шарнира штока (0.1…0.9)
+    d_frame_to_lever_hinge: float  # Расстояние от рамы до оси рычага (м)
 
     _cylinder_geom: "CylinderGeom | None" = field(default=None, init=False, repr=False)
     _neutral_length: float | None = field(default=None, init=False, repr=False)
@@ -63,55 +68,43 @@ class LeverGeom:
     _min_effective_angle: float | None = field(default=None, init=False, repr=False)
     _min_angle_active: bool = field(default=False, init=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._validate_parameters()
 
-    def _validate_parameters(self):
-        """Validate lever parameters"""
+    def _validate_parameters(self) -> None:
+        """Проверить параметры рычага."""
         if self.L_lever <= 0:
             raise GeometryError(
-                f"Lever length L_lever must be positive, got {self.L_lever}"
+                f"Длина рычага L_lever должна быть положительной, получено {self.L_lever}"
             )
 
         if not (0.1 <= self.rod_joint_frac <= 0.9):
             raise GeometryError(
-                f"Rod joint fraction must be in [0.1, 0.9], got {self.rod_joint_frac}"
+                "Доля расположения шарнира должна лежать в диапазоне 0.1…0.9"
+                f", получено {self.rod_joint_frac}"
             )
 
         if self.d_frame_to_lever_hinge <= 0:
             raise GeometryError(
-                f"Frame-to-hinge distance must be positive, got {self.d_frame_to_lever_hinge}"
+                "Расстояние от рамы до оси рычага должно быть положительным"
+                f", получено {self.d_frame_to_lever_hinge}"
             )
 
     def lever_tip_pos(self, angle: float) -> tuple[float, float]:
-        """Calculate lever tip position in the axle plane
-
-        Args:
-            angle: Lever angle in radians from horizontal
-
-        Returns:
-            (x, y) position of lever tip
-        """
+        """Вычислить положение конца рычага в плоскости оси."""
         x = self.L_lever * math.cos(angle)
         y = self.L_lever * math.sin(angle)
         return (x, y)
 
     def rod_joint_pos(self, angle: float) -> tuple[float, float]:
-        """Calculate rod joint position on lever
-
-        Args:
-            angle: Lever angle in radians from horizontal
-
-        Returns:
-            (x, y) position of rod joint
-        """
+        """Вычислить положение шарнира штока на рычаге."""
         dist_from_hinge = self.rod_joint_frac * self.L_lever
         x = dist_from_hinge * math.cos(angle)
         y = dist_from_hinge * math.sin(angle)
         return (x, y)
 
     def attach_cylinder_geometry(self, geometry: "CylinderGeom") -> None:
-        """Store the associated cylinder geometry for future extensions."""
+        """Привязать геометрию цилиндра и подготовить вспомогательные величины."""
 
         self._cylinder_geom = geometry
 
@@ -131,33 +124,32 @@ class LeverGeom:
         )
 
         if axis_length < 1e-9:
-            # Degenerate configuration – default to pointing along negative Y.
+            # Вырожденная конфигурация: направляем ось вдоль отрицательной Y.
             self._axis_unit = (0.0, -1.0, 0.0)
             self._neutral_length = 0.0
         else:
-            self._axis_unit = tuple(component / axis_length for component in axis_vec)
+            self._axis_unit = (
+                axis_vec[0] / axis_length,
+                axis_vec[1] / axis_length,
+                axis_vec[2] / axis_length,
+            )
             self._neutral_length = axis_length
 
-        # Blend factor reconciles the simple lever model with the projected axis.
+        # Коэффициент смешивания между простой моделью и проекцией на ось цилиндра.
         frame_offset = max(self.d_frame_to_lever_hinge, 1e-6)
         blend = lever_arm / (geometry.Y_tail + frame_offset)
         self._displacement_blend = max(0.0, min(1.0, blend))
 
-        # Small-angle behaviour: the cylinder attachment introduces a slack zone where
-        # the projection barely changes. Model this as a minimum effective angle that
-        # scales with the axis misalignment, capped to a gentle ~2-3° window.
+        # Поведение при малых углах: из-за несовпадения осей возникает «слэк-зона».
+        # Моделируем её минимальным эффективным углом, ограниченным мягким пределом
+        # около трёх градусов.
         slack_angle = math.atan2(
             abs(geometry.Y_tail - lever_arm), geometry.Z_axle + frame_offset
         )
         self._min_effective_angle = min(slack_angle * 0.4, math.radians(3.0))
 
     def angle_to_displacement(self, angle: float) -> float:
-        """Convert lever rotation to axial displacement at the rod joint.
-
-        The neutral position (``angle == 0``) corresponds to zero displacement.
-        Positive angles rotate the lever upwards which yields a positive piston
-        displacement in the simplified planar model used by the runtime.
-        """
+        """Преобразовать угол рычага в осевое смещение штока."""
 
         if self._cylinder_geom and self._axis_unit and self._neutral_length is not None:
             geometry = self._cylinder_geom
@@ -209,33 +201,26 @@ class LeverGeom:
         max_iterations: int = 16,
         tolerance: float = 1e-9,
     ) -> float:
-        """Return the lever angle that produces ``displacement``.
+        """Найти угол рычага, обеспечивающий указанное смещение."""
 
-        The solver performs a Newton iteration using :meth:`angle_to_displacement`
-        and :meth:`mechanical_advantage`.  When the detailed cylinder geometry is
-        attached, this accounts for the blended projection logic; otherwise it
-        reduces to the analytic inverse of the circular arc model.
-        """
-
-        # Provide a reasonable starting point.  For the pure lever model the
-        # displacement is :math:`r \sin(\theta)` which inverts to ``asin``.
+        # Начальное приближение: в чистой модели рычага смещение равно r*sin(θ).
         lever_radius = max(self.rod_joint_frac * self.L_lever, 1e-9)
         if initial_guess is None:
             ratio = displacement / lever_radius
-            # Clamp to the valid asin domain while preserving sign information.
+            # Ограничиваем аргумент arcsin допустимыми значениями, сохраняя знак.
             clamped = max(-1.0, min(1.0, ratio))
             try:
                 guess = math.asin(clamped)
-            except ValueError:  # pragma: no cover - domain guard
+            except ValueError:  # pragma: no cover - защита от выхода из области
                 guess = math.copysign(math.pi / 2.0, displacement)
             if abs(ratio) > 1.0:
-                # When the projected kinematics exceed the simple lever range
-                # the Newton solver refines the saturated initial angle.
+                # Если сложная кинематика выходит за пределы простой модели,
+                # итерации уточняют насыщённое начальное значение.
                 guess = math.copysign(math.pi / 2.0, displacement)
         else:
             guess = float(initial_guess)
 
-        # Keep the iterate inside the mechanical limits of the lever arm.
+        # Ограничиваем итерации механическими пределами рычага.
         lower_bound = -math.pi / 2.0
         upper_bound = math.pi / 2.0
         angle = max(lower_bound, min(upper_bound, guess))
@@ -247,7 +232,7 @@ class LeverGeom:
 
             derivative = self.mechanical_advantage(angle)
             if abs(derivative) <= 1e-9:
-                # Degenerate Jacobian – fall back to the current approximation.
+                # Якобиан вырожден: возвращаем текущее приближение.
                 break
 
             angle -= delta / derivative
@@ -256,11 +241,7 @@ class LeverGeom:
         return angle
 
     def mechanical_advantage(self, angle: float) -> float:
-        """Return the instantaneous displacement/angle derivative.
-
-        This is effectively the Jacobian of ``angle_to_displacement`` and is
-        required for translating angular velocity into linear piston velocity.
-        """
+        """Вернуть мгновенную производную смещения по углу."""
 
         if self._cylinder_geom and self._axis_unit and self._neutral_length is not None:
             epsilon = 1e-5
@@ -272,20 +253,24 @@ class LeverGeom:
         return lever_radius * math.cos(angle)
 
     def validate_invariants(self) -> ValidationResult:
-        """Validate lever geometry invariants"""
-        errors = []
-        warnings = []
+        """Проверить инварианты геометрии рычага."""
+        errors: list[str] = []
+        warnings: list[str] = []
 
         try:
             self._validate_parameters()
         except GeometryError as e:
             errors.append(str(e))
 
-        # Check for reasonable dimensions
+        # Контроль разумных размеров
         if self.L_lever < 0.1:
-            warnings.append(f"Lever length L_lever={self.L_lever}m seems too small")
+            warnings.append(
+                f"Длина рычага L_lever={self.L_lever} м выглядит подозрительно малой"
+            )
         elif self.L_lever > 2.0:
-            warnings.append(f"Lever length L_lever={self.L_lever}m seems too large")
+            warnings.append(
+                f"Длина рычага L_lever={self.L_lever} м выглядит чрезмерно большой"
+            )
 
         return ValidationResult(
             is_valid=len(errors) == 0, errors=errors, warnings=warnings
@@ -294,40 +279,39 @@ class LeverGeom:
 
 @dataclass
 class CylinderGeom:
-    """Cylinder geometry with full invariant validation
+    """Геометрия цилиндра с полной проверкой ограничений."""
 
-    Separate specifications for front and rear cylinders
-    """
+    # Геометрические параметры цилиндра
+    D_in_front: float  # Внутренний диаметр передней секции (м)
+    D_in_rear: float  # Внутренний диаметр задней секции (м)
+    D_out_front: float  # Наружный диаметр передней секции (м)
+    D_out_rear: float  # Наружный диаметр задней секции (м)
+    L_inner: float  # Полная длина внутренней полости (м)
+    t_piston: float  # Толщина поршня (м)
 
-    # Cylinder dimensions
-    D_in_front: float  # Front cylinder inner diameter (m)
-    D_in_rear: float  # Rear cylinder inner diameter (m)
-    D_out_front: float  # Front cylinder outer diameter (m)
-    D_out_rear: float  # Rear cylinder outer diameter (m)
-    L_inner: float  # Internal chamber length (m)
-    t_piston: float  # Piston thickness (m)
+    # Параметры штока
+    D_rod: float  # Диаметр штока (м)
+    link_rod_diameters_front_rear: bool  # Совпадает ли диаметр штока в обеих секциях
 
-    # Rod specifications
-    D_rod: float  # Rod diameter (m)
-    link_rod_diameters_front_rear: bool  # If True, both cylinders use same rod diameter
+    # Мёртвые зоны
+    L_dead_head: float  # Длина мёртвой зоны со стороны крышки (м)
+    L_dead_rod: float  # Длина мёртвой зоны со стороны штока (м)
 
-    # Dead zones
-    L_dead_head: float  # Head side dead zone length (m)
-    L_dead_rod: float  # Rod side dead zone length (m)
+    # Параметры безопасности
+    residual_frac_min: float = (
+        MIN_VOLUME_FRACTION  # Минимальная доля остаточного объёма
+    )
 
-    # Safety parameters
-    residual_frac_min: float = MIN_VOLUME_FRACTION  # Minimum residual volume fraction
+    # Положение цилиндра в пространстве
+    Y_tail: float = 0.0  # Координата хвостовой опоры по оси Y (м)
+    Z_axle: float = 0.0  # Высота оси цилиндра по Z (м)
 
-    # Position coordinates
-    Y_tail: float = 0.0  # Tail Y coordinate (m)
-    Z_axle: float = 0.0  # Axle height (m)
-
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._validate_parameters()
 
-    def _validate_parameters(self):
-        """Validate all cylinder parameters"""
-        # Positive dimensions
+    def _validate_parameters(self) -> None:
+        """Проверить параметры цилиндра."""
+        # Положительные размеры
         params_positive = [
             (self.D_in_front, "D_in_front"),
             (self.D_in_rear, "D_in_rear"),
@@ -342,60 +326,67 @@ class CylinderGeom:
 
         for value, name in params_positive:
             if value <= 0:
-                raise GeometryError(f"{name} must be positive, got {value}")
+                raise GeometryError(
+                    f"Параметр {name} должен быть положительным, получено {value}"
+                )
 
-        # Diameter constraints
+        # Ограничения по диаметрам
         if self.D_in_front >= self.D_out_front:
-            raise GeometryError("Front inner diameter must be less than outer diameter")
+            raise GeometryError(
+                "Внутренний диаметр передней секции должен быть меньше наружного"
+            )
         if self.D_in_rear >= self.D_out_rear:
-            raise GeometryError("Rear inner diameter must be less than outer diameter")
+            raise GeometryError(
+                "Внутренний диаметр задней секции должен быть меньше наружного"
+            )
 
-        # Rod diameter constraint
-        max_rod_diameter = (
-            min(self.D_in_front, self.D_in_rear) * 0.8
-        )  # Leave 20% margin
+        # Ограничение диаметра штока
+        max_rod_diameter = min(self.D_in_front, self.D_in_rear) * 0.8  # 20% зазор
         if self.D_rod >= max_rod_diameter:
             raise GeometryError(
-                f"Rod diameter {self.D_rod} too large for cylinder bores"
+                f"Диаметр штока {self.D_rod} превышает допустимое значение"
             )
 
-        # Residual fraction
+        # Допустимая доля остаточного объёма
         if not (0.001 <= self.residual_frac_min <= 0.1):
             raise GeometryError(
-                f"Residual fraction must be in [0.001, 0.1], got {self.residual_frac_min}"
+                "Минимальная доля остаточного объёма должна лежать в диапазоне"
+                f" 0.001…0.1, получено {self.residual_frac_min}"
             )
 
-        # Travel validation
+        # Проверка доступного хода
         L_travel_max = self.L_inner - (
             self.L_dead_head + self.L_dead_rod + self.t_piston
         )
         if L_travel_max <= 0:
             raise GeometryError(
-                f"No travel available: L_inner={self.L_inner}, dead zones + piston={self.L_dead_head + self.L_dead_rod + self.t_piston}"
+                "Полезный ход отсутствует: L_inner="
+                f"{self.L_inner}, сумма мёртвых зон и поршня="
+                f"{self.L_dead_head + self.L_dead_rod + self.t_piston}"
             )
 
     @property
     def L_travel_max(self) -> float:
-        """Maximum piston travel distance"""
+        """Максимальный ход поршня."""
         return self.L_inner - (self.L_dead_head + self.L_dead_rod + self.t_piston)
 
     def area_head(self, is_front: bool) -> float:
-        """Calculate head chamber area"""
+        """Вычислить площадь головной камеры."""
         diameter = self.D_in_front if is_front else self.D_in_rear
         return math.pi * (diameter / 2.0) ** 2
 
     def area_rod(self, is_front: bool) -> float:
-        """Calculate rod chamber effective area (head area minus rod area)"""
+        """Вычислить эффективную площадь штоковой камеры."""
         area_head = self.area_head(is_front)
         area_rod_steel = math.pi * (self.D_rod / 2.0) ** 2
         return area_head - area_rod_steel
 
     def min_volume_head(self, is_front: bool) -> float:
-        """Minimum allowable head chamber volume"""
+        """Минимально допустимый объём головной камеры."""
         return self.residual_frac_min * (self.area_head(is_front) * self.L_inner)
 
     def min_volume_rod(self, is_front: bool) -> float:
-        """Minimum allowable rod chamber volume"""
+        """Минимально допустимый объём штоковой камеры."""
         return self.residual_frac_min * (self.area_rod(is_front) * self.L_inner)
 
     def project_to_cyl_axis(
@@ -403,24 +394,16 @@ class CylinderGeom:
         tail_point: tuple[float, float, float],
         joint_point: tuple[float, float, float],
     ) -> float:
-        """Project geometry change to cylinder axis displacement
-
-        Args:
-            tail_point: Cylinder tail attachment point (x, y, z)
-            joint_point: Rod joint point (x, y, z)
-
-        Returns:
-            Cylinder length along axis
-        """
+        """Проецировать смещение на ось цилиндра и вернуть длину отрезка."""
         dx = joint_point[0] - tail_point[0]
         dy = joint_point[1] - tail_point[1]
         dz = joint_point[2] - tail_point[2]
         return math.sqrt(dx * dx + dy * dy + dz * dz)
 
     def validate_invariants(self) -> ValidationResult:
-        """Validate cylinder geometry invariants"""
-        errors = []
-        warnings = []
+        """Проверить инварианты геометрии цилиндра."""
+        errors: list[str] = []
+        warnings: list[str] = []
 
         try:
             self._validate_parameters()
@@ -428,13 +411,13 @@ class CylinderGeom:
             errors.append(str(e))
             return ValidationResult(is_valid=False, errors=errors, warnings=warnings)
 
-        # Check travel constraints at extremes
+        # Контроль объёмов при крайних положениях поршня
         half_travel = self.L_travel_max / 2.0
 
         for is_front in [True, False]:
-            label = "front" if is_front else "rear"
+            label = "передней" if is_front else "задней"
 
-            # Volume at maximum extension (x = +half_travel)
+            # Объёмы при максимальном растяжении (x = +half_travel)
             vol_head_max = self.area_head(is_front) * (
                 self.L_inner / 2.0 - half_travel - self.L_dead_head
             )
@@ -442,7 +425,7 @@ class CylinderGeom:
                 self.L_inner / 2.0 + half_travel - self.L_dead_rod
             )
 
-            # Volume at maximum compression (x = -half_travel)
+            # Объёмы при максимальном сжатии (x = -half_travel)
             vol_head_min = self.area_head(is_front) * (
                 self.L_inner / 2.0 + half_travel - self.L_dead_head
             )
@@ -455,19 +438,23 @@ class CylinderGeom:
 
             if vol_head_max < min_vol_head:
                 errors.append(
-                    f"{label} head volume at max extension below minimum: {vol_head_max:.6f} < {min_vol_head:.6f}"
+                    f"Объём {label} головной камеры при растяжении меньше допуска:"
+                    f" {vol_head_max:.6f} < {min_vol_head:.6f}"
                 )
             if vol_head_min < min_vol_head:
                 errors.append(
-                    f"{label} head volume at max compression below minimum: {vol_head_min:.6f} < {min_vol_head:.6f}"
+                    f"Объём {label} головной камеры при сжатии меньше допуска:"
+                    f" {vol_head_min:.6f} < {min_vol_head:.6f}"
                 )
             if vol_rod_max < min_vol_rod:
                 errors.append(
-                    f"{label} rod volume at max extension below minimum: {vol_rod_max:.6f} < {min_vol_rod:.6f}"
+                    f"Объём {label} штоковой камеры при растяжении меньше допуска:"
+                    f" {vol_rod_max:.6f} < {min_vol_rod:.6f}"
                 )
             if vol_rod_min < min_vol_rod:
                 errors.append(
-                    f"{label} rod volume at max compression below minimum: {vol_rod_min:.6f} < {min_vol_rod:.6f}"
+                    f"Объём {label} штоковой камеры при сжатии меньше допуска:"
+                    f" {vol_rod_min:.6f} < {min_vol_rod:.6f}"
                 )
 
         return ValidationResult(
