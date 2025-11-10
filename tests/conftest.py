@@ -4,13 +4,19 @@ import importlib
 import os
 import sys
 from ctypes import util as ctypes_util
+from functools import lru_cache
 from pathlib import Path
 from collections.abc import Callable
 
 import pytest
 from pytest import MonkeyPatch
 
-from tests._qt_headless import HEADLESS_DEFAULTS, HEADLESS_FLAG, apply_headless_defaults, headless_requested
+from tests._qt_headless import (
+    HEADLESS_DEFAULTS,
+    HEADLESS_FLAG,
+    apply_headless_defaults,
+    headless_requested,
+)
 from tests.physics.cases import build_case_loader
 from tests._qt_runtime import QT_SKIP_REASON, disable_pytestqt
 from tests.helpers import ensure_qt_runtime
@@ -19,9 +25,9 @@ pytest_plugins: tuple[str, ...] = ()
 
 # --- pytest-qt plugin bootstrap -------------------------------------------------
 
+
 def _load_pytestqt_plugin(config: pytest.Config) -> None:
     """(Re)import pytest-qt plugin when available and not blocked by runtime guards."""
-    from tests._qt_runtime import QT_SKIP_REASON, disable_pytestqt
     pm = config.pluginmanager
     if QT_SKIP_REASON is not None:
         disable_pytestqt(pm)
@@ -61,6 +67,7 @@ def _install_qtbot_compat_shims() -> None:
 
 # --- MonkeyPatch compatibility wrapper ------------------------------------------
 
+
 @pytest.fixture
 def monkeypatch():  # type: ignore[override]
     """Extended MonkeyPatch fixture accepting the legacy ``raising`` kw in ``setitem``.
@@ -94,6 +101,7 @@ os.environ.setdefault("PYTHONHASHSEED", "0")
 
 # --- Marker & headless configuration -------------------------------------------
 
+
 def _register_headless_marker(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
@@ -123,6 +131,7 @@ def _configure_session_headless(config: pytest.Config) -> None:
 
 # --- Platform capability checks -------------------------------------------------
 
+
 def _qt_display_available() -> bool:
     platform = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
     if platform in {"offscreen", "minimal"}:
@@ -137,10 +146,13 @@ def _libgl_available() -> bool:
         return True
     if ctypes_util.find_library("GL"):
         return True
-    return any(Path(p).exists() for p in (
-        "/usr/lib/x86_64-linux-gnu/libGL.so.1",
-        "/usr/lib64/libGL.so.1",
-    ))
+    return any(
+        Path(p).exists()
+        for p in (
+            "/usr/lib/x86_64-linux-gnu/libGL.so.1",
+            "/usr/lib64/libGL.so.1",
+        )
+    )
 
 
 _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
@@ -156,8 +168,40 @@ elif not _qt_display_available():
 else:
     _gui_skip_reason = None
 
+try:
+    importlib.import_module("PySide6.QtCharts")
+except Exception as _qtcharts_exc:  # pragma: no cover - platform dependent
+    _qtcharts_skip_reason = f"PySide6.QtCharts import failed: {_qtcharts_exc}"
+else:
+    _qtcharts_skip_reason = None
+
+
+def _iter_targets_file(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    return [
+        line.strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
+@lru_cache(maxsize=1)
+def _integration_target_roots(config_root: Path) -> tuple[Path, ...]:
+    candidates: list[Path] = []
+    targets_file = config_root / "pytest_integration_targets.txt"
+    for entry in _iter_targets_file(targets_file):
+        candidate = (config_root / entry).resolve()
+        if candidate.exists():
+            candidates.append(candidate)
+    default_root = (config_root / "tests" / "integration").resolve()
+    if default_root.exists() and default_root not in candidates:
+        candidates.append(default_root)
+    return tuple(candidates)
+
 
 # --- Global pytest hooks --------------------------------------------------------
+
 
 def pytest_configure(config: pytest.Config) -> None:
     _load_pytestqt_plugin(config)
@@ -178,14 +222,46 @@ def pytest_configure(config: pytest.Config) -> None:
         config.addinivalue_line("markers", f"{name}: {description}")
 
 
-def pytest_runtest_setup(item: pytest.Item) -> None:
-    if QT_SKIP_REASON is None:
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    roots = _integration_target_roots(Path(str(config.rootpath)).resolve())
+    if not roots:
         return
+    for item in items:
+        try:
+            item_path = Path(str(item.fspath)).resolve()
+        except Exception:
+            continue
+        for root in roots:
+            try:
+                relative = item_path.is_relative_to(root)
+            except AttributeError:  # pragma: no cover - Python <3.9 guard
+                try:
+                    item_path.relative_to(root)
+                    relative = True
+                except Exception:
+                    relative = False
+            if relative:
+                item.add_marker("integration")
+                break
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
     gui_fixtures = {"qtbot", "qapp"}
-    if "gui" in item.keywords or set(getattr(item, "fixturenames", ())).intersection(gui_fixtures):
+    if QT_SKIP_REASON is not None and (
+        "gui" in item.keywords
+        or set(getattr(item, "fixturenames", ())).intersection(gui_fixtures)
+    ):
         pytest.skip(
             "Qt runtime prerequisites are not satisfied: "
             f"{QT_SKIP_REASON}.\nRun `python -m tools.cross_platform_test_prep --run-tests` to install dependencies."
+        )
+
+    if "gui" in item.keywords and _qtcharts_skip_reason is not None:
+        pytest.skip(
+            "QtCharts module unavailable: "
+            f"{_qtcharts_skip_reason}.\nInstall PySide6 with QtCharts support or run tools.cross_platform_test_prep."
         )
 
 
@@ -209,7 +285,9 @@ def _write_settings_payload(target: Path) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def _apply_headless_marker(request: pytest.FixtureRequest, monkeypatch: MonkeyPatch) -> None:
+def _apply_headless_marker(
+    request: pytest.FixtureRequest, monkeypatch: MonkeyPatch
+) -> None:
     if getattr(request.config, "_pss_headless_session", False):
         return
     marker = request.node.get_closest_marker("headless")
@@ -221,6 +299,7 @@ def _apply_headless_marker(request: pytest.FixtureRequest, monkeypatch: MonkeyPa
 
 
 # --- Shared fixtures ------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def project_root_path() -> Path:
@@ -252,7 +331,9 @@ def baseline_images_dir(project_root_path: Path) -> Path:
     target.mkdir(parents=True, exist_ok=True)
     reference_path = target / "qt_scene_reference.png"
     if not reference_path.exists():
-        image_module = pytest.importorskip("PIL.Image", reason="Pillow required for baseline image")
+        image_module = pytest.importorskip(
+            "PIL.Image", reason="Pillow required for baseline image"
+        )
         image = image_module.new("RGB", (8, 8), color=(120, 160, 200))
         image.save(reference_path)
     return target
@@ -266,6 +347,7 @@ def physics_case_loader():
 @pytest.fixture
 def sample_geometry_params():
     from src.core.geometry import GeometryParams
+
     geometry = GeometryParams()
     geometry.wheelbase = 2.5
     geometry.lever_length = 0.4
@@ -288,8 +370,12 @@ def sample_cylinder_params() -> dict[str, float]:
 
 @pytest.fixture(scope="session")
 def qapp():  # noqa: D401
-    pytest.importorskip("PySide6.QtWidgets", reason="PySide6 QtWidgets required for QApplication fixture")
+    pytest.importorskip(
+        "PySide6.QtWidgets",
+        reason="PySide6 QtWidgets required for QApplication fixture",
+    )
     from PySide6.QtWidgets import QApplication
+
     app = QApplication.instance() or QApplication(sys.argv)
     yield app
 
@@ -302,6 +388,7 @@ def temp_settings_file(tmp_path: Path) -> Path:
 @pytest.fixture
 def settings_service(monkeypatch: MonkeyPatch, temp_settings_file: Path):
     from src.core.settings_service import SettingsService
+
     monkeypatch.setenv("PSS_SETTINGS_FILE", str(temp_settings_file))
     return SettingsService(settings_path=temp_settings_file)
 
@@ -309,6 +396,7 @@ def settings_service(monkeypatch: MonkeyPatch, temp_settings_file: Path):
 @pytest.fixture
 def settings_manager(monkeypatch: MonkeyPatch, temp_settings_file: Path):
     from src.common import settings_manager as sm
+
     monkeypatch.setenv("PSS_SETTINGS_FILE", str(temp_settings_file))
     monkeypatch.setattr(sm, "_settings_manager", None)
     monkeypatch.setattr(sm, "_settings_event_bus", sm.SettingsEventBus())
@@ -318,6 +406,7 @@ def settings_manager(monkeypatch: MonkeyPatch, temp_settings_file: Path):
 @pytest.fixture
 def reference_suspension_linkage():
     from src.mechanics.linkage_geometry import SuspensionLinkage
+
     return SuspensionLinkage.from_mm(
         pivot=(200.0, 0.0),
         free_end=(500.0, 0.0),
@@ -330,8 +419,12 @@ def reference_suspension_linkage():
 @pytest.fixture
 def legacy_gas_state_factory() -> Callable[..., "LegacyGasState"]:
     from src.pneumo.gas_state import LegacyGasState
-    def _factory(*, pressure: float, volume: float, temperature: float) -> LegacyGasState:
+
+    def _factory(
+        *, pressure: float, volume: float, temperature: float
+    ) -> LegacyGasState:
         return LegacyGasState(pressure=pressure, volume=volume, temperature=temperature)
+
     return _factory
 
 
@@ -339,48 +432,69 @@ def legacy_gas_state_factory() -> Callable[..., "LegacyGasState"]:
 def hysteretic_check_valve():
     from src.pneumo.enums import CheckValveKind
     from src.pneumo.valves import CheckValve
-    return CheckValve(kind=CheckValveKind.ATMO_TO_LINE, delta_open_min=1_500.0, d_eq=0.02, hyst=600.0)
+
+    return CheckValve(
+        kind=CheckValveKind.ATMO_TO_LINE, delta_open_min=1_500.0, d_eq=0.02, hyst=600.0
+    )
 
 
 @pytest.fixture
 def relief_valve_reference():
     from src.pneumo.enums import ReliefValveKind
     from src.pneumo.valves import ReliefValve
-    return ReliefValve(kind=ReliefValveKind.STIFFNESS, p_set=200_000.0, d_eq=0.02, hyst=5_000.0)
+
+    return ReliefValve(
+        kind=ReliefValveKind.STIFFNESS, p_set=200_000.0, d_eq=0.02, hyst=5_000.0
+    )
 
 
 @pytest.fixture
 def structlog_logger_config():
     from src.diagnostics.logger_factory import LoggerConfig
-    return LoggerConfig(name="pss.tests.structlog", context=(("subsystem", "diagnostics"), ("component", "logger")))
+
+    return LoggerConfig(
+        name="pss.tests.structlog",
+        context=(("subsystem", "diagnostics"), ("component", "logger")),
+    )
 
 
 @pytest.fixture
 def training_preset_bridge(settings_manager):
-    pytest.importorskip("PySide6.QtCore", reason="PySide6 QtCore required for TrainingPresetBridge")
+    pytest.importorskip(
+        "PySide6.QtCore", reason="PySide6 QtCore required for TrainingPresetBridge"
+    )
     from src.simulation.presets import get_default_training_library
     from src.ui.bridge.training_bridge import TrainingPresetBridge
-    bridge = TrainingPresetBridge(settings_manager=settings_manager, library=get_default_training_library())
+
+    bridge = TrainingPresetBridge(
+        settings_manager=settings_manager, library=get_default_training_library()
+    )
     yield bridge
     bridge.deleteLater()
 
 
 @pytest.fixture
 def simulation_harness(qapp, qtbot):
-    pytest.importorskip("PySide6.QtCore", reason="PySide6 QtCore required for simulation harness")
+    pytest.importorskip(
+        "PySide6.QtCore", reason="PySide6 QtCore required for simulation harness"
+    )
     try:
         from src.runtime.sim_loop import SimulationManager
     except Exception as exc:  # pragma: no cover
         pytest.skip(f"Simulation stack unavailable: {exc}")
     manager = SimulationManager()
+
     def _run(*, runtime_ms: int = 50) -> None:
         manager.start()
+
         def _thread_running() -> bool:
             return manager.physics_thread.isRunning()
+
         qtbot.waitUntil(_thread_running, timeout=2000)
         qtbot.wait(runtime_ms)
         manager.stop()
         qtbot.waitUntil(lambda: not manager.physics_thread.isRunning(), timeout=2000)
+
     yield _run
     try:
         manager.stop()
@@ -391,8 +505,11 @@ def simulation_harness(qapp, qtbot):
 
 @pytest.fixture
 def geometry_bridge(sample_geometry_params):
-    pytest.importorskip("PySide6.QtGui", reason="PySide6 QtGui required for geometry bridge conversion")
+    pytest.importorskip(
+        "PySide6.QtGui", reason="PySide6 QtGui required for geometry bridge conversion"
+    )
     from src.ui.geometry_bridge import create_geometry_converter
+
     return create_geometry_converter(
         wheelbase=sample_geometry_params.wheelbase,
         lever_length=sample_geometry_params.lever_length,
@@ -401,6 +518,7 @@ def geometry_bridge(sample_geometry_params):
 
 
 # --- Session teardown -----------------------------------------------------------
+
 
 def pytest_unconfigure(config: pytest.Config) -> None:  # noqa: D401
     try:

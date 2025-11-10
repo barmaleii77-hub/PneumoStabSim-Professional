@@ -32,7 +32,9 @@ def _example_cylinder() -> CylinderGeom:
     )
 
 
-def test_displacement_to_angle_roundtrip_without_cylinder(lever_geom: LeverGeom) -> None:
+def test_displacement_to_angle_roundtrip_without_cylinder(
+    lever_geom: LeverGeom,
+) -> None:
     """The analytical inverse should behave like ``asin`` for the simple model."""
 
     angles = [

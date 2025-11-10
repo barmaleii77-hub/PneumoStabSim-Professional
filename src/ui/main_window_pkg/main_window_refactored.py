@@ -21,7 +21,9 @@ Russian UI / English code.
 from __future__ import annotations
 
 import copy
+import json
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 from PySide6.QtWidgets import QMainWindow, QLabel
@@ -43,6 +45,11 @@ from src.core.settings_manager import ProfileSettingsManager
 from src.services import FeedbackService
 from src.ui.feedback import FeedbackController
 from src.ui.bridge.telemetry_bridge import TelemetryDataBridge
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+SHADER_STATUS_LOG_PATH = (
+    PROJECT_ROOT / "reports" / "graphics" / "shader_status_dump.json"
+)
 
 
 class MainWindow(QMainWindow):
@@ -373,6 +380,30 @@ class MainWindow(QMainWindow):
                 exc,
                 exc_info=exc,
             )
+
+    def _persist_shader_status_dump(self, payload: dict[str, Any]) -> None:
+        try:
+            SHADER_STATUS_LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with SHADER_STATUS_LOG_PATH.open("w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2, ensure_ascii=False)
+        except Exception as exc:  # pragma: no cover - best-effort diagnostics
+            self.logger.debug(
+                "Failed to persist shader status dump: %s",
+                exc,
+                exc_info=exc,
+            )
+
+    @Slot("QVariantMap")
+    def _on_shader_status_dump(self, payload: dict[str, Any]) -> None:
+        """Persist shader diagnostics emitted from the QML scene."""
+
+        snapshot = dict(payload) if isinstance(payload, dict) else {}
+        snapshot.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+        reason = str(
+            snapshot.get("effectsBypassReason") or snapshot.get("reason") or "unknown"
+        )
+        self.logger.warning("⚠️ Shader diagnostics dump recorded (%s)", reason)
+        self._persist_shader_status_dump(snapshot)
 
     # ------------------------------------------------------------------
     # Settings synchronization helpers

@@ -99,3 +99,10 @@ qml_signals:
     description: >-
       Cylinder metadata (dead zones, volumes) updated via the
       SimulationPanel and must sync with SettingsManager.
+  - signal: shaderStatusDumpRequested
+    handler: _on_shader_status_dump
+    connection: queued
+    description: >-
+      PostEffects requested a shader diagnostics snapshot. Persist the
+      payload so CI logs include shader compilation state when bypasses
+      activate.

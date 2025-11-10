@@ -85,6 +85,46 @@ Item {
         console.log(JSON.stringify(payload))
     }
 
+    function shaderStatusSnapshot(reasonOverride) {
+        var snapshot = {
+            timestamp: Date.now(),
+            effectsBypass: !!effectsBypass,
+            effectsBypassReason: effectsBypassReason,
+            simplifiedFallbackActive: !!simplifiedFallbackActive,
+            simplifiedFallbackReason: simplifiedFallbackReason,
+            persistentEffectFailures: {},
+            shaderStatus: {}
+        }
+        if (reasonOverride !== undefined && reasonOverride !== null && !snapshot.effectsBypassReason)
+            snapshot.effectsBypassReason = String(reasonOverride)
+        var failures = persistentEffectFailures
+        if (failures && typeof failures === "object") {
+            var failureCopy = {}
+            for (var key in failures) {
+                if (Object.prototype.hasOwnProperty.call(failures, key))
+                    failureCopy[key] = failures[key]
+            }
+            snapshot.persistentEffectFailures = failureCopy
+        }
+        var cache = shaderStatusCache
+        if (cache && typeof cache === "object") {
+            var shaderCopy = {}
+            for (var shaderKey in cache) {
+                if (Object.prototype.hasOwnProperty.call(cache, shaderKey))
+                    shaderCopy[shaderKey] = cache[shaderKey]
+            }
+            snapshot.shaderStatus = shaderCopy
+        }
+        return snapshot
+    }
+
+    function dumpShaderStatus(reasonOverride) {
+        var snapshot = shaderStatusSnapshot(reasonOverride)
+        if (diagnosticsLoggingEnabled)
+            logDiagnostics("PostEffects.shaderStatusDump", snapshot, null)
+        return snapshot
+    }
+
     function notifyEffectCompilation(effectId, fallbackActive, errorLog) {
         var normalizedId = effectId !== undefined && effectId !== null
                 ? String(effectId)
