@@ -8,7 +8,7 @@
 import sys
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QObject
 
 # Добавляем путь к модулям
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -349,8 +349,12 @@ def final_extreme_check(window):
 
     # Проверяем финальные значения
     fog_enabled = qml.property("fogEnabled")
-    fog_density = qml.property("fogDensity")
     fog_color = qml.property("fogColor")
+
+    fog_object = qml.property("fog")
+    fog_density = None
+    if isinstance(fog_object, QObject):
+        fog_density = fog_object.property("density")
     aa_mode = qml.property("antialiasingMode")
     aa_quality = qml.property("antialiasingQuality")
 

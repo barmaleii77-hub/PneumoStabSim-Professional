@@ -74,8 +74,12 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
         assert scene_environment is not None, "sceneEnvironment controller missing"
 
         assert scene_environment.property("fogEnabled") == state["fog_enabled"]
+
+        fog_object = scene_environment.property("fog")
+        assert isinstance(fog_object, QObject), "sceneEnvironment.fog object missing"
+
         assert math.isclose(
-            float(scene_environment.property("fogDensity")),
+            float(fog_object.property("density")),
             float(state["fog_density"]),
             rel_tol=1e-6,
             abs_tol=1e-6,

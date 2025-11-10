@@ -1308,6 +1308,10 @@ Item {
     Effect {
         id: ssaoEffect
 
+        // qmllint disable missing-property
+        enabled: root.ssaoEnabled
+        // qmllint enable missing-property
+
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool depthTextureAvailable: false
