@@ -1,68 +1,103 @@
 """Pytest configuration and shared fixtures."""
 
 import importlib
-import inspect
 import os
 import sys
 from ctypes import util as ctypes_util
 from pathlib import Path
 from collections.abc import Callable
-from collections.abc import Mapping
 
 import pytest
-from _pytest.monkeypatch import notset
 from pytest import MonkeyPatch
 
-from tests._qt_headless import HEADLESS_DEFAULTS
-from tests._qt_headless import HEADLESS_FLAG
-from tests._qt_headless import apply_headless_defaults
-from tests._qt_headless import headless_requested
+from tests._qt_headless import HEADLESS_DEFAULTS, HEADLESS_FLAG, apply_headless_defaults, headless_requested
 from tests.physics.cases import build_case_loader
-from tests._qt_runtime import QT_SKIP_REASON
-from tests._qt_runtime import disable_pytestqt
+from tests._qt_runtime import QT_SKIP_REASON, disable_pytestqt
 from tests.helpers import ensure_qt_runtime
-
 
 pytest_plugins: tuple[str, ...] = ()
 
-if "raising" not in inspect.signature(MonkeyPatch.setitem).parameters:
+# --- pytest-qt plugin bootstrap -------------------------------------------------
 
-    def _compat_setitem(
-        self: MonkeyPatch,
-        dic: Mapping[str, object] | dict[str, object],
-        name: str,
-        value: object,
-        *,
-        raising: bool = True,
-    ) -> None:
-        getter = getattr(dic, "get", None)
-        if callable(getter):
-            previous = getter(name, notset)
-        else:
-            previous = dic[name] if name in dic else notset  # type: ignore[index]
+def _load_pytestqt_plugin(config: pytest.Config) -> None:
+    """(Re)import pytest-qt plugin when available and not blocked by runtime guards."""
+    from tests._qt_runtime import QT_SKIP_REASON, disable_pytestqt
+    pm = config.pluginmanager
+    if QT_SKIP_REASON is not None:
+        disable_pytestqt(pm)
+        return
+    if pm.get_plugin("pytestqt.plugin") is None:
+        pm.import_plugin("pytestqt.plugin")
+    os.environ.setdefault("PYTEST_QT_API", "pyside6")
+    _install_qtbot_compat_shims()
 
-        self._setitem.append((dic, name, previous))
-        dic[name] = value  # type: ignore[index]
 
-    MonkeyPatch.setitem = _compat_setitem  # type: ignore[assignment]
+def _install_qtbot_compat_shims() -> None:
+    """Inject backward-compatibility helpers for older tests.
 
-# Add project root to path
+    * addCleanup: Some historical test suites relied on ``qtbot.addCleanup`` mirroring
+      unittest semantics. Modern pytest-qt exposes finalizers through ``request`` only.
+    """
+    if QT_SKIP_REASON is not None:
+        return
+    try:
+        from pytestqt.qtbot import QtBot  # type: ignore
+    except Exception:
+        return
+    if hasattr(QtBot, "addCleanup"):
+        return
+
+    def addCleanup(self, func):  # type: ignore[override]
+        """Register a finalizer callable for the current test."""
+        req = getattr(self, "_request", None)
+        if req is not None:
+            try:
+                req.addfinalizer(func)
+            except Exception:
+                pass
+
+    QtBot.addCleanup = addCleanup  # type: ignore[attr-defined]
+
+
+# --- MonkeyPatch compatibility wrapper ------------------------------------------
+
+@pytest.fixture
+def monkeypatch():  # type: ignore[override]
+    """Extended MonkeyPatch fixture accepting the legacy ``raising`` kw in ``setitem``.
+
+    Some tests still invoke ``monkeypatch.setitem(..., raising=False)`` which is only
+    supported in newer pytest versions. This shim ignores the flag for backwards
+    compatibility while delegating to the original implementation.
+    """
+    mp = MonkeyPatch()
+    original_setitem = mp.setitem
+
+    def _setitem(mapping, name, value, raising=True):  # noqa: D401
+        return original_setitem(mapping, name, value)
+
+    mp.setitem = _setitem  # type: ignore[assignment]
+    try:
+        yield mp
+    finally:
+        mp.undo()
+
+
+# --- Path / deterministic environment -------------------------------------------
+
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 src_path = str(project_root / "src")
 if src_path not in sys.path:
-    # Вставляем src на позицию 1, чтобы project_root имел приоритет при разрешении импортов (Insert at position 1 to preserve project_root priority)
     sys.path.insert(1, src_path)
 
-# Set up deterministic Python behaviour; Qt configuration is applied lazily
 os.environ.setdefault("PYTHONHASHSEED", "0")
 
+# --- Marker & headless configuration -------------------------------------------
 
 def _register_headless_marker(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
-        "headless: request Qt headless defaults (sets PSS_HEADLESS=1,"
-        " QT_QPA_PLATFORM=offscreen)",
+        "headless: request Qt headless defaults (sets PSS_HEADLESS=1, QT_QPA_PLATFORM=offscreen)",
     )
 
 
@@ -71,53 +106,41 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--pss-headless",
         action="store_true",
         default=False,
-        help=(
-            "Force Qt headless defaults for the entire test session. "
-            "Equivalent to setting PSS_HEADLESS=1."
-        ),
+        help="Force Qt headless defaults for the entire test session (equivalent to PSS_HEADLESS=1).",
     )
 
 
 def _configure_session_headless(config: pytest.Config) -> None:
-    cli_headless: bool = bool(config.getoption("--pss-headless"))
-    env_headless = headless_requested()
-    session_headless = cli_headless or env_headless
-
-    setattr(config, "_pss_headless_session", session_headless)
-    if cli_headless and not env_headless:
+    cli = bool(config.getoption("--pss-headless"))
+    env_flag = headless_requested()
+    active = cli or env_flag
+    setattr(config, "_pss_headless_session", active)
+    if cli and not env_flag:
         os.environ[HEADLESS_FLAG] = "1"
-
-    if session_headless:
+    if active:
         apply_headless_defaults()
 
 
+# --- Platform capability checks -------------------------------------------------
+
 def _qt_display_available() -> bool:
-    """Return True when a Qt-compatible display backend can be used."""
-
-    qt_platform = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
-    if qt_platform in {"offscreen", "minimal"}:
+    platform = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
+    if platform in {"offscreen", "minimal"}:
         return True
-
     if sys.platform.startswith("linux"):
         return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
-
     return True
 
 
 def _libgl_available() -> bool:
-    """Return ``True`` when the system OpenGL runtime is present."""
-
     if not sys.platform.startswith("linux"):
         return True
-
     if ctypes_util.find_library("GL"):
         return True
-
-    fallback_paths = (
-        Path("/usr/lib/x86_64-linux-gnu/libGL.so.1"),
-        Path("/usr/lib64/libGL.so.1"),
-    )
-    return any(path.exists() for path in fallback_paths)
+    return any(Path(p).exists() for p in (
+        "/usr/lib/x86_64-linux-gnu/libGL.so.1",
+        "/usr/lib64/libGL.so.1",
+    ))
 
 
 _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
@@ -134,56 +157,48 @@ else:
     _gui_skip_reason = None
 
 
+# --- Global pytest hooks --------------------------------------------------------
+
 def pytest_configure(config: pytest.Config) -> None:
-    """Ensure pytest-qt plugin state matches the runtime availability."""
-
-    pluginmanager = config.pluginmanager
-
-    if QT_SKIP_REASON is not None:
-        disable_pytestqt(pluginmanager)
-        return
-
-    if pluginmanager.get_plugin("pytestqt.plugin") is None:
-        pluginmanager.import_plugin("pytestqt.plugin")
-
-    os.environ.setdefault("PYTEST_QT_API", "pyside6")
+    _load_pytestqt_plugin(config)
+    _register_headless_marker(config)
+    _configure_session_headless(config)
+    # Standard markers (idempotent)
+    for name, description in (
+        ("unit", "Unit tests for individual components"),
+        ("integration", "Integration tests"),
+        ("smoke", "Lightweight smoke scenarios"),
+        ("system", "End-to-end system tests"),
+        ("slow", "Slow tests"),
+        ("gui", "Tests requiring GUI/QML"),
+        ("scenario", "Scenario-driven physics regression suites"),
+        ("qtbot", "Exercises Qt widgets with the pytest-qt qtbot fixture"),
+        ("qt_no_exception_capture", "Disable pytest-qt exception capture for a test"),
+    ):
+        config.addinivalue_line("markers", f"{name}: {description}")
 
 
 def pytest_runtest_setup(item: pytest.Item) -> None:
-    """Fail fast when Qt prerequisites are missing for GUI-bound tests."""
-
     if QT_SKIP_REASON is None:
         return
-
     gui_fixtures = {"qtbot", "qapp"}
-    fixturenames = set(getattr(item, "fixturenames", ()))
-    requires_gui = "gui" in item.keywords or fixturenames.intersection(gui_fixtures)
-
-    if requires_gui:
+    if "gui" in item.keywords or set(getattr(item, "fixturenames", ())).intersection(gui_fixtures):
         pytest.skip(
-            (
-                "Qt runtime prerequisites are not satisfied: "
-                f"{QT_SKIP_REASON}.\n"
-                "Run `python -m tools.cross_platform_test_prep --run-tests` to "
-                "install cross-platform test dependencies before retrying."
-            )
+            "Qt runtime prerequisites are not satisfied: "
+            f"{QT_SKIP_REASON}.\nRun `python -m tools.cross_platform_test_prep --run-tests` to install dependencies."
         )
 
 
 def pytest_report_header(config: pytest.Config) -> list[str]:
-    _ = config
     if QT_SKIP_REASON is None:
         return ["Qt runtime validation: ready"]
-    return [
-        "Qt runtime validation: missing prerequisites",
-        f"Reason: {QT_SKIP_REASON}",
-    ]
+    return ["Qt runtime validation: missing prerequisites", f"Reason: {QT_SKIP_REASON}"]
 
 
+# --- Security audit log ---------------------------------------------------------
 _security_audit_dir = project_root / "reports" / "security_audit"
 _security_audit_dir.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("PSS_SECURITY_AUDIT_LOG", str(_security_audit_dir / "test.log"))
-
 
 _SETTINGS_TEMPLATE = Path("config/app_settings.json").read_text(encoding="utf-8")
 
@@ -194,33 +209,26 @@ def _write_settings_payload(target: Path) -> Path:
 
 
 @pytest.fixture(autouse=True)
-def _apply_headless_marker(
-    request: pytest.FixtureRequest, monkeypatch: MonkeyPatch
-) -> None:
-    """Apply headless Qt defaults when a test declares the ``headless`` marker."""
-
+def _apply_headless_marker(request: pytest.FixtureRequest, monkeypatch: MonkeyPatch) -> None:
     if getattr(request.config, "_pss_headless_session", False):
         return
-
     marker = request.node.get_closest_marker("headless")
     if marker is None:
         return
-
     monkeypatch.setenv(HEADLESS_FLAG, "1")
     for key, value in HEADLESS_DEFAULTS.items():
         monkeypatch.setenv(key, value)
 
 
+# --- Shared fixtures ------------------------------------------------------------
+
 @pytest.fixture(scope="session")
-def project_root_path():
-    """Provide project root path"""
+def project_root_path() -> Path:
     return project_root
 
 
 @pytest.fixture(scope="session")
 def reports_tests_dir(project_root_path: Path) -> Path:
-    """Ensure the reports/tests directory exists for CLI outputs."""
-
     target = project_root_path / "reports" / "tests"
     target.mkdir(parents=True, exist_ok=True)
     return target
@@ -228,8 +236,6 @@ def reports_tests_dir(project_root_path: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def integration_reports_dir(reports_tests_dir: Path) -> Path:
-    """Dedicated directory for integration test artefacts."""
-
     target = reports_tests_dir / "integration"
     target.mkdir(parents=True, exist_ok=True)
     return target
@@ -237,60 +243,39 @@ def integration_reports_dir(reports_tests_dir: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def qt_runtime_ready() -> None:
-    """Ensure Qt runtime bindings are installed before GUI/QML tests run."""
-
     ensure_qt_runtime()
 
 
 @pytest.fixture(scope="session")
 def baseline_images_dir(project_root_path: Path) -> Path:
-    """Return the directory that stores baseline comparison images.
-
-    The baseline reference image is generated on demand to avoid storing binary
-    artefacts in the repository while still providing deterministic comparison
-    data for the graphics regression tests.
-    """
-
     target = project_root_path / "tests" / "baseline_images"
     target.mkdir(parents=True, exist_ok=True)
-
     reference_path = target / "qt_scene_reference.png"
     if not reference_path.exists():
-        image_module = pytest.importorskip(
-            "PIL.Image",
-            reason="Pillow is required to generate the baseline reference image",
-            exc_type=ImportError,
-        )
+        image_module = pytest.importorskip("PIL.Image", reason="Pillow required for baseline image")
         image = image_module.new("RGB", (8, 8), color=(120, 160, 200))
         image.save(reference_path)
-
     return target
 
 
 @pytest.fixture(scope="session")
 def physics_case_loader():
-    """Expose the reusable physics case loader."""
-
     return build_case_loader()
 
 
 @pytest.fixture
 def sample_geometry_params():
-    """Provide sample geometry parameters"""
     from src.core.geometry import GeometryParams
-
     geometry = GeometryParams()
     geometry.wheelbase = 2.5
     geometry.lever_length = 0.4
     geometry.cylinder_inner_diameter = 0.08
     geometry.enforce_track_from_geometry()
-
     return geometry
 
 
 @pytest.fixture
-def sample_cylinder_params():
-    """Provide sample cylinder parameters"""
+def sample_cylinder_params() -> dict[str, float]:
     return {
         "inner_diameter": 0.08,
         "rod_diameter": 0.035,
@@ -302,59 +287,37 @@ def sample_cylinder_params():
 
 
 @pytest.fixture(scope="session")
-def qapp():
-    """Create QApplication for Qt tests"""
-    pytest.importorskip(
-        "PySide6.QtWidgets",
-        reason="PySide6 QtWidgets module is required for QApplication fixture",
-        exc_type=ImportError,
-    )
+def qapp():  # noqa: D401
+    pytest.importorskip("PySide6.QtWidgets", reason="PySide6 QtWidgets required for QApplication fixture")
     from PySide6.QtWidgets import QApplication
-
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication(sys.argv)
-
+    app = QApplication.instance() or QApplication(sys.argv)
     yield app
-
-    # Cleanup handled by Qt
 
 
 @pytest.fixture
 def temp_settings_file(tmp_path: Path) -> Path:
-    """Provide an isolated copy of ``config/app_settings.json`` for tests."""
-
     return _write_settings_payload(tmp_path / "app_settings.json")
 
 
 @pytest.fixture
 def settings_service(monkeypatch: MonkeyPatch, temp_settings_file: Path):
-    """Return a :class:`SettingsService` bound to the temporary settings file."""
-
     from src.core.settings_service import SettingsService
-
     monkeypatch.setenv("PSS_SETTINGS_FILE", str(temp_settings_file))
     return SettingsService(settings_path=temp_settings_file)
 
 
 @pytest.fixture
 def settings_manager(monkeypatch: MonkeyPatch, temp_settings_file: Path):
-    """Return an isolated :class:`SettingsManager` with fresh event bus."""
-
     from src.common import settings_manager as sm
-
     monkeypatch.setenv("PSS_SETTINGS_FILE", str(temp_settings_file))
-    monkeypatch.setattr(sm, "_settings_manager", None, raising=False)
-    monkeypatch.setattr(sm, "_settings_event_bus", sm.SettingsEventBus(), raising=False)
+    monkeypatch.setattr(sm, "_settings_manager", None)
+    monkeypatch.setattr(sm, "_settings_event_bus", sm.SettingsEventBus())
     return sm.SettingsManager(settings_file=temp_settings_file)
 
 
 @pytest.fixture
 def reference_suspension_linkage():
-    """Return the canonical suspension linkage used by geometry regression tests."""
-
     from src.mechanics.linkage_geometry import SuspensionLinkage
-
     return SuspensionLinkage.from_mm(
         pivot=(200.0, 0.0),
         free_end=(500.0, 0.0),
@@ -366,112 +329,59 @@ def reference_suspension_linkage():
 
 @pytest.fixture
 def legacy_gas_state_factory() -> Callable[..., "LegacyGasState"]:
-    """Provide a factory for reproducible legacy gas state instances."""
-
     from src.pneumo.gas_state import LegacyGasState
-
-    def _factory(
-        *, pressure: float, volume: float, temperature: float
-    ) -> LegacyGasState:
+    def _factory(*, pressure: float, volume: float, temperature: float) -> LegacyGasState:
         return LegacyGasState(pressure=pressure, volume=volume, temperature=temperature)
-
     return _factory
 
 
 @pytest.fixture
 def hysteretic_check_valve():
-    """Return a check valve tuned with hysteresis for stability tests."""
-
     from src.pneumo.enums import CheckValveKind
     from src.pneumo.valves import CheckValve
-
-    return CheckValve(
-        kind=CheckValveKind.ATMO_TO_LINE,
-        delta_open_min=1_500.0,
-        d_eq=0.02,
-        hyst=600.0,
-    )
+    return CheckValve(kind=CheckValveKind.ATMO_TO_LINE, delta_open_min=1_500.0, d_eq=0.02, hyst=600.0)
 
 
 @pytest.fixture
 def relief_valve_reference():
-    """Return a calibrated relief valve for flow and hysteresis verification."""
-
     from src.pneumo.enums import ReliefValveKind
     from src.pneumo.valves import ReliefValve
-
-    return ReliefValve(
-        kind=ReliefValveKind.STIFFNESS,
-        p_set=200_000.0,
-        d_eq=0.02,
-        hyst=5_000.0,
-    )
+    return ReliefValve(kind=ReliefValveKind.STIFFNESS, p_set=200_000.0, d_eq=0.02, hyst=5_000.0)
 
 
 @pytest.fixture
 def structlog_logger_config():
-    """Supply a logger configuration bound with deterministic context fields."""
-
     from src.diagnostics.logger_factory import LoggerConfig
-
-    return LoggerConfig(
-        name="pss.tests.structlog",
-        context=(
-            ("subsystem", "diagnostics"),
-            ("component", "logger"),
-        ),
-    )
+    return LoggerConfig(name="pss.tests.structlog", context=(("subsystem", "diagnostics"), ("component", "logger")))
 
 
 @pytest.fixture
 def training_preset_bridge(settings_manager):
-    """Expose a :class:`TrainingPresetBridge` connected to the isolated settings."""
-
-    pytest.importorskip(
-        "PySide6.QtCore",
-        reason="PySide6 QtCore module is required for TrainingPresetBridge fixtures",
-        exc_type=ImportError,
-    )
+    pytest.importorskip("PySide6.QtCore", reason="PySide6 QtCore required for TrainingPresetBridge")
     from src.simulation.presets import get_default_training_library
     from src.ui.bridge.training_bridge import TrainingPresetBridge
-
-    bridge = TrainingPresetBridge(
-        settings_manager=settings_manager,
-        library=get_default_training_library(),
-    )
+    bridge = TrainingPresetBridge(settings_manager=settings_manager, library=get_default_training_library())
     yield bridge
     bridge.deleteLater()
 
 
 @pytest.fixture
 def simulation_harness(qapp, qtbot):
-    """Helper to start/stop :class:`SimulationManager` for smoke checks."""
-
-    pytest.importorskip(
-        "PySide6.QtCore",
-        reason="PySide6 QtCore module is required for simulation harness",
-        exc_type=ImportError,
-    )
+    pytest.importorskip("PySide6.QtCore", reason="PySide6 QtCore required for simulation harness")
     try:
         from src.runtime.sim_loop import SimulationManager
-    except Exception as exc:  # pragma: no cover - optional dependency environment
+    except Exception as exc:  # pragma: no cover
         pytest.skip(f"Simulation stack unavailable: {exc}")
-
     manager = SimulationManager()
-
     def _run(*, runtime_ms: int = 50) -> None:
         manager.start()
-
         def _thread_running() -> bool:
             return manager.physics_thread.isRunning()
-
         qtbot.waitUntil(_thread_running, timeout=2000)
         qtbot.wait(runtime_ms)
         manager.stop()
         qtbot.waitUntil(lambda: not manager.physics_thread.isRunning(), timeout=2000)
-
     yield _run
-
     try:
         manager.stop()
         manager.physics_thread.wait(500)
@@ -481,14 +391,8 @@ def simulation_harness(qapp, qtbot):
 
 @pytest.fixture
 def geometry_bridge(sample_geometry_params):
-    """Create GeometryBridge instance"""
-    pytest.importorskip(
-        "PySide6.QtGui",
-        reason="PySide6 QtGui module is required for geometry bridge conversion",
-        exc_type=ImportError,
-    )
+    pytest.importorskip("PySide6.QtGui", reason="PySide6 QtGui required for geometry bridge conversion")
     from src.ui.geometry_bridge import create_geometry_converter
-
     return create_geometry_converter(
         wheelbase=sample_geometry_params.wheelbase,
         lever_length=sample_geometry_params.lever_length,
@@ -496,41 +400,13 @@ def geometry_bridge(sample_geometry_params):
     )
 
 
-# Markers for organizing tests
-def pytest_configure(config: pytest.Config) -> None:
-    """Configure custom markers"""
+# --- Session teardown -----------------------------------------------------------
 
-    _register_headless_marker(config)
-    _configure_session_headless(config)
-
-    config.addinivalue_line("markers", "unit: Unit tests for individual components")
-    config.addinivalue_line(
-        "markers", "integration: Integration tests for component interactions"
-    )
-    config.addinivalue_line("markers", "smoke: Lightweight application smoke scenarios")
-    config.addinivalue_line("markers", "system: End-to-end system tests")
-    config.addinivalue_line("markers", "slow: Tests that take significant time")
-    config.addinivalue_line("markers", "gui: Tests requiring GUI/QML")
-    config.addinivalue_line(
-        "markers", "scenario: Scenario-driven physics regression suites"
-    )
-    config.addinivalue_line(
-        "markers", "qtbot: Exercises Qt widgets with the pytest-qt qtbot fixture"
-    )
-    config.addinivalue_line(
-        "markers",
-        "qt_no_exception_capture: Disable pytest-qt exception capture for a test",
-    )
-
-
-# Safe exit on test completion
-def pytest_unconfigure(config):
-    """Clean up after tests"""
+def pytest_unconfigure(config: pytest.Config) -> None:  # noqa: D401
     try:
         from PySide6.QtWidgets import QApplication
     except ImportError:
         return
-
     app = QApplication.instance()
     if app is not None:
         app.quit()

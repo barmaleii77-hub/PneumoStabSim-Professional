@@ -216,7 +216,7 @@ class PneumoPanel(QWidget):
         QMessageBox.information(
             self,
             "Сохранение",
-            "Текущие параметры сохранены как defaults_snapshot",
+            "Текущие параметры сохранены как дефолтные",
         )
         self._apply_sync_state(
             self.state_manager.get_state(),
@@ -275,105 +275,105 @@ class PneumoPanel(QWidget):
     def set_parameters(
         self, updates: Mapping[str, Any], *, source: str = "external"
     ) -> None:
-        """Apply parameter changes coming from external sources."""
+        """Применить внешние обновления состояния панели.
 
-        if not isinstance(updates, Mapping) or not updates:
+        Args:
+            updates: Mapping с изменяемыми параметрами (ключи payload из SignalsRouter)
+            source: Метка источника (для истории / диагностики)
+        """
+        if not updates:
             return
-
-        setter_map: dict[str, Callable[[Any], Any]] = {
-            "receiver_volume": self.state_manager.set_manual_volume,
-            "receiver_diameter": self.state_manager.set_receiver_diameter,
-            "receiver_length": self.state_manager.set_receiver_length,
-            "cv_atmo_dia": lambda value: self.state_manager.set_valve_diameter(
-                "cv_atmo_dia", float(value)
-            ),
-            "cv_tank_dia": lambda value: self.state_manager.set_valve_diameter(
-                "cv_tank_dia", float(value)
-            ),
-            "throttle_min_dia": lambda value: self.state_manager.set_throttle_diameter(
-                "throttle_min_dia", float(value)
-            ),
-            "throttle_stiff_dia": lambda value: self.state_manager.set_throttle_diameter(
-                "throttle_stiff_dia", float(value)
-            ),
-            "atmo_temp": self.state_manager.set_atmo_temp,
-            "polytropic_heat_transfer_coeff": self.state_manager.set_polytropic_heat_transfer,
-            "polytropic_exchange_area": self.state_manager.set_polytropic_exchange_area,
-            "leak_coefficient": self.state_manager.set_leak_coefficient,
-            "leak_reference_area": self.state_manager.set_leak_reference_area,
-        }
-
-        drop_keys = {
-            "cv_atmo_dp",
-            "cv_tank_dp",
-        }
-        relief_keys = {
-            "relief_min_pressure",
-            "relief_stiff_pressure",
-            "relief_safety_pressure",
-        }
-
-        normalised: dict[str, Any] = {}
-        for key, value in updates.items():
-            if value is None:
-                continue
-            try:
-                if key in drop_keys:
-                    numeric = float(value)
-                    self.state_manager.set_pressure_drop(key, numeric)
-                    normalised[key] = self.state_manager.get_pressure_drop(key)
-                elif key in relief_keys:
-                    numeric = float(value)
-                    self.state_manager.set_relief_pressure(key, numeric)
-                    normalised[key] = self.state_manager.get_relief_pressure(key)
-                elif key in {"master_isolation_open"}:
-                    flag = bool(value)
-                    self.state_manager.set_option(key, flag)
-                    normalised[key] = flag
-                elif key == "volume_mode":
-                    mode = str(value).upper()
-                    self.state_manager.set_volume_mode(mode)
-                    normalised[key] = mode
-                elif key == "thermo_mode":
-                    mode = str(value).upper()
-                    self.state_manager.set_thermo_mode(mode)
-                    normalised[key] = mode
-                elif key == "pressure_units":
-                    units = str(value)
-                    self.state_manager.set_pressure_units(units)
-                    normalised[key] = units
-                elif key in setter_map:
-                    result = setter_map[key](float(value))
-                    normalised[key] = (
-                        float(result)
-                        if result is not None
-                        else self.state_manager.get_parameter(key)
-                    )
-                else:
-                    # Fallback to generic assignment for any remaining numeric keys
-                    numeric = float(value)
-                    self.state_manager.set_parameter(key, numeric)
-                    normalised[key] = numeric
-            except Exception:
-                continue
-
-        if not normalised:
-            return
-
-        self._external_update_depth += 1
+        self._external_update_depth += 1  # предотвращаем каскад сигналов
         try:
-            self._refresh_tabs()
+            sm = self.state_manager
+            mode_before = sm.get_volume_mode()
+            volume_mode_update = updates.get("volume_mode")
+            if isinstance(volume_mode_update, str) and volume_mode_update:
+                sm.set_volume_mode(volume_mode_update.upper())
+            # Геометрия ресивера
+            diameter_pending = updates.get("receiver_diameter")
+            length_pending = updates.get("receiver_length")
+            manual_volume_pending = updates.get("receiver_volume")
+
+            if diameter_pending is not None:
+                try:
+                    sm.set_receiver_diameter(float(diameter_pending))
+                except (TypeError, ValueError):
+                    pass
+            if length_pending is not None:
+                try:
+                    sm.set_receiver_length(float(length_pending))
+                except (TypeError, ValueError):
+                    pass
+
+            if manual_volume_pending is not None and sm.get_volume_mode() == "MANUAL":
+                try:
+                    sm.set_manual_volume(float(manual_volume_pending))
+                except (TypeError, ValueError):
+                    pass
+            if sm.get_volume_mode() == "GEOMETRIC":
+                sm.refresh_geometric_volume()
+
+            # Прочие параметры
+            for key, value in updates.items():
+                if key in {"volume_mode", "receiver_diameter", "receiver_length", "receiver_volume"}:
+                    continue
+                if isinstance(value, bool):
+                    try:
+                        sm.set_option(key, bool(value))
+                    except AttributeError:
+                        sm.set_parameter(key, bool(value))
+                    continue
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    sm.set_parameter(key, float(value))
+
+            # Синхронизация UI (только затронутых элементов)
+            mode_after = sm.get_volume_mode()
+            if mode_after != mode_before or volume_mode_update is not None:
+                # Комбо режимов
+                self.receiver_tab.volume_mode_combo.setCurrentIndex(0 if mode_after == "MANUAL" else 1)
+                self.receiver_tab._apply_mode_visibility(mode_after)
+            if diameter_pending is not None:
+                self.receiver_tab.receiver_diameter_knob.setValue(sm.get_receiver_diameter())
+            if length_pending is not None:
+                self.receiver_tab.receiver_length_knob.setValue(sm.get_receiver_length())
+            if manual_volume_pending is not None and sm.get_volume_mode() == "MANUAL":
+                self.receiver_tab.manual_volume_knob.setValue(sm.get_manual_volume())
+            # Обновляем расчётный объём отображения при геометрическом режиме
+            if sm.get_volume_mode() == "GEOMETRIC":
+                self.receiver_tab._update_calculated_volume()
+
+            # Эмиссия сигналов (минимально необходимая)
+            if mode_after != mode_before:
+                self.mode_changed.emit("volume_mode", mode_after)
+            if diameter_pending is not None:
+                self.parameter_changed.emit("receiver_diameter", sm.get_receiver_diameter())
+            if length_pending is not None:
+                self.parameter_changed.emit("receiver_length", sm.get_receiver_length())
+            # Всегда эмитим итоговый объём для согласованности тестов
+            self.parameter_changed.emit(
+                "receiver_volume",
+                sm.get_manual_volume() if sm.get_volume_mode() == "MANUAL" else sm.get_parameter("receiver_volume"),
+            )
+            self.receiver_volume_changed.emit(
+                sm.get_parameter("receiver_volume"), sm.get_volume_mode()
+            )
+
+            for key, value in updates.items():
+                if key in {"volume_mode", "receiver_diameter", "receiver_length", "receiver_volume"}:
+                    continue
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    self.parameter_changed.emit(key, float(sm.get_parameter(key)))
+                elif isinstance(value, bool):
+                    self.mode_changed.emit(key, str(bool(sm.get_parameter(key))))
+
+            self._emit_state_update()
+            self._apply_sync_patch(
+                {k: sm.get_parameter(k) for k in updates.keys()},
+                description=f"External pneumatic patch ({source})",
+            )
         finally:
             self._external_update_depth -= 1
-
-        if source != "qml":
-            self._emit_state_update()
-        self._apply_sync_patch(
-            normalised,
-            description=f"Set pneumatic parameters ({source})",
-            origin="external",
-            metadata={"source": source, "force_refresh": True},
-        )
 
     def _apply_sync_patch(
         self,

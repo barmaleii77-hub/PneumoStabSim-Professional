@@ -12,8 +12,12 @@ from src.runtime.sim_loop import PhysicsWorker, SimulationManager
 
 
 @pytest.mark.usefixtures("qapp")
-def test_physics_worker_emits_error_on_step_failure(qtbot, caplog):
-    """PhysicsWorker should emit ``error_occurred`` and stop when a step fails."""
+def test_physics_worker_emits_error_on_step_failure(qtbot, caplog, capsys):
+    """PhysicsWorker should emit ``error_occurred`` and stop when a step fails.
+
+    Логирование может идти через structlog в stderr, поэтому проверяем как caplog,
+    так и stderr JSON-строки.
+    """
 
     worker = PhysicsWorker()
     qtbot.addCleanup(worker.deleteLater)
@@ -31,8 +35,23 @@ def test_physics_worker_emits_error_on_step_failure(qtbot, caplog):
 
     assert not worker.is_running
     assert signal.args[0].startswith("Physics step error")
-    error_logs = [record.message for record in caplog.records]
-    assert any("ERROR: physics step failed" in message for message in error_logs)
+
+    # Попытка 1: извлечь из caplog (для стандартного logging)
+    error_texts: list[str] = []
+    for record in caplog.records:
+        if hasattr(record, "event") and isinstance(record.event, str):
+            error_texts.append(record.event)
+        else:
+            error_texts.append(record.getMessage())
+
+    matched = any("ERROR: physics step failed" in text for text in error_texts)
+
+    # Попытка 2: fallback к stderr (structlog пишет JSON в stderr)
+    if not matched:
+        stderr_out = capsys.readouterr().err
+        matched = "ERROR: physics step failed" in stderr_out
+
+    assert matched, "Expected error log entry was not captured"
 
 
 @pytest.mark.usefixtures("qapp")

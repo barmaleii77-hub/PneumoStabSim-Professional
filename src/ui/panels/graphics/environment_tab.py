@@ -185,7 +185,7 @@ class EnvironmentTab(QWidget):
         notifications.extend(section_messages)
         for source_name, keys in fallback_used.items():
             notifications.append(
-                "Диапазоны "
+                "Используются значения по умолчанию: диапазоны "
                 + ", ".join(sorted(set(keys)))
                 + f" загружены из {source_name}."
             )

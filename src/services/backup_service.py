@@ -160,13 +160,14 @@ class BackupService:
         included: Iterable[Path],
         skipped: Iterable[Path],
     ) -> str:
+        # Нормализуем пути в POSIX формат для кроссплатформенной проверки тестами
         manifest = {
             "version": "1.0",
             "created_at": created_at.isoformat(),
-            "root": str(self._root),
-            "sources": [str(src.relative_path) for src in self._sources],
-            "included": sorted({str(path) for path in included}),
-            "skipped": sorted({str(path) for path in skipped}),
+            "root": self._root.as_posix(),
+            "sources": [src.relative_path.as_posix() for src in self._sources],
+            "included": sorted({path.as_posix() for path in included}),
+            "skipped": sorted({path.as_posix() for path in skipped}),
         }
         return json.dumps(manifest, ensure_ascii=False, indent=2)
 
@@ -214,7 +215,7 @@ class BackupService:
                     self._logger.warning(
                         "backup_source_missing",
                         source=str(absolute),
-                        relative=str(relative),
+                        relative=relative.as_posix(),
                     )
                     continue
 
@@ -248,7 +249,7 @@ class BackupService:
                 self._logger.warning(
                     "backup_source_unsupported",
                     source=str(absolute),
-                    relative=str(relative),
+                    relative=relative.as_posix(),
                 )
 
             archive.writestr(

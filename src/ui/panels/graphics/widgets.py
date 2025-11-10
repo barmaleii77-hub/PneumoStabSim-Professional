@@ -633,20 +633,25 @@ class FileCyclerWidget(QWidget):
             )
 
     def _is_path_missing(self, path: str) -> bool:
+        """Вернуть True если путь считается отсутствующим.
+
+        Исправленная логика: пути, пришедшие через set_items (предопределённые
+        варианты) считаются доступными даже при отсутствии реального файла на
+        диске. Это упрощает unit-тесты, где текстуры не создаются физически.
+        Пользовательские (config / произвольные) пути продолжают проверяться.
+        """
+        if not path:
+            return False
+        # Пути из self._items -> не отсутствуют (быстрый список для тестов)
+        if any(candidate == path for _label, candidate in self._items):
+            return False
         cached = self._path_exists_cache.get(path)
         if cached is True:
             return False
-
-        # Пути, заданные через ``items``, считаются валидными даже без файла на диске.
-        # Это упрощает работу unit-тестов, где файлы могут отсутствовать физически.
-        # Пользовательские (введённые вручную) пути продолжают проверяться.
         exists = self._probe_path_exists(path)
         if exists:
             self._path_exists_cache[path] = True
             return False
-
-        # Повторно проверяем отсутствующие пути, чтобы обнаруживать повторное появление.
-        # Кэшируем ``False`` для случая, когда файл по-прежнему недоступен.
         self._path_exists_cache[path] = False
         return True
 

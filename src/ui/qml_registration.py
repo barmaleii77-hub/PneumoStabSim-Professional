@@ -8,8 +8,8 @@ from typing import Any, Callable, cast
 
 QmlByteLike = bytes | bytearray | memoryview
 
-RegisterModule = Callable[[QmlByteLike, int, int], None]
-RegisterType = Callable[[type[Any], QmlByteLike, int, int, QmlByteLike], int]
+RegisterModule = Callable[[QmlByteLike | str, int, int], None]
+RegisterType = Callable[[type[Any], QmlByteLike | str, int, int, QmlByteLike | str], int]
 
 _runtime_register_module: Any = None
 _runtime_register_type: Any = None
@@ -38,17 +38,42 @@ _QML_ELEMENT_MODULES: Iterable[str] = (
 )
 
 
+def _call_qml_register_module(register: RegisterModule, uri: str) -> None:
+    """Вызвать qmlRegisterModule, совместимо со старыми/новыми сигнатурами."""
+
+    try:
+        register(b"PneumoStabSim", 1, 0)  # type: ignore[arg-type]
+        return
+    except Exception:
+        pass
+    # Fallback на строковый URI
+    register(uri, 1, 0)
+
+
+def _call_qml_register_type(
+    register: RegisterType, t: type[Any], uri: str, qml_name: str
+) -> None:
+    """Вызвать qmlRegisterType, совместимо со старыми/новыми сигнатурами."""
+
+    try:
+        register(t, b"PneumoStabSim", 1, 0, qml_name.encode("ascii"))  # type: ignore[arg-type]
+        return
+    except Exception:
+        pass
+    register(t, uri, 1, 0, qml_name)
+
+
 def register_qml_types() -> None:
     """Register QML modules and load Python QML elements."""
 
     if qml_register_module is None or qml_register_type is None:
         return
 
-    qml_register_module(b"PneumoStabSim", 1, 0)
+    _call_qml_register_module(qml_register_module, "PneumoStabSim")
 
     from src.ui.scene_bridge import SceneBridge
 
-    qml_register_type(SceneBridge, b"PneumoStabSim", 1, 0, b"SceneBridge")
+    _call_qml_register_type(qml_register_type, SceneBridge, "PneumoStabSim", "SceneBridge")
 
     for module_name in _QML_ELEMENT_MODULES:
         import_module(module_name)

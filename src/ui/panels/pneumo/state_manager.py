@@ -50,6 +50,18 @@ class PneumoStateManager:
         self._storage_units_version: str = "si_v2"
         self._load_from_settings()
 
+    # ------------------------------------------------------------------- utils
+    def set_option(self, name: str, value: bool) -> None:
+        """Установить булеву опцию пневмосистемы.
+
+        Некритичный метод-хелпер: приводит значение к bool и записывает в state.
+        Используется панелью при обработке чекбоксов/переключателей.
+        """
+        try:
+            self._state[name] = bool(value)
+        except Exception:  # pragma: no cover - защитный путь
+            self._state[name] = True if str(value).strip().lower() in {"1", "true", "yes", "on"} else False
+
     # ------------------------------------------------------------------ helpers
     @staticmethod
     def _convert_from_storage(
@@ -453,7 +465,15 @@ class PneumoStateManager:
         return bool(self._state.get(name, DEFAULT_PNEUMATIC.get(name, False)))
 
     def set_option(self, name: str, value: bool) -> None:
-        self._state[name] = bool(value)
+        """Установить булеву опцию пневмосистемы.
+
+        Некритичный метод-хелпер: приводит значение к bool и записывает в state.
+        Используется панелью при обработке чекбоксов/переключателей.
+        """
+        try:
+            self._state[name] = bool(value)
+        except Exception:  # pragma: no cover - защитный путь
+            self._state[name] = True if str(value).strip().lower() in {"1", "true", "yes", "on"} else False
 
     def get_pressure_units(self) -> str:
         return str(
