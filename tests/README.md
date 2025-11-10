@@ -33,10 +33,12 @@ centralised in `tests/_qt_headless.py`.
    - Linux/macOS (`make` available): `make uv-sync`
    - Windows / make-less shells: `python -m tools.task_runner uv-sync`
 2. **Install Qt runtime** (only when missing): `python tools/setup_qt.py --qt-version 6.10.0`
-3. **Verify graphics backend**
+3. **Verify graphics backend** (см. подробности в `docs/ENVIRONMENT_SETUP.md`)
    - GPU mode: ensure `PSS_HEADLESS` is unset and `QSG_RHI_BACKEND=d3d11` on Windows.
    - Headless mode: set `PSS_HEADLESS=1` or use the pytest `--pss-headless` flag to
      apply the defaults defined in `tests/_qt_headless.py`.
+    - Vulkan smoke: export `QSG_RHI_BACKEND=vulkan` и `VK_ICD_FILENAMES=<путь>` из
+      таблицы headless/Vulkan в `docs/ENVIRONMENT_SETUP.md`.
 
 Cross-platform provisioning and optional automated runs are also available through
 `python -m tools.cross_platform_test_prep --use-uv [--run-tests]`, which installs

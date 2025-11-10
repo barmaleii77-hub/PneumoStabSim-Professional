@@ -3,6 +3,10 @@
 This guide documents how to collaborate with AI coding assistants while working on **PneumoStabSim Professional**.
 It aligns with the Renovation Master Plan objectives for tooling, privacy, and reproducibility.
 
+> 📑 Сводный список профильных инструкций см. в `docs/AI_AGENT_INDEX.md`. Перед
+> запуском ассистента выберите оттуда релевантный prompt-документ и следуйте
+> ссылкам на `docs/ENVIRONMENT_SETUP.md`, `tests/README.md` и другие источники.
+
 ## 1. Collaboration Principles
 - Treat assistants as pair-programmers: keep tasks focused and provide clear context.
 - Prefer incremental pull requests that keep tests and linters green.

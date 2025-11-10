@@ -1,7 +1,7 @@
 ---
 applicable_to: "**/*"
-version: "1.1"
-last_updated: "2025-10-31"
+version: "1.2"
+last_updated: "2026-06-07"
 ---
 
 # GitHub Copilot Instructions for PneumoStabSim Professional
@@ -30,6 +30,10 @@ make sanitize                # Clean temporary files
 make cipilot-env             # Prepare environment for Copilot
 python app.py                # Launch the application
 ```
+
+> 🔗 Полный перечень Qt-переменных и headless/Vulkan сценариев теперь поддерживается
+> в [`docs/ENVIRONMENT_SETUP.md`](../docs/ENVIRONMENT_SETUP.md). Используйте его как
+> единую точку правды и не дублируйте значения в новых инструкциях.
 
 ### Build and Test Workflow
 1. **Before starting work**: Run `make autonomous-check` or `make sanitize && make check`
@@ -92,11 +96,11 @@ PneumoStabSim-Professional/
 │       └── custom_geometry.py     # Custom 3D geometries
 ├── assets/
 │   ├── qml/
-│   │   ├── main.qml               # Main 3D scene (v4.9.6)
+│   │   ├── main.qml               # Main 3D scene (v4.9.8)
 │   │   └── components/
 │   │       └── IblProbeLoader.qml # IBL loader component
 │   └── hdr/                       # HDR environment maps
-└── tests/                         # Unit, integration и manual-сценарии
+└── tests/                         # Unit, integration и manual-сценарии (см. tests/README.md)
 ```
 
 ### Автономная проверка и трассировка
@@ -563,7 +567,7 @@ make check
 
 ---
 
-**Last Updated**: 2025-10-31
-**Project Version**: v4.9.6
-**Copilot Instructions Version**: 1.1
+**Last Updated**: 2026-06-07
+**Project Version**: v4.9.8
+**Copilot Instructions Version**: 1.2
 **Maintainer**: barmaleii77-hub
