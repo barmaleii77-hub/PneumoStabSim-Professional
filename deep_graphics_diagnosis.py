@@ -8,7 +8,7 @@
 import sys
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QObject
 
 # Добавляем путь к модулям
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -99,7 +99,6 @@ def diagnose_qml_object(qml):
         properties_to_check = [
             "fogEnabled",
             "fogColor",
-            "fogDensity",
             "antialiasingMode",
             "antialiasingQuality",
             "shadowsEnabled",
@@ -112,6 +111,16 @@ def diagnose_qml_object(qml):
                 print(f"     {prop} = {value}")
             except Exception as e:
                 print(f"     {prop} = ERROR: {e}")
+
+        fog_object = qml.property("fog")
+        if isinstance(fog_object, QObject):
+            try:
+                fog_density = fog_object.property("density")
+                print(f"     fog.density = {fog_density}")
+            except Exception as fog_error:
+                print(f"     fog.density = ERROR: {fog_error}")
+        else:
+            print("     fog = <unavailable>")
 
         print("  📋 ДОСТУПНЫЕ QML МЕТОДЫ:")
 
@@ -348,12 +357,16 @@ def check_qml_property_changes(qml):
 
         fog_enabled = qml.property("fogEnabled")
         fog_color = qml.property("fogColor")
-        fog_density = qml.property("fogDensity")
+
+        fog_object = qml.property("fog")
+        fog_density = None
+        if isinstance(fog_object, QObject):
+            fog_density = fog_object.property("density")
         aa_mode = qml.property("antialiasingMode")
 
         print(f"     fogEnabled = {fog_enabled} (ожидалось True)")
         print(f"     fogColor = {fog_color} (ожидалось #ff0000)")
-        print(f"     fogDensity = {fog_density} (ожидалось 0.5)")
+        print(f"     fog.density = {fog_density} (ожидалось 0.5)")
         print(f"     antialiasingMode = {aa_mode} (ожидалось 0)")
 
         # Проверяем соответствие
