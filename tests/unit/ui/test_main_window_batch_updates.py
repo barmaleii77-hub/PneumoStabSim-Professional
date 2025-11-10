@@ -8,10 +8,10 @@ import pytest
 
 try:  # pragma: no cover - executed during test collection
     from src.ui.main_window_legacy import MainWindow
-except ImportError:  # pragma: no cover - environment guard
-    pytest.skip(
-        "PySide6 dependency missing for main window batch update tests",
-        allow_module_level=True,
+except ImportError as exc:  # pragma: no cover - environment guard
+    pytest.fail(
+        "Qt runtime dependencies must be available for main window tests. "
+        f"Run `python -m tools.cross_platform_test_prep --use-uv --run-tests`: {exc}"
     )
 
 

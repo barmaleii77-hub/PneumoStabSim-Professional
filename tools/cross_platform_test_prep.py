@@ -207,20 +207,8 @@ def install_python_dependencies(use_uv: bool) -> None:
                     "Install Python development dependencies",
                 )
             )
-        else:
-            _run_step(
-                CommandStep(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "install",
-                        "-r",
-                        str(REPO_ROOT / "requirements.txt"),
-                    ],
-                    "Install base Python dependencies",
-                )
-            )
+        project_target = [sys.executable, "-m", "pip", "install", "-e", ".[dev]"]
+        _run_step(CommandStep(project_target, "Install project with dev extras"))
 
 
 def verify_python_runtime() -> None:
