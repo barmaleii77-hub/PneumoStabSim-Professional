@@ -457,10 +457,6 @@ ExtendedSceneEnvironment {
                     root.fog = null
             }
         }
-        Component.onCompleted: {
-            if (status === Loader.Ready)
-                root.fog = fogLoader.item
-        }
         onActiveChanged: {
             if (!active && root.fog)
                 root.fog = null
@@ -665,15 +661,28 @@ ExtendedSceneEnvironment {
             root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
     }
 
-    Component.onCompleted: {
+    function _runStartupSynchronization() {
         root._refreshContextDefaults()
         root._applyInitialContextDefaults()
+        root._applySceneBridgeState()
+        root._syncColorAdjustmentFlags()
+        root._syncSkyboxBackground()
+
+        root.canUseDithering = root.qtVersionAtLeast(6, 10)
+
+        if (fogLoader.status === Loader.Ready && root.fog !== fogLoader.item)
+            root.fog = fogLoader.item
+
         if (!root.fogHelpersSupported)
             root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
+
+        root._updateBufferRequirements()
+    }
+
+    Component.onCompleted: {
+        root._runStartupSynchronization()
         Qt.callLater(function() {
-            root._refreshContextDefaults()
-            root._applyInitialContextDefaults()
-            root._updateBufferRequirements()
+            root._runStartupSynchronization()
         })
     }
 
