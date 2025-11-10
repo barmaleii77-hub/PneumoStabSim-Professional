@@ -32,8 +32,23 @@ def _load_pytestqt_plugin(config: pytest.Config) -> None:
     if QT_SKIP_REASON is not None:
         disable_pytestqt(pm)
         return
-    if pm.get_plugin("pytestqt.plugin") is None:
-        pm.import_plugin("pytestqt.plugin")
+
+    plugin = pm.get_plugin("pytestqt.plugin")
+    if plugin is None:
+        # Some environments register the plugin under the ``pytestqt`` alias
+        # before we get a chance to import it. Guard against double
+        # registration by probing common aliases and ignoring the error if the
+        # module is already present.
+        plugin = pm.get_plugin("pytestqt")
+    if plugin is None:
+        try:
+            pm.import_plugin("pytestqt.plugin")
+        except ValueError as exc:
+            # ``pytest`` raises ``ValueError`` when the plugin is already
+            # registered under a different name. That scenario is harmless for
+            # our bootstrap routine, so swallow the error and continue.
+            if "already registered" not in str(exc):
+                raise
     os.environ.setdefault("PYTEST_QT_API", "pyside6")
     _install_qtbot_compat_shims()
 
