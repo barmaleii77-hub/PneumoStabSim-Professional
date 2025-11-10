@@ -5,19 +5,24 @@ from typing import Any
 
 import pytest
 
-QtCore = pytest.importorskip("PySide6.QtCore")
-pytest.importorskip("PySide6.QtGui")
-pytest.importorskip("PySide6.QtWidgets")
+from tests.helpers.qt import require_qt_modules
+
+QtCore, *_ = require_qt_modules(
+    "PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets"
+)
 Qt = QtCore.Qt
 
 from src.common.settings_manager import SettingsManager
 
-try:  # pragma: no cover - skip when Qt dependencies are unavailable
+try:  # pragma: no cover - exercised in Qt-enabled environments
     from src.ui.camera import CameraWidget, OrbitController
     from src.ui.hud.diagnostics_overlay import DiagnosticsOverlay
     from src.ui.hud.diagnostics_service import DiagnosticsService
 except ImportError as exc:  # pragma: no cover - exercised in Qt-enabled environments
-    pytest.skip(f"PySide6 runtime dependencies missing: {exc}")
+    pytest.fail(
+        "Qt UI dependencies must be importable for cross-platform tests. "
+        f"Re-run `python -m tools.cross_platform_test_prep --use-uv --run-tests`: {exc}"
+    )
 
 
 class _StubVisualizationService:

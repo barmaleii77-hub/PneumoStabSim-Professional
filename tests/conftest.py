@@ -19,9 +19,24 @@ from tests._qt_headless import (
 )
 from tests.physics.cases import build_case_loader
 from tests._qt_runtime import QT_SKIP_REASON, disable_pytestqt
-from tests.helpers import ensure_qt_runtime
+from tests.helpers import ensure_qt_runtime, require_qt_modules
 
 pytest_plugins: tuple[str, ...] = ()
+
+
+_ORIGINAL_IMPORTORSKIP = pytest.importorskip
+
+
+def _strict_importorskip(module_name: str, *args, **kwargs):
+    """Enforce hard failures for Qt-related optional imports."""
+
+    if module_name.startswith(("PySide6", "pytestqt")):
+        module, *_ = require_qt_modules(module_name)
+        return module
+    return _ORIGINAL_IMPORTORSKIP(module_name, *args, **kwargs)
+
+
+pytest.importorskip = _strict_importorskip
 
 # --- pytest-qt plugin bootstrap -------------------------------------------------
 

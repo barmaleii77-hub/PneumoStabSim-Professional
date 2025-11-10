@@ -50,6 +50,12 @@ Cross-platform provisioning и запуск автотестов теперь в
 `make cross-platform-prep` / `make cross-platform-test` или их аналоги в
 `python -m tools.task_runner ...` на Windows.
 
+> ℹ️ Модульные и UI-тесты больше не пропускаются при отсутствии Qt-зависимостей.
+> `pytest.importorskip("PySide6…")` в тестах теперь вызывает `pytest.fail` с
+> подсказкой перезапустить `python -m tools.cross_platform_test_prep --use-uv
+> --run-tests`. Это гарантирует единое покрытие на Linux и Windows и помогает
+> выявлять ошибки настройки сразу после изменения кода.
+
 ## Running the test suites
 
 ### Aggregated quality gate
