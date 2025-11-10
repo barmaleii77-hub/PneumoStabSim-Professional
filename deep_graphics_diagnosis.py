@@ -8,7 +8,7 @@
 import sys
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer, QObject
+from PySide6.QtCore import QTimer, QObject, QMetaMethod, QMetaObject
 
 # Добавляем путь к модулям
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -192,12 +192,32 @@ def diagnose_graphics_panel(graphics_panel):
                 print(f"     {signal_name} = ДОСТУПЕН")
 
                 # Пытаемся проверить подключения (если возможно)
+                meta_method = None
                 try:
-                    # Это может не работать на всех версиях Qt
-                    receivers_count = signal_obj.receivers(signal_obj)
-                    print(f"       подключено обработчиков: {receivers_count}")
-                except:
-                    print("       подключения: неизвестно")
+                    meta_method = QMetaMethod.fromSignal(signal_obj)
+                except (TypeError, AttributeError):
+                    meta_method = None
+
+                if meta_method and meta_method.isValid():
+                    method_signature = bytes(meta_method.methodSignature()).decode()
+                    normalized_signature = (
+                        bytes(QMetaObject.normalizedSignature(method_signature.encode()))
+                        .decode()
+                    )
+                    try:
+                        receivers_count = graphics_panel.receivers(
+                            meta_method.methodSignature()
+                        )
+                    except (TypeError, AttributeError):
+                        receivers_count = None
+
+                    print(f"       сигнатура: {normalized_signature}")
+                    if receivers_count is not None:
+                        print(f"       подключено обработчиков: {receivers_count}")
+                    else:
+                        print("       подключено обработчиков: неизвестно")
+                else:
+                    print("       сигнатура: неизвестно")
             else:
                 print(f"     {signal_name} = НЕ НАЙДЕН")
 
