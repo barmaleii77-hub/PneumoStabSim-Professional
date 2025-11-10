@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
@@ -71,6 +72,23 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
         simulation_root.setProperty("sceneView", scene_view)
         simulation_root.setProperty("postEffects", post_effects)
         qapp.processEvents()
+
+        baseline_bypass = bool(post_effects.property("effectsBypass"))
+        failure_payload = post_effects.property("persistentEffectFailures")
+        if isinstance(failure_payload, Mapping):
+            failure_keys = [
+                key
+                for key, value in failure_payload.items()
+                if value not in (None, "", False)
+            ]
+        else:
+            failure_keys = []
+
+        if baseline_bypass and not failure_keys:
+            pytest.skip(
+                "PostEffects started in fallback mode without persistent failures; "
+                "headless rendering lacks depth/normal/velocity buffers"
+            )
 
         initial_effects = scene_view.property("effects")
         assert isinstance(initial_effects, list)
