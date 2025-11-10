@@ -29,10 +29,12 @@ centralised in `tests/_qt_headless.py`.
 
 ## Environment prerequisites
 
-1. **Synchronise Python dependencies**
-   - Linux/macOS (`make` available): `make uv-sync`
-   - Windows / make-less shells: `python -m tools.task_runner uv-sync`
-2. **Install Qt runtime** (only when missing): `python tools/setup_qt.py --qt-version 6.10.0`
+1. **Synchronise Python dependencies** (каждый прогон вызывает
+   `tools.cross_platform_test_prep`, поэтому шаг можно выполнять через него):
+   - Linux/macOS (`make` available): `make cross-platform-prep`
+   - Windows / make-less shells: `python -m tools.task_runner cross-platform-prep`
+2. **Install Qt runtime** (только при первом запуске либо после обновления
+   версии): `python tools/setup_qt.py --qt-version 6.10.0`
 3. **Verify graphics backend** (см. подробности в `docs/ENVIRONMENT_SETUP.md`)
    - GPU mode: ensure `PSS_HEADLESS` is unset and `QSG_RHI_BACKEND=d3d11` on Windows.
    - Headless mode: set `PSS_HEADLESS=1` or use the pytest `--pss-headless` flag to
@@ -40,9 +42,13 @@ centralised in `tests/_qt_headless.py`.
     - Vulkan smoke: export `QSG_RHI_BACKEND=vulkan` и `VK_ICD_FILENAMES=<путь>` из
       таблицы headless/Vulkan в `docs/ENVIRONMENT_SETUP.md`.
 
-Cross-platform provisioning and optional automated runs are also available through
-`python -m tools.cross_platform_test_prep --use-uv [--run-tests]`, which installs
-OS prerequisites and executes pytest with the correct Qt overrides.
+Cross-platform provisioning и запуск автотестов теперь выполняются единым
+скриптом `tools.cross_platform_test_prep.py`. Он устанавливает системные Qt-
+зависимости, синхронизирует Python окружение (`uv sync --extra dev`), проверяет
+импорты `PySide6`/`pytest-qt` и по флагу `--run-tests` запускает `pytest` с
+необходимыми headless-параметрами. Для типовых сценариев используйте цели
+`make cross-platform-prep` / `make cross-platform-test` или их аналоги в
+`python -m tools.task_runner ...` на Windows.
 
 ## Running the test suites
 
@@ -52,7 +58,9 @@ OS prerequisites and executes pytest with the correct Qt overrides.
 - Windows / make-less shells: `python -m tools.task_runner check`
 
 The aggregated gate performs linting, type checks, shader validation, environment
-verification, and smoke/integration pytest sweeps.
+verification, and smoke/integration pytest sweeps. После каждого изменения кода
+запускайте `make cross-platform-test` (или `python -m tools.task_runner
+cross-platform-test`) чтобы зафиксировать полный Linux/Windows прогон.
 
 ### Pytest entry points
 

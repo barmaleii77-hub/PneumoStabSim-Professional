@@ -247,6 +247,30 @@ def task_integration(extra: Sequence[str]) -> None:
     )
 
 
+def task_cross_platform_prep(extra: Sequence[str]) -> None:
+    command = [
+        sys.executable,
+        "-m",
+        "tools.cross_platform_test_prep",
+        "--use-uv",
+        *extra,
+    ]
+    _run(command, description="cross-platform-prep")
+
+
+def task_cross_platform_test(extra: Sequence[str]) -> None:
+    command = [
+        sys.executable,
+        "-m",
+        "tools.cross_platform_test_prep",
+        "--use-uv",
+    ]
+    if "--run-tests" not in extra:
+        command.append("--run-tests")
+    command.extend(extra)
+    _run(command, description="cross-platform-test")
+
+
 TASKS: dict[str, Callable[[Sequence[str]], None]] = {
     "uv-sync": task_uv_sync,
     "uv-run": task_uv_run,
@@ -267,6 +291,8 @@ TASKS: dict[str, Callable[[Sequence[str]], None]] = {
     "sanitize": task_sanitize,
     "smoke": task_smoke,
     "integration": task_integration,
+    "cross-platform-prep": task_cross_platform_prep,
+    "cross-platform-test": task_cross_platform_test,
 }
 
 
