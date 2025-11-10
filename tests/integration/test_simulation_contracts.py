@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import math
 
 import pytest
@@ -149,7 +150,38 @@ def test_state_bus_signals_logged(caplog):
         assert records, "No signals were captured"
         assert records[-1].signal == "bus:start"
         assert not records[-1].args
-        assert any(record.message == "signal_trace_event" for record in caplog.records)
+        structured_events = []
+        for record in caplog.records:
+            payload: dict[str, object] | None = None
+
+            message = record.message
+            if isinstance(message, dict):
+                payload = message
+            elif isinstance(message, str):
+                try:
+                    payload = json.loads(message)
+                except json.JSONDecodeError:
+                    payload = None
+
+            if payload is None and hasattr(record, "__dict__"):
+                candidate = getattr(record, "__dict__")
+                if isinstance(candidate, dict):
+                    event = candidate.get("event")
+                    if isinstance(event, str):
+                        payload = {"event": event}
+                        for key in ("sender", "signal", "args"):
+                            value = candidate.get(key)
+                            if value is not None:
+                                payload[key] = value
+
+            if payload and payload.get("event") == "signal_trace_event":
+                structured_events.append(payload)
+
+        assert structured_events, "Signal trace log entry was not captured"
+        assert any(
+            event.get("sender") == "StateBus" and event.get("signal") == "bus:start"
+            for event in structured_events
+        )
     finally:
         detach()
         tracer.dispose()
