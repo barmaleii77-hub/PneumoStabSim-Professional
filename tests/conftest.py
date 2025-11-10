@@ -170,7 +170,10 @@ def _libgl_available() -> bool:
     )
 
 
-_pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
+try:
+    _pytestqt_spec = importlib.util.find_spec("pytestqt.plugin")
+except ModuleNotFoundError:
+    _pytestqt_spec = None
 _qtwidgets_spec = importlib.util.find_spec("PySide6.QtWidgets")
 if _pytestqt_spec is None:
     _gui_skip_reason = "pytest-qt plugin is not installed"

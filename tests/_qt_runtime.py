@@ -44,7 +44,10 @@ def _libgl_available() -> bool:
     return any(path.exists() for path in fallback_paths)
 
 
-_PYTESTQT_SPEC = importlib.util.find_spec("pytestqt.plugin")
+try:
+    _PYTESTQT_SPEC = importlib.util.find_spec("pytestqt.plugin")
+except ModuleNotFoundError:
+    _PYTESTQT_SPEC = None
 _PYSIDE_SPEC = importlib.util.find_spec("PySide6.QtWidgets")
 _PYSIDE_IMPORT_ERROR: Exception | None = None
 if _PYSIDE_SPEC is not None:

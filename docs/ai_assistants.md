@@ -46,6 +46,9 @@ It aligns with the Renovation Master Plan objectives for tooling, privacy, and r
 - After each code change, execute the full `make check` suite and at least one
   representative application launch (`make run` or `python app.py`) on the same
   platform where the modifications were made to validate runtime behaviour.
+- Cross-platform parity is mandatory: `make cross-platform-test` (Linux) and
+  `python -m tools.task_runner cross-platform-test` (Windows) must both pass for
+  every change set before it is shared or committed.
 
 ## 7. Documentation Practices
 - Update relevant guides (`START_HERE.txt`, `QUICKSTART.md`, etc.) when workflows change.

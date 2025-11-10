@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
-"""Provision cross-platform test dependencies and run the validation suite."""
+"""Provision cross-platform test dependencies and run the validation suite.
+
+The script is the single entry point for preparing Linux *and* Windows hosts
+for the full PneumoStabSim test matrix.  It installs system packages when
+available, synchronises Python dependencies, ensures the Qt runtime can be
+imported, and optionally executes pytest with the correct environment guards.
+
+The workflow intentionally mirrors the manual steps from
+``docs/ENVIRONMENT_SETUP.md`` so that CI agents and local workstations share
+the exact same bootstrap sequence.
+"""
 
 from __future__ import annotations
 
 import argparse
+import importlib
 import os
 import platform
 import shutil
@@ -51,6 +62,11 @@ WINDOWS_CHOCOLATEY_PACKAGES: tuple[str, ...] = ("make",)
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PYTHON_DEPENDENCY_SENTINELS: tuple[str, ...] = (
+    "pytestqt.plugin",
+    "PySide6.QtWidgets",
+    "PySide6.QtQml",
+)
 
 
 @dataclass
@@ -66,7 +82,8 @@ class CommandStep:
 def _run_step(step: CommandStep) -> None:
     """Run a command and raise a helpful error when it fails."""
 
-    print(f"→ {step.description}")
+    printable = " ".join(step.command)
+    print(f"→ {step.description}: {printable}")
     try:
         subprocess.run(
             step.command,
@@ -76,7 +93,7 @@ def _run_step(step: CommandStep) -> None:
         )
     except subprocess.CalledProcessError as exc:  # pragma: no cover - external command
         raise RuntimeError(
-            f"Command '{' '.join(step.command)}' failed with exit code {exc.returncode}"
+            f"Command '{printable}' failed with exit code {exc.returncode}"
         ) from exc
 
 
@@ -97,6 +114,11 @@ def install_linux_system_packages(packages: Iterable[str]) -> None:
 
     if shutil.which("apt-get") is None:
         print("⚠️ Skipping system package installation: apt-get is not available.")
+        print(
+            "   Install the following packages manually to enable Qt headless runs:"
+        )
+        for package in packages:
+            print(f"     - {package}")
         return
 
     prefix = _apt_prefix()
@@ -119,6 +141,10 @@ def install_windows_system_packages(packages: Iterable[str]) -> None:
 
     if shutil.which("choco") is None:
         print("⚠️ Skipping Chocolatey installation: choco is not available.")
+        print(
+            "   Install Chocolatey from https://chocolatey.org/install and rerun "
+            "the script to provision Windows toolchain prerequisites."
+        )
         return
 
     for package in packages:
@@ -176,6 +202,24 @@ def install_python_dependencies(use_uv: bool) -> None:
                     "Install base Python dependencies",
                 )
             )
+
+
+def verify_python_runtime() -> None:
+    """Ensure critical Python dependencies for cross-platform tests are importable."""
+
+    missing: list[str] = []
+    for module_name in PYTHON_DEPENDENCY_SENTINELS:
+        try:
+            importlib.import_module(module_name)
+        except Exception as exc:  # pragma: no cover - platform dependant imports
+            missing.append(f"{module_name}: {exc}")
+
+    if missing:
+        details = "\n".join(f"  - {line}" for line in missing)
+        raise RuntimeError(
+            "Required Python modules for Qt/pytest integration are unavailable.\n"
+            f"Install missing modules and rerun provisioning.\n{details}"
+        )
 
 
 def provision_qt_runtime(version: str) -> None:
@@ -252,6 +296,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     os.chdir(REPO_ROOT)
     system = platform.system()
+    print(f"ℹ️ Detected platform: {system}")
 
     if not args.skip_system:
         if system == "Linux":
@@ -261,6 +306,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if not args.skip_python:
         install_python_dependencies(use_uv=args.use_uv)
+        verify_python_runtime()
 
     if args.qt_version:
         provision_qt_runtime(args.qt_version)
