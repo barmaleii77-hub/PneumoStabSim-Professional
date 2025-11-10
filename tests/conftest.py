@@ -146,6 +146,15 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Force Qt headless defaults for the entire test session (equivalent to PSS_HEADLESS=1).",
     )
+    parser.addoption(
+        "--allow-skips",
+        action="store_true",
+        default=False,
+        help=(
+            "Permit skipped tests without failing the session. "
+            "Use sparingly: CI and local quality gates treat skips as errors by default."
+        ),
+    )
 
 
 def _configure_session_headless(config: pytest.Config) -> None:
@@ -157,6 +166,31 @@ def _configure_session_headless(config: pytest.Config) -> None:
         os.environ[HEADLESS_FLAG] = "1"
     if active:
         apply_headless_defaults()
+
+
+# --- Skip enforcement -----------------------------------------------------------
+
+
+def _parse_env_bool(value: str | None) -> bool | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if not normalized:
+        return None
+    truthy = {"1", "true", "yes", "on"}
+    falsy = {"0", "false", "no", "off"}
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+    return None
+
+
+def _skips_allowed(config: pytest.Config) -> bool:
+    env_override = _parse_env_bool(os.environ.get("PSS_ALLOW_SKIPPED_TESTS"))
+    if env_override is not None:
+        return env_override
+    return bool(config.getoption("--allow-skips"))
 
 
 # --- Platform capability checks -------------------------------------------------
@@ -304,6 +338,40 @@ def pytest_report_header(config: pytest.Config) -> list[str]:
     if QT_SKIP_REASON is None:
         return ["Qt runtime validation: ready"]
     return ["Qt runtime validation: missing prerequisites", f"Reason: {QT_SKIP_REASON}"]
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus: int, config: pytest.Config):  # noqa: D401
+    """Fail the session when tests were skipped without explicit approval."""
+
+    if _skips_allowed(config):
+        return
+
+    skipped = terminalreporter.stats.get("skipped", [])
+    if not skipped:
+        return
+
+    count = len(skipped)
+    plural = "s" if count != 1 else ""
+    terminalreporter.write_sep(
+        "!",
+        (
+            f"{count} skipped test{plural} detected; rerun after installing missing dependencies. "
+            "Use --allow-skips or PSS_ALLOW_SKIPPED_TESTS=1 only when intentionally acknowledging the skips."
+        ),
+    )
+    session = getattr(terminalreporter, "_session", None)
+    if session is not None:
+        session.exitstatus = pytest.ExitCode.TESTSFAILED
+    setattr(config, "_pss_skip_failure", True)
+
+
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:  # noqa: D401
+    """Ensure skip enforcement propagates to the exit status when needed."""
+
+    if _skips_allowed(session.config):
+        return
+    if getattr(session.config, "_pss_skip_failure", False):
+        session.exitstatus = pytest.ExitCode.TESTSFAILED
 
 
 # --- Security audit log ---------------------------------------------------------
