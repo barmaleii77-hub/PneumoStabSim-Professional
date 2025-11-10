@@ -26,11 +26,12 @@ log message.
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass
 from types import ModuleType
 from typing import Any, Protocol, runtime_checkable
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 try:  # pragma: no cover - exercised indirectly by tests
     import structlog
@@ -85,7 +86,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback exercised in kata env
         def __call__(
             self, logger: Any, name: str, event_dict: dict[str, Any]
         ) -> dict[str, Any]:
-            return event_dict
+            return _flatten_event_payload(event_dict)
 
     structlog_shim.processors.JSONRenderer = _JSONRenderer  # type: ignore[attr-defined]
 
@@ -208,6 +209,35 @@ else:  # pragma: no cover - exercised in kata env
 DEFAULT_LOG_LEVEL = logging.INFO
 
 
+def _flatten_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
+    """Merge nested JSON payloads into the root event dictionary."""
+
+    flattened = dict(event_dict)
+    event_value = flattened.get("event")
+    if isinstance(event_value, str):
+        candidate = event_value.strip()
+        if candidate.startswith("{") and candidate.endswith("}"):
+            try:
+                nested = json.loads(candidate)
+            except ValueError:
+                return flattened
+
+            nested_event = nested.get("event")
+            for key, value in nested.items():
+                if key == "event":
+                    continue
+                flattened.setdefault(key, value)
+            if nested_event is not None:
+                flattened["event"] = nested_event
+    return flattened
+
+
+def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
+    """Render a JSON payload ensuring nested events remain flat."""
+
+    return json.dumps(_flatten_event_payload(event_dict), ensure_ascii=False)
+
+
 def _shared_processors() -> list[Any]:
     """Return the processors shared by stdlib + structlog pipelines."""
 
@@ -252,7 +282,7 @@ def _ensure_stdlib_bridge(
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                structlog.processors.JSONRenderer(ensure_ascii=False),
+                _json_renderer,
             ],
             foreign_pre_chain=_shared_processors(),
         )
@@ -302,7 +332,7 @@ def configure_logging(
     formatter = structlog.stdlib.ProcessorFormatter(
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            structlog.processors.JSONRenderer(ensure_ascii=False),
+            _json_renderer,
         ],
         foreign_pre_chain=_shared_processors(),
     )
