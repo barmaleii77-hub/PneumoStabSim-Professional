@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QMetaObject, QUrl, Q_ARG
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
 
@@ -13,7 +13,7 @@ QML_PATH = Path("assets/qml/effects/SceneEnvironmentController.qml")
 pytestmark = pytest.mark.usefixtures("qt_runtime_ready")
 
 
-def test_scene_environment_controller_applies_initial_defaults(qapp, settings_manager):
+def _create_environment_controller(settings_manager):
     try:
         from src.ui.main_window_pkg.ui_setup import UISetup
     except (
@@ -45,6 +45,11 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
 
     root = component.create()
     assert root is not None, "SceneEnvironmentController failed to instantiate"
+    return engine, component, root, payload
+
+
+def test_scene_environment_controller_applies_initial_defaults(qapp, settings_manager):
+    engine, component, root, payload = _create_environment_controller(settings_manager)
 
     try:
         environment_defaults = payload["scene"].get("environment", {})
@@ -135,4 +140,49 @@ def test_scene_environment_controller_applies_initial_defaults(qapp, settings_ma
             )
     finally:
         root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+        engine.collectGarbage()
+
+
+def test_scene_environment_controller_applies_environment_payload(
+    qapp, settings_manager
+):
+    engine, component, root, payload = _create_environment_controller(settings_manager)
+
+    try:
+        environment_payload = dict(payload["scene"].get("environment", {}))
+        toggled_depth_enabled = not bool(
+            environment_payload.get(
+                "fog_depth_enabled",
+                environment_payload.get("fog_enabled", False),
+            )
+        )
+        environment_payload.update(
+            {
+                "fog_enabled": toggled_depth_enabled,
+                "fog_depth_enabled": toggled_depth_enabled,
+                "fog_depth_near": float(environment_payload.get("fog_depth_near", 2.0))
+                + 1.5,
+                "fog_depth_far": float(environment_payload.get("fog_depth_far", 20.0))
+                + 10.0,
+                "fog_depth_curve": float(
+                    environment_payload.get("fog_depth_curve", 1.0)
+                )
+                + 0.25,
+            }
+        )
+
+        ok = QMetaObject.invokeMethod(
+            root, "applyEnvironmentPayload", Q_ARG("QVariant", environment_payload)
+        )
+        assert ok, "applyEnvironmentPayload invocation failed"
+        qapp.processEvents()
+
+        assert component.errors() == []
+        assert isinstance(root.property("fogDepthNear"), (float, int))
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
         engine.collectGarbage()
