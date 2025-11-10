@@ -45,33 +45,16 @@
 
 ## Linux headless / Windows fallback
 
-Раздел ориентирован на две крайние ситуации: отсутствие графического сервера на Linux и необходимость принудительного отката до ANGLE на Windows. Ключевые переменные `QT_QPA_PLATFORM`, `LIBGL_ALWAYS_SOFTWARE` и `VK_ICD_FILENAMES` контролируются `configure_qt_environment`, но их можно задать вручную согласно таблице ниже.
+Подробные таблицы headless/Vulkan/ANGLE профилей и инструкции по safe mode
+перенесены в [`docs/ENVIRONMENT_SETUP.md`](ENVIRONMENT_SETUP.md). Здесь оставлены
+только ключевые напоминания:
 
-| Профиль | Переменные | Назначение |
-|---------|------------|------------|
-| Linux headless | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Работает в контейнерах и CI без `DISPLAY`, задействует софтварный рендерер Mesa. |
-| Vulkan (headless) | `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json` <br>*(путь может отличаться, см. ниже)* | Принудительное использование Lavapipe или другого ICD для тестов Vulkan. |
-| Windows fallback | `QT_QPA_PLATFORM=windows`, `QT_OPENGL=angle`, (опционально) `LIBGL_ALWAYS_SOFTWARE=0` | Заставляет Qt переключиться на ANGLE/Direct3D, полезно при отсутствии нативного OpenGL. |
-
-> **Внимание:** Путь к ICD-файлу Lavapipe (`lvp_icd.x86_64.json`) может отличаться в зависимости от дистрибутива Linux.  
-> - **Debian/Ubuntu:** обычно `/usr/share/vulkan/icd.d/lvp_icd.json`  
-> - **Arch Linux:** может быть `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`  
-> - **Fedora:** часто `/usr/share/vulkan/icd.d/lvp_icd.x86_64.json`  
-> Проверьте наличие файла командой:  
-> ```bash
-> ls /usr/share/vulkan/icd.d/
-> ```
-> и укажите актуальный путь для вашей системы в переменной `VK_ICD_FILENAMES`.
-### Сценарии Safe / Legacy
-
-- **Safe (software-only):** вызовите `configure_qt_environment(safe_mode=True)` и
-  дополнительно зафиксируйте `LIBGL_ALWAYS_SOFTWARE=1`. Qt отключит принудительный
-  `QSG_RHI_BACKEND`, перейдёт на софтварный OpenGL и гарантированно загрузит сцену
-  даже без GPU.
-- **Legacy (ANGLE/Direct3D):** на Windows сохраните стандартное значение
-  `QSG_RHI_BACKEND=opengl`, но добавьте `QT_OPENGL=angle`. Qt Quick Scene Graph
-  задействует ANGLE для совместимости со старыми драйверами; при возврате к
-  современным драйверам удалите переменную или установите `QT_OPENGL=desktop`.
+- Используйте `PSS_HEADLESS=1` или флаг `--pss-headless`, чтобы pytest применял
+  offscreen профиль.
+- Для перехода на Vulkan подготовьте `VK_ICD_FILENAMES` через указанный в сводке
+  путь и очистите кэши Qt перед первым запуском.
+- Возврат к GPU-режиму на Windows выполняется удалением `QT_OPENGL=angle` и
+  `QT_QPA_PLATFORM=windows`.
 
 ## Режимы запуска
 

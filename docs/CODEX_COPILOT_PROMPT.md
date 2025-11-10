@@ -21,6 +21,18 @@ This blueprint assembles the canonical requirements for large language model cod
 
 ## 4. Logging & Telemetry Requirements
 - Instrument new code paths with `structlog` JSON logs, tagging entries with the owning module (e.g., `ui.graphics`, `simulation.stability`).
+- Используйте конфигурацию из `src/diagnostics/logging.py`: процессоры формируют
+  плоский JSON-объект c полями `timestamp`, `level`, `module`, `event`.
+- `event` — человеко-читаемое сообщение. Дополнительный контекст передавайте
+  именованными аргументами (`logger.info("updated", preset=preset_id)`), а не
+  сериализованными JSON-строками.
+- Для временного связывания событий используйте `logger.bind(correlation_id=...)`
+  либо `contextvars`, чтобы избежать мутирования глобальных структур.
+- Пример корректной записи:
+  ```json
+  {"timestamp": "2026-06-07T10:45:12.513Z", "level": "info", "module": "ui.graphics",
+   "event": "hdr_preset_applied", "preset": "studio_hall", "source": "panel.graphics"}
+  ```
 - Forward critical events to the telemetry matrix documented in `docs/TRACING_EXECUTION_LOG.md`.
 - When integrating with Qt/QML, ensure signals forward context strings rather than raw enums to improve observability.
 

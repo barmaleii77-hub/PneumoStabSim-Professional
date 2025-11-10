@@ -36,6 +36,12 @@ You are Codex (gpt-5-codex), assisting on PneumoStabSim-Professional. Optimise t
 - Follow QML style: 4-space indentation, properties grouped by category, `id` first. Keep console logging behind feature flags or diagnostics checks.
 - Update documentation describing new structure: `docs/QML_INTEGRATION.md` and relevant phase plans under `docs/`.
 
+### QML Lint policy (обязательно для новых изменений)
+- Добавляйте `pragma ComponentBehavior: Bound` в корневых компонентах для избежания предупреждений `unqualified access`.
+- Объявляйте `required property` для всех зависимостей, используемых через `property alias` или внешние биндинги.
+- Используйте `readonly property` вместо `property` там, где данные не изменяются.
+- Запускайте `qmllint` (`make qml-lint` или часть `make check`) перед генерацией кода.
+
 ## Deliverables
 - Refactored QML components with clear separation of responsibilities and updated `qmldir` files.
 - Enhanced PBR material definitions and HDR configuration; new textures or LUTs placed under `assets/hdr/` or `assets/qml/assets/`.

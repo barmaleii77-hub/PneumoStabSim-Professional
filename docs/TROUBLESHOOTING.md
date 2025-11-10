@@ -4,6 +4,10 @@
 
 This guide covers common problems you might encounter and their solutions.
 
+> ℹ️ Базовые настройки Qt и профили headless/Vulkan собраны в
+> [`docs/ENVIRONMENT_SETUP.md`](ENVIRONMENT_SETUP.md). Перед тем как применять
+> указанные ниже рецепты, убедитесь, что окружение соответствует сводке.
+
 ---
 
 ## 🚦 Rendering Backends
