@@ -847,7 +847,6 @@ Item {
                 } catch (error) {
                 }
                 root.setEffectPersistentFailure(effectId, true, message)
-                trySetEffectProperty(effectItem, "enabled", false)
                 root.notifyEffectCompilation(effectId, true, message)
                 return
             }
@@ -1048,29 +1047,23 @@ Item {
      */
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader, shaderBaseName) {
         const hasFallback = fallbackShader !== undefined && fallbackShader !== null
-        if (root.effectsBypass) {
-            trySetEffectProperty(effectItem, "enabled", false)
+        if (root.effectsBypass)
             return []
-        }
         var persistentFailureActive = false
         try {
             persistentFailureActive = !!effectItem.persistentFailure
         } catch (error) {
         }
-        if (persistentFailureActive) {
-            trySetEffectProperty(effectItem, "enabled", false)
+        if (persistentFailureActive)
             return []
-        }
-        // Если эффект выключен, отключаем его полностью, но оставляем безопасный шейдер,
-        // чтобы движок QtQuick3D не создавал пустой шейдер и не завершал компиляцию.
+        // Если эффект выключен, исключаем его из графа пост-обработки.
         if (!isEnabled) {
-            trySetEffectProperty(effectItem, "enabled", false)
             trySetEffectProperty(effectItem, "fallbackActive", false)
+            trySetEffectProperty(effectItem, "fallbackForcedByCompatibility", false)
             return []
         }
         // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
         // фоллбэк, всегда возвращаем валидный шейдер.
-        trySetEffectProperty(effectItem, "enabled", true)
         var compatibilityOverrideActive = false
         if (useGlesShaders && shaderBaseName && Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, shaderBaseName))
             compatibilityOverrideActive = !!shaderCompatibilityOverrides[shaderBaseName]
@@ -1199,6 +1192,10 @@ Item {
     Effect {
         id: bloomEffect
 
+        // qmllint disable missing-property
+        enabled: root.bloomEnabled
+        // qmllint enable missing-property
+
         property bool fallbackActive: false
         property string lastErrorLog: ""
         property bool componentCompleted: false
@@ -1299,9 +1296,6 @@ Item {
                 shaders: root.resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader, "bloom.frag")
             }
         ]
-
-        // Включение свечения контролируется через выбор шейдера (resolveShaders) по root.bloomEnabled,
-        // а не через свойство Effect.enabled — эффект всегда активен, но визуализация зависит от выбранного шейдера.
     }
 
     // SSAO Effect (Screen Space Ambient Occlusion)
@@ -1463,6 +1457,10 @@ Item {
     Effect {
         id: dofEffect
 
+        // qmllint disable missing-property
+        enabled: root.depthOfFieldEnabled
+        // qmllint enable missing-property
+
         // Эффект глубины резкости использует буфер глубины сцены
         property bool fallbackActive: false
         property string lastErrorLog: ""
@@ -1604,6 +1602,10 @@ Item {
     // Motion Blur Effect
     Effect {
         id: motionBlurEffect
+
+        // qmllint disable missing-property
+        enabled: root.motionBlurEnabled
+        // qmllint enable missing-property
 
         // Эффект размытия движения читает текстуру скоростей
         property bool fallbackActive: false

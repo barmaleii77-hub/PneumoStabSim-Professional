@@ -199,6 +199,68 @@ def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None: 
 
 
 @pytest.mark.gui
+def test_post_effects_disables_pass_shaders_when_effects_off(qapp) -> None:  # type: ignore[missing-type-doc]
+    """Disabling a post-effect should remove its shaders from the render passes."""
+
+    engine = _create_engine_with_manifest({})
+    component = _create_component(
+        engine, REPO_ROOT / "assets" / "qml" / "effects" / "PostEffects.qml"
+    )
+    root = component.create()
+    assert root is not None, "Expected PostEffects to instantiate"
+
+    try:
+        effects = _to_sequence(root.property("effectList"))
+        assert effects, "PostEffects should expose the list of effect instances"
+        assert len(effects) >= 4, "Expected four post-processing effects"
+
+        def _shader_counts(effect_object: object) -> list[int]:
+            if not hasattr(effect_object, "property"):
+                return []
+            passes = _to_sequence(effect_object.property("passes"))
+            if not passes:
+                return []
+            counts: list[int] = []
+            for pass_object in passes:
+                if hasattr(pass_object, "property"):
+                    pass_shaders = _to_sequence(pass_object.property("shaders"))
+                    counts.append(len(pass_shaders))
+                else:
+                    counts.append(0)
+            return counts
+
+        bloom_effect = effects[0]
+        root.setProperty("bloomEnabled", True)
+        qapp.processEvents()
+        enabled_counts = _shader_counts(bloom_effect)
+        if not any(count > 0 for count in enabled_counts):
+            pytest.skip("Bloom shaders unavailable in the current OpenGL configuration")
+
+        root.setProperty("bloomEnabled", False)
+        qapp.processEvents()
+
+        toggle_sequence = [
+            ("bloomEnabled", 0),
+            ("ssaoEnabled", 1),
+            ("depthOfFieldEnabled", 2),
+            ("motionBlurEnabled", 3),
+        ]
+        for property_name, _ in toggle_sequence:
+            root.setProperty(property_name, False)
+        qapp.processEvents()
+
+        for property_name, index in toggle_sequence:
+            counts = _shader_counts(effects[index])
+            assert all(count == 0 for count in counts), (
+                f"{property_name} should produce no pass shaders when disabled"
+            )
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
 def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  # type: ignore[missing-type-doc]
     """FogEffect should use fallback GLSL 330 shader when GLES resources are absent."""
 
