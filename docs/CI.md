@@ -38,6 +38,15 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 | Полный тестовый набор | `make test` | `python -m tools.ci_tasks test` | Последовательно запускает юнит, интеграционные и UI тесты, затем анализ логов. |
 | Комплексная проверка | `make check` | `python -m tools.ci_tasks verify` | Полный CI-пайплайн: lint → mypy → qmllint → тесты → анализ логов + дополнительные проверки Makefile. На Linux используйте `bash scripts/xvfb_wrapper.sh make check`, чтобы повторить поведение CI. |
 
+### Обязательные кроссплатформенные прогоны
+
+После любого изменения кода выполняйте две последовательности:
+
+1. `make cross-platform-prep` → `make cross-platform-test` на Linux/CI-контейнере.
+2. `python -m tools.task_runner cross-platform-prep -- --use-uv` → `python -m tools.task_runner cross-platform-test -- --pytest-args tests` на Windows.
+
+Скрипт `tools.cross_platform_test_prep` синхронизирует `uv`-окружение, ставит системные пакеты (`apt`/`choco`) и удостоверяется, что `PySide6` и `pytest-qt` доступны. Если зависимости отсутствуют, `pytest` теперь аварийно завершает прогон с подсказкой повторно запустить подготовку, поэтому пропуски GUI/QML тестов невозможны.
+
 ### Headless-рецепт (CI и контейнеры)
 
 1. **Переменные окружения**

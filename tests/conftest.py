@@ -268,15 +268,17 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
         "gui" in item.keywords
         or set(getattr(item, "fixturenames", ())).intersection(gui_fixtures)
     ):
-        pytest.skip(
+        pytest.fail(
             "Qt runtime prerequisites are not satisfied: "
-            f"{QT_SKIP_REASON}.\nRun `python -m tools.cross_platform_test_prep --run-tests` to install dependencies."
+            f"{QT_SKIP_REASON}.\nRun `python -m tools.cross_platform_test_prep --use-uv --run-tests` "
+            "from the repository root to install missing dependencies on the active platform."
         )
 
     if "gui" in item.keywords and _qtcharts_skip_reason is not None:
-        pytest.skip(
+        pytest.fail(
             "QtCharts module unavailable: "
-            f"{_qtcharts_skip_reason}.\nInstall PySide6 with QtCharts support or run tools.cross_platform_test_prep."
+            f"{_qtcharts_skip_reason}.\nInstall PySide6 with QtCharts support by running "
+            "`python -m tools.cross_platform_test_prep --use-uv` on the active platform."
         )
 
 
