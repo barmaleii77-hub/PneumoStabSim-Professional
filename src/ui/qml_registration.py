@@ -9,7 +9,9 @@ from typing import Any, Callable, cast
 QmlByteLike = bytes | bytearray | memoryview
 
 RegisterModule = Callable[[QmlByteLike | str, int, int], None]
-RegisterType = Callable[[type[Any], QmlByteLike | str, int, int, QmlByteLike | str], int]
+RegisterType = Callable[
+    [type[Any], QmlByteLike | str, int, int, QmlByteLike | str], int
+]
 
 _runtime_register_module: Any = None
 _runtime_register_type: Any = None
@@ -73,7 +75,9 @@ def register_qml_types() -> None:
 
     from src.ui.scene_bridge import SceneBridge
 
-    _call_qml_register_type(qml_register_type, SceneBridge, "PneumoStabSim", "SceneBridge")
+    _call_qml_register_type(
+        qml_register_type, SceneBridge, "PneumoStabSim", "SceneBridge"
+    )
 
     for module_name in _QML_ELEMENT_MODULES:
         import_module(module_name)

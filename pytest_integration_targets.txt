@@ -1,0 +1,2 @@
+# Paths collected by the integration pytest suite.
+tests/integration

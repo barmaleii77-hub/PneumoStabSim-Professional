@@ -37,6 +37,7 @@ import "../diagnostics/LogBridge.js" as Diagnostics
     property string simpleFallbackReason: ""
     signal simpleFallbackRequested(string reason)
     signal simpleFallbackRecovered()
+    signal shaderStatusDumpRequested(var payload)
     readonly property var emptyDefaultsObject: Object.freeze({})
     readonly property var emptyGeometryDefaults: emptyDefaultsObject
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
@@ -772,6 +773,30 @@ signal animationToggled(bool running)
         }
     }
 
+    function emitShaderStatusDump(reason) {
+        if (!postEffects)
+            return
+        var snapshot = null
+        try {
+            if (typeof postEffects.dumpShaderStatus === "function")
+                snapshot = postEffects.dumpShaderStatus(reason)
+            else if (typeof postEffects.shaderStatusSnapshot === "function")
+                snapshot = postEffects.shaderStatusSnapshot(reason)
+        } catch (error) {
+            console.debug("[SimulationRoot] dumpShaderStatus failed", error)
+            snapshot = null
+        }
+        if (!snapshot || typeof snapshot !== "object")
+            return
+        if (reason && (!snapshot.effectsBypassReason || !snapshot.effectsBypassReason.length))
+            snapshot.effectsBypassReason = String(reason)
+        try {
+            shaderStatusDumpRequested(snapshot)
+        } catch (error) {
+            console.debug("[SimulationRoot] shaderStatusDumpRequested emit failed", error)
+        }
+    }
+
     function cloneEffectList(value) {
         if (!value)
             return []
@@ -888,9 +913,15 @@ signal animationToggled(bool running)
     function applyPostProcessingBypass(active, reason) {
         var normalizedReason = reason !== undefined && reason !== null ? String(reason) : ""
         var previousActive = postProcessingBypassed
+        var previousReason = postProcessingBypassReason
         postProcessingBypassed = !!active
         postProcessingBypassReason = postProcessingBypassed ? normalizedReason : ""
         updateSimpleFallbackState(postProcessingBypassed, postProcessingBypassReason)
+
+        if (postProcessingBypassed && !previousActive)
+            emitShaderStatusDump(normalizedReason)
+        else if (postProcessingBypassed && normalizedReason !== previousReason)
+            emitShaderStatusDump(normalizedReason)
 
         if (!sceneView) {
             console.warn("[SimulationRoot] Unable to toggle post-processing bypass; sceneView is not set", active, normalizedReason)

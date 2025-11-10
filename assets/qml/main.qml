@@ -20,6 +20,7 @@ Item {
     signal pneumaticSettingsChanged(var payload)
     signal simulationSettingsChanged(var payload)
     signal cylinderSettingsChanged(var payload)
+    signal shaderStatusDumpRequested(var payload)
 
     property var pendingPythonUpdates: ({})
     property var _queuedBatchedUpdates: []
@@ -483,6 +484,10 @@ Item {
             if (simulationLoader.item)
                 simulationLoader.item.visible = true
             console.log("[main.qml] Simplified rendering fallback cleared")
+        }
+
+        function onShaderStatusDumpRequested(payload) {
+            root.shaderStatusDumpRequested(payload)
         }
     }
 

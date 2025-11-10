@@ -18,6 +18,7 @@ pytest.importorskip(
 
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
+from PySide6.QtTest import QSignalSpy
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -64,6 +65,8 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
     assert simulation_root is not None, "Expected SimulationRoot to instantiate"
     assert scene_view is not None, "Expected stub View3D replacement to instantiate"
 
+    status_spy = QSignalSpy(simulation_root.shaderStatusDumpRequested)
+
     try:
         simulation_root.setProperty("sceneView", scene_view)
         simulation_root.setProperty("postEffects", post_effects)
@@ -84,6 +87,11 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
             == "bloom: forced failure"
         )
         assert post_effects.property("effectsBypassReason") == "bloom: forced failure"
+        assert len(status_spy) >= 1
+        latest_snapshot = status_spy[-1][0]
+        assert isinstance(latest_snapshot, dict)
+        assert latest_snapshot["effectsBypass"] is True
+        assert latest_snapshot["effectsBypassReason"] == "bloom: forced failure"
 
         post_effects.setEffectPersistentFailure("bloom", False, "")
         qapp.processEvents()

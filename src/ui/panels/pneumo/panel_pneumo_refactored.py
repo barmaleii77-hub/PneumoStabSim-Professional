@@ -316,7 +316,12 @@ class PneumoPanel(QWidget):
 
             # Прочие параметры
             for key, value in updates.items():
-                if key in {"volume_mode", "receiver_diameter", "receiver_length", "receiver_volume"}:
+                if key in {
+                    "volume_mode",
+                    "receiver_diameter",
+                    "receiver_length",
+                    "receiver_volume",
+                }:
                     continue
                 if isinstance(value, bool):
                     try:
@@ -331,12 +336,18 @@ class PneumoPanel(QWidget):
             mode_after = sm.get_volume_mode()
             if mode_after != mode_before or volume_mode_update is not None:
                 # Комбо режимов
-                self.receiver_tab.volume_mode_combo.setCurrentIndex(0 if mode_after == "MANUAL" else 1)
+                self.receiver_tab.volume_mode_combo.setCurrentIndex(
+                    0 if mode_after == "MANUAL" else 1
+                )
                 self.receiver_tab._apply_mode_visibility(mode_after)
             if diameter_pending is not None:
-                self.receiver_tab.receiver_diameter_knob.setValue(sm.get_receiver_diameter())
+                self.receiver_tab.receiver_diameter_knob.setValue(
+                    sm.get_receiver_diameter()
+                )
             if length_pending is not None:
-                self.receiver_tab.receiver_length_knob.setValue(sm.get_receiver_length())
+                self.receiver_tab.receiver_length_knob.setValue(
+                    sm.get_receiver_length()
+                )
             if manual_volume_pending is not None and sm.get_volume_mode() == "MANUAL":
                 self.receiver_tab.manual_volume_knob.setValue(sm.get_manual_volume())
             # Обновляем расчётный объём отображения при геометрическом режиме
@@ -347,20 +358,29 @@ class PneumoPanel(QWidget):
             if mode_after != mode_before:
                 self.mode_changed.emit("volume_mode", mode_after)
             if diameter_pending is not None:
-                self.parameter_changed.emit("receiver_diameter", sm.get_receiver_diameter())
+                self.parameter_changed.emit(
+                    "receiver_diameter", sm.get_receiver_diameter()
+                )
             if length_pending is not None:
                 self.parameter_changed.emit("receiver_length", sm.get_receiver_length())
             # Всегда эмитим итоговый объём для согласованности тестов
             self.parameter_changed.emit(
                 "receiver_volume",
-                sm.get_manual_volume() if sm.get_volume_mode() == "MANUAL" else sm.get_parameter("receiver_volume"),
+                sm.get_manual_volume()
+                if sm.get_volume_mode() == "MANUAL"
+                else sm.get_parameter("receiver_volume"),
             )
             self.receiver_volume_changed.emit(
                 sm.get_parameter("receiver_volume"), sm.get_volume_mode()
             )
 
             for key, value in updates.items():
-                if key in {"volume_mode", "receiver_diameter", "receiver_length", "receiver_volume"}:
+                if key in {
+                    "volume_mode",
+                    "receiver_diameter",
+                    "receiver_length",
+                    "receiver_volume",
+                }:
                     continue
                 if isinstance(value, (int, float)) and not isinstance(value, bool):
                     self.parameter_changed.emit(key, float(sm.get_parameter(key)))

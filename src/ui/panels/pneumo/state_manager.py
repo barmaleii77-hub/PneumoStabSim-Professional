@@ -60,7 +60,11 @@ class PneumoStateManager:
         try:
             self._state[name] = bool(value)
         except Exception:  # pragma: no cover - защитный путь
-            self._state[name] = True if str(value).strip().lower() in {"1", "true", "yes", "on"} else False
+            self._state[name] = (
+                True
+                if str(value).strip().lower() in {"1", "true", "yes", "on"}
+                else False
+            )
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
@@ -473,7 +477,11 @@ class PneumoStateManager:
         try:
             self._state[name] = bool(value)
         except Exception:  # pragma: no cover - защитный путь
-            self._state[name] = True if str(value).strip().lower() in {"1", "true", "yes", "on"} else False
+            self._state[name] = (
+                True
+                if str(value).strip().lower() in {"1", "true", "yes", "on"}
+                else False
+            )
 
     def get_pressure_units(self) -> str:
         return str(
