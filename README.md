@@ -171,7 +171,8 @@ SDK.
    `cross_platform_test_prep` автоматически включает headless-настройки Qt
    (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software` для Linux и
    `QSG_RHI_BACKEND=d3d11` для Windows), поэтому тесты с QML и Qt Quick не будут
-   пропущены.
+   пропущены. При отсутствии зависимостей раннер завершит работу с ошибкой и
+   подскажет повторно выполнить `python -m tools.cross_platform_test_prep --use-uv`.
 
 3. **Повторите шаги на второй ОС.** Если Linux-прогон выполнялся в контейнере,
    задействуйте Windows-станцию или CI-агент и наоборот. Зафиксируйте вывод в
