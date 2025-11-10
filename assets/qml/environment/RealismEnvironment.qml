@@ -319,8 +319,14 @@ ExtendedSceneEnvironment {
             "environment",
             ["fog_depth_curve", "fogDepthCurve"],
             1.0)
-    property real fogDepthNear: _number("environment", ["fog_depth_near", "fog_near"], 2.0)
-    property real fogDepthFar: _number("environment", ["fog_depth_far", "fog_far"], 20.0)
+    property real fogDepthNear: _number(
+            "environment",
+            ["fog_near", "fog_depth_near", "fogDepthNear"],
+            2.0)
+    property real fogDepthFar: _number(
+            "environment",
+            ["fog_far", "fog_depth_far", "fogDepthFar"],
+            20.0)
     property bool fogHeightEnabled: _bool(
             "environment",
             ["fog_height_enabled", "fogHeightEnabled"],

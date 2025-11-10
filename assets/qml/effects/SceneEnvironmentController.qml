@@ -406,13 +406,13 @@ ExtendedSceneEnvironment {
         1.0
     )
     property real fogDepthNear: environmentNumberDefault(
-        ["fogDepthNear", "fog_depth_near"],
-        ["fogNear", "fog_near"],
+        ["fogDepthNear", "fog_near", "fog_depth_near"],
+        ["fogNear", "fog_near", "fog_depth_near"],
         2.0
     )
     property real fogDepthFar: environmentNumberDefault(
-        ["fogDepthFar", "fog_depth_far"],
-        ["fogFar", "fog_far"],
+        ["fogDepthFar", "fog_far", "fog_depth_far"],
+        ["fogFar", "fog_far", "fog_depth_far"],
         20.0
     )
     property bool fogHeightEnabled: environmentBoolDefault("fogHeightEnabled", "fog_height_enabled", false)
@@ -1998,15 +1998,15 @@ ExtendedSceneEnvironment {
         fogDepthCurve = fogDepthCurveValue
     var fogNearValue = numberFromKeys(
         params,
-        ["fogDepthNear", "fog_depth_near"],
-        ["fogNear", "fog_near"]
+        ["fogDepthNear", "fog_near", "fog_depth_near"],
+        ["fogNear", "fog_near", "fog_depth_near"]
     )
     if (fogNearValue !== undefined && isFinite(fogNearValue))
         fogDepthNear = fogNearValue
     var fogFarValue = numberFromKeys(
         params,
-        ["fogDepthFar", "fog_depth_far"],
-        ["fogFar", "fog_far"]
+        ["fogDepthFar", "fog_far", "fog_depth_far"],
+        ["fogFar", "fog_far", "fog_depth_far"]
     )
     if (fogFarValue !== undefined && isFinite(fogFarValue))
         fogDepthFar = fogFarValue

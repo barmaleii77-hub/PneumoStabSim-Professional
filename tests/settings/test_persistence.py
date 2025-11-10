@@ -222,15 +222,19 @@ def test_save_normalises_fog_aliases_and_hdr_path(settings_file: Path) -> None:
     environment = payload["current"]["graphics"]["environment"]
     environment.pop("fog_near", None)
     environment.pop("fog_far", None)
+    environment.pop("fog_depth_enabled", None)
+    environment.pop("fog_depth_curve", None)
     environment["ibl_source"] = "  ./assets\\hdr\\migrated_env.exr  "
 
     ranges = payload["current"]["graphics"].get("environment_ranges", {})
     ranges.pop("fog_near", None)
     ranges.pop("fog_far", None)
+    ranges.pop("fog_depth_curve", None)
 
     slider_ranges = payload["metadata"].get("environment_slider_ranges", {})
     slider_ranges.pop("fog_near", None)
     slider_ranges.pop("fog_far", None)
+    slider_ranges.pop("fog_depth_curve", None)
 
     service.save(payload)
 
@@ -238,15 +242,22 @@ def test_save_normalises_fog_aliases_and_hdr_path(settings_file: Path) -> None:
     current_env = persisted["current"]["graphics"]["environment"]
     assert current_env["fog_near"] == current_env["fog_depth_near"]
     assert current_env["fog_far"] == current_env["fog_depth_far"]
+    assert current_env["fog_depth_enabled"] == current_env["fog_enabled"]
+    assert current_env["fog_depth_curve"] == current_env["fog_height_curve"]
     assert current_env["ibl_source"] == "assets/hdr/migrated_env.exr"
 
     current_ranges = persisted["current"]["graphics"].get("environment_ranges", {})
     assert current_ranges["fog_near"] == current_ranges["fog_depth_near"]
     assert current_ranges["fog_far"] == current_ranges["fog_depth_far"]
+    assert current_ranges["fog_depth_curve"] == current_ranges["fog_height_curve"]
 
     current_slider_ranges = persisted["metadata"].get("environment_slider_ranges", {})
     assert current_slider_ranges["fog_near"] == current_slider_ranges["fog_depth_near"]
     assert current_slider_ranges["fog_far"] == current_slider_ranges["fog_depth_far"]
+    assert (
+        current_slider_ranges["fog_depth_curve"]
+        == current_slider_ranges["fog_height_curve"]
+    )
 
 
 def test_validate_detects_material_key_mismatch(

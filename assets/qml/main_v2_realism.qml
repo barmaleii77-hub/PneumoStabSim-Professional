@@ -581,14 +581,30 @@ property real tankPressure: 0.0
         if (params.whitePoint !== undefined) hdrWhitePoint = Number(params.whitePoint)
         if (params.white_point !== undefined) hdrWhitePoint = Number(params.white_point)
         if (params.fog_enabled !== undefined) fogEnabled = !!params.fog_enabled
+        if (params.fog_depth_enabled !== undefined)
+            fogDepthEnabled = !!params.fog_depth_enabled
+        if (params.fogDepthEnabled !== undefined)
+            fogDepthEnabled = !!params.fogDepthEnabled
         if (params.fogColor !== undefined) fogColor = params.fogColor
         if (params.fog_color !== undefined) fogColor = params.fog_color
         if (params.fogDensity !== undefined) fogDensity = Number(params.fogDensity)
         if (params.fog_density !== undefined) fogDensity = Number(params.fog_density)
-        if (params.fogDepthNear !== undefined) fogDepthNear = Number(params.fogDepthNear)
-        if (params.fog_depth_near !== undefined) fogDepthNear = Number(params.fog_depth_near)
-        if (params.fogDepthFar !== undefined) fogDepthFar = Number(params.fogDepthFar)
-        if (params.fog_depth_far !== undefined) fogDepthFar = Number(params.fog_depth_far)
+        if (params.fogDepthCurve !== undefined)
+            fogDepthCurve = Number(params.fogDepthCurve)
+        if (params.fog_depth_curve !== undefined)
+            fogDepthCurve = Number(params.fog_depth_curve)
+        if (params.fogDepthNear !== undefined)
+            fogDepthNear = Number(params.fogDepthNear)
+        if (params.fog_near !== undefined)
+            fogDepthNear = Number(params.fog_near)
+        if (params.fog_depth_near !== undefined)
+            fogDepthNear = Number(params.fog_depth_near)
+        if (params.fogDepthFar !== undefined)
+            fogDepthFar = Number(params.fogDepthFar)
+        if (params.fog_far !== undefined)
+            fogDepthFar = Number(params.fog_far)
+        if (params.fog_depth_far !== undefined)
+            fogDepthFar = Number(params.fog_depth_far)
         if (params.fxaa_enabled !== undefined) fxaaEnabled = !!params.fxaa_enabled
         if (params.specular_aa_enabled !== undefined) specularAAEnabled = !!params.specular_aa_enabled
         if (params.temporal_aa_enabled !== undefined) temporalAAEnabled = !!params.temporal_aa_enabled
