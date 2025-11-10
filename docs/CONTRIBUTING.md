@@ -9,6 +9,11 @@ and distils the non-negotiable steps every patch must follow.
       project-specific dependencies are available.
 - [ ] Run `make check` before every commit or pull request to execute the full
       quality gate (`ruff`, `mypy`, `pytest`, `qmllint`).
+- [ ] Execute cross-platform tests after *every* code change:
+      - Linux/macOS: `make cross-platform-test`
+      - Windows (or shells without `make`): `python -m tools.task_runner cross-platform-test`
+      Skipped tests fail the run; acknowledge them only temporarily via `--allow-skips`
+      or `PSS_ALLOW_SKIPPED_TESTS=1` and remove the override once dependencies are fixed.
 
 ## Working with configuration
 
