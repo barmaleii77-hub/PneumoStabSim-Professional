@@ -273,6 +273,56 @@ ExtendedSceneEnvironment {
     property real tonemapExposureValue: effectsNumberDefault("tonemapExposure", "tonemap_exposure", 0.0)
     property real tonemapWhitePointValue: effectsNumberDefault("tonemapWhitePoint", "tonemap_white_point", 1.0)
 
+    // Ambient occlusion (SSAO) --------------------------------------------------
+    property bool ssaoEnabled: environmentBoolDefault(
+        ["ssaoEnabled", "ao_enabled"],
+        "ssao_enabled",
+        true
+    )
+    property real ssaoIntensity: environmentNumberDefault(
+        ["ssaoIntensity", "ao_strength"],
+        "ssao_intensity",
+        1.0
+    )
+    property real ssaoRadius: environmentNumberDefault(
+        ["ssaoRadius", "ao_radius"],
+        "ssao_radius",
+        0.008
+    )
+    property real ssaoSoftness: environmentNumberDefault(
+        ["ssaoSoftness", "ao_softness"],
+        "ssao_softness",
+        20.0
+    )
+    property real ssaoBias: environmentNumberDefault(
+        ["ssaoBias", "ao_bias"],
+        "ssao_bias",
+        0.025
+    )
+    property bool ssaoDither: environmentBoolDefault(
+        ["ssaoDither", "ao_dither"],
+        "ssao_dither",
+        true
+    )
+    property int ssaoSampleRate: Math.max(
+        1,
+        Math.round(
+            environmentNumberDefault(
+                ["ssaoSampleRate", "ao_sample_rate"],
+                "ssao_sample_rate",
+                4
+            )
+        )
+    )
+
+    aoEnabled: ssaoEnabled
+    aoStrength: ssaoIntensity
+    aoDistance: root.toSceneLength(ssaoRadius)
+    aoSoftness: ssaoSoftness
+    aoBias: ssaoBias
+    aoDither: ssaoDither
+    aoSampleRate: Math.max(1, Math.round(ssaoSampleRate))
+
     // Прямое связывание: значения из настроек применяются к ExtendedSceneEnvironment
     exposure: tonemapExposureValue
     whitePoint: tonemapWhitePointValue
@@ -1525,6 +1575,8 @@ ExtendedSceneEnvironment {
                 return
             var opts = options || {}
             var finalValue = numeric
+            if (opts.round === true)
+                finalValue = Math.round(finalValue)
             if (opts.min !== undefined && finalValue < opts.min)
                 finalValue = opts.min
             if (opts.max !== undefined && finalValue > opts.max)
@@ -1541,6 +1593,121 @@ ExtendedSceneEnvironment {
                 return false
             return Object.prototype.hasOwnProperty.call(source, key)
         }
+
+        var ssaoSection = valueFromKeys(params, "ssao", "ao")
+        if (ssaoSection && typeof ssaoSection === "object") {
+            assignRootBool(
+                "ssaoEnabled",
+                boolFromKeys(ssaoSection, ["enabled"], ["enabled"])
+            )
+            assignRootNumber(
+                "ssaoIntensity",
+                numberFromKeys(ssaoSection, ["intensity", "strength"], ["intensity", "strength"])
+            )
+            assignRootNumber(
+                "ssaoRadius",
+                numberFromKeys(ssaoSection, ["radius"], ["radius"]),
+                { min: 0.0 }
+            )
+            assignRootNumber(
+                "ssaoSoftness",
+                numberFromKeys(ssaoSection, ["softness"], ["softness"]),
+                { min: 0.0 }
+            )
+            assignRootNumber(
+                "ssaoBias",
+                numberFromKeys(ssaoSection, ["bias"], ["bias"]),
+                { min: 0.0 }
+            )
+            assignRootBool(
+                "ssaoDither",
+                boolFromKeys(ssaoSection, ["dither"], ["dither"])
+            )
+            assignRootNumber(
+                "ssaoSampleRate",
+                numberFromKeys(ssaoSection, ["sample_rate", "sampleRate", "samples"], ["sample_rate", "sampleRate", "samples"]),
+                { min: 1, round: true }
+            )
+        }
+
+        if (
+            payloadHas(params, "ssaoEnabled") ||
+            payloadHas(params, "ssao_enabled") ||
+            payloadHas(params, "ao_enabled")
+        )
+            assignRootBool(
+                "ssaoEnabled",
+                boolFromKeys(params, ["ssaoEnabled", "ao_enabled"], "ssao_enabled")
+            )
+
+        if (
+            payloadHas(params, "ssaoIntensity") ||
+            payloadHas(params, "ssao_intensity") ||
+            payloadHas(params, "ao_strength")
+        )
+            assignRootNumber(
+                "ssaoIntensity",
+                numberFromKeys(params, ["ssaoIntensity", "ao_strength"], "ssao_intensity")
+            )
+
+        if (
+            payloadHas(params, "ssaoRadius") ||
+            payloadHas(params, "ssao_radius") ||
+            payloadHas(params, "ao_radius")
+        )
+            assignRootNumber(
+                "ssaoRadius",
+                numberFromKeys(params, ["ssaoRadius", "ao_radius"], "ssao_radius"),
+                { min: 0.0 }
+            )
+
+        if (
+            payloadHas(params, "ssaoSoftness") ||
+            payloadHas(params, "ssao_softness") ||
+            payloadHas(params, "ao_softness")
+        )
+            assignRootNumber(
+                "ssaoSoftness",
+                numberFromKeys(params, ["ssaoSoftness", "ao_softness"], "ssao_softness"),
+                { min: 0.0 }
+            )
+
+        if (
+            payloadHas(params, "ssaoBias") ||
+            payloadHas(params, "ssao_bias") ||
+            payloadHas(params, "ao_bias")
+        )
+            assignRootNumber(
+                "ssaoBias",
+                numberFromKeys(params, ["ssaoBias", "ao_bias"], "ssao_bias"),
+                { min: 0.0 }
+            )
+
+        if (
+            payloadHas(params, "ssaoDither") ||
+            payloadHas(params, "ssao_dither") ||
+            payloadHas(params, "ao_dither")
+        )
+            assignRootBool(
+                "ssaoDither",
+                boolFromKeys(params, ["ssaoDither", "ao_dither"], "ssao_dither")
+            )
+
+        if (
+            payloadHas(params, "ssaoSampleRate") ||
+            payloadHas(params, "ssao_sample_rate") ||
+            payloadHas(params, "ao_sample_rate") ||
+            payloadHas(params, "ssaoSamples")
+        )
+            assignRootNumber(
+                "ssaoSampleRate",
+                numberFromKeys(
+                    params,
+                    ["ssaoSampleRate", "ssaoSamples", "ao_sample_rate"],
+                    "ssao_sample_rate"
+                ),
+                { min: 1, round: true }
+            )
 
         var bloomSection = valueFromKeys(params, "bloom", "bloom")
         if (bloomSection && typeof bloomSection === "object") {
