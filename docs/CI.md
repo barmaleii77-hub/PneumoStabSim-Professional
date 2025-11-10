@@ -6,7 +6,7 @@ Workflow **Continuous Integration** запускается на каждый `pu
 
 1. Устанавливает headless-пакеты (`xvfb`, `xauth`, `dbus-x11`, Mesa software GL, `libosmesa6(-dev)`, `mesa-utils(-extra)`, `libglu1-mesa(-dev)`, `libegl1`, `libegl1-mesa(-dev)`, `libgles2`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`, `vulkan-tools`) — все эти пакеты явно устанавливаются в workflow-файлах (`.github/workflows/*.yml`), включая оба варианта `libgles2` и `libgles2-mesa(-dev)` для полной совместимости с Dockerfile и install-скриптами. Этого достаточно для Mesa software rendering, проверки fallback-шейдеров и виртуального дисплея Qt Quick 3D.
 2. Подготавливает Python 3.13, устанавливает `uv`, dev-зависимости и Qt 6.10.0 (вместе с плагинами `qtquick3d`, `qtshadertools`, `qtimageformats`). Скрипт `tools/setup_qt.py` по умолчанию разворачивает именно версию **6.10.0**, чтобы избежать расхождений между локальной средой, CI и документацией.
-3. Экспортирует пути Qt и headless-переменные (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1`, `MESA_GL_VERSION_OVERRIDE=4.1`, `MESA_GLSL_VERSION_OVERRIDE=410`).
+3. Экспортирует пути Qt и headless-переменные (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `QT_QUICK_CONTROLS_STYLE=Fusion`, `LIBGL_ALWAYS_SOFTWARE=1`, `MESA_GL_VERSION_OVERRIDE=4.1`, `MESA_GLSL_VERSION_OVERRIDE=410`).
 4. Запускает `make check` (на Linux через `scripts/xvfb_wrapper.sh`), который в свою очередь выполняет:
    - `python -m tools.ci_tasks verify` → линтеры (`ruff format --check`, `ruff check`), `mypy`, `qmllint`, затем последовательно `pytest` для `tests/unit`, `tests/integration`, `tests/ui` и анализ логов `python tools/analyze_logs.py`.
    - аппаратно-зависимые проверки: `make check-shaders`, `make monitor-shader-logs` (обёртка над `python tools/check_shader_logs.py` с флагами `--fail-on-warnings --expect-fallback`), `make validate-hdr-orientation`, `make localization-check`, `make qt-env-check`.
@@ -45,7 +45,7 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
 1. `make cross-platform-prep` → `make cross-platform-test` на Linux/CI-контейнере.
 2. `python -m tools.task_runner cross-platform-prep -- --use-uv` → `python -m tools.task_runner cross-platform-test -- --pytest-args tests` на Windows.
 
-Скрипт `tools.cross_platform_test_prep` синхронизирует `uv`-окружение, ставит системные пакеты (`apt`/`choco`) и удостоверяется, что `PySide6` и `pytest-qt` доступны. Если зависимости отсутствуют, `pytest` теперь аварийно завершает прогон с подсказкой повторно запустить подготовку, поэтому пропуски GUI/QML тестов невозможны.
+Скрипт `tools.cross_platform_test_prep` синхронизирует `uv`-окружение, ставит системные пакеты (`apt`/`choco`) и удостоверяется, что `PySide6` и `pytest-qt` доступны. На Linux он повторяет набор пакетов из Dockerfile (Mesa/Qt стек, `git`, `curl`, `pkg-config`, `build-essential`, `libx11-*`, `libxcb-*`, `libegl-dev`, `libgles-dev`, `mesa-utils-extra`, `libvulkan1`, `mesa-vulkan-drivers`, `vulkan-tools` и др.) и фиксирует стиль `QT_QUICK_CONTROLS_STYLE=Fusion`, чтобы headless-прогон совпадал с рабочей средой. Если зависимости отсутствуют, `pytest` аварийно завершает прогон с подсказкой повторно запустить подготовку, поэтому пропуски GUI/QML тестов невозможны.
 
 ### Headless-рецепт (CI и контейнеры)
 
@@ -53,6 +53,7 @@ pre-commit install --hook-type pre-commit --hook-type pre-push
    ```sh
    export QT_QPA_PLATFORM=offscreen
    export QT_QUICK_BACKEND=software
+   export QT_QUICK_CONTROLS_STYLE=Fusion
    export QSG_RHI_BACKEND=opengl
    export LIBGL_ALWAYS_SOFTWARE=1
    ```
@@ -89,6 +90,6 @@ make check
 
 - `tools/ci_tasks.py` — единая точка входа для Makefile, локальных сценариев и GitHub Actions. Выходные логи лежат в `reports/quality/*.log` и `reports/tests/*.xml`.
 - После `make check` формируется `reports/tests/shader_logs_summary.json` (через `tools/check_shader_logs.py`). Файл фиксирует предупреждения/ошибки Qt Shader Baker и наличие fallback-шейдеров.
-- Если необходимо ограничить тесты, создайте файлы `pytest_unit_targets.txt`, `pytest_integration_targets.txt`, `pytest_ui_targets.txt` или задайте переменные окружения `PYTEST_*_TARGETS`.
+- Базовый файл `pytest_targets.txt` намеренно пуст: он добавляет дополнительные прогоны поверх базовых и не должен заменять юнит/интеграционные/UI-сьюты. Если необходимо ограничить тесты, создайте файлы `pytest_unit_targets.txt`, `pytest_integration_targets.txt`, `pytest_ui_targets.txt` или задайте переменные окружения `PYTEST_*_TARGETS`.
 - Для headless-запуска UI тестов локально экспортируйте `QT_QPA_PLATFORM=offscreen` и `QT_QUICK_BACKEND=software` (значения автоматически устанавливает `tools/ci_tasks test`). На Linux задействуйте `scripts/xvfb_wrapper.sh <команда>` для Qt Quick 3D/QtCharts.
 - `make check` автоматически вызывает `make uv-sync --extra dev`, поэтому lock-файл и dev-зависимости синхронизируются перед запуском линтеров и тестов.
