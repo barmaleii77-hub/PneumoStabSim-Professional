@@ -172,15 +172,11 @@ class LeverGeom:
             tail_point = (0.0, geometry.Y_tail, geometry.Z_axle)
             joint_point = (0.0, rod_x, geometry.Z_axle + rod_y)
 
-            vec = (
-                joint_point[0] - tail_point[0],
-                joint_point[1] - tail_point[1],
-                joint_point[2] - tail_point[2],
-            )
-            projected = sum(
-                component * basis for component, basis in zip(vec, self._axis_unit)
-            )
-            displacement_axis = projected - self._neutral_length
+            dx = joint_point[0] - tail_point[0]
+            dy = joint_point[1] - tail_point[1]
+            dz = joint_point[2] - tail_point[2]
+            axis_len = math.sqrt(dx * dx + dy * dy + dz * dz)
+            displacement_axis = axis_len - self._neutral_length
             signed_axis = math.copysign(abs(displacement_axis), angle_eff)
 
             blend = (
