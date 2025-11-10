@@ -1065,7 +1065,8 @@ Item {
         // чтобы движок QtQuick3D не создавал пустой шейдер и не завершал компиляцию.
         if (!isEnabled) {
             trySetEffectProperty(effectItem, "enabled", false)
-            return hasFallback ? [fallbackShader] : []
+            trySetEffectProperty(effectItem, "fallbackActive", false)
+            return []
         }
         // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
         // фоллбэк, всегда возвращаем валидный шейдер.

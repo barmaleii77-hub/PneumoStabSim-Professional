@@ -311,8 +311,40 @@ ExtendedSceneEnvironment {
     property bool fogEnabled: _bool("environment", ["fog_enabled", "fog_active"], false)
     property color fogColor: _color("environment", ["fog_color", "fogColor"], "#d0d8e8")
     property real fogDensity: _number("environment", ["fog_density", "fogDensity"], 0.06)
+    property bool fogDepthEnabled: _bool(
+            "environment",
+            ["fog_depth_enabled", "fogDepthEnabled"],
+            fogEnabled)
+    property real fogDepthCurve: _number(
+            "environment",
+            ["fog_depth_curve", "fogDepthCurve"],
+            1.0)
     property real fogDepthNear: _number("environment", ["fog_depth_near", "fog_near"], 2.0)
     property real fogDepthFar: _number("environment", ["fog_depth_far", "fog_far"], 20.0)
+    property bool fogHeightEnabled: _bool(
+            "environment",
+            ["fog_height_enabled", "fogHeightEnabled"],
+            false)
+    property real fogLeastIntenseY: _number(
+            "environment",
+            ["fog_least_intense_y", "fogLeastIntenseY"],
+            0.0)
+    property real fogMostIntenseY: _number(
+            "environment",
+            ["fog_most_intense_y", "fogMostIntenseY"],
+            3.0)
+    property real fogHeightCurve: _number(
+            "environment",
+            ["fog_height_curve", "fogHeightCurve"],
+            1.0)
+    property bool fogTransmitEnabled: _bool(
+            "environment",
+            ["fog_transmit_enabled", "fogTransmitEnabled"],
+            true)
+    property real fogTransmitCurve: _number(
+            "environment",
+            ["fog_transmit_curve", "fogTransmitCurve"],
+            1.0)
 
     // Vignette & color adjustments
     property bool vignetteActive: _bool("effects", ["vignette", "vignette_enabled"], true)
@@ -377,8 +409,16 @@ ExtendedSceneEnvironment {
         enabled: env.fogEnabled
         color: env.fogColor
         density: env.fogDensity
+        depthEnabled: env.fogDepthEnabled && env.fogEnabled
+        depthCurve: env.fogDepthCurve
         depthNear: env.toSceneLength(env.fogDepthNear)
         depthFar: env.toSceneLength(env.fogDepthFar)
+        heightEnabled: env.fogHeightEnabled
+        leastIntenseY: env.toSceneLength(env.fogLeastIntenseY)
+        mostIntenseY: env.toSceneLength(env.fogMostIntenseY)
+        heightCurve: env.fogHeightCurve
+        transmitEnabled: env.fogTransmitEnabled
+        transmitCurve: env.fogTransmitCurve
     }
 
     vignetteEnabled: env.vignetteActive
