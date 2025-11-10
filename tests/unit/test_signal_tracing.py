@@ -104,12 +104,32 @@ class TestSignalTracer:
 
 
 @pytest.mark.unit
-def test_bridge_requires_qt_environment() -> None:
+def test_bridge_behaviour_respects_qt_availability(qtbot) -> None:
     tracer = SignalTracer()
+
     if HAS_QT:
-        pytest.skip("PySide6 available in environment; bridge can be instantiated")
-    with pytest.raises(SignalTracingError):
-        SignalTracerBridge(tracer)
+        bridge = SignalTracerBridge(tracer)
+        captured: list[dict[str, Any]] = []
+
+        bridge.traceAdded.connect(captured.append)  # type: ignore[attr-defined]
+
+        source = _FakeQObject("BridgeSource")
+        tracer.attach(source, "changed")
+        source.changed.emit("value")
+
+        def _payload_received() -> bool:
+            return bool(captured)
+
+        qtbot.waitUntil(_payload_received, timeout=1000)
+        payload = captured[0]
+        assert payload["sender"] == "BridgeSource"
+        assert payload["signal"] == "changed"
+        assert payload["args"] == ["value"]
+
+        bridge.dispose()
+    else:
+        with pytest.raises(SignalTracingError):
+            SignalTracerBridge(tracer)
 
 
 @pytest.mark.unit

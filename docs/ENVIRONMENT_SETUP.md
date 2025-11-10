@@ -56,6 +56,28 @@ headless-профилей.
 5. Сохраните вывод в `reports/quality/environment_setup_report.md` при обновлении
    профилей.
 
+### Кроссплатформенное тестирование
+
+- Linux/macOS:
+
+  ```sh
+  make cross-platform-prep
+  make cross-platform-test
+  ```
+
+- Windows / среды без `make`:
+
+  ```powershell
+  python -m tools.task_runner cross-platform-prep -- --qt-version 6.10.0
+  python -m tools.task_runner cross-platform-test -- --pytest-args tests
+  ```
+
+Скрипт `tools/cross_platform_test_prep.py` проверяет наличие системных пакетов,
+импорт PySide6/`pytest-qt` и автоматически включает headless-настройки Qt
+(`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software` для Linux,
+`QSG_RHI_BACKEND=d3d11` для Windows). Выполняйте эти команды после **каждого**
+изменения кода, чтобы сохранить паритет тестов между платформами.
+
 ## 5. Дополнительные рекомендации
 
 - При запуске из VS Code или Copilot GPT сначала выполните `make cipilot-env`,
