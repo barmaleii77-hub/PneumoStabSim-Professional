@@ -167,7 +167,7 @@ ExtendedSceneEnvironment {
     onTonemapActiveChanged: {
         var value = !!tonemapActive
         try {
-            mirrorHostProperty("tonemapActive", value)
+            root.mirrorHostProperty("tonemapActive", value)
         } catch (error) {
             console.debug("SceneEnvironmentController: mirror tonemapActive failed", error)
         }
@@ -176,16 +176,16 @@ ExtendedSceneEnvironment {
     onTonemapModeNameChanged: {
         if (_tonemapModeGuard)
             return
-        var canonical = canonicalTonemapModeName(tonemapModeName)
+        var canonical = root.canonicalTonemapModeName(tonemapModeName)
         if (canonical !== tonemapModeName) {
             _tonemapModeGuard = true
             tonemapModeName = canonical
             _tonemapModeGuard = false
             return
         }
-        _syncTonemapModeFromName(canonical)
+        root._syncTonemapModeFromName(canonical)
         try {
-            mirrorHostProperty("tonemapModeName", canonical)
+            root.mirrorHostProperty("tonemapModeName", canonical)
         } catch (error) {
             console.debug("SceneEnvironmentController: mirror tonemapModeName failed", error)
         }
@@ -194,10 +194,10 @@ ExtendedSceneEnvironment {
     onQualityPresetChanged: {
         if (_applyingQualityPreset)
             return
-        if (!applyQualityPresetInternal(qualityPreset)) {
+        if (!root.applyQualityPresetInternal(qualityPreset)) {
             var fallback = qualityProfiles.fallbackKey()
             if (fallback && fallback !== qualityPreset)
-                applyQualityPresetInternal(fallback)
+                root.applyQualityPresetInternal(fallback)
         }
     }
 
@@ -211,12 +211,12 @@ ExtendedSceneEnvironment {
     property color backgroundColor: environmentStringDefault("backgroundColor", "background_color", "#1f242c")
     property string backgroundModeKey: environmentStringDefault("backgroundMode", "background_mode", "skybox")
     property bool skyboxToggleFlag: environmentBoolDefault("skyboxEnabled", "skybox_enabled", true)
-    readonly property bool backgroundIsTransparent: backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Transparent
+    readonly property bool backgroundIsTransparent: root.backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Transparent
     property color resolvedClearColor: {
         var base = backgroundColor
         if (backgroundIsTransparent)
             return Qt.rgba(base.r, base.g, base.b, 0.0)
-        if (backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Color)
+        if (root.backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Color)
             return Qt.rgba(base.r, base.g, base.b, 1.0)
         return base
     }
@@ -383,31 +383,31 @@ ExtendedSceneEnvironment {
             || (Math.abs(adjustmentSaturation) > 0.0001)
 
     function _syncColorAdjustmentFlags() {
-        mirrorHostProperty("colorAdjustmentsHasOverrides", colorAdjustmentsHasOverrides)
-        mirrorHostProperty("colorAdjustmentsActive", colorAdjustmentsActive)
+        root.mirrorHostProperty("colorAdjustmentsHasOverrides", colorAdjustmentsHasOverrides)
+        root.mirrorHostProperty("colorAdjustmentsActive", colorAdjustmentsActive)
     }
 
     onColorAdjustmentsEnabledChanged: {
         if (colorAdjustmentsActive !== colorAdjustmentsEnabled)
             colorAdjustmentsActive = colorAdjustmentsEnabled
-        _syncColorAdjustmentFlags()
+        root._syncColorAdjustmentFlags()
     }
     onColorAdjustmentsActiveChanged: {
         if (colorAdjustmentsEnabled !== colorAdjustmentsActive)
             colorAdjustmentsEnabled = colorAdjustmentsActive
-        _syncColorAdjustmentFlags()
+        root._syncColorAdjustmentFlags()
     }
     onAdjustmentBrightnessChanged: {
-        mirrorHostProperty("adjustmentBrightness", adjustmentBrightness)
-        _syncColorAdjustmentFlags()
+        root.mirrorHostProperty("adjustmentBrightness", adjustmentBrightness)
+        root._syncColorAdjustmentFlags()
     }
     onAdjustmentContrastChanged: {
-        mirrorHostProperty("adjustmentContrast", adjustmentContrast)
-        _syncColorAdjustmentFlags()
+        root.mirrorHostProperty("adjustmentContrast", adjustmentContrast)
+        root._syncColorAdjustmentFlags()
     }
     onAdjustmentSaturationChanged: {
-        mirrorHostProperty("adjustmentSaturation", adjustmentSaturation)
-        _syncColorAdjustmentFlags()
+        root.mirrorHostProperty("adjustmentSaturation", adjustmentSaturation)
+        root._syncColorAdjustmentFlags()
     }
 
  /**
@@ -416,7 +416,7 @@ ExtendedSceneEnvironment {
  property var sceneBridge: null
 
     function _syncSkyboxBackground() {
-        var targetMode = backgroundModeForKey(backgroundModeKey)
+        var targetMode = root.backgroundModeForKey(backgroundModeKey)
         var wantsSkybox = targetMode === SceneEnvironment.SkyBox
         if (!wantsSkybox) {
             if (iblBackgroundEnabled)
@@ -428,12 +428,12 @@ ExtendedSceneEnvironment {
             iblBackgroundEnabled = enableBackground
     }
 
-    onBackgroundModeKeyChanged: _syncSkyboxBackground()
-    onSkyboxToggleFlagChanged: _syncSkyboxBackground()
-    onIblMasterEnabledChanged: _syncSkyboxBackground()
+    onBackgroundModeKeyChanged: root._syncSkyboxBackground()
+    onSkyboxToggleFlagChanged: root._syncSkyboxBackground()
+    onIblMasterEnabledChanged: root._syncSkyboxBackground()
 
     backgroundMode: {
-        var targetMode = backgroundModeForKey(backgroundModeKey)
+        var targetMode = root.backgroundModeForKey(backgroundModeKey)
         if (targetMode === SceneEnvironment.SkyBox)
             return (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
         return targetMode
@@ -490,7 +490,7 @@ ExtendedSceneEnvironment {
  // ✅ ИСПРАВЛЕНО: fxaaEnabled и specularAAEnabled уже установлены выше
  temporalAAEnabled: (aaPostMode === "taa" && taaEnabled && (!taaMotionAdaptive || cameraIsMoving))
  temporalAAStrength: taaStrength
-    onTemporalAAEnabledChanged: _updateBufferRequirements()
+    onTemporalAAEnabledChanged: root._updateBufferRequirements()
 
  // ===============================================================
  // DITHERING (Qt6.10+)
@@ -555,7 +555,7 @@ ExtendedSceneEnvironment {
     Component.onCompleted: {
         if (!root.fogHelpersSupported)
             root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
-        Qt.callLater(_updateBufferRequirements)
+        Qt.callLater(root._updateBufferRequirements)
     }
 
     function toSceneLength(value) {
@@ -996,7 +996,7 @@ ExtendedSceneEnvironment {
     function tonemapModeEnumForName(name) {
         if (!SceneEnvironment)
             return undefined
-        var normalized = canonicalTonemapModeName(name)
+        var normalized = root.canonicalTonemapModeName(name)
         switch (normalized) {
         case "filmic":
             return sceneEnvironmentEnum("TonemapModeFilmic")
@@ -1024,7 +1024,7 @@ ExtendedSceneEnvironment {
     }
 
     function _syncTonemapModeFromName(name) {
-        var modeValue = tonemapModeEnumForName(name)
+        var modeValue = root.tonemapModeEnumForName(name)
         if (modeValue === undefined)
             return
         try {
@@ -1038,13 +1038,13 @@ ExtendedSceneEnvironment {
     function assignTonemapModeProperty(value) {
         if (value === undefined || value === null)
             return
-        var canonical = canonicalTonemapModeName(value)
+        var canonical = root.canonicalTonemapModeName(value)
         if (tonemapModeName !== canonical) {
             tonemapModeName = canonical
         } else {
-            _syncTonemapModeFromName(canonical)
+            root._syncTonemapModeFromName(canonical)
             try {
-                mirrorHostProperty("tonemapModeName", canonical)
+                root.mirrorHostProperty("tonemapModeName", canonical)
             } catch (error) {
                 console.debug("SceneEnvironmentController: mirror tonemapModeName failed", error)
             }
@@ -1066,7 +1066,7 @@ ExtendedSceneEnvironment {
             console.debug("SceneEnvironmentController: exposure assignment failed", error)
         }
         try {
-            mirrorHostProperty("tonemapExposure", tonemapExposureValue)
+            root.mirrorHostProperty("tonemapExposure", tonemapExposureValue)
         } catch (error) {
             console.debug("SceneEnvironmentController: mirror tonemapExposure failed", error)
         }
@@ -1087,7 +1087,7 @@ ExtendedSceneEnvironment {
             console.debug("SceneEnvironmentController: whitePoint assignment failed", error)
         }
         try {
-            mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
+            root.mirrorHostProperty("tonemapWhitePoint", tonemapWhitePointValue)
         } catch (error) {
             console.debug("SceneEnvironmentController: mirror tonemapWhitePoint failed", error)
         }
@@ -1100,7 +1100,7 @@ ExtendedSceneEnvironment {
             return
         }
         try {
-            mirrorHostProperty("tonemapActive", value)
+            root.mirrorHostProperty("tonemapActive", value)
         } catch (error) {
             console.debug("SceneEnvironmentController: mirror tonemapActive failed", error)
         }
@@ -1208,9 +1208,9 @@ ExtendedSceneEnvironment {
             nested.push(params.quality)
 
         for (var i = 0; i < nested.length; ++i)
-            applyQualityPayload(nested[i])
+            root.applyQualityPayload(nested[i])
 
-        var presetValue = stringFromKeys(params, "qualityPreset", "preset")
+        var presetValue = root.stringFromKeys(params, "qualityPreset", "preset")
         if (presetValue !== undefined) {
             var canonical = String(presetValue)
             if (qualityProfiles && typeof qualityProfiles.canonicalKey === "function") {
@@ -1223,43 +1223,43 @@ ExtendedSceneEnvironment {
             activeQualityPreset = canonical
         }
 
-        var primaryMode = stringFromKeys(params, "aaPrimaryMode", "aa_primary_mode")
+        var primaryMode = root.stringFromKeys(params, "aaPrimaryMode", "aa_primary_mode")
         if (primaryMode !== undefined)
             aaPrimaryMode = primaryMode
 
-        var qualityLevel = stringFromKeys(params, "aaQualityLevel", "aa_quality_level")
+        var qualityLevel = root.stringFromKeys(params, "aaQualityLevel", "aa_quality_level")
         if (qualityLevel !== undefined)
             aaQualityLevel = qualityLevel
 
-        var postMode = stringFromKeys(params, "aaPostMode", "aa_post_mode")
+        var postMode = root.stringFromKeys(params, "aaPostMode", "aa_post_mode")
         if (postMode !== undefined)
             aaPostMode = postMode
 
-        var taaFlag = boolFromKeys(params, "taaEnabled", "taa_enabled")
+        var taaFlag = root.boolFromKeys(params, "taaEnabled", "taa_enabled")
         if (taaFlag !== undefined)
             taaEnabled = taaFlag
 
-        var taaStrengthValue = numberFromKeys(params, "taaStrength", "taa_strength")
+        var taaStrengthValue = root.numberFromKeys(params, "taaStrength", "taa_strength")
         if (taaStrengthValue !== undefined)
             taaStrength = taaStrengthValue
 
-        var taaAdaptiveFlag = boolFromKeys(params, "taaMotionAdaptive", "taa_motion_adaptive")
+        var taaAdaptiveFlag = root.boolFromKeys(params, "taaMotionAdaptive", "taa_motion_adaptive")
         if (taaAdaptiveFlag !== undefined)
             taaMotionAdaptive = taaAdaptiveFlag
 
-        var fxaaFlag = boolFromKeys(params, "fxaaEnabled", "fxaa_enabled")
+        var fxaaFlag = root.boolFromKeys(params, "fxaaEnabled", "fxaa_enabled")
         if (fxaaFlag !== undefined)
             fxaaEnabled = fxaaFlag
 
-        var specularFlag = boolFromKeys(params, "specularAAEnabled", "specular_aa")
+        var specularFlag = root.boolFromKeys(params, "specularAAEnabled", "specular_aa")
         if (specularFlag !== undefined)
             specularAAEnabled = specularFlag
 
-        var ditheringFlag = boolFromKeys(params, "ditheringEnabled", "dithering")
+        var ditheringFlag = root.boolFromKeys(params, "ditheringEnabled", "dithering")
         if (ditheringFlag !== undefined)
             ditheringEnabled = ditheringFlag
 
-        var scaleValue = numberFromKeys(params, "sceneScaleFactor", "render_scale")
+        var scaleValue = root.numberFromKeys(params, "sceneScaleFactor", "render_scale")
         if (scaleValue !== undefined)
             sceneScaleFactor = scaleValue
     }
@@ -1292,11 +1292,11 @@ ExtendedSceneEnvironment {
             activeQualityPreset = requested
 
             if (preset.antialiasing && typeof preset.antialiasing === "object")
-                applyQualityPayload(preset.antialiasing)
+                root.applyQualityPayload(preset.antialiasing)
             if (preset.environment && typeof preset.environment === "object")
-                applyEnvironmentPayload(preset.environment)
+                root.applyEnvironmentPayload(preset.environment)
             if (preset.effects && typeof preset.effects === "object")
-                applyEffectsPayload(preset.effects)
+                root.applyEffectsPayload(preset.effects)
         } finally {
             _applyingQualityPreset = false
         }
@@ -1345,7 +1345,7 @@ ExtendedSceneEnvironment {
                 console.warn("⚠️ SceneEnvironmentController: colorAdjustmentsEnabled assignment failed", error)
             }
             try {
-                _syncColorAdjustmentFlags()
+                root._syncColorAdjustmentFlags()
             } catch (error) {
                 console.warn("⚠️ SceneEnvironmentController: _syncColorAdjustmentFlags failed", error)
             }
@@ -1366,12 +1366,12 @@ ExtendedSceneEnvironment {
                 return
             }
             try {
-                mirrorHostProperty(propertyName, assigned)
+                root.mirrorHostProperty(propertyName, assigned)
             } catch (error) {
                 console.warn("⚠️ SceneEnvironmentController: mirror", propertyName, "failed", error)
             }
             try {
-                _syncColorAdjustmentFlags()
+                root._syncColorAdjustmentFlags()
             } catch (error) {
                 console.warn("⚠️ SceneEnvironmentController: _syncColorAdjustmentFlags failed", error)
             }
