@@ -166,8 +166,10 @@ class SettingsService:
             return
 
         alias_pairs: tuple[tuple[str, str], ...] = (
+            ("fog_depth_enabled", "fog_enabled"),
             ("fog_depth_near", "fog_near"),
             ("fog_depth_far", "fog_far"),
+            ("fog_depth_curve", "fog_height_curve"),
         )
 
         def _copy_alias(section: MutableMapping[str, Any] | None) -> None:

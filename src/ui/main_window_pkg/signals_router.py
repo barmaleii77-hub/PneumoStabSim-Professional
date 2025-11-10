@@ -270,6 +270,7 @@ class SignalsRouter:
             _sync_depth_alias("fog_depth_enabled", "fog_enabled")
             _sync_depth_alias("fog_depth_near", "fog_near")
             _sync_depth_alias("fog_depth_far", "fog_far")
+            _sync_depth_alias("fog_depth_curve", "fog_height_curve")
 
         ambient_section = _first_mapping(
             env_payload.get("ambient_occlusion"), params.get("ambient_occlusion")

@@ -58,6 +58,7 @@ class EnvironmentTab(QWidget):
         # Current state - храним ссылки на контролы
         self._controls: dict[str, Any] = {}
         self._updating_ui = False
+        self._passthrough_state: dict[str, Any] = {}
         self._qml_root = Path(__file__).resolve().parents[4] / "assets" / "qml"
         self._hdr_items: list[tuple[str, str]] = self._discover_hdr_files()
         self._slider_ranges: dict[str, EnvironmentSliderRange] = (
@@ -822,11 +823,29 @@ class EnvironmentTab(QWidget):
             "ao_dither": self._require_control("ao.dither").isChecked(),
             "ao_sample_rate": self._require_control("ao.sample_rate").currentData(),
         }
+        for optional_key in ("fog_depth_enabled", "fog_depth_curve"):
+            if optional_key in self._passthrough_state:
+                raw_state.setdefault(
+                    optional_key, self._passthrough_state[optional_key]
+                )
         return validate_environment_settings(raw_state)
 
     def set_state(self, state: dict[str, Any]):
         """Установить состояние из словаря"""
         validated = validate_environment_settings(state)
+        for optional_key in ("fog_depth_enabled", "fog_depth_curve"):
+            if (
+                optional_key not in validated
+                and optional_key in self._passthrough_state
+            ):
+                self._passthrough_state.pop(optional_key, None)
+        self._passthrough_state.update(
+            {
+                key: validated[key]
+                for key in ("fog_depth_enabled", "fog_depth_curve")
+                if key in validated
+            }
+        )
         self._updating_ui = True
         for control in self._controls.values():
             try:
