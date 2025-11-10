@@ -7,9 +7,7 @@ import pytest
 
 from tests.helpers.qt import require_qt_modules
 
-QtCore, *_ = require_qt_modules(
-    "PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets"
-)
+QtCore, *_ = require_qt_modules("PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets")
 Qt = QtCore.Qt
 
 from src.common.settings_manager import SettingsManager
