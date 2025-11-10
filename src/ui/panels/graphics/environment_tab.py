@@ -8,7 +8,9 @@ Part of modular GraphicsPanel restructuring
 - _build_ao_group() → Ambient Occlusion (SSAO) расширенный
 """
 
+import inspect
 import logging
+import os
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -19,6 +21,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QGridLayout,
     QMessageBox,
+    QApplication,
 )
 from PySide6.QtCore import Signal, Qt
 from pathlib import Path
@@ -232,8 +235,22 @@ class EnvironmentTab(QWidget):
 
         text = "\n".join(dict.fromkeys(unique_messages))
         logger.warning("Environment slider range fallback: %s", text)
+
+        app = QApplication.instance()
+        platform_hint = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
+        is_headless = platform_hint in {"offscreen", "minimal", "headless"}
+        if app is not None:
+            is_headless = is_headless or bool(getattr(app, "is_headless", False))
+
+        warning_handler = getattr(QMessageBox, "warning", None)
+        if not callable(warning_handler):
+            return
+
+        if (is_headless or app is None) and inspect.isbuiltin(warning_handler):
+            return
+
         try:
-            QMessageBox.warning(self, "Диапазоны окружения", text)
+            warning_handler(self, "Диапазоны окружения", text)
         except Exception:  # pragma: no cover - UI fallback
             logger.exception("Failed to show environment slider warning dialog")
 

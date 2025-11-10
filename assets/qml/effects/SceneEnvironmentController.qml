@@ -14,12 +14,68 @@ ExtendedSceneEnvironment {
  id: root
 
     // Optional context hooks supplied by the embedding scene bridge
-    property var initialSceneSettings: null
-    property var initialAnimationSettings: null
-    property var initialGeometrySettings: null
-    property var materialsDefaults: null
-    property var lightingAccess: null
-    property var qtRuntimeVersion: null
+    property var initialSceneSettingsData: null
+    property var initialAnimationSettingsData: null
+    property var initialGeometrySettingsData: null
+    property var materialsDefaultsData: null
+    property var lightingAccessData: null
+    property var qtRuntimeVersionData: null
+
+    function _contextValue(name) {
+        try {
+            if (name === "initialSceneSettings" && typeof initialSceneSettings !== "undefined")
+                return initialSceneSettings
+            if (name === "initialAnimationSettings" && typeof initialAnimationSettings !== "undefined")
+                return initialAnimationSettings
+            if (name === "initialGeometrySettings" && typeof initialGeometrySettings !== "undefined")
+                return initialGeometrySettings
+            if (name === "materialsDefaults" && typeof materialsDefaults !== "undefined")
+                return materialsDefaults
+            if (name === "lightingAccess" && typeof lightingAccess !== "undefined")
+                return lightingAccess
+            if (name === "qtRuntimeVersion" && typeof qtRuntimeVersion !== "undefined")
+                return qtRuntimeVersion
+        } catch (error) {
+            console.debug("SceneEnvironmentController", "context lookup failed", name, error)
+        }
+        return undefined
+    }
+
+    function _contextFallback(name, currentValue) {
+        if (currentValue !== undefined && currentValue !== null)
+            return currentValue
+        var contextValue = _contextValue(name)
+        if (contextValue !== undefined && contextValue !== null)
+            return contextValue
+        return currentValue
+    }
+
+    function _refreshContextDefaults() {
+        root.initialSceneSettingsData = _contextFallback(
+            "initialSceneSettings",
+            root.initialSceneSettingsData
+        )
+        root.initialAnimationSettingsData = _contextFallback(
+            "initialAnimationSettings",
+            root.initialAnimationSettingsData
+        )
+        root.initialGeometrySettingsData = _contextFallback(
+            "initialGeometrySettings",
+            root.initialGeometrySettingsData
+        )
+        root.materialsDefaultsData = _contextFallback(
+            "materialsDefaults",
+            root.materialsDefaultsData
+        )
+        root.lightingAccessData = _contextFallback(
+            "lightingAccess",
+            root.lightingAccessData
+        )
+        root.qtRuntimeVersionData = _contextFallback(
+            "qtRuntimeVersion",
+            root.qtRuntimeVersionData
+        )
+    }
 
     // Источники контекста, передаются родителем для устранения не квалифицированных обращений
     // materialsDefaultsOverride: позволяет принудительно задать дефолтные материалы
@@ -27,31 +83,83 @@ ExtendedSceneEnvironment {
     // lightingContextOverride: приоритетный источник доступа к настройкам освещения
     property var lightingContextOverride: null
 
-    readonly property var initialSceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
-    readonly property var initialAnimationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
+    readonly property var initialSceneDefaults: {
+        var source = _contextFallback("initialSceneSettings", root.initialSceneSettingsData)
+        return source !== undefined && source !== null ? source : null
+    }
+    readonly property var initialAnimationDefaults: {
+        var source = _contextFallback("initialAnimationSettings", root.initialAnimationSettingsData)
+        return source !== undefined && source !== null ? source : null
+    }
     // ✅ FIX: не ссылаться на себя; брать initialGeometrySettings
-    readonly property var initialGeometryDefaults: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : null
+    readonly property var initialGeometryDefaults: {
+        var source = _contextFallback("initialGeometrySettings", root.initialGeometrySettingsData)
+        return source !== undefined && source !== null ? source : null
+    }
 
     // ✅ Убираем глобальные идентификаторы, используем root.* свойства
     readonly property var contextMaterialsDefaults: (root.materialsDefaultsOverride !== undefined && root.materialsDefaultsOverride !== null)
                                                    ? root.materialsDefaultsOverride
-                                                   : (typeof materialsDefaults !== "undefined" && materialsDefaults !== null
-                                                      ? materialsDefaults
-                                                      : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.materials !== undefined
-                                                         ? initialSceneDefaults.materials
-                                                         : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
-                                                            ? initialSceneDefaults.graphics.materials
-                                                            : null)))
+                                                   : (function() {
+                                                          var defaults = _contextFallback("materialsDefaults", root.materialsDefaultsData)
+                                                          if (defaults !== undefined && defaults !== null)
+                                                              return defaults
+                                                          return (typeof materialsDefaults !== "undefined" && materialsDefaults !== null
+                                                                  ? materialsDefaults
+                                                                  : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.materials !== undefined
+                                                                     ? initialSceneDefaults.materials
+                                                                     : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
+                                                                        ? initialSceneDefaults.graphics.materials
+                                                                        : null)))
+                                                      })()
 
     readonly property var contextEnvironmentDefaults: {
         var source = initialSceneDefaults
-        if (source && typeof source === "object") {
-            if (source.environment && typeof source.environment === "object" && !Array.isArray(source.environment))
-                return source.environment
-            if (source.graphics && typeof source.graphics === "object" && source.graphics.environment && typeof source.graphics.environment === "object")
-                return source.graphics.environment
+        if (!source || typeof source !== "object")
+            return null
+
+        var environment = null
+        if (source.environment && typeof source.environment === "object" && !Array.isArray(source.environment))
+            environment = source.environment
+        else if (
+            source.graphics &&
+            typeof source.graphics === "object" &&
+            source.graphics.environment &&
+            typeof source.graphics.environment === "object"
+        )
+            environment = source.graphics.environment
+
+        if (!environment)
+            return null
+
+        var normalized = _cloneContextPayload(environment)
+        if (!normalized || typeof normalized !== "object")
+            normalized = environment
+
+        var iblEnabledValue = boolFromKeys(normalized, "iblEnabled", "ibl_enabled")
+        if (
+            boolFromKeys(normalized, "iblLightingEnabled", "ibl_lighting_enabled") === undefined &&
+            iblEnabledValue !== undefined
+        )
+            normalized.ibl_lighting_enabled = iblEnabledValue
+
+        if (
+            boolFromKeys(normalized, "iblBackgroundEnabled", "ibl_background_enabled") === undefined
+        ) {
+            var skyboxValue = boolFromKeys(normalized, "skyboxEnabled", "skybox_enabled")
+            if (skyboxValue !== undefined)
+                normalized.ibl_background_enabled = skyboxValue
         }
-        return null
+
+        if (boolFromKeys(normalized, "iblMasterEnabled", "ibl_master_enabled") === undefined) {
+            var masterFallback = iblEnabledValue
+            if (masterFallback === undefined)
+                masterFallback = boolFromKeys(normalized, "iblBackgroundEnabled", "ibl_background_enabled")
+            if (masterFallback !== undefined)
+                normalized.ibl_master_enabled = masterFallback
+        }
+
+        return normalized
     }
 
     readonly property var contextQualityDefaults: {
@@ -79,13 +187,18 @@ ExtendedSceneEnvironment {
     // ✅ Убираем глобальные обращения — используем lightingContextOverride или lightingAccess
     readonly property var contextLightingDefaults: (root.lightingContextOverride !== undefined && root.lightingContextOverride !== null)
                                                    ? root.lightingContextOverride
-                                                   : (typeof lightingAccess !== "undefined" && lightingAccess !== null
-                                                      ? lightingAccess
-                                                      : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.lighting !== undefined
-                                                         ? initialSceneDefaults.lighting
-                                                         : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
-                                                            ? initialSceneDefaults.graphics.lighting
-                                                            : null)))
+                                                   : (function() {
+                                                          var defaults = _contextFallback("lightingAccess", root.lightingAccessData)
+                                                          if (defaults !== undefined && defaults !== null)
+                                                              return defaults
+                                                          return (typeof lightingAccess !== "undefined" && lightingAccess !== null
+                                                                  ? lightingAccess
+                                                                  : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.lighting !== undefined
+                                                                     ? initialSceneDefaults.lighting
+                                                                     : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
+                                                                        ? initialSceneDefaults.graphics.lighting
+                                                                        : null)))
+                                                      })()
 
     QualityPresets {
         id: qualityProfiles
@@ -501,8 +614,8 @@ ExtendedSceneEnvironment {
     property real sceneScaleFactor:1.0
 
     readonly property string qtRuntimeVersionString: {
-        if (typeof qtRuntimeVersion === "string" && qtRuntimeVersion.length > 0)
-            return qtRuntimeVersion
+        if (typeof qtRuntimeVersionData === "string" && qtRuntimeVersionData.length > 0)
+            return qtRuntimeVersionData
         if (typeof Qt !== "undefined" && Qt.application && Qt.application.version !== undefined) {
             var versionValue = Qt.application.version
             if (versionValue !== undefined && versionValue !== null) {
@@ -553,9 +666,15 @@ ExtendedSceneEnvironment {
     }
 
     Component.onCompleted: {
+        root._refreshContextDefaults()
+        root._applyInitialContextDefaults()
         if (!root.fogHelpersSupported)
             root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
-        Qt.callLater(root._updateBufferRequirements)
+        Qt.callLater(function() {
+            root._refreshContextDefaults()
+            root._applyInitialContextDefaults()
+            root._updateBufferRequirements()
+        })
     }
 
     function toSceneLength(value) {

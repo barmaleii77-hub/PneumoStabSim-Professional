@@ -266,8 +266,7 @@ class LabeledSlider(QWidget):
         self._spin.setValue(value)
         self._update_label(value)
         self._updating = False
-        if self._user_triggered:
-            self.valueChanged.emit(round(value, self._decimals))
+        self.valueChanged.emit(round(value, self._decimals))
 
     @Slot(float)
     def _handle_spin(self, value: float) -> None:
@@ -278,8 +277,7 @@ class LabeledSlider(QWidget):
         self._slider.setValue(slider_value)
         self._update_label(value)
         self._updating = False
-        if self._user_triggered:
-            self.valueChanged.emit(round(value, self._decimals))
+        self.valueChanged.emit(round(value, self._decimals))
 
 
 class FileCyclerWidget(QWidget):
