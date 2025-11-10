@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -157,6 +158,7 @@ class SignalTracer:
                 signal=record.signal,
                 args=list(record.args),
             )
+            logging.getLogger("diagnostics.signals").info("signal_trace_event")
 
             for sink in sinks_snapshot:
                 try:
