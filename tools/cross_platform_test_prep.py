@@ -14,7 +14,6 @@ the exact same bootstrap sequence.
 from __future__ import annotations
 
 import argparse
-import importlib
 import os
 import platform
 import shutil
@@ -175,8 +174,39 @@ def install_windows_system_packages(packages: Iterable[str]) -> None:
         )
 
 
-def install_python_dependencies(use_uv: bool) -> None:
-    """Install project Python dependencies for the full test matrix."""
+def _resolve_uv_python_interpreter() -> Path | None:
+    """Return the Python interpreter provisioned by ``uv sync`` when available."""
+
+    env_root = REPO_ROOT / ".venv"
+    if not env_root.exists():
+        return None
+
+    if os.name == "nt":
+        candidates = [
+            env_root / "Scripts" / "python.exe",
+            env_root / "Scripts" / "python",
+        ]
+    else:
+        candidates = [
+            env_root / "bin" / "python3",
+            env_root / "bin" / "python",
+        ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def install_python_dependencies(use_uv: bool) -> Path | None:
+    """Install project Python dependencies for the full test matrix.
+
+    Returns the interpreter that should be used for runtime validation. When
+    ``uv`` provisions the environment, the interpreter resolves to
+    ``.venv/bin/python`` (or the Windows equivalent). Otherwise the current
+    interpreter is returned so that module checks execute inside the active
+    virtualenv.
+    """
 
     if use_uv and shutil.which("uv") is not None:
         _run_step(
@@ -185,47 +215,69 @@ def install_python_dependencies(use_uv: bool) -> None:
                 "Synchronise Python environment with uv",
             )
         )
-    else:
+        return _resolve_uv_python_interpreter()
+
+    _run_step(
+        CommandStep(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "pip"],
+            "Upgrade pip",
+        )
+    )
+    requirements_path = REPO_ROOT / "requirements-dev.txt"
+    if requirements_path.exists():
         _run_step(
             CommandStep(
-                [sys.executable, "-m", "pip", "install", "--upgrade", "pip"],
-                "Upgrade pip",
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "-r",
+                    str(requirements_path),
+                ],
+                "Install Python development dependencies",
             )
         )
-        requirements_path = REPO_ROOT / "requirements-dev.txt"
-        if requirements_path.exists():
-            _run_step(
-                CommandStep(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "install",
-                        "-r",
-                        str(requirements_path),
-                    ],
-                    "Install Python development dependencies",
-                )
-            )
-        project_target = [sys.executable, "-m", "pip", "install", "-e", ".[dev]"]
-        _run_step(CommandStep(project_target, "Install project with dev extras"))
+    project_target = [sys.executable, "-m", "pip", "install", "-e", ".[dev]"]
+    _run_step(CommandStep(project_target, "Install project with dev extras"))
+    return Path(sys.executable)
 
 
-def verify_python_runtime() -> None:
+def verify_python_runtime(interpreter: Path | None) -> None:
     """Ensure critical Python dependencies for cross-platform tests are importable."""
 
-    missing: list[str] = []
-    for module_name in PYTHON_DEPENDENCY_SENTINELS:
-        try:
-            importlib.import_module(module_name)
-        except Exception as exc:  # pragma: no cover - platform dependant imports
-            missing.append(f"{module_name}: {exc}")
+    if interpreter is None:
+        interpreter = Path(sys.executable)
 
-    if missing:
-        details = "\n".join(f"  - {line}" for line in missing)
+    script = (
+        "import importlib\n"
+        "import sys\n\n"
+        f"sentinels = {list(PYTHON_DEPENDENCY_SENTINELS)!r}\n"
+        "missing = []\n"
+        "for module_name in sentinels:\n"
+        "    try:\n"
+        "        importlib.import_module(module_name)\n"
+        "    except Exception as exc:  # pragma: no cover - delegated to subprocess\n"
+        "        missing.append(f\"{module_name}: {exc}\")\n\n"
+        "if missing:\n"
+        "    for line in missing:\n"
+        "        print(line)\n"
+        "    sys.exit(1)\n"
+    )
+
+    result = subprocess.run(  # noqa: S603 - trusted interpreter discovered above
+        [str(interpreter), "-c", script],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        details = (result.stdout or result.stderr).strip()
+        if details:
+            details = "\n" + details
         raise RuntimeError(
-            "Required Python modules for Qt/pytest integration are unavailable.\n"
-            f"Install missing modules and rerun provisioning.\n{details}"
+            "Required Python modules for Qt/pytest integration are unavailable."
+            "\nInstall missing modules and rerun provisioning." + details
         )
 
 
@@ -236,7 +288,7 @@ def provision_qt_runtime(version: str) -> None:
     _run_step(CommandStep(args, f"Provision Qt runtime {version}"))
 
 
-def run_test_suite(extra_args: Sequence[str]) -> None:
+def run_test_suite(extra_args: Sequence[str], interpreter: Path | None) -> None:
     """Execute the pytest suite with headless defaults for the active platform."""
 
     system = platform.system()
@@ -263,7 +315,9 @@ def run_test_suite(extra_args: Sequence[str]) -> None:
     if not pytest_args:
         pytest_args = ["tests"]
 
-    command = [sys.executable, "-m", "pytest", "-vv", *pytest_args]
+    runtime_python = interpreter or _resolve_uv_python_interpreter() or Path(sys.executable)
+    python_executable = str(runtime_python)
+    command = [python_executable, "-m", "pytest", "-vv", *pytest_args]
     _run_step(CommandStep(command, "Run cross-platform pytest suite", env=env))
 
 
@@ -316,15 +370,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         elif system == "Windows":
             install_windows_system_packages(WINDOWS_CHOCOLATEY_PACKAGES)
 
+    runtime_interpreter: Path | None = None
     if not args.skip_python:
-        install_python_dependencies(use_uv=args.use_uv)
-        verify_python_runtime()
+        runtime_interpreter = install_python_dependencies(use_uv=args.use_uv)
+    verify_python_runtime(runtime_interpreter)
 
     if args.qt_version:
         provision_qt_runtime(args.qt_version)
 
     if args.run_tests:
-        run_test_suite(tuple(args.pytest_args))
+        run_test_suite(tuple(args.pytest_args), runtime_interpreter)
 
     print("✅ Cross-platform test preparation completed.")
     return 0
