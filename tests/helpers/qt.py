@@ -24,13 +24,17 @@ def _format_dependency_message(header: str, details: list[str]) -> str:
         missing_section = f"\n\nMissing modules:\n{formatted}\n"
     else:
         missing_section = "\n"
-    return textwrap.dedent(
-        """
+    return (
+        textwrap.dedent(
+            """
     {header}{missing}
     Execute `python -m tools.cross_platform_test_prep --use-uv --run-tests` to
     install the required Python and system dependencies before retrying.
     """
-    ).strip().format(header=header, missing=missing_section)
+        )
+        .strip()
+        .format(header=header, missing=missing_section)
+    )
 
 
 def _fail_missing_runtime(reason: str, missing: list[str]) -> None:

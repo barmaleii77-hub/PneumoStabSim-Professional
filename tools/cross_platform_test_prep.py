@@ -86,7 +86,6 @@ PYTHON_DEPENDENCY_SENTINELS: tuple[str, ...] = (
     "PySide6.QtQml",
 )
 
-
 @dataclass
 class CommandStep:
     """Describe a command that needs to be executed."""
@@ -132,9 +131,7 @@ def install_linux_system_packages(packages: Iterable[str]) -> None:
 
     if shutil.which("apt-get") is None:
         print("⚠️ Skipping system package installation: apt-get is not available.")
-        print(
-            "   Install the following packages manually to enable Qt headless runs:"
-        )
+        print("   Install the following packages manually to enable Qt headless runs:")
         for package in packages:
             print(f"     - {package}")
         return
@@ -243,7 +240,12 @@ def install_python_dependencies(use_uv: bool) -> Path | None:
     return Path(sys.executable)
 
 
-def verify_python_runtime(interpreter: Path | None) -> None:
+def verify_python_runtime(
+    interpreter: Path | None,
+    *,
+    platform_system: str,
+    skip_system_packages: bool,
+) -> None:
     """Ensure critical Python dependencies for cross-platform tests are importable."""
 
     if interpreter is None:
@@ -258,7 +260,7 @@ def verify_python_runtime(interpreter: Path | None) -> None:
         "    try:\n"
         "        importlib.import_module(module_name)\n"
         "    except Exception as exc:  # pragma: no cover - delegated to subprocess\n"
-        "        missing.append(f\"{module_name}: {exc}\")\n\n"
+        '        missing.append(f"{module_name}: {exc}")\n\n'
         "if missing:\n"
         "    for line in missing:\n"
         "        print(line)\n"
@@ -272,13 +274,28 @@ def verify_python_runtime(interpreter: Path | None) -> None:
         text=True,
     )
     if result.returncode != 0:
-        details = (result.stdout or result.stderr).strip()
-        if details:
-            details = "\n" + details
-        raise RuntimeError(
+        combined_output = (result.stdout or "") + (result.stderr or "")
+        details = combined_output.strip()
+        hints: list[str] = []
+        if skip_system_packages and platform_system == "Linux" and details:
+            missing_tokens = ("libGL", "libEGL", "libxcb", "libX11")
+            if any(token in details for token in missing_tokens):
+                apt_packages = " ".join(LINUX_SYSTEM_PACKAGES)
+                hints.append(
+                    "Detected missing OpenGL system libraries required by Qt."
+                    " Re-run without --skip-system or install the packages manually:\n"
+                    "  sudo apt-get install --no-install-recommends " + apt_packages
+                )
+
+        message = (
             "Required Python modules for Qt/pytest integration are unavailable."
-            "\nInstall missing modules and rerun provisioning." + details
+            "\nInstall missing modules and rerun provisioning."
         )
+        if details:
+            message += "\n" + details
+        if hints:
+            message += "\n\n" + "\n\n".join(hints)
+        raise RuntimeError(message)
 
 
 def provision_qt_runtime(version: str) -> None:
@@ -315,7 +332,9 @@ def run_test_suite(extra_args: Sequence[str], interpreter: Path | None) -> None:
     if not pytest_args:
         pytest_args = ["tests"]
 
-    runtime_python = interpreter or _resolve_uv_python_interpreter() or Path(sys.executable)
+    runtime_python = (
+        interpreter or _resolve_uv_python_interpreter() or Path(sys.executable)
+    )
     python_executable = str(runtime_python)
     command = [python_executable, "-m", "pytest", "-vv", *pytest_args]
     _run_step(CommandStep(command, "Run cross-platform pytest suite", env=env))
@@ -373,7 +392,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     runtime_interpreter: Path | None = None
     if not args.skip_python:
         runtime_interpreter = install_python_dependencies(use_uv=args.use_uv)
-    verify_python_runtime(runtime_interpreter)
+    verify_python_runtime(
+        runtime_interpreter,
+        platform_system=system,
+        skip_system_packages=args.skip_system,
+    )
 
     if args.qt_version:
         provision_qt_runtime(args.qt_version)
