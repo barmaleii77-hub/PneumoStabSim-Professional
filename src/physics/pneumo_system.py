@@ -13,10 +13,11 @@ rigid body model.
 from __future__ import annotations
 
 import logging
+from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
 
-from typing import Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
@@ -104,13 +105,44 @@ class PneumaticSystem:
 
         return self._line_for_endpoint(wheel, port)
 
+    def _emit_log(
+        self,
+        logger: logging.Logger | LoggerAdapter | Any,
+        level: str,
+        message: str,
+        **fields: str,
+    ) -> None:
+        """Log ``message`` at ``level`` while supporting stdlib and structlog loggers."""
+
+        if logger is None:
+            return
+
+        log_target = cast("Any", logger)
+        clean_fields = {
+            key: value for key, value in fields.items() if value is not None
+        }
+
+        if hasattr(log_target, "bind"):
+            bound_logger = (
+                log_target.bind(**clean_fields) if clean_fields else log_target
+            )
+            getattr(bound_logger, level)(message)
+            return
+
+        log_method = getattr(log_target, level)
+        if clean_fields:
+            suffix = " ".join(f"{name}=%s" for name in clean_fields)
+            log_method(f"{message} [{suffix}]", *clean_fields.values())
+        else:
+            log_method(message)
+
     def line_pressure(
         self,
         wheel: Wheel,
         port: Port,
         *,
         default: float | None = None,
-        logger: logging.Logger | None = None,
+        logger: logging.Logger | LoggerAdapter | Any | None = None,
     ) -> float:
         """Return the absolute pressure for the line connected to ``wheel/port``.
 
@@ -119,8 +151,8 @@ class PneumaticSystem:
             port: Port (head or rod) on the cylinder.
             default: Optional explicit fallback value. When omitted, receiver
                 pressure is used.
-            logger: Optional logger for emitting diagnostics when the lookup
-                fails.
+            logger: Optional standard-library or structlog-compatible logger for
+                emitting diagnostics when the lookup fails.
         """
 
         line = self.lookup_line(wheel, port)
@@ -128,7 +160,9 @@ class PneumaticSystem:
 
         if line is None:
             if logger is not None:
-                logger.warning(
+                self._emit_log(
+                    logger,
+                    "warning",
                     "Missing pneumatic line mapping for endpoint; using tank pressure.",
                     wheel=wheel.name,
                     port=port.name,
@@ -138,7 +172,9 @@ class PneumaticSystem:
         line_state = self._gas_network.lines.get(line)
         if line_state is None:
             if logger is not None:
-                logger.error(
+                self._emit_log(
+                    logger,
+                    "error",
                     "Pneumatic line state unavailable; using tank pressure.",
                     line=line.name,
                     wheel=wheel.name,
