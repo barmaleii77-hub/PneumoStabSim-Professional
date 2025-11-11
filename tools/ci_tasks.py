@@ -229,6 +229,16 @@ class PytestSuite:
         return list(self.default_targets)
 
 
+@dataclass(slots=True)
+class SkippedTestCase:
+    """Representation of a skipped pytest test case."""
+
+    suite: str
+    case: str
+    message: str
+    source: Path
+
+
 def _relative_display(path: Path) -> str:
     try:
         return str(path.relative_to(PROJECT_ROOT))
@@ -547,6 +557,125 @@ def _finalise_coverage_reports() -> Path | None:
     return COVERAGE_JSON_PATH
 
 
+def _collect_skipped_tests() -> list[SkippedTestCase]:
+    """Parse JUnit reports and gather all skipped test cases."""
+
+    skipped: list[SkippedTestCase] = []
+    for xml_file in sorted(PYTEST_REPORT_ROOT.glob("*.xml")):
+        try:
+            tree = ET.parse(xml_file)
+        except (ET.ParseError, FileNotFoundError):
+            print(
+                "[ci_tasks] Unable to parse JUnit report while scanning skips: "
+                f"{_relative_display(xml_file)}"
+            )
+            continue
+
+        root = tree.getroot()
+        for testcase in root.iterfind(".//testcase"):
+            skipped_nodes = list(testcase.findall("skipped"))
+            if not skipped_nodes:
+                continue
+
+            classname = testcase.attrib.get("classname", "")
+            name = testcase.attrib.get("name", "")
+            if classname and name:
+                test_id = f"{classname}.{name}"
+            else:
+                test_id = name or classname or "<unknown>"
+
+            for node in skipped_nodes:
+                message = (node.attrib.get("message") or node.text or "").strip()
+                skipped.append(
+                    SkippedTestCase(
+                        suite=xml_file.stem,
+                        case=test_id,
+                        message=message,
+                        source=xml_file,
+                    )
+                )
+
+    return skipped
+
+
+def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
+    """Persist a markdown summary of skipped tests for CI artefacts."""
+
+    summary_path = PYTEST_REPORT_ROOT / "skipped_tests_summary.md"
+    if not entries:
+        if summary_path.exists():
+            try:
+                summary_path.unlink()
+            except OSError:
+                pass
+        return None
+
+    lines = [
+        "# Skipped pytest tests",
+        "",
+        "| Suite | Test | Reason |",
+        "| --- | --- | --- |",
+    ]
+    for entry in entries:
+        reason = (entry.message or "—").replace("|", "\\|")
+        lines.append(f"| {entry.suite} | `{entry.case}` | {reason} |")
+
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if step_summary:
+        try:
+            with Path(step_summary).open("a", encoding="utf-8") as handle:
+                handle.write("## Skipped pytest tests\n\n")
+                handle.write(summary_path.read_text(encoding="utf-8"))
+                handle.write("\n")
+        except OSError:
+            pass
+
+    return summary_path
+
+
+def _enforce_ci_skip_policy(entries: list[SkippedTestCase]) -> None:
+    """Ensure CI jobs document intentional skips explicitly."""
+
+    summary_path = _write_skipped_summary(entries)
+    if not entries:
+        return
+
+    in_ci = _env_flag("CI", default=False) or bool(os.environ.get("GITHUB_ACTIONS"))
+    if not in_ci:
+        return
+
+    allow_flag = _env_flag("PSS_ALLOW_SKIPPED_TESTS", default=False) or _env_flag(
+        "CI_ALLOW_SKIPS", default=False
+    )
+    justification = os.environ.get("CI_SKIP_REASON", "").strip()
+
+    count = len(entries)
+    plural = "s" if count != 1 else ""
+    location_hint = (
+        f" See {_relative_display(summary_path)} for details." if summary_path else ""
+    )
+    base_message = (
+        f"{count} skipped test{plural} detected across pytest suites." + location_hint
+    )
+
+    if not allow_flag:
+        raise TaskError(
+            base_message
+            + " Re-run the job with PSS_ALLOW_SKIPPED_TESTS=1 and provide CI_SKIP_REASON to acknowledge intentional skips."
+        )
+
+    if not justification:
+        raise TaskError(
+            base_message
+            + " CI_SKIP_REASON must describe why skips are accepted when PSS_ALLOW_SKIPPED_TESTS=1 is set."
+        )
+
+    print(f"[ci_tasks] Skipped tests acknowledged: {justification}")
+
+
 def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
     """Aggregate duration and case counts from pytest JUnit reports."""
 
@@ -810,10 +939,19 @@ def task_test() -> None:
     _prepare_cross_platform_test_environment()
     use_coverage = _coverage_enabled()
     primary_error: TaskError | None = None
+    skip_error: TaskError | None = None
     try:
         _run_pytest_suites(use_coverage=use_coverage)
     except TaskError as exc:
         primary_error = exc
+
+    skipped_cases = _collect_skipped_tests()
+    try:
+        _enforce_ci_skip_policy(skipped_cases)
+    except TaskError as exc:
+        skip_error = exc
+        if primary_error is not None:
+            print(f"[ci_tasks] Skip policy violation detected: {exc}")
 
     coverage_path: Path | None = None
     if use_coverage:
@@ -839,6 +977,9 @@ def task_test() -> None:
         if primary_error is None:
             raise
         print(f"[ci_tasks] log analysis skipped due to earlier failure: {exc}")
+
+    if skip_error is not None and primary_error is None:
+        raise skip_error
 
     if primary_error is not None:
         raise primary_error

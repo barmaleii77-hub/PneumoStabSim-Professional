@@ -7,34 +7,14 @@ from pathlib import Path
 
 import pytest
 
-_ = pytest.importorskip(
+from tests.helpers import require_qt_modules
+
+require_qt_modules(
     "PySide6.QtWidgets",
-    reason=(
-        "PySide6.QtWidgets (libGL) is required for GLES fallback shader tests; install libgl1/libegl1"
-    ),
-    exc_type=ImportError,
-)
-pytest.importorskip(
     "PySide6.QtCore",
-    reason="PySide6 QtCore module is required for GLES fallback shader tests",
-    exc_type=ImportError,
-)
-pytest.importorskip(
     "PySide6.QtGui",
-    reason=(
-        "PySide6 QtGui (libGL) module is required for GLES fallback shader tests; install libgl1/libegl1"
-    ),
-    exc_type=ImportError,
-)
-pytest.importorskip(
     "PySide6.QtQml",
-    reason="PySide6 QtQml module is required for GLES fallback shader tests",
-    exc_type=ImportError,
-)
-pytest.importorskip(
     "PySide6.QtQuick",
-    reason="PySide6 QtQuick module is required for GLES fallback shader tests",
-    exc_type=ImportError,
 )
 
 from PySide6.QtCore import QTimer, Qt, QUrl, qInstallMessageHandler
@@ -234,7 +214,14 @@ def test_post_effects_disables_pass_shaders_when_effects_off(qapp) -> None:  # t
         qapp.processEvents()
         enabled_counts = _shader_counts(bloom_effect)
         if not any(count > 0 for count in enabled_counts):
-            pytest.skip("Bloom shaders unavailable in the current OpenGL configuration")
+            pytest.fail(
+                (
+                    "Bloom shaders unavailable in the current OpenGL configuration. "
+                    "Provision OpenGL-capable rendering by running "
+                    "`python -m tools.cross_platform_test_prep --use-uv --run-tests`."
+                ),
+                pytrace=False,
+            )
 
         root.setProperty("bloomEnabled", False)
         qapp.processEvents()

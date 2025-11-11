@@ -3,24 +3,22 @@ from pathlib import Path
 
 import pytest
 
-qtquick_module = pytest.importorskip(
-    "PySide6.QtQuick",
-    reason="PySide6 QtQuick module is required to instantiate ShaderEffect",
-    exc_type=ImportError,
-)
-pytest.importorskip(
-    "PySide6.QtQml",
-    reason="PySide6 QtQml module is required for FlowShader tests",
-    exc_type=ImportError,
-)
+from tests.helpers import require_qt_modules
 
 from PySide6.QtCore import QMetaObject, Qt, QUrl, Q_ARG
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
+(qtquick_module,) = require_qt_modules("PySide6.QtQuick")
+require_qt_modules("PySide6.QtQml")
+
 if not hasattr(qtquick_module, "QQuickShaderEffect"):
-    pytest.skip(
-        "QQuickShaderEffect is not available in this PySide6 build",
-        allow_module_level=True,
+    pytest.fail(
+        (
+            "QQuickShaderEffect is not available in this PySide6 build. "
+            "Run `python -m tools.cross_platform_test_prep --use-uv --run-tests` "
+            "to install the required Qt shader components."
+        ),
+        pytrace=False,
     )
 
 from PySide6.QtQuick import QQuickShaderEffect
@@ -46,7 +44,14 @@ def test_flow_shader_requests_fallback_on_error(qapp) -> None:  # type: ignore[m
 
     component = _create_flow_shader(engine)
     if component.status() != QQmlComponent.Ready:
-        pytest.skip(f"FlowShader.qml failed to load: {component.errorString()}")
+        pytest.fail(
+            (
+                "FlowShader.qml failed to load: "
+                f"{component.errorString()}\n"
+                "Ensure shader assets are built by running `python -m tools.cross_platform_test_prep --use-uv --run-tests`."
+            ),
+            pytrace=False,
+        )
 
     shader = component.create()
     try:
