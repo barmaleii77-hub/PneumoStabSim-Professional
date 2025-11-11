@@ -2,9 +2,9 @@ name: Windows smoke test
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, 'feature/*']
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, 'feature/*']
   workflow_dispatch:
 
 env:
@@ -64,6 +64,12 @@ jobs:
 
       - name: Install project dependencies
         run: uv sync --frozen --extra dev
+
+      - name: Run Windows dependency bootstrap
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+          ./scripts/setup_windows.ps1 -SkipUvSync
 
       - name: Provision Qt ${{ env.QT_VERSION }}
         run: python tools/setup_qt.py --qt-version ${{ env.QT_VERSION }} --force --prune-archives

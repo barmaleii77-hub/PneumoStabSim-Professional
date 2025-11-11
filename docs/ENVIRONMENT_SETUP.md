@@ -40,7 +40,7 @@ headless-профилей.
 
 | Сценарий | Обязательные переменные | Дополнительные шаги |
 | --- | --- | --- |
-| **Linux headless (CI, контейнер)** | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Убедитесь, что `DISPLAY` не установлен. Команда `make uv-run CMD="pytest -q"` автоматически применит профиль. |
+| **Linux headless (CI, контейнер)** | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Убедитесь, что `DISPLAY` не установлен. Команда `make uv-run CMD="pytest -q"` автоматически применит профиль. Запускайте `./setup_linux.sh` для установки `libGL`, `libxkbcommon`, `qt6-shader-baker` и Python-зависимостей PySide6/QtQuick3D перед прогоном тестов. |
 | **Vulkan smoke** | `QSG_RHI_BACKEND=vulkan`, `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json` | Путь к ICD проверьте `ls /usr/share/vulkan/icd.d/`. Для headless добавьте `QT_QPA_PLATFORM=offscreen`. |
 | **Windows ANGLE fallback** | `QT_QPA_PLATFORM=windows`, `QT_OPENGL=angle` | Используйте при проблемах с драйверами OpenGL. Возвращаясь к GPU, удалите переменные или задайте `QT_OPENGL=desktop`. |
 | **Safe mode (software-only)** | `LIBGL_ALWAYS_SOFTWARE=1`, `QT_QUICK_BACKEND=software` | В Python можно вызвать `configure_qt_environment(safe_mode=True)`; переменные подхватятся автоматически. |
@@ -89,7 +89,24 @@ pytest-qt» — проверяется именно тот набор пакет
 Начиная с версии 4.9.8 тестовый раннер больше не пропускает GUI/QML-тесты при
 отсутствии зависимостей — он завершает прогон с ошибкой и предлагает повторно
 запустить `python -m tools.cross_platform_test_prep --use-uv`, поэтому отсутствие
-Qt или `pytest-qt` немедленно выявляется.
+Qt или `pytest-qt` немедленно выявляется. Если Python-окружение формируется
+вручную, обязательно вызовите `./setup_linux.sh` либо `powershell -File scripts/setup_windows.ps1`
+для установки модулей PySide6 (`QtWidgets`, `QtQuick3D`, `QtQml`) и пакета Shader
+Baker.
+
+## 6. Скрипты подготовки окружения
+
+- `./setup_linux.sh` — настраивает headless Linux-среду: устанавливает системные
+  пакеты (`libGL`, `libxkbcommon`, Xvfb, Mesa, Shader Baker), синхронизирует
+  Python-зависимости через `uv` (либо `pip`) и экспортирует headless-переменные
+  `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `QSG_RHI_BACKEND=opengl`.
+- `powershell -File scripts/setup_windows.ps1` — выполняет `uv sync` (с
+  возможностью пропустить через `-SkipUvSync`), гарантирует наличие колёс PySide6,
+  `PyOpenGL`, экспортирует headless-настройки (`QT_QPA_PLATFORM=offscreen`,
+  `QT_OPENGL=software`, `QSG_RHI_BACKEND=d3d11`).
+
+Оба скрипта могут использоваться как локально, так и в CI. Они предназначены
+для устранения пропусков тестов, связанных с отсутствием библиотек Qt/OpenGL.
 
 > ⛔ Любой пропущенный тест теперь завершает сессию `pytest` со статусом ошибки.
 > Для временного обхода используйте `--allow-skips` или `PSS_ALLOW_SKIPPED_TESTS=1`,

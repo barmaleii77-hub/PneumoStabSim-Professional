@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - 'feature/*'
     paths:
       - "src/**"
       - "tests/**"
@@ -12,6 +13,10 @@ on:
       - "config/schemas/**"
       - ".github/workflows/regression-tests.yml"
   pull_request:
+    branches:
+      - develop
+      - main
+      - 'feature/*'
     paths:
       - "src/**"
       - "tests/**"
@@ -39,9 +44,13 @@ jobs:
           # Packages are installed conditionally; unavailable entries are skipped.
           pkgs=(
             xvfb xauth mesa-utils mesa-utils-extra libosmesa6
-            libgl1-mesa-dri libglu1-mesa
+            libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev
+            libegl1 libegl1-mesa-dev libgles2-mesa-dev
             libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
-            libgl1-mesa-glx libegl1-mesa libgles2-mesa
+            libosmesa6-dev libgbm1 libdrm2
+            libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0
+            mesa-vulkan-drivers vulkan-tools
+            qt6-shader-baker
           )
 
           to_install=()
