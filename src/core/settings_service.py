@@ -36,6 +36,7 @@ from src.core.settings_models import AppSettings, dump_settings
 
 logger = logging.getLogger(__name__)
 
+
 class _RelaxedAppSettings(AppSettings):
     """Variant of :class:`AppSettings` that ignores unknown fields."""
 
