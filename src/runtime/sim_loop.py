@@ -852,6 +852,42 @@ class PhysicsWorker(QObject):
             self.error_occurred.emit(f"Invalid receiver volume: {volume} m?")
             return
 
+        def _log_with_context(
+            level: str,
+            message: str,
+            context: dict[str, Any],
+            *,
+            exc_info: Any | None = None,
+        ) -> None:
+            logger_obj = self.logger
+            supports_structured_logging = callable(getattr(logger_obj, "bind", None)) and not isinstance(
+                logger_obj, logging.Logger
+            )
+            if supports_structured_logging:
+                bound_logger = logger_obj.bind(**context)
+                log_method = getattr(bound_logger, level)
+                if exc_info is not None:
+                    log_method(message, exc_info=exc_info)
+                else:
+                    log_method(message)
+                return
+
+            log_kwargs: dict[str, Any] = {"extra": context}
+            if exc_info is not None:
+                log_kwargs["exc_info"] = exc_info
+
+            try:
+                getattr(logger_obj, level)(message, **log_kwargs)
+            except TypeError:  # pragma: no cover - logging compatibility guard
+                details = ", ".join(
+                    f"{key}={context[key]!r}" for key in sorted(context)
+                )
+                fallback_message = f"{message} | {details}" if details else message
+                if exc_info is not None:
+                    getattr(logger_obj, level)(fallback_message, exc_info=exc_info)
+                else:
+                    getattr(logger_obj, level)(fallback_message)
+
         # Store volume and mode for gas network updates
         self.receiver_volume = volume
         mode_token = str(mode).upper()
@@ -884,15 +920,17 @@ class PhysicsWorker(QObject):
                             setattr(pneumo_tank, "V", volume)
                         pneumatic_tank_volume = getattr(pneumo_tank, "V", None)
                     except Exception as tank_exc:
-                        self.logger.warning(
+                        _log_with_context(
+                            "warning",
                             "WARNING: failed to update pneumatic tank volume",
-                            error=str(tank_exc),
+                            {"error": str(tank_exc)},
                             exc_info=True,
                         )
             except Exception as exc:
-                self.logger.warning(
+                _log_with_context(
+                    "warning",
                     "WARNING: failed to update receiver state",
-                    error=str(exc),
+                    {"error": str(exc)},
                     exc_info=True,
                 )
 
@@ -926,9 +964,10 @@ class PhysicsWorker(QObject):
                     ):
                         latest_state.temperature = float(tank_temperature)
             except Exception as exc:
-                self.logger.warning(
+                _log_with_context(
+                    "warning",
                     "WARNING: failed to update gas network tank volume",
-                    error=str(exc),
+                    {"error": str(exc)},
                     exc_info=True,
                 )
 
@@ -943,29 +982,7 @@ class PhysicsWorker(QObject):
             "pneumatic_tank_volume_m3": pneumatic_tank_volume,
         }
 
-        supports_structured = callable(
-            getattr(self.logger, "bind", None)
-        ) and not isinstance(self.logger, logging.Logger)
-        if supports_structured:
-            try:
-                self.logger.bind(**log_payload).info("Receiver volume updated")
-                return
-            except Exception:  # pragma: no cover - structured logging guard
-                pass
-
-        try:
-            self.logger.info(
-                "Receiver volume updated",
-                extra={key: log_payload[key] for key in log_payload},
-            )
-        except Exception:  # pragma: no cover - logging compatibility guard
-            details = ", ".join(
-                f"{key}={log_payload[key]!r}" for key in sorted(log_payload)
-            )
-            message = "Receiver volume updated"
-            if details:
-                message = f"{message} | {details}"
-            self.logger.info(message)
+        _log_with_context("info", "Receiver volume updated", log_payload)
 
     @Slot(float)
     def set_physics_dt(self, dt: float):

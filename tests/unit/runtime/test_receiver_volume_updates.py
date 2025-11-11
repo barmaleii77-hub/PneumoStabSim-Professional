@@ -118,3 +118,6 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert log_record.receiver_pressure_pa == pytest.approx(receiver_state.p)
     assert log_record.receiver_temperature_k == pytest.approx(receiver_state.T)
     assert log_record.pneumatic_tank_volume_m3 == pytest.approx(new_volume)
+    assert log_record.tank_pressure_pa == pytest.approx(worker.gas_network.tank.p)
+    assert log_record.tank_mass_kg == pytest.approx(worker.gas_network.tank.m)
+    assert log_record.tank_temperature_k == pytest.approx(worker.gas_network.tank.T)
