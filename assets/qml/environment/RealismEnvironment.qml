@@ -14,11 +14,10 @@ ExtendedSceneEnvironment {
     property var _warningCache: ({})
 
     onSceneBridgeChanged: {
-        _replayCachedWarnings()
-    }
-
-    onDiagnosticsTraceChanged: {
-        _replayCachedWarnings()
+        // Reset cached suppression when a new bridge arrives so diagnostics
+        // emitted before the overlay was available can be replayed for the
+        // fresh signalTrace target (tests rely on this behaviour).
+        _warningCache = ({})
     }
 
     function _sectionPayload(section) {
@@ -74,20 +73,15 @@ ExtendedSceneEnvironment {
         if (!overlay || typeof overlay.recordObservation !== "function")
             return
         try {
-            var payload = ({})
-            payload.section = entry && entry.section !== undefined ? entry.section : ""
-            payload.key = entry && entry.key !== undefined ? entry.key : ""
-            payload.reason = entry && entry.reason !== undefined ? entry.reason : ""
-            payload.fallback = entry && entry.fallback !== undefined ? entry.fallback : "<undefined>"
-            var normalizedPayload
-            try {
-                normalizedPayload = JSON.parse(JSON.stringify(payload))
-            } catch (serializationError) {
-                normalizedPayload = payload
+            var payload = {
+                section: entry && entry.section !== undefined ? String(entry.section) : "",
+                key: entry && entry.key !== undefined ? String(entry.key) : "",
+                reason: entry && entry.reason !== undefined ? String(entry.reason) : "",
+                fallback: entry && entry.fallback !== undefined ? String(entry.fallback) : "<undefined>"
             }
             overlay.recordObservation(
                         "settings.graphicsFallback",
-                        normalizedPayload,
+                        payload,
                         "qml",
                         "RealismEnvironment")
         } catch (error) {
@@ -98,20 +92,11 @@ ExtendedSceneEnvironment {
     function _warn(section, keys, reason, fallback) {
         var keyName = _primaryKey(keys)
         var cacheKey = section + ":" + keyName + ":" + reason
-        var cacheEntry = _warningCache[cacheKey]
-        if (!cacheEntry) {
-            cacheEntry = {
-                entry: {
-                    section: "",
-                    key: "",
-                    reason: "",
-                    fallback: "<undefined>"
-                },
-                logged: false,
-                overlays: []
-            }
-            _warningCache[cacheKey] = cacheEntry
-        }
+        var currentTrace = diagnosticsTrace
+        var cachedTarget = _warningCache[cacheKey]
+        if (cachedTarget !== undefined && cachedTarget === currentTrace)
+            return
+        _warningCache[cacheKey] = currentTrace
 
         var sectionText = _stringify(section, "")
         var keyText = _stringify(keyName, "")
