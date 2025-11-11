@@ -125,16 +125,36 @@ class SignalsRouter:
         canonical representation.
         """
 
+        canonical_key = "ibl_source"
+        legacy_key = "iblSource"
+
         source_key: str | None = None
+        source_container: Mapping[str, Any] | None = None
         for candidate in SignalsRouter._HDR_SOURCE_KEYS:
             if candidate in params:
                 source_key = candidate
+                source_container = params
                 break
 
-        if source_key is None:
+        nested_source_key: str | None = None
+        if source_container is None:
+            ibl_section = params.get("ibl")
+            if isinstance(ibl_section, Mapping):
+                if "source" in ibl_section:
+                    nested_source_key = "source"
+                    source_container = ibl_section
+                elif legacy_key in ibl_section:
+                    nested_source_key = legacy_key
+                    source_container = ibl_section
+
+        if source_container is None:
             return SignalsRouter._apply_environment_aliases(params, env_payload)
 
-        raw_value = params.get(source_key)
+        raw_value = (
+            source_container.get(source_key)
+            if source_container is params and source_key is not None
+            else source_container.get(nested_source_key)  # type: ignore[arg-type]
+        )
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
         allow_empty_selection = SignalsRouter._allow_empty_selection(
@@ -166,15 +186,38 @@ class SignalsRouter:
         }
         params.clear()
         params.update(filtered_params)
-        params["ibl_source"] = normalised_value
+        params[canonical_key] = normalised_value
 
         updated_payload = {
             key: value
             for key, value in env_payload.items()
             if key not in SignalsRouter._HDR_SOURCE_KEYS
         }
-        updated_payload["ibl_source"] = normalised_value
-        return SignalsRouter._apply_environment_aliases(params, updated_payload)
+        updated_payload[canonical_key] = normalised_value
+
+        updated_payload = SignalsRouter._apply_environment_aliases(
+            params, updated_payload
+        )
+
+        mirrored_value = normalised_value
+        payload_with_mirror = dict(updated_payload)
+        payload_with_mirror[legacy_key] = mirrored_value
+
+        ibl_section = payload_with_mirror.get("ibl")
+        if isinstance(ibl_section, Mapping):
+            expanded = dict(ibl_section)
+            expanded["source"] = mirrored_value
+            expanded[legacy_key] = mirrored_value
+            payload_with_mirror["ibl"] = expanded
+
+        params.pop(legacy_key, None)
+        if isinstance(params.get("ibl"), Mapping):
+            ibl_params = dict(params["ibl"])
+            ibl_params["source"] = mirrored_value
+            ibl_params.pop(legacy_key, None)
+            params["ibl"] = ibl_params
+
+        return payload_with_mirror
 
     @staticmethod
     def _apply_environment_aliases(
