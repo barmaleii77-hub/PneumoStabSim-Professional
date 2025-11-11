@@ -19,7 +19,7 @@ pytest.importorskip(
 
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
-from PySide6.QtTest import QSignalSpy
+from tests.helpers import SignalListener
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -66,7 +66,7 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
     assert simulation_root is not None, "Expected SimulationRoot to instantiate"
     assert scene_view is not None, "Expected stub View3D replacement to instantiate"
 
-    status_spy = QSignalSpy(simulation_root.shaderStatusDumpRequested)
+    status_spy = SignalListener(simulation_root.shaderStatusDumpRequested)
 
     try:
         simulation_root.setProperty("sceneView", scene_view)
