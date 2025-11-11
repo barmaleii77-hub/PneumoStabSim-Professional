@@ -49,6 +49,9 @@ SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
 EFFECT_SHADER_DIR = SHADER_ROOT / "effects"
 EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR,)
 
+_SCENE_SUSPENSION_REQUIRED_KEYS: tuple[str, ...] = ("rod_warning_threshold_m",)
+_SCENE_SUSPENSION_DEFAULTS: dict[str, float] = {"rod_warning_threshold_m": 0.001}
+
 
 class UISetup:
     """Построение UI элементов главного окна
@@ -214,8 +217,80 @@ class UISetup:
                 raise RuntimeError("Секция diagnostics повреждена")
             return _serialize("diagnostics", payload)
 
+        def _ensure_scene_suspension(scene_payload: dict[str, Any]) -> dict[str, Any]:
+            if not isinstance(scene_payload, dict):
+                return {}
+
+            def _fallback_section(path: str) -> dict[str, Any]:
+                try:
+                    payload = manager.get(path, {}) or {}
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    UISetup.logger.debug(
+                        "    ⚠️ Failed to read %s for scene defaults: %s", path, exc
+                    )
+                    return {}
+                return payload if isinstance(payload, dict) else {}
+
+            fallback_sources: list[dict[str, Any]] = []
+            metadata_defaults = _fallback_section("metadata.scene_defaults")
+            suspension_defaults = metadata_defaults.get("suspension")
+            if isinstance(suspension_defaults, dict):
+                fallback_sources.append(suspension_defaults)
+
+            snapshot_scene = _fallback_section("defaults_snapshot.graphics.scene")
+            snapshot_suspension = snapshot_scene.get("suspension")
+            if isinstance(snapshot_suspension, dict):
+                fallback_sources.append(snapshot_suspension)
+
+            raw_suspension = scene_payload.get("suspension")
+            normalised_suspension: dict[str, Any] = {}
+            if isinstance(raw_suspension, dict):
+                normalised_suspension.update(raw_suspension)
+            else:
+                if raw_suspension is not None:
+                    UISetup.logger.warning(
+                        "    ⚠️ Scene settings 'suspension' section has invalid type (%s); "
+                        "using defaults.",
+                        type(raw_suspension).__name__,
+                    )
+                else:
+                    UISetup.logger.warning(
+                        "    ⚠️ Scene settings missing 'suspension' section; applying defaults."
+                    )
+
+            missing_keys: list[str] = []
+            for key in _SCENE_SUSPENSION_REQUIRED_KEYS:
+                value = normalised_suspension.get(key)
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    normalised_suspension[key] = float(value)
+                    continue
+
+                for fallback in fallback_sources:
+                    candidate = fallback.get(key)
+                    if isinstance(candidate, (int, float)) and not isinstance(
+                        candidate, bool
+                    ):
+                        normalised_suspension[key] = float(candidate)
+                        break
+
+                if key not in normalised_suspension:
+                    normalised_suspension[key] = float(
+                        _SCENE_SUSPENSION_DEFAULTS.get(key, 0.0)
+                    )
+                    missing_keys.append(key)
+
+            if missing_keys:
+                UISetup.logger.warning(
+                    "    ⚠️ Scene suspension settings missing keys: %s. Using defaults.",
+                    ", ".join(sorted(missing_keys)),
+                )
+
+            result = dict(scene_payload)
+            result["suspension"] = normalised_suspension
+            return result
+
         animation_payload = _read_section("animation")
-        scene_payload = _read_section("scene")
+        scene_payload = _ensure_scene_suspension(_read_section("scene"))
         materials_payload = _read_section("materials")
         environment_payload = _read_section("environment")
         effects_payload = _read_section("effects")

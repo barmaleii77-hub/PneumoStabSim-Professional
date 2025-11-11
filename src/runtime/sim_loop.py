@@ -860,9 +860,9 @@ class PhysicsWorker(QObject):
             exc_info: Any | None = None,
         ) -> None:
             logger_obj = self.logger
-            supports_structured_logging = callable(getattr(logger_obj, "bind", None)) and not isinstance(
-                logger_obj, logging.Logger
-            )
+            supports_structured_logging = callable(
+                getattr(logger_obj, "bind", None)
+            ) and not isinstance(logger_obj, logging.Logger)
             if supports_structured_logging:
                 bound_logger = logger_obj.bind(**context)
                 log_method = getattr(bound_logger, level)

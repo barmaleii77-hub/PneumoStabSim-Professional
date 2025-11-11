@@ -67,6 +67,7 @@ Node {
     // ------------------------------------------------------------------
     property real sceneScaleFactor: 1.0
     property real rodWarningThreshold: 0.001
+    readonly property real effectiveRodWarningThreshold: Math.max(0.0, rodWarningThreshold)
 
     // ------------------------------------------------------------------
     // Flow telemetry (SceneBridge)
@@ -313,7 +314,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: flCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: flCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 
@@ -344,7 +345,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: frCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: frCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 
@@ -375,7 +376,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: rlCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: rlCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 
@@ -406,7 +407,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: rrCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: rrCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 

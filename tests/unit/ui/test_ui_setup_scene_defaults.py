@@ -1,0 +1,105 @@
+from __future__ import annotations
+
+import json
+import logging
+from pathlib import Path
+
+import pytest
+
+pytest.importorskip(
+    "PySide6.QtQuick",
+    reason="PySide6 QtQuick module is required for UISetup scene suspension tests",
+    exc_type=ImportError,
+)
+pytest.importorskip(
+    "PySide6.QtQuickWidgets",
+    reason="PySide6 QtQuickWidgets module is required for UISetup scene suspension tests",
+    exc_type=ImportError,
+)
+
+from src.common.settings_manager import SettingsManager
+from src.ui.main_window_pkg.ui_setup import UISetup
+
+
+def _load_settings_payload() -> dict:
+    template_path = Path("config/app_settings.json")
+    return json.loads(template_path.read_text(encoding="utf-8"))
+
+
+def _make_settings_manager(tmp_path: Path, payload: dict) -> SettingsManager:
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return SettingsManager(settings_file=settings_path)
+
+
+def test_scene_suspension_defaults_propagated(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = _load_settings_payload()
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    suspension_defaults = context["scene"].get("suspension", {})
+    assert suspension_defaults
+    assert suspension_defaults["rod_warning_threshold_m"] == pytest.approx(0.001)
+    assert "suspension" in context["scene"]
+    assert "Scene settings missing 'suspension' section" not in caplog.text
+
+
+def test_scene_suspension_missing_section_logs_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = _load_settings_payload()
+    payload["current"]["graphics"]["scene"].pop("suspension", None)
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    suspension_defaults = context["scene"]["suspension"]
+    assert suspension_defaults["rod_warning_threshold_m"] == pytest.approx(0.001)
+    assert "Scene settings missing 'suspension' section" in caplog.text
+
+
+def test_scene_suspension_missing_key_falls_back_to_default(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = _load_settings_payload()
+    payload["current"]["graphics"]["scene"]["suspension"] = {}
+    payload["defaults_snapshot"]["graphics"]["scene"]["suspension"] = {}
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    suspension_defaults = context["scene"]["suspension"]
+    assert suspension_defaults["rod_warning_threshold_m"] == pytest.approx(0.001)
+    assert (
+        "Scene suspension settings missing keys: rod_warning_threshold_m" in caplog.text
+    )
+
+
+def test_scene_suspension_uses_metadata_defaults(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = _load_settings_payload()
+    payload["current"]["graphics"]["scene"].pop("suspension", None)
+    payload["defaults_snapshot"]["graphics"]["scene"].pop("suspension", None)
+    metadata = payload.setdefault("metadata", {})
+    scene_defaults = metadata.setdefault("scene_defaults", {})
+    scene_defaults["suspension"] = {"rod_warning_threshold_m": 0.0035}
+
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    suspension_defaults = context["scene"]["suspension"]
+    assert suspension_defaults["rod_warning_threshold_m"] == pytest.approx(0.0035)
+    assert "Scene settings missing 'suspension' section" in caplog.text
+    assert "Scene suspension settings missing keys" not in caplog.text

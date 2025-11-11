@@ -662,6 +662,22 @@ signal animationToggled(bool running)
                 reflectionProbeTimeSlicingSetting = slicingText.toLowerCase()
             }
         }
+        var suspensionNode = _resolveMapEntry(normalized, ["suspension"])
+        if (_isPlainObject(suspensionNode)) {
+            var thresholdCandidate = _valueFromSources(
+                [suspensionNode],
+                ["rod_warning_threshold_m", "rodWarningThresholdM", "rodWarningThreshold"],
+            )
+            var thresholdNumeric = _coerceNumber(
+                thresholdCandidate,
+                suspensionRodWarningThresholdM,
+            )
+            if (isFinite(thresholdNumeric)) {
+                var clampedThreshold = Math.abs(thresholdNumeric)
+                if (clampedThreshold !== suspensionRodWarningThresholdM)
+                    suspensionRodWarningThresholdM = clampedThreshold
+            }
+        }
         _storeLastUpdate("threeD", normalized)
     }
 
@@ -1085,12 +1101,13 @@ signal animationToggled(bool running)
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
  property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyGeometryDefaults
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
- property var sceneMaterialsDefaults: ({})
- property var sceneLightingDefaults: ({})
- property var sceneEnvironmentDefaults: ({})
- property var sceneQualityDefaults: ({})
- property var sceneRenderDefaults: ({})
- property var sceneEffectsDefaults: ({})
+    property var sceneMaterialsDefaults: ({})
+    property var sceneLightingDefaults: ({})
+    property var sceneEnvironmentDefaults: ({})
+    property var sceneQualityDefaults: ({})
+    property var sceneRenderDefaults: ({})
+    property var sceneEffectsDefaults: ({})
+    property var sceneSuspensionDefaults: ({})
  property var lightingState: ({})
  property var materialsState: ({})
  property var environmentState: ({})
@@ -1105,7 +1122,8 @@ signal animationToggled(bool running)
  property string renderPolicyKey: "always"
  property var sceneRenderSettings: null
  property bool renderSettingsSupported: false
- property real sceneScaleFactor: 1.0
+    property real sceneScaleFactor: 1.0
+    property real suspensionRodWarningThresholdM: 0.001
  property bool feedbackReady: false
  property real animationTime: animationDefaults && animationDefaults.animation_time !== undefined ? Number(animationDefaults.animation_time) :0.0 // сек, накапливается Python-таймером
  property bool pythonAnimationActive: false
@@ -1142,7 +1160,9 @@ signal animationToggled(bool running)
         sceneQualityDefaults = _sceneDefaultsSection("quality")
         sceneRenderDefaults = _sceneDefaultsSection("render")
         sceneEffectsDefaults = _sceneDefaultsSection("effects")
+        sceneSuspensionDefaults = _sceneDefaultsSection("suspension")
         environmentDefaultsMap = environmentDefaultsMapFor(sceneDefaults)
+        _syncSuspensionDefaults()
         _syncRenderSettingsState()
     }
 
@@ -1160,6 +1180,26 @@ signal animationToggled(bool running)
 
     function environmentSources() {
         return [environmentState || ({}), sceneEnvironmentDefaults || ({})]
+    }
+
+    function _syncSuspensionDefaults() {
+        var sources = []
+        if (_isPlainObject(sceneSuspensionDefaults))
+            sources.push(sceneSuspensionDefaults)
+        if (!sources.length)
+            sources.push({})
+
+        var candidate = _valueFromSources(
+            sources,
+            ["rod_warning_threshold_m", "rodWarningThresholdM", "rodWarningThreshold"],
+        )
+        var numeric = _coerceNumber(candidate, suspensionRodWarningThresholdM)
+        if (!isFinite(numeric))
+            numeric = suspensionRodWarningThresholdM
+        if (numeric < 0)
+            numeric = Math.abs(numeric)
+        if (numeric !== suspensionRodWarningThresholdM)
+            suspensionRodWarningThresholdM = numeric
     }
 
     function geometrySources() {
@@ -1440,6 +1480,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             reflectionProbeQualityValue: root.reflectionProbeQualityValue
             reflectionProbeRefreshModeValue: root.reflectionProbeRefreshModeValue
             reflectionProbeTimeSlicingValue: root.reflectionProbeTimeSlicingValue
+            rodWarningThreshold: root.suspensionRodWarningThresholdM
         }
 
         DirectionalLights {
