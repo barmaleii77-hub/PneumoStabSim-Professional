@@ -212,7 +212,9 @@ def test_save_current_persists_normalised_copy(
     assert saved["materials"]["tail_rod"]["base_color"] == "#ff0000"
     assert "tail" not in saved["materials"]
     assert "lighting" in saved
-    assert saved["scene"]["suspension"]["rod_warning_threshold_m"] == pytest.approx(0.003)
+    assert saved["scene"]["suspension"]["rod_warning_threshold_m"] == pytest.approx(
+        0.003
+    )
     assert "animation" not in saved
     assert animation["is_running"] is True
     assert animation["frequency"] == 2.5
