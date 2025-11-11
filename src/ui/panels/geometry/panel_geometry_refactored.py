@@ -447,13 +447,14 @@ class GeometryPanel(QWidget):
     # PUBLIC API (backward compatibility)
     # =========================================================================
 
-    def get_parameters(self) -> dict:
-        """Get current geometry parameters
+    def get_parameters(self) -> dict[str, Any]:
+        """Return a snapshot of the current geometry parameters.
 
-        Returns:
-            Dictionary of current parameters
+        The returned dictionary is a shallow copy to ensure callers cannot
+        mutate the internal :class:`GeometryStateManager` state inadvertently.
         """
-        return self.state_manager.get_all_parameters()
+
+        return dict(self.state_manager.get_all_parameters())
 
     def set_parameters(self, params: dict):
         """Set geometry parameters
