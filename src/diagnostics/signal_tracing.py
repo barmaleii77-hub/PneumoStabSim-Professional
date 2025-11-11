@@ -151,15 +151,8 @@ class SignalTracer:
                 sinks_snapshot = tuple(self._sinks)
 
             payload = record.as_payload()
-            payload["event"] = "signal_trace_event"
 
-            self._log.info(
-                "signal_trace_event",
-                timestamp=payload["timestamp"],
-                sender=payload["sender"],
-                signal=payload["signal"],
-                args=payload["args"],
-            )
+            self._log.info("signal_trace_event", **payload)
 
             for sink in sinks_snapshot:
                 try:

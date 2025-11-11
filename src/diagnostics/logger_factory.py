@@ -285,7 +285,10 @@ def _ensure_stdlib_bridge(
     handler = logging.StreamHandler()
     if formatter is None:
         if json_renderer is None:
-            json_renderer = structlog.processors.JSONRenderer(ensure_ascii=False)
+            json_renderer = structlog.processors.JSONRenderer(
+                ensure_ascii=False,
+                event_key="event",
+            )
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
@@ -331,7 +334,10 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    json_renderer = structlog.processors.JSONRenderer(ensure_ascii=False)
+    json_renderer = structlog.processors.JSONRenderer(
+        ensure_ascii=False,
+        event_key="event",
+    )
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
