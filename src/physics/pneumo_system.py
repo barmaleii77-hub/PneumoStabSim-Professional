@@ -12,6 +12,7 @@ rigid body model.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from collections.abc import Mapping
 
@@ -97,6 +98,55 @@ class PneumaticSystem:
     # ------------------------------------------------------------------
     def _line_for_endpoint(self, wheel: Wheel, port: Port) -> Line | None:
         return self._line_lookup.get((wheel, port))
+
+    def lookup_line(self, wheel: Wheel, port: Port) -> Line | None:
+        """Expose cached line resolution for the given wheel/port endpoint."""
+
+        return self._line_for_endpoint(wheel, port)
+
+    def line_pressure(
+        self,
+        wheel: Wheel,
+        port: Port,
+        *,
+        default: float | None = None,
+        logger: logging.Logger | None = None,
+    ) -> float:
+        """Return the absolute pressure for the line connected to ``wheel/port``.
+
+        Args:
+            wheel: Wheel identifier for the endpoint.
+            port: Port (head or rod) on the cylinder.
+            default: Optional explicit fallback value. When omitted, receiver
+                pressure is used.
+            logger: Optional logger for emitting diagnostics when the lookup
+                fails.
+        """
+
+        line = self.lookup_line(wheel, port)
+        fallback = default if default is not None else float(self._gas_network.tank.p)
+
+        if line is None:
+            if logger is not None:
+                logger.warning(
+                    "Missing pneumatic line mapping for endpoint; using tank pressure.",
+                    wheel=wheel.name,
+                    port=port.name,
+                )
+            return fallback
+
+        line_state = self._gas_network.lines.get(line)
+        if line_state is None:
+            if logger is not None:
+                logger.error(
+                    "Pneumatic line state unavailable; using tank pressure.",
+                    line=line.name,
+                    wheel=wheel.name,
+                    port=port.name,
+                )
+            return fallback
+
+        return float(line_state.p)
 
     @staticmethod
     def _normalise(vector: tuple[float, float, float]) -> tuple[float, float, float]:

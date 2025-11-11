@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import math
 import sys
 import types
@@ -16,6 +17,7 @@ from src.pneumo.cylinder import CylinderSpec
 from src.pneumo.enums import (
     CheckValveKind,
     Line,
+    Port,
     ReceiverVolumeMode,
     ThermoMode,
     Wheel,
@@ -271,3 +273,33 @@ def test_master_isolation_equalises_pressures(runtime_system) -> None:
 
     pressures = {line.p for line in gas.lines.values()}
     assert max(pressures) - min(pressures) < 1e-3
+
+
+def test_lookup_line_returns_expected_connections(runtime_system) -> None:
+    runtime, _defaults = runtime_system
+
+    assert runtime.lookup_line(Wheel.LP, Port.HEAD) is Line.B1
+    assert runtime.lookup_line(Wheel.LP, Port.ROD) is Line.A1
+    assert runtime.lookup_line(Wheel.PP, Port.HEAD) is Line.B2
+    assert runtime.lookup_line(Wheel.PP, Port.ROD) is Line.A2
+
+
+def test_line_pressure_falls_back_to_tank_when_state_missing(
+    runtime_system, caplog
+) -> None:
+    runtime, defaults = runtime_system
+    target_line = runtime.lookup_line(Wheel.LP, Port.HEAD)
+    assert target_line is not None
+
+    defaults.gas_network.tank.p = 2.75 * PA_ATM
+    defaults.gas_network.lines.pop(target_line)
+
+    logger = logging.getLogger("runtime-pneumo-test")
+    with caplog.at_level(logging.ERROR):
+        pressure = runtime.line_pressure(Wheel.LP, Port.HEAD, logger=logger)
+
+    assert pressure == pytest.approx(2.75 * PA_ATM)
+    assert any(
+        "Pneumatic line state unavailable" in record.message
+        for record in caplog.records
+    )

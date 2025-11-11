@@ -1316,11 +1316,12 @@ class PhysicsWorker(QObject):
         return lookup
 
     def _get_line_pressure(self, wheel: Wheel, port: Port) -> float:
-        for line_name, line in self.pneumatic_system.lines.items():
-            for endpoint_wheel, endpoint_port in line.endpoints:
-                if endpoint_wheel == wheel and endpoint_port == port:
-                    return float(self.gas_network.lines[line_name].p)
-        return float(self.gas_network.tank.p)
+        return self.pneumatic_system.line_pressure(
+            wheel,
+            port,
+            default=float(self.gas_network.tank.p),
+            logger=self.logger,
+        )
 
 
 SNAPSHOT_BUFFER_CAPACITY = 4096

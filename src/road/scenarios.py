@@ -1,7 +1,14 @@
 """
 Predefined road scenarios and presets
-Highway, urban, offroad, and maneuver scenarios with typical parameters
+Highway, urban, offroad, and maneuver scenarios with typical parameters.
+Includes cached catalogue helpers for fast lookup by name.
 """
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from functools import lru_cache
+from types import MappingProxyType
 
 from .types import SourceKind, Iso8608Class, CorrelationSpec, Preset
 
@@ -198,13 +205,11 @@ def create_test_preset(
         raise ValueError(f"Unknown test type: {test_type}")
 
 
-def get_all_presets() -> dict[str, Preset]:
-    """Get dictionary of all available presets
+@lru_cache(maxsize=1)
+def _build_preset_catalogue() -> Mapping[str, Preset]:
+    """Materialise and cache the immutable preset catalogue."""
 
-    Returns:
-        Dictionary mapping preset names to Preset objects
-    """
-    presets = {}
+    presets: dict[str, Preset] = {}
 
     # Highway presets
     presets["highway_100kmh"] = create_highway_preset(velocity=27.8, duration=60.0)
@@ -238,7 +243,13 @@ def get_all_presets() -> dict[str, Preset]:
     )
     presets["test_sine"] = create_test_preset("sine_wave", velocity=16.7, duration=10.0)
 
-    return presets
+    return MappingProxyType(presets)
+
+
+def get_all_presets() -> Mapping[str, Preset]:
+    """Return the cached preset catalogue for deterministic lookups."""
+
+    return _build_preset_catalogue()
 
 
 def get_preset_by_name(name: str) -> Preset | None:
