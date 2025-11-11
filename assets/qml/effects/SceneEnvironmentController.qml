@@ -123,20 +123,30 @@ ExtendedSceneEnvironment {
     }
 
     // ✅ Убираем глобальные идентификаторы, используем root.* свойства
-    readonly property var contextMaterialsDefaults: (root.materialsDefaultsOverride !== undefined && root.materialsDefaultsOverride !== null)
-                                                   ? root.materialsDefaultsOverride
-                                                   : (function() {
-                                                          var defaults = _contextFallback("materialsDefaults", root.materialsDefaultsData)
-                                                          if (defaults !== undefined && defaults !== null)
-                                                              return defaults
-                                                          return (typeof materialsDefaults !== "undefined" && materialsDefaults !== null
-                                                                  ? materialsDefaults
-                                                                  : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.materials !== undefined
-                                                                     ? initialSceneDefaults.materials
-                                                                     : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
-                                                                        ? initialSceneDefaults.graphics.materials
-                                                                        : null)))
-                                                      })()
+    readonly property var contextMaterialsDefaults: {
+        if (root.materialsDefaultsOverride !== undefined && root.materialsDefaultsOverride !== null)
+            return root.materialsDefaultsOverride
+
+        var defaults = _contextFallback("materialsDefaults", root.materialsDefaultsData)
+        if (defaults !== undefined && defaults !== null)
+            return defaults
+
+        var globalDefaults = _contextValue("materialsDefaults")
+        if (globalDefaults !== undefined && globalDefaults !== null)
+            return globalDefaults
+
+        var sceneDefaults = initialSceneDefaults
+        if (sceneDefaults && typeof sceneDefaults === "object") {
+            if (sceneDefaults.materials && typeof sceneDefaults.materials === "object")
+                return sceneDefaults.materials
+
+            var graphicsDefaults = sceneDefaults.graphics
+            if (graphicsDefaults && typeof graphicsDefaults === "object" && graphicsDefaults.materials && typeof graphicsDefaults.materials === "object")
+                return graphicsDefaults.materials
+        }
+
+        return null
+    }
 
     readonly property var contextEnvironmentDefaults: {
         var source = initialSceneDefaults
@@ -210,20 +220,30 @@ ExtendedSceneEnvironment {
     }
 
     // ✅ Убираем глобальные обращения — используем lightingContextOverride или lightingAccess
-    readonly property var contextLightingDefaults: (root.lightingContextOverride !== undefined && root.lightingContextOverride !== null)
-                                                   ? root.lightingContextOverride
-                                                   : (function() {
-                                                          var defaults = _contextFallback("lightingAccess", root.lightingAccessData)
-                                                          if (defaults !== undefined && defaults !== null)
-                                                              return defaults
-                                                          return (typeof lightingAccess !== "undefined" && lightingAccess !== null
-                                                                  ? lightingAccess
-                                                                  : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.lighting !== undefined
-                                                                     ? initialSceneDefaults.lighting
-                                                                     : (initialSceneDefaults && typeof initialSceneDefaults === "object" && initialSceneDefaults.graphics && typeof initialSceneDefaults.graphics === "object"
-                                                                        ? initialSceneDefaults.graphics.lighting
-                                                                        : null)))
-                                                      })()
+    readonly property var contextLightingDefaults: {
+        if (root.lightingContextOverride !== undefined && root.lightingContextOverride !== null)
+            return root.lightingContextOverride
+
+        var defaults = _contextFallback("lightingAccess", root.lightingAccessData)
+        if (defaults !== undefined && defaults !== null)
+            return defaults
+
+        var globalLighting = _contextValue("lightingAccess")
+        if (globalLighting !== undefined && globalLighting !== null)
+            return globalLighting
+
+        var sceneDefaults = initialSceneDefaults
+        if (sceneDefaults && typeof sceneDefaults === "object") {
+            if (sceneDefaults.lighting && typeof sceneDefaults.lighting === "object")
+                return sceneDefaults.lighting
+
+            var graphicsDefaults = sceneDefaults.graphics
+            if (graphicsDefaults && typeof graphicsDefaults === "object" && graphicsDefaults.lighting && typeof graphicsDefaults.lighting === "object")
+                return graphicsDefaults.lighting
+        }
+
+        return null
+    }
 
     QualityPresets {
         id: qualityProfiles
