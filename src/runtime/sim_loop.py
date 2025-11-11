@@ -84,6 +84,7 @@ class PhysicsWorker(QObject):
     state_ready = Signal(object)  # StateSnapshot
     error_occurred = Signal(str)  # Error message
     performance_update = Signal(object)  # PerformanceMetrics
+    receiver_volume_changed = Signal(float, str, object)  # volume, mode token, update
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -844,8 +845,8 @@ class PhysicsWorker(QObject):
         self.master_isolation_open = open
         self.logger.info(f"Master isolation: {'OPEN' if open else 'CLOSED'}")
 
-    @Slot(float, str)
-    def set_receiver_volume(self, volume: float, mode: str):
+    @Slot(float, str, result=object)
+    def set_receiver_volume(self, volume: float, mode: str) -> ReceiverVolumeUpdate | None:
         """Set receiver volume and recalculation mode
 
         Args:
@@ -854,7 +855,7 @@ class PhysicsWorker(QObject):
         """
         if volume <= 0 or volume > 1.0:  # Reasonable limits (0-1000L)
             self.error_occurred.emit(f"Invalid receiver volume: {volume} m?")
-            return
+            return None
 
         def _log_with_context(
             level: str,
@@ -989,6 +990,53 @@ class PhysicsWorker(QObject):
         }
 
         _log_with_context("info", "Receiver volume updated", log_payload)
+
+        if receiver_update is None:
+            fallback_pressure = receiver_pressure
+            fallback_temperature = receiver_temperature
+
+            if fallback_pressure is None and tank_pressure is not None:
+                fallback_pressure = float(tank_pressure)
+            if fallback_temperature is None and tank_temperature is not None:
+                fallback_temperature = float(tank_temperature)
+
+            latest_state = getattr(self, "_latest_tank_state", None)
+            if latest_state is not None:
+                if fallback_pressure is None and hasattr(latest_state, "pressure"):
+                    fallback_pressure = float(getattr(latest_state, "pressure"))
+                if fallback_temperature is None and hasattr(latest_state, "temperature"):
+                    fallback_temperature = float(getattr(latest_state, "temperature"))
+
+            receiver_state = getattr(self.pneumatic_system, "receiver", None)
+            if receiver_state is not None:
+                if fallback_pressure is None and hasattr(receiver_state, "p"):
+                    fallback_pressure = float(getattr(receiver_state, "p"))
+                if fallback_temperature is None and hasattr(receiver_state, "T"):
+                    fallback_temperature = float(getattr(receiver_state, "T"))
+
+            receiver_update = ReceiverVolumeUpdate(
+                volume=float(volume),
+                pressure=float(fallback_pressure or 0.0),
+                temperature=float(fallback_temperature or 0.0),
+                mode=mode_enum,
+            )
+
+        update_payload = receiver_update
+
+        signal_obj = getattr(self, "receiver_volume_changed", None)
+        emit = getattr(signal_obj, "emit", None)
+        if callable(emit):
+            try:
+                emit(float(self.receiver_volume), mode_token, update_payload)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                _log_with_context(
+                    "warning",
+                    "WARNING: failed to emit receiver volume change",
+                    {"error": str(exc)},
+                    exc_info=True,
+                )
+
+        return update_payload
 
     @Slot(float)
     def set_physics_dt(self, dt: float):
