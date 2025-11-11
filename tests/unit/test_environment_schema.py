@@ -269,8 +269,27 @@ def test_environment_validation_rejects_sample_rate_above_max():
 
 def test_scene_validation_accepts_valid_payload():
     payload = _build_payload(SCENE_PARAMETERS)
+    payload["suspension"] = {"rod_warning_threshold_m": 0.001}
+
     sanitized = validate_scene_settings(payload)
+
+    assert sanitized["suspension"]["rod_warning_threshold_m"] == pytest.approx(0.001)
+    sanitized.pop("suspension")
+    payload.pop("suspension")
     assert sanitized == payload
+
+
+def test_scene_validation_requires_suspension_section():
+    payload = _build_payload(SCENE_PARAMETERS)
+    with pytest.raises(EnvironmentValidationError):
+        validate_scene_settings(payload)
+
+
+def test_scene_validation_rejects_negative_threshold():
+    payload = _build_payload(SCENE_PARAMETERS)
+    payload["suspension"] = {"rod_warning_threshold_m": -0.5}
+    with pytest.raises(EnvironmentValidationError):
+        validate_scene_settings(payload)
 
 
 def test_animation_validation_accepts_valid_payload():
