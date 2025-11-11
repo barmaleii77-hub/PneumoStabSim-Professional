@@ -17,6 +17,7 @@ from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
 
+from typing import Any, Dict, Tuple, cast
 from typing import Any, Dict, Tuple
 
 from src.diagnostics.logger_factory import LoggerProtocol
@@ -184,8 +185,8 @@ class PneumaticSystem:
             port: Port (head or rod) on the cylinder.
             default: Optional explicit fallback value. When omitted, receiver
                 pressure is used.
-            logger: Optional logger for emitting diagnostics when the lookup
-                fails.
+            logger: Optional standard-library or structlog-compatible logger for
+                emitting diagnostics when the lookup fails.
         """
 
         line = self.lookup_line(wheel, port)
@@ -216,6 +217,15 @@ class PneumaticSystem:
 
         line_state = self._gas_network.lines.get(line)
         if line_state is None:
+            if logger is not None:
+                self._emit_log(
+                    logger,
+                    "error",
+                    "Pneumatic line state unavailable; using tank pressure.",
+                    line=line.name,
+                    wheel=wheel.name,
+                    port=port.name,
+                )
             self._log_endpoint_issue(
                 logger,
                 "error",
