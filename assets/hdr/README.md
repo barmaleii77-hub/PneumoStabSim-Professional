@@ -122,6 +122,32 @@ removed immediately._
 4. Let `normalizeHdrPath()` handle the rest automatically
 5. Commit the updated inventory table whenever new lighting profiles are added.
 
+## HDR dynamic range calibration
+
+- Bloom controls expose the HDR headroom directly inside the Effects tab. Use
+  the `HDR Maximum (glowHDRMaximumValue)` slider to clamp peak energy between
+  `0.0` and `10.0` (step `0.1`) and the `HDR Scale (glowHDRScale)` slider to
+  rescale incoming radiance between `1.0` and `5.0` (step `0.1`). The Python
+  panel serialises these values as `bloom_hdr_max` and `bloom_hdr_scale`, while
+  `SceneEnvironmentController.qml` applies them to the Qt Quick 3D scene.
+- When QA captures regression screenshots, log `bloom.hdr_max` and
+  `bloom.hdr_scale` events from `logs/graphics/session_*.jsonl` alongside the
+  HDR filename. This ensures bloom behaviour can be reproduced even after the
+  dynamic range sliders are retuned.
+
+## Texture persistence & recovery
+
+- HDR selections are persisted via the graphics settings payload.
+  `SettingsManager` normalises `ibl_source` paths before committing them to
+  `config/app_settings.json`, so a valid relative path (`../hdr/*.hdr`) will be
+  restored on the next launch even if the project moves to a different
+  workspace.
+- The `EnvironmentTab` reads the stored value, checks it against the discovered
+  HDR catalogue, and updates the UI status label. Missing files trigger the
+  fallback workflow (`normalizeHdrPath` warning + FileCyclerWidget indicator)
+  without clearing the persisted path, allowing texture packages to be restored
+  later without losing user preferences.
+
 ## Verification tooling
 
 - Run `python tools/verify_hdr_assets.py --fetch-missing` to download the
