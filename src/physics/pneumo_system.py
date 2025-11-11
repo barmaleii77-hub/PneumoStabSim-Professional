@@ -17,14 +17,15 @@ from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
 
-from typing import Any, Dict, Tuple, cast
-from typing import Any, Dict, Tuple
+from typing import Any, Mapping as TypingMapping
 
 from src.diagnostics.logger_factory import LoggerProtocol
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.pneumo.system import PneumaticSystem as StructuralPneumaticSystem
+
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
 
 
 def _coerce_context_value(value: Any) -> Any:
@@ -36,7 +37,7 @@ def _coerce_context_value(value: Any) -> Any:
 
 
 def _log_with_context(
-    logger: LoggerProtocol | logging.Logger | LoggerAdapter,
+    logger: LoggerLike,
     level: str,
     message: str,
     context: TypingMapping[str, Any],
@@ -144,31 +145,17 @@ class PneumaticSystem:
 
     def _log_endpoint_issue(
         self,
-        logger: Any,
+        logger: LoggerLike | None,
         level: str,
         message: str,
-        context: dict[str, str],
+        context: Mapping[str, str],
     ) -> None:
         """Emit a structured log entry without assuming the logger backend."""
 
         if logger is None:
             return
 
-        log_method = getattr(logger, level, None)
-        if log_method is None:
-            return
-
-        if hasattr(logger, "bind"):
-            try:
-                log_method(message, **context)
-            except TypeError:
-                log_method(message)
-            return
-
-        try:
-            log_method(message, extra=context)
-        except TypeError:
-            log_method(message)
+        _log_with_context(logger, level, message, context)
 
     def line_pressure(
         self,
@@ -217,15 +204,6 @@ class PneumaticSystem:
 
         line_state = self._gas_network.lines.get(line)
         if line_state is None:
-            if logger is not None:
-                self._emit_log(
-                    logger,
-                    "error",
-                    "Pneumatic line state unavailable; using tank pressure.",
-                    line=line.name,
-                    wheel=wheel.name,
-                    port=port.name,
-                )
             self._log_endpoint_issue(
                 logger,
                 "error",
