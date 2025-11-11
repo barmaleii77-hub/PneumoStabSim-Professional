@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from copy import deepcopy
@@ -17,6 +18,7 @@ from typing import Any
 from collections.abc import Iterable, Mapping, MutableMapping
 from collections.abc import Mapping as MappingABC
 
+from src.core.settings_defaults import load_default_settings_payload
 from src.infrastructure.container import (
     ServiceContainer,
     ServiceResolutionError,
@@ -31,6 +33,8 @@ from src.core.settings_validation import (
 )
 from src.core.settings_models import AppSettings, dump_settings
 
+
+logger = logging.getLogger(__name__)
 
 class _RelaxedAppSettings(AppSettings):
     """Variant of :class:`AppSettings` that ignores unknown fields."""
@@ -123,18 +127,26 @@ class SettingsService:
             with path.open("r", encoding="utf-8") as stream:
                 payload: dict[str, Any] = json.load(stream)
         except FileNotFoundError as exc:
-            raise SettingsValidationError(
-                f"Settings file not found at '{path}'"
-            ) from exc
+            logger.warning(
+                "Settings file not found at '%s'; loading default payload.", path
+            )
+            payload = load_default_settings_payload()
         except json.JSONDecodeError as exc:
-            raise SettingsValidationError(
-                "Settings file contains invalid JSON: "
-                f"{path} (line {exc.lineno}, column {exc.colno})"
-            ) from exc
+            logger.error(
+                "Settings file contains invalid JSON: %s (line %s, column %s); "
+                "loading default payload.",
+                path,
+                exc.lineno,
+                exc.colno,
+            )
+            payload = load_default_settings_payload()
         except OSError as exc:
-            raise SettingsValidationError(
-                f"Failed to read settings file '{path}': {exc}"
-            ) from exc
+            logger.error(
+                "Failed to read settings file '%s': %s; loading default payload.",
+                path,
+                exc,
+            )
+            payload = load_default_settings_payload()
         self._normalise_fog_depth_aliases(payload)
         self._normalise_hdr_paths(payload)
 

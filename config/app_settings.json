@@ -147,7 +147,8 @@
         "step": 1.0
       }
     },
-    "legacy": {}
+    "legacy": {},
+    "defaults_seed": "config/baseline/app_settings.json"
   },
   "current": {
     "simulation": {

@@ -37,6 +37,7 @@ class Metadata(_StrictModel):
     operational_imperatives: list[str]
     environment_slider_ranges: "EnvironmentSliderRanges"
     legacy: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    defaults_seed: str | None = None
 
 
 class SimulationSettings(_StrictModel):
