@@ -112,6 +112,44 @@ class ReceiverState:
         else:
             raise ThermoError(f"Unknown receiver volume mode: {self.mode}")
 
+    def set_volume(
+        self,
+        new_volume: float,
+        mode: ReceiverVolumeMode | str | None = None,
+        *,
+        recompute: bool = True,
+    ) -> None:
+        """Set the receiver volume with optional mode switching.
+
+        Args:
+            new_volume: Target receiver volume in cubic metres.
+            mode: Optional new recalculation mode. Either ``ReceiverVolumeMode`` or
+                a case-insensitive string token.
+            recompute: When ``True`` the state is recalculated using the configured
+                thermodynamic mode. When ``False`` only the volume is updated.
+        """
+
+        if mode is not None:
+            if isinstance(mode, ReceiverVolumeMode):
+                resolved_mode = mode
+            else:
+                try:
+                    resolved_mode = ReceiverVolumeMode[str(mode).upper()]
+                except KeyError as exc:  # pragma: no cover - defensive guard
+                    raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
+            self.mode = resolved_mode
+
+        if recompute:
+            self.apply_instant_volume_change(new_volume)
+        else:
+            if not (self.spec.V_min <= new_volume <= self.spec.V_max):
+                raise ModelConfigError(
+                    "Volume {0} outside valid range [{1}, {2}]".format(
+                        new_volume, self.spec.V_min, self.spec.V_max
+                    )
+                )
+            self.V = new_volume
+
     def validate_invariants(self) -> ValidationResult:
         """Validate receiver state invariants"""
         errors: list[str] = []
