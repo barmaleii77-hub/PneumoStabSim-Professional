@@ -32,8 +32,8 @@
   `file://` URL, а `FileCyclerWidget` подсвечивает пропавшие ассеты и запускает
   резервную карту. Логика обнаружения описана в
   `src/ui/panels/graphics/environment_tab.py` и покрыта
-  `tests/unit/ui/test_hdr_discovery.py` вместе с
-  `tests/unit/ui/test_main_window_hdr_paths.py`.
+  базовыми тестами в `tests/unit/ui/test_hdr_discovery.py` (минимальное покрытие, расширение планируется) вместе с
+  более подробными тестами в `tests/unit/ui/test_main_window_hdr_paths.py`.
 - **Динамический диапазон** — вкладка Effects экспонирует слайдеры `HDR Maximum`
   (0.0–10.0, шаг 0.1) и `HDR Scale` (1.0–5.0, шаг 0.1). Значения сохраняются в
   `current.graphics.effects.bloom_hdr_max` и `current.graphics.effects.bloom_hdr_scale`
