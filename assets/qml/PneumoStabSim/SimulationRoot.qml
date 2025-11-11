@@ -1295,8 +1295,9 @@ signal animationToggled(bool running)
         if (!_isPlainObject(source))
             return ({})
         var normalized = ({})
-        if (source.enabled !== undefined)
-            normalized.enabled = _coerceBool(source.enabled, true)
+        var enabledCandidate = _valueFromSources([source], ["enabled", "reflection_enabled", "reflectionEnabled"])
+        if (enabledCandidate !== undefined)
+            normalized.enabled = _coerceBool(enabledCandidate, true)
         var paddingCandidate = _valueFromSources([source], ["padding_m", "padding"])
         if (paddingCandidate !== undefined) {
             var numericPadding = _coerceNumber(paddingCandidate, Number.NaN)
@@ -1341,6 +1342,12 @@ signal animationToggled(bool running)
 
     function reflectionProbeSources() {
         var sources = []
+        var environmentLive = _normalizeReflectionProbePayload(environmentState)
+        if (!_isEmptyMap(environmentLive))
+            sources.push(environmentLive)
+        var environmentDefaultsNormalized = _normalizeReflectionProbePayload(sceneEnvironmentDefaults)
+        if (!_isEmptyMap(environmentDefaultsNormalized))
+            sources.push(environmentDefaultsNormalized)
         var explicit = _normalizeReflectionProbePayload(reflectionProbeDefaultsMap)
         if (!_isEmptyMap(explicit))
             sources.push(explicit)
@@ -1480,11 +1487,15 @@ signal animationToggled(bool running)
 readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
 property var environmentDefaultsMap: ({})
+readonly property bool environmentReflectionEnabledDefault: environmentBool(
+    ["reflection_enabled", "reflectionEnabled"],
+    environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], false)
+)
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
 readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
 property bool reflectionProbeEnabledDefault: reflectionProbeDefaultBool(
     ["enabled", "reflection_enabled", "reflectionEnabled"],
-    environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
+    environmentReflectionEnabledDefault
 )
 property bool reflectionProbeEnabledOverrideActive: false
 property bool reflectionProbeEnabledOverride: reflectionProbeEnabledDefault
