@@ -8,7 +8,7 @@ on:
       - main
       - develop
       - 'feature/*'
-      - feature/hdr-assets-migration
+      - 'feature/hdr-assets-migration'
   workflow_dispatch:
 
 env:
