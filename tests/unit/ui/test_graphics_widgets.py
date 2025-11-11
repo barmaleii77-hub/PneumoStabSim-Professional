@@ -50,3 +50,14 @@ class TestLabeledSlider:
             slider.set_value(2.75)
             assert slider.step_size == pytest.approx(0.25)
             assert captured, "Expected valueChanged to fire after adjusting step"
+
+    def test_clamps_to_extreme_values(self, qtbot):
+        slider = LabeledSlider("Exposure", -5.0, 5.0, 0.1)
+        qtbot.addWidget(slider)
+
+        slider.set_value(4.5)
+        slider._spin.setValue(500.0)  # type: ignore[attr-defined]
+        assert slider.value() == pytest.approx(5.0)
+
+        slider._spin.setValue(-500.0)  # type: ignore[attr-defined]
+        assert slider.value() == pytest.approx(-5.0)

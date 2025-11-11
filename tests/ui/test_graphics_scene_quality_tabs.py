@@ -155,6 +155,34 @@ def test_graphics_panel_preset_buttons_persist_state(monkeypatch, tmp_path, qapp
 
 
 @pytest.mark.gui
+def test_graphics_panel_apply_registered_preset(qapp):
+    panel = GraphicsPanel()
+
+    try:
+        baseline = panel.collect_state()
+        listener = SignalListener(panel.preset_applied)
+
+        assert panel.apply_registered_preset("quality.cinematic")
+        qapp.processEvents()
+
+        assert listener.count() >= 1
+
+        state = panel.collect_state()
+        quality = state.get("quality", {})
+        antialiasing = quality.get("antialiasing", {})
+        assert antialiasing.get("primary") == "taa"
+        assert antialiasing.get("quality") == "ultra"
+        assert quality.get("taa_strength") == pytest.approx(0.85)
+        assert quality.get("preset") == "custom"
+        assert quality.get("render_scale") == pytest.approx(1.0)
+        assert state.get("effects", {}).get("color_adjustments_active") is True
+
+        assert quality != baseline.get("quality", {})
+    finally:
+        panel.deleteLater()
+
+
+@pytest.mark.gui
 def test_scene_tab_roundtrip_preserves_types(qapp):
     tab = SceneTab()
 
