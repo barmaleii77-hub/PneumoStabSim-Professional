@@ -240,6 +240,19 @@ def _flatten_event_processor(
     return _flatten_event_payload(event_dict)
 
 
+def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
+    """Render structured events as JSON with UTF-8 friendly output."""
+
+    # ``ProcessorFormatter`` shares the event dictionary instance across
+    # processors. ``json.dumps`` mutates neither the mapping nor the values but
+    # copying keeps the renderer side-effect free and avoids surprises for
+    # downstream formatters in custom pipelines.
+    serialisable = dict(event_dict)
+    if "event" not in serialisable and name:
+        serialisable["event"] = name
+    return json.dumps(serialisable, ensure_ascii=False, default=str)
+
+
 def _shared_processors() -> list[Any]:
     """Return the processors shared by stdlib + structlog pipelines."""
 
@@ -285,10 +298,7 @@ def _ensure_stdlib_bridge(
     handler = logging.StreamHandler()
     if formatter is None:
         if json_renderer is None:
-            json_renderer = structlog.processors.JSONRenderer(
-                ensure_ascii=False,
-                event_key="event",
-            )
+            json_renderer = _json_renderer
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
@@ -334,10 +344,7 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    json_renderer = structlog.processors.JSONRenderer(
-        ensure_ascii=False,
-        event_key="event",
-    )
+    json_renderer = _json_renderer
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
