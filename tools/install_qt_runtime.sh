@@ -3,13 +3,13 @@ set -euo pipefail
 
 if ! command -v apt-get >/dev/null 2>&1; then
     echo "Error: apt-get is required to install the Qt runtime libraries automatically." >&2
-    echo "Please install libgl1, libxkbcommon0, libegl1, and libgles2 using your distribution's package manager." >&2
+    echo "Please install libgl1, libxkbcommon0, libxkbcommon-x11-0, libegl1, libgles2, and qt6-shader-tools using your distribution's package manager." >&2
     exit 1
 fi
 
 if [ "${1-}" = "--dry-run" ]; then
     echo "apt-get update"
-    echo "apt-get install -y libgl1 libxkbcommon0 libegl1 libgles2"
+    echo "apt-get install -y libgl1 libxkbcommon0 libxkbcommon-x11-0 libegl1 libgles2 qt6-shader-tools"
     exit 0
 fi
 
@@ -22,4 +22,4 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 apt-get update
-apt-get install -y libgl1 libxkbcommon0 libegl1 libgles2
+apt-get install -y libgl1 libxkbcommon0 libxkbcommon-x11-0 libegl1 libgles2 qt6-shader-tools
