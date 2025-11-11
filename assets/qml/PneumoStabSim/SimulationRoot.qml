@@ -2,7 +2,6 @@ import QtQml 6.10
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
-import QtQuick.Timeline 1.0
 import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10
 import "../camera"
@@ -1019,11 +1018,11 @@ signal animationToggled(bool running)
             if (resolvedMessage === undefined || resolvedMessage === null || resolvedMessage === "")
                 resolvedMessage = qsTr("%1: compilation failed").arg(effectId)
 
-            registerShaderWarning(effectId, resolvedMessage)
+            root.registerShaderWarning(effectId, resolvedMessage)
         }
 
         function onEffectCompilationRecovered(effectId) {
-            clearShaderWarning(effectId)
+            root.clearShaderWarning(effectId)
         }
 
         function onEffectsBypassChanged(active) {
