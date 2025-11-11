@@ -47,6 +47,11 @@ from ..panels.modes.defaults import (
 )
 from ..qml_bridge import register_qml_signals
 from .qml_bridge import QMLBridge
+from .validation import (
+    clamp_parameter_value,
+    normalise_mode_value,
+    sanitize_physics_payload,
+)
 
 
 def _make_preset_id(name: str, index: int) -> str:
@@ -1152,9 +1157,8 @@ class SignalsRouter:
             value = params.get(source_key)
             if value is None:
                 return
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
+            numeric = clamp_parameter_value(settings_key, value)
+            if numeric is None:
                 return
             settings_payload[settings_key] = numeric
             qml_payload[qml_key] = numeric
@@ -1326,8 +1330,11 @@ class SignalsRouter:
         if not mode_key:
             return
 
-        value = (new_mode or "").strip()
+        value = normalise_mode_value(mode_key, new_mode)
         if not value:
+            SignalsRouter.logger.debug(
+                "Ignored unsupported mode value: type=%s value=%s", mode_type, new_mode
+            )
             return
 
         modes_updates = {mode_key: value}
@@ -1352,26 +1359,7 @@ class SignalsRouter:
         if not isinstance(payload, Mapping):
             return
 
-        physics_updates: dict[str, Any] = {}
-        for key, default_value in DEFAULT_PHYSICS_OPTIONS.items():
-            if key not in payload:
-                continue
-
-            raw_value = payload[key]
-            if isinstance(default_value, bool):
-                physics_updates[key] = bool(raw_value)
-                continue
-
-            if isinstance(raw_value, bool):
-                numeric_value = float(default_value)
-            else:
-                try:
-                    numeric_value = float(raw_value)
-                except (TypeError, ValueError):
-                    numeric_value = float(default_value)
-
-            physics_updates[key] = numeric_value
-
+        physics_updates = sanitize_physics_payload(payload)
         if not physics_updates:
             return
 
