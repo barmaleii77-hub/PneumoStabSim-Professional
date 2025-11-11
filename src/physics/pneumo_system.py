@@ -138,7 +138,7 @@ class PneumaticSystem:
         port: Port,
         *,
         default: float | None = None,
-        logger: logging.Logger | None = None,
+        logger: LoggerLike | None = None,
     ) -> float:
         """Return the absolute pressure for the line connected to ``wheel/port``.
 
@@ -153,6 +153,20 @@ class PneumaticSystem:
 
         line = self.lookup_line(wheel, port)
         fallback = default if default is not None else float(self._gas_network.tank.p)
+
+        def _log(level: str, message: str, **fields: str) -> None:
+            if logger is None:
+                return
+            log_method = getattr(logger, level, None)
+            if log_method is None:
+                return
+            if hasattr(logger, "bind"):
+                log_method(message, **fields)
+                return
+            if fields:
+                log_method(message, extra=fields)
+            else:
+                log_method(message)
 
         if line is None:
             self._log_endpoint_issue(
