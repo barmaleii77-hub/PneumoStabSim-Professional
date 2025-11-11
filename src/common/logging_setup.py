@@ -116,7 +116,7 @@ def init_logging(
 ) -> logging.Logger:
     """Initialize application logging with non-blocking queue handler
 
-    УЛУЧШЕНИЯ v4.9.5:
+    УЛУЧШЕНИЯ v4.9.9:
     - Ротация логов (max_bytes, backup_count)
     - Опциональный вывод в консоль
     - Цветной вывод для консоли
@@ -320,7 +320,7 @@ def get_category_logger(
 ) -> logging.Logger:
     """Get logger for specific category with optional context
 
-    УЛУЧШЕНИЯ v4.9.5:
+    УЛУЧШЕНИЯ v4.9.9:
     - Кэширование логгеров
     - Контекстные фильтры
     - Автоматическое именование
