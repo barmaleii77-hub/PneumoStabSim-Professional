@@ -1,6 +1,6 @@
 #version 450 core
 // Qt Quick 3D post-processing shader.
-// Shader logic must live in qt_customMain; a thin main() wrapper is appended for shader tooling compatibility.
+// Shader logic executes directly inside main() for Qt 6.10 compatibility.
 // Requires GLSL 4.50 core for Qt Quick 3D SPIR-V runtime compatibility.
 
 #ifdef GL_ES
@@ -42,14 +42,9 @@ void bloomFallbackMain(inout vec4 fragColor)
     fragColor = texture(qt_Texture0, INPUT_UV);
 }
 
-void qt_customMain()
+void main()
 {
     vec4 fragColor = vec4(0.0);
     bloomFallbackMain(fragColor);
     FRAGCOLOR = fragColor;
-}
-
-void main()
-{
-    qt_customMain();
 }

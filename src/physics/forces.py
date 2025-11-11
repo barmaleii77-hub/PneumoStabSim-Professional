@@ -12,8 +12,10 @@ in a controlled manner during automated test runs.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from collections.abc import Iterable, Mapping
+from functools import lru_cache
+from types import MappingProxyType
 
 import math
 import numpy as np
@@ -107,9 +109,62 @@ def _load_validation_limits() -> dict[str, float]:
     return limits
 
 
-VERTICAL_AXIS = _load_vertical_axis()
-_SUSPENSION_DEFAULTS = _load_suspension_defaults()
-_VALIDATION_LIMITS = _load_validation_limits()
+@lru_cache(maxsize=1)
+def _vertical_axis_cache() -> tuple[float, float, float]:
+    """Cache the unit vector of the vertical world axis.
+
+    The constants module performs I/O when the axis is resolved. Caching the
+    tuple avoids reloading the configuration while still letting importers run
+    even when the settings file is temporarily unavailable (for example during
+    test fixture setup).
+    """
+
+    vector = _load_vertical_axis()
+    return cast(
+        tuple[float, float, float],
+        tuple(float(component) for component in vector),
+    )
+
+
+def get_vertical_axis() -> NDArray[np.float64]:
+    """Return the normalised vertical axis as a NumPy array."""
+
+    return np.asarray(_vertical_axis_cache(), dtype=float)
+
+
+@lru_cache(maxsize=1)
+def _suspension_defaults_cache() -> Mapping[str, Any]:
+    """Return cached suspension defaults as immutable mapping."""
+
+    defaults = _load_suspension_defaults()
+    axis = tuple(float(component) for component in defaults["axis_unit_world"])
+    payload = {**defaults, "axis_unit_world": axis}
+    return MappingProxyType(payload)
+
+
+def get_suspension_defaults() -> Mapping[str, Any]:
+    """Return suspension defaults with safe copies for mutable entries."""
+
+    cached = _suspension_defaults_cache()
+    axis_tuple = cached["axis_unit_world"]
+    axis_array = np.asarray(axis_tuple, dtype=float)
+    return {
+        key: value if key != "axis_unit_world" else axis_array.copy()
+        for key, value in cached.items()
+    }
+
+
+@lru_cache(maxsize=1)
+def _validation_limits_cache() -> Mapping[str, float]:
+    """Return cached validation limits."""
+
+    return MappingProxyType(_load_validation_limits())
+
+
+def get_validation_limits() -> Mapping[str, float]:
+    """Return validation limits for force calculations."""
+
+    return dict(_validation_limits_cache())
 
 
 def compute_point_velocity_world(
@@ -202,7 +257,9 @@ def compute_suspension_point_kinematics(
             " exposed in the UI and provided here."
         )
 
-    axis_unit_world = _normalise_axis(axis_directions[wheel_name])
+    axis_source = axis_directions[wheel_name]
+    axis_array = np.asarray(axis_source, dtype=float)
+    axis_unit_world = _normalise_axis(axis_array)
 
     # Axial velocity
     v_axis = compute_axis_velocity(axis_unit_world, point_velocity)
@@ -319,6 +376,7 @@ def project_forces_to_vertical_and_moments(
     """
     wheel_names = ["LP", "PP", "LZ", "PZ"]  # Standard order
     vertical_forces = np.zeros(4)
+    vertical_axis = get_vertical_axis()
     tau_x = 0.0  # Pitch moment
     tau_z = 0.0  # Roll moment
 
@@ -342,7 +400,7 @@ def project_forces_to_vertical_and_moments(
         axis_unit = _normalise_axis(state["axis_unit_world"])
 
         # Project to vertical component
-        F_vertical = float(np.dot(axis_unit, VERTICAL_AXIS)) * F_total_axis
+        F_vertical = float(np.dot(axis_unit, vertical_axis)) * F_total_axis
         vertical_forces[i] = F_vertical
 
         # Get attachment point for moment calculation
@@ -401,14 +459,16 @@ def validate_force_calculation(
     if not (np.isfinite(tau_x) and np.isfinite(tau_z)):
         return False, "Moments contain NaN or infinite values"
 
-    max_force = _VALIDATION_LIMITS["max_force_n"]
+    limits = get_validation_limits()
+
+    max_force = limits["max_force_n"]
     if np.any(np.abs(forces) > max_force):
         return (
             False,
             f"Forces exceed reasonable limit: max={np.max(np.abs(forces)):.1f}N",
         )
 
-    max_moment = _VALIDATION_LIMITS["max_moment_n_m"]
+    max_moment = limits["max_moment_n_m"]
     if abs(tau_x) > max_moment or abs(tau_z) > max_moment:
         return (
             False,
@@ -418,10 +478,11 @@ def validate_force_calculation(
     return True, ""
 
 
-# Default suspension parameters for testing
-DEFAULT_SUSPENSION_PARAMS = {
-    key: _SUSPENSION_DEFAULTS[key]
-    for key in (
+def get_default_suspension_params() -> Mapping[str, float]:
+    """Return cached scalar suspension constants used in tests and tools."""
+
+    defaults = get_suspension_defaults()
+    keys = (
         "k_spring",
         "c_damper",
         "F_damper_min",
@@ -429,7 +490,7 @@ DEFAULT_SUSPENSION_PARAMS = {
         "A_head",
         "A_rod",
     )
-}
+    return {key: float(defaults[key]) for key in keys}
 
 
 def create_test_suspension_state(
@@ -446,12 +507,14 @@ def create_test_suspension_state(
     Returns:
         Suspension state dictionary
     """
+    defaults = get_suspension_defaults()
+
     return {
         "wheel_name": wheel_name,
         "F_cyl_axis": F_cyl,
         "F_spring_axis": F_spring,
         "F_damper_axis": F_damper,
         "F_total_axis": F_cyl + F_spring + F_damper,
-        "axis_unit_world": _SUSPENSION_DEFAULTS["axis_unit_world"].copy(),
+        "axis_unit_world": defaults["axis_unit_world"].copy(),
         "axial_velocity": 0.0,
     }

@@ -88,3 +88,19 @@ def test_depth_texture_activator_deduplicates_debug_logging(
     assert "property var _diagnosticDedup" in depth_texture_source
     assert "function _logDebugOnce" in depth_texture_source
     assert "_clearPropertyCache()" in depth_texture_source
+
+
+def test_depth_texture_activator_avoids_removed_qt_properties(
+    depth_texture_source: str,
+) -> None:
+    forbidden_tokens = (
+        "explicitDepthTextureEnabled",
+        "explicitVelocityTextureEnabled",
+        "requiresDepthTexture",
+        "requiresVelocityTexture",
+    )
+
+    for token in forbidden_tokens:
+        assert token not in depth_texture_source, (
+            f"Legacy property {token} must remain absent from the activator"
+        )

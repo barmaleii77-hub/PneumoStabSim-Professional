@@ -13,6 +13,7 @@ import os
 import re
 from copy import deepcopy
 from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path, PureWindowsPath
 from typing import Any
 from collections.abc import Iterable, Mapping, MutableMapping
@@ -127,7 +128,7 @@ class SettingsService:
         try:
             with path.open("r", encoding="utf-8") as stream:
                 payload: dict[str, Any] = json.load(stream)
-        except FileNotFoundError as exc:
+        except FileNotFoundError:
             logger.warning(
                 "Settings file not found at '%s'; loading default payload.", path
             )
@@ -783,8 +784,15 @@ class SettingsService:
         return data
 
     @staticmethod
-    def _split_path(path: str) -> Iterable[str]:
-        return [segment for segment in path.split(".") if segment]
+    @lru_cache(maxsize=512)
+    def _split_path(path: str) -> tuple[str, ...]:
+        """Return cached path segments for repeated dot-path lookups."""
+
+        stripped = path.strip()
+        if not stripped:
+            return tuple()
+        segments = [segment.strip() for segment in stripped.split(".")]
+        return tuple(segment for segment in segments if segment)
 
     @staticmethod
     def _traverse_mapping(data: Any, segments: Iterable[str], default: Any) -> Any:

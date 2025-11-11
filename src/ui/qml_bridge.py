@@ -71,6 +71,10 @@ else:  # pragma: no cover - exercised only when metadata is missing
     _METADATA_PATH = _METADATA_CANDIDATES[0]
 
 
+class QMLBridgeMetadataError(RuntimeError):
+    """Raised when the QML bridge metadata cannot be loaded."""
+
+
 @dataclass(frozen=True)
 class QMLSignalSpec:
     """Declarative description of a QML signal ↔ Python handler link."""
@@ -131,13 +135,26 @@ class QMLBridgeMetadata:
 
 def _load_metadata_from_disk(path: Path) -> QMLBridgeMetadata:
     if not path.exists():
-        raise FileNotFoundError(
-            f"QML bridge metadata file not found: {path}. "
-            "Ensure the renovation master plan assets are in place."
+        message = (
+            "QML bridge metadata file not found: "
+            f"{path}. Ensure the renovation master plan assets are in place."
         )
+        _LOGGER.error(message)
+        raise QMLBridgeMetadataError(message)
 
-    with path.open("r", encoding="utf-8") as fh:
-        raw = yaml.safe_load(fh) or {}
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            raw = yaml.safe_load(fh) or {}
+    except yaml.YAMLError as exc:
+        _LOGGER.error("Failed to parse QML bridge metadata %s", path, exc_info=exc)
+        raise QMLBridgeMetadataError(
+            f"Failed to parse QML bridge metadata: {path}\n{exc}"
+        ) from exc
+    except OSError as exc:  # pragma: no cover - defensive branch
+        _LOGGER.error("Failed to read QML bridge metadata %s", path, exc_info=exc)
+        raise QMLBridgeMetadataError(
+            f"Failed to read QML bridge metadata: {path}\n{exc}"
+        ) from exc
 
     update_methods_raw: MutableMapping[str, Iterable[str]] = {
         str(key): tuple(str(item) for item in value or ())
