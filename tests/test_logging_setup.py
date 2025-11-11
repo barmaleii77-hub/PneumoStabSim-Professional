@@ -34,4 +34,3 @@ def test_init_logging_injects_environment_context(tmp_path: Path) -> None:
     sample_line = lines_with_context[0]
     assert "python=" in sample_line
     assert "os=" in sample_line
-

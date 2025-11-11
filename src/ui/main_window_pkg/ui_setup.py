@@ -419,11 +419,12 @@ class UISetup:
                 fallback_sources.append(snapshot_suspension)
 
             raw_suspension = scene_payload.get("suspension")
+            section_present = raw_suspension is not None
             normalised_suspension: dict[str, Any] = {}
             if isinstance(raw_suspension, dict):
                 normalised_suspension.update(raw_suspension)
             else:
-                if raw_suspension is not None:
+                if section_present:
                     UISetup.logger.warning(
                         "    ⚠️ Scene settings 'suspension' section has invalid type (%s); "
                         "using defaults.",
@@ -441,18 +442,20 @@ class UISetup:
                     normalised_suspension[key] = float(value)
                     continue
 
+                fallback_value: float | None = None
                 for fallback in fallback_sources:
                     candidate = fallback.get(key)
                     if isinstance(candidate, (int, float)) and not isinstance(
                         candidate, bool
                     ):
-                        normalised_suspension[key] = float(candidate)
+                        fallback_value = float(candidate)
                         break
 
-                if key not in normalised_suspension:
-                    normalised_suspension[key] = float(
-                        _SCENE_SUSPENSION_DEFAULTS.get(key, 0.0)
-                    )
+                if fallback_value is None:
+                    fallback_value = float(_SCENE_SUSPENSION_DEFAULTS.get(key, 0.0))
+
+                normalised_suspension[key] = fallback_value
+                if section_present:
                     missing_keys.append(key)
 
             if missing_keys:

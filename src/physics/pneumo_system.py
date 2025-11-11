@@ -17,8 +17,7 @@ from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
 
-from typing import Any, Dict, Tuple, cast
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from src.diagnostics.logger_factory import LoggerProtocol
 from src.physics.forces import compute_cylinder_force
@@ -36,12 +35,15 @@ def _coerce_context_value(value: Any) -> Any:
 
 
 def _log_with_context(
-    logger: LoggerProtocol | logging.Logger | LoggerAdapter,
+    logger: LoggerProtocol | logging.Logger | LoggerAdapter | None,
     level: str,
     message: str,
-    context: TypingMapping[str, Any],
+    context: Mapping[str, Any],
 ) -> None:
     """Emit a structured log entry compatible with stdlib and structlog loggers."""
+
+    if logger is None:
+        return
 
     log_method: Any = getattr(logger, level, None)
     if log_method is None:
@@ -95,7 +97,7 @@ class PneumaticSystem:
         # not need to be recomputed every frame.
         self._max_head_volume: dict[Wheel, float] = {}
         self._max_rod_volume: dict[Wheel, float] = {}
-        self._line_lookup: Dict[Tuple[Wheel, Port], Line] = {}
+        self._line_lookup: dict[tuple[Wheel, Port], Line] = {}
         for wheel, cylinder in self._structure.cylinders.items():
             geom = cylinder.spec.geometry
             half_travel = geom.L_travel_max / 2.0
@@ -144,31 +146,14 @@ class PneumaticSystem:
 
     def _log_endpoint_issue(
         self,
-        logger: Any,
+        logger: LoggerProtocol | logging.Logger | LoggerAdapter | None,
         level: str,
         message: str,
-        context: dict[str, str],
+        context: Mapping[str, Any],
     ) -> None:
         """Emit a structured log entry without assuming the logger backend."""
 
-        if logger is None:
-            return
-
-        log_method = getattr(logger, level, None)
-        if log_method is None:
-            return
-
-        if hasattr(logger, "bind"):
-            try:
-                log_method(message, **context)
-            except TypeError:
-                log_method(message)
-            return
-
-        try:
-            log_method(message, extra=context)
-        except TypeError:
-            log_method(message)
+        _log_with_context(logger, level, message, context)
 
     def line_pressure(
         self,
@@ -176,7 +161,7 @@ class PneumaticSystem:
         port: Port,
         *,
         default: float | None = None,
-        logger: LoggerLike | None = None,
+        logger: LoggerProtocol | logging.Logger | LoggerAdapter | None = None,
     ) -> float:
         """Return the absolute pressure for the line connected to ``wheel/port``.
 
@@ -217,15 +202,6 @@ class PneumaticSystem:
 
         line_state = self._gas_network.lines.get(line)
         if line_state is None:
-            if logger is not None:
-                self._emit_log(
-                    logger,
-                    "error",
-                    "Pneumatic line state unavailable; using tank pressure.",
-                    line=line.name,
-                    wheel=wheel.name,
-                    port=port.name,
-                )
             self._log_endpoint_issue(
                 logger,
                 "error",
