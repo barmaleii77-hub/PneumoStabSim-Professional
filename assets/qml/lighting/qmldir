@@ -6,4 +6,5 @@ module lighting
 
 DirectionalLights 1.0 DirectionalLights.qml
 PointLights 1.0 PointLights.qml
+SpotLights 1.0 SpotLights.qml
 RealismLightingRig 1.0 RealismLightingRig.qml
