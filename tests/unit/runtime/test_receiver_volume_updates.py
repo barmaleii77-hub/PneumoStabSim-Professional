@@ -104,5 +104,19 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
         worker.gas_network.tank.T
     )
 
-    log_messages = [record.message for record in caplog.records]
-    assert any("Receiver volume updated" in message for message in log_messages)
+    log_record = next(
+        (
+            record
+            for record in caplog.records
+            if "Receiver volume updated" in record.message
+        ),
+        None,
+    )
+    assert log_record is not None, "Receiver volume update log entry is missing"
+    assert log_record.volume_m3 == pytest.approx(new_volume)
+    assert log_record.mode == "GEOMETRIC"
+    assert log_record.receiver_pressure_pa == pytest.approx(
+        receiver_state.p
+    )
+    assert log_record.receiver_temperature_k == pytest.approx(receiver_state.T)
+    assert log_record.pneumatic_tank_volume_m3 == pytest.approx(new_volume)
