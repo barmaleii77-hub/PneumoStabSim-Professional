@@ -1,17 +1,19 @@
+pragma ComponentBehavior: Bound
+
 import QtQml 6.10
 import QtQuick 6.10
-import QtQuick.Controls 6.10
-import QtQuick.Layouts 6.10
-import QtQuick.Timeline 1.0
 import QtQuick3D 6.10
-import QtQuick3D.Helpers 6.10
+// qmllint disable import
 import "../camera"
 import "../components"
 import "../effects"
 import "../geometry"
 import "../lighting"
 import scene 1.0 as Scene
+// qmllint enable import
+// qmllint disable unused-imports
 import "../animation"
+// qmllint enable unused-imports
 import "../diagnostics/LogBridge.js" as Diagnostics
 
 /*
@@ -23,7 +25,8 @@ import "../diagnostics/LogBridge.js" as Diagnostics
  * штоки, хвостовики, поршни). Без кнопок на канве.
  * Обновления приходят из панелей через apply*Updates и batched updates.
  */
- Item {
+// qmllint disable missing-property
+Item {
  id: root
  anchors.fill: parent
 
@@ -73,11 +76,22 @@ signal animationToggled(bool running)
 
     function _logBatchEvent(eventType, name) {
         try {
-            if (typeof window !== "undefined" && window && typeof window.logQmlEvent === "function")
-                window.logQmlEvent(eventType, name)
+            var hostWindow = _globalWindow()
+            if (hostWindow && typeof hostWindow.logQmlEvent === "function")
+                hostWindow.logQmlEvent(eventType, name)
         } catch (error) {
             console.debug("[SimulationRoot] Failed to forward batch event", eventType, name, error)
         }
+    }
+
+    function _globalWindow() {
+        // qmllint disable unqualified
+        try {
+            return typeof window !== "undefined" && window ? window : null
+        } catch (error) {
+            return null
+        }
+        // qmllint enable unqualified
     }
 
     function _mergeObjects(base, payload) {
@@ -664,11 +678,12 @@ signal animationToggled(bool running)
     Component.onCompleted: {
         _refreshSceneDefaults()
         const hasBridge = sceneBridge !== null && sceneBridge !== undefined
-        const hasWindow = typeof window !== "undefined" && window
-        const windowIdentifier = hasWindow && typeof window.objectName === "string" && window.objectName.length > 0
-                ? window.objectName
+        const hostWindow = _globalWindow()
+        const hasWindow = hostWindow !== null
+        const windowIdentifier = hasWindow && typeof hostWindow.objectName === "string" && hostWindow.objectName.length > 0
+                ? hostWindow.objectName
                 : "<anonymous>"
-        const windowWarningAPI = hasWindow && typeof window.registerShaderWarning === "function"
+        const windowWarningAPI = hasWindow && typeof hostWindow.registerShaderWarning === "function"
         console.log("[SimulationRoot] Component completed; sceneBridge:", hasBridge ? "available" : "missing")
         console.log("[SimulationRoot] Window context:", hasWindow ? windowIdentifier : "<missing>")
         console.log("[SimulationRoot] Window.registerShaderWarning available:", windowWarningAPI)
@@ -690,7 +705,7 @@ signal animationToggled(bool running)
     }
 
     function diagnosticsWindow() {
-        return typeof window !== "undefined" && window ? window : null
+        return _globalWindow()
     }
 
     function forwardShaderDiagnostics(eventType, effectId, message) {
@@ -998,11 +1013,11 @@ signal animationToggled(bool running)
             if (resolvedMessage === undefined || resolvedMessage === null || resolvedMessage === "")
                 resolvedMessage = qsTr("%1: compilation failed").arg(effectId)
 
-            registerShaderWarning(effectId, resolvedMessage)
+            root.registerShaderWarning(effectId, resolvedMessage)
         }
 
         function onEffectCompilationRecovered(effectId) {
-            clearShaderWarning(effectId)
+            root.clearShaderWarning(effectId)
         }
 
         function onEffectsBypassChanged(active) {
@@ -1060,11 +1075,13 @@ signal animationToggled(bool running)
     }
 
  // Состояние симуляции, управляется из Python (MainWindow)
+ // qmllint disable unqualified
  property bool isRunning: animationDefaults && animationDefaults.is_running !== undefined ? Boolean(animationDefaults.is_running) : false
  property var animationDefaults: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : null
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
  property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyGeometryDefaults
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
+ // qmllint enable unqualified
  property var sceneMaterialsDefaults: ({})
  property var sceneLightingDefaults: ({})
  property var sceneEnvironmentDefaults: ({})
@@ -1258,7 +1275,7 @@ signal animationToggled(bool running)
   }
  }
 
-readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
+readonly property real defaultDofFocusDistanceM: root.effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
 property var environmentDefaultsMap: ({})
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
@@ -1307,7 +1324,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         visible: false
         enabled: false
         diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
-        onSimplifiedRenderingRequested: root.updateSimpleFallbackState(true, reason)
+        onSimplifiedRenderingRequested: function(reason) { root.updateSimpleFallbackState(true, reason) }
         onSimplifiedRenderingRecovered: root.updateSimpleFallbackState(false, "")
     }
 
@@ -1324,10 +1341,11 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         diagnosticsLoggingEnabled: root.diagnosticsLoggingEnabled
         materialsDefaultsOverride: root.activeMaterialsDefaults
         lightingContextOverride: root.activeLightingDefaults
-        onSimplifiedRenderingRequested: root.updateSimpleFallbackState(true, reason)
+        onSimplifiedRenderingRequested: function(reason) { root.updateSimpleFallbackState(true, reason) }
         onSimplifiedRenderingRecovered: root.updateSimpleFallbackState(false, "")
     }
 
+    // qmllint disable missing-property
     Animation.RigAnimationController {
         id: rigAnimation
         smoothingEnabled: true
@@ -1335,12 +1353,15 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         angleSnapThresholdDeg: 5.0
         pistonSnapThresholdM: 0.01
     }
+    // qmllint enable missing-property
 
+    // qmllint disable missing-property
     Scene.SharedMaterials {
         id: sharedMaterials
-        initialSharedMaterials: sceneMaterialsDefaults
+        initialSharedMaterials: root.sceneMaterialsDefaults
         materialsDefaults: root.activeMaterialsDefaults
     }
+    // qmllint enable missing-property
 
     View3D {
         id: sceneView
@@ -1357,6 +1378,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             eulerRotation: Qt.vector3d(rigAnimation.framePitchDeg, 0, rigAnimation.frameRollDeg)
         }
 
+        // qmllint disable missing-property
         Scene.SuspensionAssembly {
             id: suspensionAssembly
             worldRoot: worldRoot
@@ -1371,68 +1393,69 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             flowTelemetry: root.flowTelemetry
             receiverTelemetry: root.receiverTelemetry
             reflectionProbeEnabled: true
-            reflectionProbePaddingM: sanitizeReflectionProbePadding(environmentNumber(["reflection_probe_padding", "probePadding"], reflectionProbePaddingM))
+            reflectionProbePaddingM: root.sanitizeReflectionProbePadding(root.environmentNumber(["reflection_probe_padding", "probePadding"], root.reflectionProbePaddingM))
         }
+        // qmllint enable missing-property
 
         DirectionalLights {
             id: directionalLights
             worldRoot: worldRoot
             cameraRig: cameraController.rig
-            shadowsEnabled: qualityShadowBool(["enabled"], true)
-            shadowResolution: qualityShadowNumber(["resolution", "shadowResolution"], 4096)
-            shadowFilterSamples: qualityShadowNumber(["filterSamples", "filter", "samples"], 32)
-            shadowBias: qualityShadowNumber(["bias", "shadowBias"], 8.0)
-            shadowFactor: qualityShadowNumber(["factor", "darkness", "shadowFactor"], 80.0)
+            shadowsEnabled: root.qualityShadowBool(["enabled"], true)
+            shadowResolution: root.qualityShadowNumber(["resolution", "shadowResolution"], 4096)
+            shadowFilterSamples: root.qualityShadowNumber(["filterSamples", "filter", "samples"], 32)
+            shadowBias: root.qualityShadowNumber(["bias", "shadowBias"], 8.0)
+            shadowFactor: root.qualityShadowNumber(["factor", "darkness", "shadowFactor"], 80.0)
 
-            keyLightBrightness: lightingNumber("key", ["brightness", "intensity"], 1.0)
-            keyLightColor: lightingColor("key", "color", "#ffffff")
-            keyLightAngleX: lightingNumber("key", ["angle_x", "angleX"], 25.0)
-            keyLightAngleY: lightingNumber("key", ["angle_y", "angleY"], 23.5)
-            keyLightAngleZ: lightingNumber("key", ["angle_z", "angleZ"], 0.0)
-            keyLightCastsShadow: lightingBool("key", ["cast_shadow", "castsShadow"], true)
-            keyLightBindToCamera: lightingBool("key", ["bind_to_camera", "bindToCamera"], false)
-            keyLightPosX: lightingNumber("key", ["position_x", "pos_x", "x"], 0.0)
-            keyLightPosY: lightingNumber("key", ["position_y", "pos_y", "y"], 0.0)
-            keyLightPosZ: lightingNumber("key", ["position_z", "pos_z", "z"], 0.0)
+            keyLightBrightness: root.lightingNumber("key", ["brightness", "intensity"], 1.0)
+            keyLightColor: root.lightingColor("key", "color", "#ffffff")
+            keyLightAngleX: root.lightingNumber("key", ["angle_x", "angleX"], 25.0)
+            keyLightAngleY: root.lightingNumber("key", ["angle_y", "angleY"], 23.5)
+            keyLightAngleZ: root.lightingNumber("key", ["angle_z", "angleZ"], 0.0)
+            keyLightCastsShadow: root.lightingBool("key", ["cast_shadow", "castsShadow"], true)
+            keyLightBindToCamera: root.lightingBool("key", ["bind_to_camera", "bindToCamera"], false)
+            keyLightPosX: root.lightingNumber("key", ["position_x", "pos_x", "x"], 0.0)
+            keyLightPosY: root.lightingNumber("key", ["position_y", "pos_y", "y"], 0.0)
+            keyLightPosZ: root.lightingNumber("key", ["position_z", "pos_z", "z"], 0.0)
 
-            fillLightBrightness: lightingNumber("fill", ["brightness", "intensity"], 1.0)
-            fillLightColor: lightingColor("fill", "color", "#f1f4ff")
-            fillLightAngleX: lightingNumber("fill", ["angle_x", "angleX"], 0.0)
-            fillLightAngleY: lightingNumber("fill", ["angle_y", "angleY"], -45.0)
-            fillLightAngleZ: lightingNumber("fill", ["angle_z", "angleZ"], 0.0)
-            fillLightCastsShadow: lightingBool("fill", ["cast_shadow", "castsShadow"], false)
-            fillLightBindToCamera: lightingBool("fill", ["bind_to_camera", "bindToCamera"], false)
-            fillLightPosX: lightingNumber("fill", ["position_x", "pos_x", "x"], 0.0)
-            fillLightPosY: lightingNumber("fill", ["position_y", "pos_y", "y"], 0.0)
-            fillLightPosZ: lightingNumber("fill", ["position_z", "pos_z", "z"], 0.0)
+            fillLightBrightness: root.lightingNumber("fill", ["brightness", "intensity"], 1.0)
+            fillLightColor: root.lightingColor("fill", "color", "#f1f4ff")
+            fillLightAngleX: root.lightingNumber("fill", ["angle_x", "angleX"], 0.0)
+            fillLightAngleY: root.lightingNumber("fill", ["angle_y", "angleY"], -45.0)
+            fillLightAngleZ: root.lightingNumber("fill", ["angle_z", "angleZ"], 0.0)
+            fillLightCastsShadow: root.lightingBool("fill", ["cast_shadow", "castsShadow"], false)
+            fillLightBindToCamera: root.lightingBool("fill", ["bind_to_camera", "bindToCamera"], false)
+            fillLightPosX: root.lightingNumber("fill", ["position_x", "pos_x", "x"], 0.0)
+            fillLightPosY: root.lightingNumber("fill", ["position_y", "pos_y", "y"], 0.0)
+            fillLightPosZ: root.lightingNumber("fill", ["position_z", "pos_z", "z"], 0.0)
 
-            rimLightBrightness: lightingNumber("rim", ["brightness", "intensity"], 1.1)
-            rimLightColor: lightingColor("rim", "color", "#ffe1bd")
-            rimLightAngleX: lightingNumber("rim", ["angle_x", "angleX"], 30.0)
-            rimLightAngleY: lightingNumber("rim", ["angle_y", "angleY"], -135.0)
-            rimLightAngleZ: lightingNumber("rim", ["angle_z", "angleZ"], 0.0)
-            rimLightCastsShadow: lightingBool("rim", ["cast_shadow", "castsShadow"], false)
-            rimLightBindToCamera: lightingBool("rim", ["bind_to_camera", "bindToCamera"], false)
-            rimLightPosX: lightingNumber("rim", ["position_x", "pos_x", "x"], 0.0)
-            rimLightPosY: lightingNumber("rim", ["position_y", "pos_y", "y"], 0.0)
-            rimLightPosZ: lightingNumber("rim", ["position_z", "pos_z", "z"], 0.0)
+            rimLightBrightness: root.lightingNumber("rim", ["brightness", "intensity"], 1.1)
+            rimLightColor: root.lightingColor("rim", "color", "#ffe1bd")
+            rimLightAngleX: root.lightingNumber("rim", ["angle_x", "angleX"], 30.0)
+            rimLightAngleY: root.lightingNumber("rim", ["angle_y", "angleY"], -135.0)
+            rimLightAngleZ: root.lightingNumber("rim", ["angle_z", "angleZ"], 0.0)
+            rimLightCastsShadow: root.lightingBool("rim", ["cast_shadow", "castsShadow"], false)
+            rimLightBindToCamera: root.lightingBool("rim", ["bind_to_camera", "bindToCamera"], false)
+            rimLightPosX: root.lightingNumber("rim", ["position_x", "pos_x", "x"], 0.0)
+            rimLightPosY: root.lightingNumber("rim", ["position_y", "pos_y", "y"], 0.0)
+            rimLightPosZ: root.lightingNumber("rim", ["position_z", "pos_z", "z"], 0.0)
         }
 
         PointLights {
             id: pointLights
             worldRoot: worldRoot
             cameraRig: cameraController.rig
-            pointLightBrightness: lightingNumber("point", ["brightness", "intensity"], 50.0)
-            pointLightColor: lightingColor("point", "color", "#fff7e0")
-            pointLightX: lightingNumber("point", ["position_x", "pos_x", "x"], 0.0)
-            pointLightY: lightingNumber("point", ["position_y", "pos_y", "y"], 2.6)
-            pointLightZ: lightingNumber("point", ["position_z", "pos_z", "z"], 1.5)
-            pointLightRange: lightingNumber("point", "range", 3.6)
-            constantFade: lightingNumber("point", ["constant_fade", "constantFade"], 1.0)
-            linearFade: lightingNumber("point", ["linear_fade", "linearFade"], 0.01)
-            quadraticFade: lightingNumber("point", ["quadratic_fade", "quadraticFade"], 1.0)
-            pointLightCastsShadow: lightingBool("point", ["cast_shadow", "castsShadow"], false)
-            pointLightBindToCamera: lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
+            pointLightBrightness: root.lightingNumber("point", ["brightness", "intensity"], 50.0)
+            pointLightColor: root.lightingColor("point", "color", "#fff7e0")
+            pointLightX: root.lightingNumber("point", ["position_x", "pos_x", "x"], 0.0)
+            pointLightY: root.lightingNumber("point", ["position_y", "pos_y", "y"], 2.6)
+            pointLightZ: root.lightingNumber("point", ["position_z", "pos_z", "z"], 1.5)
+            pointLightRange: root.lightingNumber("point", "range", 3.6)
+            constantFade: root.lightingNumber("point", ["constant_fade", "constantFade"], 1.0)
+            linearFade: root.lightingNumber("point", ["linear_fade", "linearFade"], 0.01)
+            quadraticFade: root.lightingNumber("point", ["quadratic_fade", "quadraticFade"], 1.0)
+            pointLightCastsShadow: root.lightingBool("point", ["cast_shadow", "castsShadow"], false)
+            pointLightBindToCamera: root.lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
         }
     }
 
@@ -1448,7 +1471,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         worldRoot: worldRoot
         view3d: sceneView
         sceneBridge: root.sceneBridge
-        taaMotionAdaptive: environmentBool(["taa_motion_adaptive", "taaMotionAdaptive"], false)
+        taaMotionAdaptive: root.environmentBool(["taa_motion_adaptive", "taaMotionAdaptive"], false)
         hudVisible: root.cameraHudEnabled
         hudSettings: root.cameraHudSettings
         sceneScaleFactor: root.sceneScaleFactor
@@ -1479,3 +1502,4 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
     readonly property alias scenePointLights: pointLights
     readonly property alias sceneSuspensionAssembly: suspensionAssembly
 }
+// qmllint enable missing-property

@@ -1013,16 +1013,19 @@ Effect {
     Connections {
         target: fogVertexShader
         ignoreUnknownSignals: true
+
         function onStatusChanged() { fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert") }
     }
     Connections {
         target: fogFragmentShader
         ignoreUnknownSignals: true
+
         function onStatusChanged() { fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag") }
     }
     Connections {
         target: fogFallbackShader
         ignoreUnknownSignals: true
+
         function onStatusChanged() { fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag") }
     }
 

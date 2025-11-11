@@ -118,9 +118,7 @@ Item {
             controller._checkStatus()
         }
 
-        function onSourceChanged() {
-            controller._lastStatus = -1
-        }
+        function onSourceChanged() { controller._lastStatus = -1 }
     }
 
     function statusToString(s) {
