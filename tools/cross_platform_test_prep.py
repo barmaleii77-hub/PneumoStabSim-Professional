@@ -74,6 +74,7 @@ LINUX_SYSTEM_PACKAGES: tuple[str, ...] = (
     "libvulkan1",
     "mesa-vulkan-drivers",
     "vulkan-tools",
+    "qt6-shader-tools",
 )
 
 WINDOWS_CHOCOLATEY_PACKAGES: tuple[str, ...] = ("make",)

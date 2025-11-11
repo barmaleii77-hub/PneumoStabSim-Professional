@@ -324,9 +324,11 @@ class EnvironmentSetup:
             "libgles2",
             "libgl1",
             "libxkbcommon0",
+            "libxkbcommon-x11-0",
             "libxcb-cursor0",
             "libnss3",
             "libdbus-1-3",
+            "qt6-shader-tools",
         ]
         missing: list[str] = []
 

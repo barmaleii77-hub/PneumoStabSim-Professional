@@ -115,8 +115,6 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert log_record is not None, "Receiver volume update log entry is missing"
     assert log_record.volume_m3 == pytest.approx(new_volume)
     assert log_record.mode == "GEOMETRIC"
-    assert log_record.receiver_pressure_pa == pytest.approx(
-        receiver_state.p
-    )
+    assert log_record.receiver_pressure_pa == pytest.approx(receiver_state.p)
     assert log_record.receiver_temperature_k == pytest.approx(receiver_state.T)
     assert log_record.pneumatic_tank_volume_m3 == pytest.approx(new_volume)

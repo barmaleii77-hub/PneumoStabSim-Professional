@@ -39,7 +39,8 @@ jobs:
             libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
             libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 \
             libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0 \
-            libvulkan1 mesa-vulkan-drivers vulkan-tools
+            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            qt6-shader-tools
 
       - name: Install GNU Make (Windows)
         if: runner.os == 'Windows'

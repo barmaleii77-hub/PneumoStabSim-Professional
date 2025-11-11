@@ -210,9 +210,7 @@ def step_state() -> PhysicsStepState:
             damper_coefficient=2_000.0,
             damper_threshold=50.0,
             spring_rest_position=0.0,
-            lever_inertia=50.0
-            * lever_sample.L_lever
-            * lever_sample.L_lever,
+            lever_inertia=50.0 * lever_sample.L_lever * lever_sample.L_lever,
             integrator_method="rk4",
         ),
     )
