@@ -153,10 +153,12 @@ if [[ ${skip_python} -eq 0 ]]; then
 
     log "Ensuring PySide6/OpenGL wheels via uv"
     uv pip install --upgrade --no-cache-dir \
-      "PySide6>=6.10,<7" \
-      "PySide6-Addons>=6.10,<7" \
-      "PySide6-Essentials>=6.10,<7" \
-      "shiboken6>=6.10,<7" \
+      "PySide6==6.10.*" \
+      "PySide6-Addons==6.10.*" \
+      "PySide6-Essentials==6.10.*" \
+      "shiboken6==6.10.*" \
+      numpy \
+      pytest-qt \
       "PyOpenGL==3.1.10" \
       "PyOpenGL-accelerate==3.1.10"
   else
@@ -164,10 +166,12 @@ if [[ ${skip_python} -eq 0 ]]; then
     "$python_cmd" -m pip install --upgrade pip
     "$python_cmd" -m pip install -r requirements-dev.txt
     "$python_cmd" -m pip install --upgrade --no-cache-dir \
-      "PySide6>=6.10,<7" \
-      "PySide6-Addons>=6.10,<7" \
-      "PySide6-Essentials>=6.10,<7" \
-      "shiboken6>=6.10,<7" \
+      "PySide6==6.10.*" \
+      "PySide6-Addons==6.10.*" \
+      "PySide6-Essentials==6.10.*" \
+      "shiboken6==6.10.*" \
+      numpy \
+      pytest-qt \
       "PyOpenGL==3.1.10" \
       "PyOpenGL-accelerate==3.1.10"
   fi
