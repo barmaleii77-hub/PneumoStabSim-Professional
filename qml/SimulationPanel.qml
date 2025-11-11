@@ -1,13 +1,15 @@
-import QtQml 6.10
-import QtQuick 6.10
-import QtQuick.Controls 6.10
-import QtQuick.Layouts 6.10
+pragma ComponentBehavior: Bound
+
+import QtQuick 6.4
+import QtQuick.Layouts 6.4
 
 Item {
     id: root
 
     implicitWidth: layout.implicitWidth
     implicitHeight: layout.implicitHeight
+
+    readonly property var objectHasOwn: ({}).hasOwnProperty
 
     /**
      * Контекстный снимок настроек из SettingsManager.
@@ -196,7 +198,7 @@ Item {
             console.debug("SimulationPanel: failed to clone context", error)
             var result = {}
             for (var key in value) {
-                if (Object.prototype.hasOwnProperty.call(value, key))
+                if (root.objectHasOwn.call(value, key))
                     result[key] = value[key]
             }
             return result
@@ -207,7 +209,7 @@ Item {
         var result = _cloneObject(base)
         if (_isPlainObject(payload)) {
             for (var key in payload) {
-                if (!Object.prototype.hasOwnProperty.call(payload, key))
+                if (!root.objectHasOwn.call(payload, key))
                     continue
                 var value = payload[key]
                 if (_isPlainObject(value))
@@ -251,7 +253,7 @@ Item {
         var names = _normaliseKeyList(nameOptions)
         for (var i = 0; i < names.length; ++i) {
             var candidateName = names[i]
-            if (candidateName && Object.prototype.hasOwnProperty.call(source, candidateName))
+            if (candidateName && root.objectHasOwn.call(source, candidateName))
                 return source[candidateName]
         }
         return undefined
@@ -421,7 +423,7 @@ Item {
         anchors.fill: parent
         spacing: 12
 
-        Label {
+        Text {
             id: titleLabel
             text: root.title
             Layout.fillWidth: true
@@ -460,7 +462,7 @@ Item {
             }
         }
 
-        Label {
+        Text {
             id: rangeLabel
             Layout.fillWidth: true
             horizontalAlignment: Text.AlignHCenter

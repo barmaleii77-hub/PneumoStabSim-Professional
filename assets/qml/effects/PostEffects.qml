@@ -1,12 +1,15 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Window
-import QtQuick3D 6.10
+import QtQml 2.15
+import QtQuick.Window 2.15
+import QtQuick3D 6.4
 // qmllint disable unused-imports
-import QtQuick3D.Effects 6.10
-import QtQuick3D.Helpers
+import QtQuick3D.Effects 6.4
+import QtQuick3D.Helpers 6.4
 // qmllint enable unused-imports
+
+// qmllint disable property
 
 /*
  * Коллекция пост-эффектов для улучшенной визуализации
@@ -14,6 +17,8 @@ import QtQuick3D.Helpers
  */
 Item {
     id: root
+
+    readonly property var objectHasOwn: ({}).hasOwnProperty
 
     signal effectCompilationError(var effectId, string errorLog)
     signal effectCompilationRecovered(var effectId)
@@ -67,7 +72,7 @@ Item {
                 return []
             var keys = []
             for (var key in value) {
-                if (Object.prototype.hasOwnProperty.call(value, key))
+                if (objectHasOwn.call(value, key))
                     keys.push(key)
             }
             return keys
@@ -101,7 +106,7 @@ Item {
         if (failures && typeof failures === "object") {
             var failureCopy = {}
             for (var key in failures) {
-                if (Object.prototype.hasOwnProperty.call(failures, key))
+                if (objectHasOwn.call(failures, key))
                     failureCopy[key] = failures[key]
             }
             snapshot.persistentEffectFailures = failureCopy
@@ -110,7 +115,7 @@ Item {
         if (cache && typeof cache === "object") {
             var shaderCopy = {}
             for (var shaderKey in cache) {
-                if (Object.prototype.hasOwnProperty.call(cache, shaderKey))
+                if (objectHasOwn.call(cache, shaderKey))
                     shaderCopy[shaderKey] = cache[shaderKey]
             }
             snapshot.shaderStatus = shaderCopy
@@ -145,7 +150,7 @@ Item {
         persistentEffectFailures = nextState
         var keys = []
         for (var key in nextState) {
-            if (Object.prototype.hasOwnProperty.call(nextState, key))
+            if (objectHasOwn.call(nextState, key))
                 keys.push(key)
         }
         var active = keys.length > 0
@@ -204,7 +209,7 @@ Item {
         var state = persistentEffectFailures || ({})
         var nextState = ({})
         for (var key in state) {
-            if (Object.prototype.hasOwnProperty.call(state, key))
+            if (objectHasOwn.call(state, key))
                 nextState[key] = state[key]
         }
         if (active) {
@@ -216,7 +221,7 @@ Item {
             else if (normalizedReason.indexOf(normalizedId) !== 0)
                 normalizedReason = normalizedId + ": " + normalizedReason
             nextState[normalizedId] = normalizedReason
-        } else if (Object.prototype.hasOwnProperty.call(nextState, normalizedId)) {
+        } else if (objectHasOwn.call(nextState, normalizedId)) {
             delete nextState[normalizedId]
         }
         updateEffectsBypassState(nextState)
@@ -351,13 +356,13 @@ Item {
     readonly property bool reportedGlesContext: {
         if (forceDesktopShaderProfile)
             return false
-        // qmllint disable missing-property
+// qmllint disable property
         try {
-            if (GraphicsInfo.renderableType === GraphicsInfo.OpenGLES)
+            if (GraphicsInfo.renderableType === GraphicsInfo.SurfaceFormatOpenGLES)
                 return true
         } catch (error) {
         }
-        // qmllint enable missing-property
+// qmllint enable property
         try {
             var normalized = normalizedRendererGraphicsApi
             if (!normalized.length)
@@ -494,7 +499,7 @@ Item {
         if (!normalizedUrl || !normalizedUrl.length)
             return false
 
-        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, normalizedUrl))
+        if (objectHasOwn.call(shaderResourceAvailabilityCache, normalizedUrl))
             return shaderResourceAvailabilityCache[normalizedUrl]
 
         var available = false
@@ -505,7 +510,7 @@ Item {
         var manifestPaths = []
         var normalizedUrlPath = ""
         var matchesManifestPath = false
-        if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
+        if (resourceName && objectHasOwn.call(shaderResourceManifest, resourceName)) {
             manifestEntry = shaderResourceManifest[resourceName]
             manifestHasEntry = true
             if (typeof manifestEntry === "boolean") {
@@ -515,14 +520,14 @@ Item {
             } else if (typeof manifestEntry === "string") {
                 manifestPaths.push(manifestEntry)
             } else if (typeof manifestEntry === "object") {
-                if (Object.prototype.hasOwnProperty.call(manifestEntry, "enabled"))
+                if (objectHasOwn.call(manifestEntry, "enabled"))
                     manifestEnabled = manifestEntry.enabled !== false
-                if (Object.prototype.hasOwnProperty.call(manifestEntry, "path")) {
+                if (objectHasOwn.call(manifestEntry, "path")) {
                     var manifestPath = manifestEntry.path
                     if (manifestPath && typeof manifestPath === "string")
                         manifestPaths.push(manifestPath)
                 }
-                if (Object.prototype.hasOwnProperty.call(manifestEntry, "paths") && manifestEntry.paths) {
+                if (objectHasOwn.call(manifestEntry, "paths") && manifestEntry.paths) {
                     var manifestPathList = manifestEntry.paths
                     for (var mpIdx = 0; mpIdx < manifestPathList.length; ++mpIdx) {
                         var manifestPathCandidate = manifestPathList[mpIdx]
@@ -691,7 +696,7 @@ Item {
                 break
             }
             if (useGlesShaders && candidateName !== normalized) {
-                if (!Object.prototype.hasOwnProperty.call(shaderVariantMissingWarnings, candidateName)) {
+                if (!objectHasOwn.call(shaderVariantMissingWarnings, candidateName)) {
                     shaderVariantMissingWarnings[candidateName] = true
                     console.warn(`⚠️ PostEffects: GLES shader variant '${candidateName}' not found; using compatibility fallback`)
                 }
@@ -746,10 +751,10 @@ Item {
         }
 
         if (requireCompatibilityFallback) {
-            if (!Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, normalized))
+            if (!objectHasOwn.call(shaderCompatibilityOverrides, normalized))
                 console.warn("⚠️ PostEffects: forcing fallback shaders for", normalized, "due to missing GLES profile")
             shaderCompatibilityOverrides[normalized] = true
-        } else if (Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, normalized)) {
+        } else if (objectHasOwn.call(shaderCompatibilityOverrides, normalized)) {
             delete shaderCompatibilityOverrides[normalized]
         }
 
@@ -776,7 +781,7 @@ Item {
         if (forceDesktopShaderProfile)
             return
         if (reportedGlesContext) {
-            if (!Object.prototype.hasOwnProperty.call(shaderProfileMismatchWarnings, reason)) {
+            if (!objectHasOwn.call(shaderProfileMismatchWarnings, reason)) {
                 shaderProfileMismatchWarnings[reason] = true
                 console.warn(
                             "⚠️ PostEffects:", reason,
@@ -801,7 +806,7 @@ Item {
             return
 
         var reason = `Shader ${shaderId} reported #version incompatibility`
-        if (!Object.prototype.hasOwnProperty.call(shaderProfileMismatchWarnings, reason)) {
+        if (!objectHasOwn.call(shaderProfileMismatchWarnings, reason)) {
             shaderProfileMismatchWarnings[reason] = true
             console.warn(
                         "⚠️ PostEffects:", reason,
@@ -828,7 +833,7 @@ Item {
             cachedStatuses = ({})
         cachedStatuses[cacheKey] = status
         shaderStatusCache = cachedStatuses
-        // qmllint disable missing-property
+        // qmllint disable property
         if (status === Shader.Error) {
             var message = shaderCompilationMessage(shaderItem)
             if (!message.length) {
@@ -925,7 +930,7 @@ Item {
             }
             root.notifyEffectCompilation(effectId, effectItem.fallbackActive, effectItem.lastErrorLog)
         }
-        // qmllint enable missing-property
+        // qmllint enable property
     }
 
     // qmllint disable unqualified
@@ -945,7 +950,7 @@ Item {
         if (!normalizedUrl || !normalizedUrl.length)
             return normalizedUrl
 
-        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, normalizedUrl))
+        if (objectHasOwn.call(shaderSanitizationCache, normalizedUrl))
             return shaderSanitizationCache[normalizedUrl]
 
         var sanitizedUrl = normalizedUrl
@@ -980,7 +985,7 @@ Item {
 
                     if (mutated && normalized !== shaderSource) {
                         var cacheKey = resourceName || normalizedUrl
-                        if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
+                        if (!objectHasOwn.call(shaderSanitizationWarnings, cacheKey)) {
                             console.warn(
                                         "⚠️ PostEffects: shader", resourceName,
                                         "contains leading BOM/whitespace incompatible with Qt RHI; please clean the source file")
@@ -1065,7 +1070,7 @@ Item {
         // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
         // фоллбэк, всегда возвращаем валидный шейдер.
         var compatibilityOverrideActive = false
-        if (useGlesShaders && shaderBaseName && Object.prototype.hasOwnProperty.call(shaderCompatibilityOverrides, shaderBaseName))
+        if (useGlesShaders && shaderBaseName && objectHasOwn.call(shaderCompatibilityOverrides, shaderBaseName))
             compatibilityOverrideActive = !!shaderCompatibilityOverrides[shaderBaseName]
 
         if (!compatibilityOverrideActive) {
@@ -1139,7 +1144,7 @@ Item {
         var list = Array.isArray(keys) ? keys : [keys]
         for (var i = 0; i < list.length; ++i) {
             var key = list[i]
-            if (Object.prototype.hasOwnProperty.call(container, key))
+            if (objectHasOwn.call(container, key))
                 return container[key]
         }
         return undefined
@@ -1192,9 +1197,11 @@ Item {
     Effect {
         id: bloomEffect
 
-        // qmllint disable missing-property
-        enabled: root.bloomEnabled
-        // qmllint enable missing-property
+        Binding {
+            target: bloomEffect
+            property: "enabled"
+            value: root.bloomEnabled
+        }
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
@@ -1267,7 +1274,7 @@ Item {
         Connections {
             target: bloomFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
             }
         }
@@ -1285,7 +1292,7 @@ Item {
         Connections {
             target: bloomFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
             }
         }
@@ -1302,9 +1309,11 @@ Item {
     Effect {
         id: ssaoEffect
 
-        // qmllint disable missing-property
-        enabled: root.ssaoEnabled
-        // qmllint enable missing-property
+        Binding {
+            target: ssaoEffect
+            property: "enabled"
+            value: root.ssaoEnabled
+        }
 
         property bool fallbackActive: false
         property string lastErrorLog: ""
@@ -1420,7 +1429,7 @@ Item {
         Connections {
             target: ssaoFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
             }
         }
@@ -1438,7 +1447,7 @@ Item {
         Connections {
             target: ssaoFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
             }
         }
@@ -1457,9 +1466,11 @@ Item {
     Effect {
         id: dofEffect
 
-        // qmllint disable missing-property
-        enabled: root.depthOfFieldEnabled
-        // qmllint enable missing-property
+        Binding {
+            target: dofEffect
+            property: "enabled"
+            value: root.depthOfFieldEnabled
+        }
 
         // Эффект глубины резкости использует буфер глубины сцены
         property bool fallbackActive: false
@@ -1566,7 +1577,7 @@ Item {
         Connections {
             target: dofFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
             }
         }
@@ -1584,7 +1595,7 @@ Item {
         Connections {
             target: dofFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
             }
         }
@@ -1603,9 +1614,11 @@ Item {
     Effect {
         id: motionBlurEffect
 
-        // qmllint disable missing-property
-        enabled: root.motionBlurEnabled
-        // qmllint enable missing-property
+        Binding {
+            target: motionBlurEffect
+            property: "enabled"
+            value: root.motionBlurEnabled
+        }
 
         // Эффект размытия движения читает текстуру скоростей
         property bool fallbackActive: false
@@ -1703,7 +1716,7 @@ Item {
         Connections {
             target: motionBlurFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
             }
         }
@@ -1721,7 +1734,7 @@ Item {
         Connections {
             target: motionBlurFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
+            function onStatusChanged(status) {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
             }
         }
@@ -1774,7 +1787,7 @@ Item {
             if (!env)
                 return false
             try {
-                return Object.prototype.hasOwnProperty.call(env, propertyName)
+                return objectHasOwn.call(env, propertyName)
             } catch (error) {
                 return false
             }
@@ -1783,7 +1796,7 @@ Item {
         function payloadHas(source, key) {
             if (!source || typeof source !== "object")
                 return false
-            return Object.prototype.hasOwnProperty.call(source, key)
+            return objectHasOwn.call(source, key)
         }
 
         function assignRootBool(propertyName, value) {
@@ -2002,28 +2015,28 @@ Item {
     }
 
     // Функции управления эффектами
-    function enableBloom(intensity: real, threshold: real) {
+    function enableBloom(intensity, threshold) {
         bloomEffect.intensity = intensity;
         bloomEffect.threshold = threshold;
         root.bloomEnabled = true;
         console.log("✨ Bloom enabled:", intensity, threshold);
     }
 
-    function enableSSAO(intensity: real, radius: real) {
+    function enableSSAO(intensity, radius) {
         ssaoEffect.intensity = intensity;
         ssaoEffect.radius = radius;
         root.ssaoEnabled = true;
         console.log("🌑 SSAO enabled:", intensity, radius);
     }
 
-    function enableDepthOfField(focusDistance: real, focusRange: real) {
+    function enableDepthOfField(focusDistance, focusRange) {
         dofEffect.focusDistance = focusDistance;
         dofEffect.focusRange = focusRange;
         root.depthOfFieldEnabled = true;
         console.log("📷 DOF enabled:", focusDistance, focusRange);
     }
 
-    function enableMotionBlur(strength: real) {
+    function enableMotionBlur(strength) {
         motionBlurEffect.strength = strength;
         root.motionBlurEnabled = true;
         console.log("💨 Motion Blur enabled:", strength);
@@ -2038,3 +2051,4 @@ Item {
     }
 
 }
+// qmllint enable property
