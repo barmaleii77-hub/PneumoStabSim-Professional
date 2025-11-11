@@ -7,6 +7,7 @@ from ctypes import util as ctypes_util
 from functools import lru_cache
 from pathlib import Path
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 from pytest import MonkeyPatch
@@ -587,7 +588,7 @@ def simulation_harness(qapp, qtbot):
         pytest.skip(f"Simulation stack unavailable: {exc}")
     manager = SimulationManager()
 
-    def _run(*, runtime_ms: int = 50) -> None:
+    def _run(*, runtime_ms: int = 50) -> dict[str, Any]:
         manager.start()
 
         def _thread_running() -> bool:
@@ -595,8 +596,19 @@ def simulation_harness(qapp, qtbot):
 
         qtbot.waitUntil(_thread_running, timeout=2000)
         qtbot.wait(runtime_ms)
+        metrics: dict[str, Any] | None = None
+        worker = getattr(manager, "physics_worker", None)
+        performance = getattr(worker, "performance", None)
+        if performance is not None:
+            try:
+                metrics = performance.get_summary()
+            except Exception:  # pragma: no cover - diagnostics only
+                metrics = None
+
         manager.stop()
         qtbot.waitUntil(lambda: not manager.physics_thread.isRunning(), timeout=2000)
+
+        return metrics or {}
 
     yield _run
     try:

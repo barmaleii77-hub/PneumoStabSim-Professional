@@ -257,3 +257,77 @@ def test_handle_environment_changed_skips_duplicate_queued_payloads() -> None:
 
     assert len(_StubBridge.calls) == 1
     assert len(_StubBridge.queue_calls) == 1
+
+
+@pytest.mark.parametrize("raw_value", [None, "   "])
+def test_handle_environment_changed_handles_empty_hdr_selection(raw_value: Any) -> None:
+    window = _StubWindow()
+    params: dict[str, Any] = {"iblSource": raw_value, "ibl_enabled": False}
+
+    signals_router.SignalsRouter.handle_environment_changed(window, params)
+
+    assert _StubBridge.calls
+    call_name, payload = _StubBridge.calls[-1]
+    assert call_name == "applyEnvironmentUpdates"
+    assert payload["ibl_source"] == ""
+    assert params["ibl_source"] == ""
+
+    saved_payload = window.saved_updates[-1][1]
+    assert saved_payload["ibl_source"] == ""
+
+
+def test_handle_environment_changed_preserves_extreme_slider_values() -> None:
+    window = _StubWindow()
+    params: dict[str, Any] = {
+        "ibl_source": "assets/hdr/extreme.hdr",
+        "ibl_intensity": 4.5,
+        "skybox_brightness": 6.0,
+        "fog_density": 0.95,
+        "fog_near": 0.0,
+        "fog_far": 500.0,
+    }
+
+    signals_router.SignalsRouter.handle_environment_changed(window, params)
+
+    _, payload = _StubBridge.calls[-1]
+    assert payload["ibl_source"] == "assets/hdr/extreme.hdr"
+    assert payload["ibl_intensity"] == pytest.approx(4.5)
+    assert payload["skybox_brightness"] == pytest.approx(6.0)
+    assert payload["fog_density"] == pytest.approx(0.95)
+    assert payload["fog_far"] == pytest.approx(500.0)
+
+
+def test_handle_preset_applied_handles_quick_toggle_sequences() -> None:
+    window = _StubWindow()
+    first_state: dict[str, Any] = {
+        "environment": {"iblSource": "assets/hdr/first.hdr", "ibl_enabled": True},
+        "lighting": {"mode": "studio"},
+        "materials": {},
+        "quality": {},
+        "camera": {},
+        "effects": {},
+    }
+    second_state: dict[str, Any] = {
+        "environment": {"iblSource": "assets/hdr/second.hdr", "ibl_enabled": True},
+        "lighting": {"mode": "studio"},
+        "materials": {},
+        "quality": {},
+        "camera": {},
+        "effects": {},
+    }
+
+    signals_router.SignalsRouter.handle_preset_applied(window, first_state)
+    signals_router.SignalsRouter.handle_preset_applied(window, second_state)
+    signals_router.SignalsRouter.handle_preset_applied(window, second_state)
+
+    env_payloads = [
+        payload
+        for category, payload in _StubBridge.queue_calls
+        if category == "environment"
+    ]
+    assert len(env_payloads) == 2
+    assert env_payloads[0]["ibl_source"] == "assets/hdr/first.hdr"
+    assert env_payloads[1]["ibl_source"] == "assets/hdr/second.hdr"
+
+    saved_payload = window.saved_updates[-1][1]
+    assert saved_payload["environment"]["ibl_source"] == "assets/hdr/second.hdr"

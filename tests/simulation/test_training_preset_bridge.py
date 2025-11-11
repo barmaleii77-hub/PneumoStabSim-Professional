@@ -104,3 +104,20 @@ def test_training_bridge_plays_nicely_with_simulation(
     assert training_preset_bridge.applyPreset(preset_id)
 
     simulation_harness(runtime_ms=10)
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_training_bridge_reports_stable_metrics_during_long_run(
+    simulation_harness, training_preset_bridge
+) -> None:
+    """A longer simulation run should produce healthy performance metrics."""
+
+    preset_id = training_preset_bridge.defaultPresetId()
+    assert training_preset_bridge.applyPreset(preset_id)
+
+    metrics = simulation_harness(runtime_ms=250)
+    assert metrics, "Expected performance metrics from simulation harness"
+    assert metrics.get("fps_actual", 0.0) > 0.0
+    assert metrics.get("realtime_factor", 0.0) > 0.0
+    assert metrics.get("frames_dropped", 0) >= 0
