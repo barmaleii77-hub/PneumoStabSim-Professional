@@ -9,6 +9,8 @@ pytest.importorskip(
 from src.ui.panels.geometry.cylinder_tab import CylinderTab
 from src.ui.panels.geometry.state_manager import GeometryStateManager
 
+from tests.ui.panels._slider_utils import apply_slider_value
+
 
 @pytest.mark.gui
 def test_cylinder_tab_link_toggle_syncs_sliders(qtbot):
@@ -19,8 +21,8 @@ def test_cylinder_tab_link_toggle_syncs_sliders(qtbot):
     qtbot.addWidget(tab)
 
     # Establish distinct initial values to verify restoration later.
-    tab.rod_diameter_front_m_slider.value_spinbox.setValue(0.039)
-    tab.rod_diameter_rear_m_slider.value_spinbox.setValue(0.043)
+    apply_slider_value(tab.rod_diameter_front_m_slider, 0.039)
+    apply_slider_value(tab.rod_diameter_rear_m_slider, 0.043)
     qtbot.wait(250)
 
     assert state_manager.get_parameter("rod_diameter_m") == pytest.approx(0.039)
@@ -37,7 +39,7 @@ def test_cylinder_tab_link_toggle_syncs_sliders(qtbot):
     )
 
     # Changing the front slider propagates to the rear slider and state manager.
-    tab.rod_diameter_front_m_slider.value_spinbox.setValue(0.041)
+    apply_slider_value(tab.rod_diameter_front_m_slider, 0.041)
     qtbot.wait(250)
 
     assert state_manager.get_parameter("rod_diameter_m") == pytest.approx(0.041)
@@ -56,7 +58,7 @@ def test_cylinder_tab_link_toggle_syncs_sliders(qtbot):
     assert tab.rod_diameter_rear_m_slider.value() == pytest.approx(0.041)
 
     # Changing the rear slider now affects only the rear value.
-    tab.rod_diameter_rear_m_slider.value_spinbox.setValue(0.044)
+    apply_slider_value(tab.rod_diameter_rear_m_slider, 0.044)
     qtbot.wait(250)
 
     assert state_manager.get_parameter("rod_diameter_m") == pytest.approx(0.041)
