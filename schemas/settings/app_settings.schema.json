@@ -2451,15 +2451,21 @@
         },
         "constant_fade": {
           "title": "Constant Fade",
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
         },
         "linear_fade": {
           "title": "Linear Fade",
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
         },
         "quadratic_fade": {
           "title": "Quadratic Fade",
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
         },
         "cast_shadow": {
           "title": "Cast Shadow",
