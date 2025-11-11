@@ -202,8 +202,10 @@ _fallback_configured = False
 
 if HAS_STRUCTLOG:  # pragma: no cover - covered by integration when structlog present
     BoundLogger = _StructlogBoundLogger  # type: ignore[assignment]
+    _JSON_RENDERER = structlog.processors.JSONRenderer(ensure_ascii=False)
 else:  # pragma: no cover - exercised in kata env
     BoundLogger = _FallbackBoundLogger
+    _JSON_RENDERER = None
 
 
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -232,10 +234,12 @@ def _flatten_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
     return flattened
 
 
-def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
-    """Render a JSON payload ensuring nested events remain flat."""
+def _flatten_event_processor(
+    logger: Any, name: str, event_dict: dict[str, Any]
+) -> dict[str, Any]:
+    """Normalise nested JSON payloads before rendering."""
 
-    return json.dumps(_flatten_event_payload(event_dict), ensure_ascii=False)
+    return _flatten_event_payload(event_dict)
 
 
 def _shared_processors() -> list[Any]:
@@ -277,12 +281,14 @@ def _ensure_stdlib_bridge(
         _configure_fallback_logging(level)
         return
 
+    assert _JSON_RENDERER is not None
     handler = logging.StreamHandler()
     if formatter is None:
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-                _json_renderer,
+                _flatten_event_processor,
+                _JSON_RENDERER,
             ],
             foreign_pre_chain=_shared_processors(),
         )
@@ -323,16 +329,23 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
+    assert _JSON_RENDERER is not None
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
         configured_processors.extend(processors)
-    configured_processors.append(structlog.stdlib.ProcessorFormatter.wrap_for_formatter)
+    configured_processors.extend(
+        [
+            _flatten_event_processor,
+            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+        ]
+    )
 
     formatter = structlog.stdlib.ProcessorFormatter(
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            _json_renderer,
+            _flatten_event_processor,
+            _JSON_RENDERER,
         ],
         foreign_pre_chain=_shared_processors(),
     )
