@@ -323,6 +323,37 @@ def test_validate_shaders_reports_missing_fallback_es_variant(tmp_path: Path) ->
     assert any("missing fallback ES variant" in message for message in result.errors)
 
 
+def test_validate_shaders_reports_deprecated_entry_point(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    qsb_cmd = _make_qsb_stub(tmp_path)
+
+    _write_shader(
+        shader_root, "effects/bloom.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/bloom_fallback_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
+    )
+    _write_shader(
+        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
+    )
+
+    result = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert any(
+        "deprecated entry point 'qt_customMain'" in message for message in result.errors
+    )
+
+
 def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"

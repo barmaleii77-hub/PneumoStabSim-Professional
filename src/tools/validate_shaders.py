@@ -42,6 +42,13 @@ VARIANT_SUFFIXES: tuple[tuple[str, str], ...] = (
     ("_es", "es"),
 )
 
+DEPRECATED_ENTRY_POINTS: tuple[tuple[str, str], ...] = (
+    (
+        "qt_customMain",
+        "deprecated entry point 'qt_customMain'; replace with 'main' for Qt 6.10 compatibility",
+    ),
+)
+
 EXPECTED_VERSIONS: Mapping[tuple[str, str], str] = {
     ("desktop", ".frag"): "#version 450 core",
     ("desktop", ".vert"): "#version 450 core",
@@ -168,6 +175,20 @@ def _detect_leading_bom_or_whitespace(path: Path) -> str | None:
     return f"unexpected content before '#version' directive (starts with {preview!r})"
 
 
+def _detect_deprecated_entry_point(path: Path) -> str | None:
+    """Return an error message when the shader uses a removed entry point."""
+
+    try:
+        source = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        return f"unable to read file with UTF-8 encoding: {exc}"
+
+    for symbol, message in DEPRECATED_ENTRY_POINTS:
+        if symbol in source:
+            return message
+    return None
+
+
 def _collect_shader_files(shader_root: Path) -> dict[tuple[str, str], list[ShaderFile]]:
     """Group shader files by base name and extension."""
 
@@ -207,6 +228,10 @@ def _validate_versions(
             errors.append(
                 f"{_relative(shader.path, root)}: expected '{expected}' but found '{directive}'"
             )
+
+        deprecated_entry = _detect_deprecated_entry_point(shader.path)
+        if deprecated_entry is not None:
+            errors.append(f"{_relative(shader.path, root)}: {deprecated_entry}")
 
 
 def _check_forbidden_identifiers(
