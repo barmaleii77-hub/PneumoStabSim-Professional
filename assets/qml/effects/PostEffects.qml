@@ -1346,11 +1346,11 @@ Item {
             fallbackDueToRequirements = requiresFallback
             if (requiresFallback) {
                 if (!depthTextureAvailable && !normalTextureAvailable)
-                    requirementFallbackLog = qsTr("SSAO: depth and normal textures are not supported; disabling advanced SSAO")
+                    requirementFallbackLog = qsTr("SSAO: depth and normal textures unavailable in this runtime; enabling compatibility SSAO")
                 else if (!depthTextureAvailable)
-                    requirementFallbackLog = qsTr("SSAO: depth texture buffer is not supported; disabling advanced SSAO")
+                    requirementFallbackLog = qsTr("SSAO: depth texture unavailable in this runtime; enabling compatibility SSAO")
                 else
-                    requirementFallbackLog = qsTr("SSAO: normal texture buffer is not supported; disabling advanced SSAO")
+                    requirementFallbackLog = qsTr("SSAO: normal texture unavailable in this runtime; enabling compatibility SSAO")
                 lastErrorLog = requirementFallbackLog
                 console.warn("⚠️ SSAO: switching to passthrough fallback due to missing textures")
                 fallbackActive = true

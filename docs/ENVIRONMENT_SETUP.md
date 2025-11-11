@@ -94,6 +94,24 @@ Qt или `pytest-qt` немедленно выявляется. Если Python
 для установки модулей PySide6 (`QtWidgets`, `QtQuick3D`, `QtQml`) и пакета Shader
 Baker.
 
+## 5. HDR окружение и тонемаппинг
+
+- Выполните `python -m tools.render_checks.validate_hdr_orientation` перед сборкой
+  релизных билдаов. Скрипт сверяет `config/baseline/materials.json` и отчёт
+  `reports/performance/hdr_orientation.md`, проверяя ориентацию skybox-ов,
+  допустимость статусов и совпадение файлов; любое расхождение помечает сборку
+  как ошибочную, поэтому обновляйте отчёт сразу после добавления новой HDR-карты.
+- При добавлении HDR/EXR-файлов запустите модульные проверки:
+  `python -m pytest tests/unit/ui/test_hdr_discovery.py` и
+  `python -m pytest tests/unit/ui/test_main_window_hdr_paths.py`. Первый тест
+  гарантирует, что `GraphicsPanel` сканирует `assets/hdr/`, `assets/hdri/` и
+  `assets/qml/assets/`, второй — что `normalizeHdrPath` строит корректный
+  список кандидатов и выдаёт предупреждения при отсутствующих файлах.
+- При тестировании пресетов тонемаппинга синхронизируйте значения через панель
+  `TonemappingPanel`: пресеты управляют `tonemap_mode`, экспозицией и белой
+  точкой и применяются сразу к `SettingsManager`, поэтому снимаются снапшоты
+  HDR-параметров без расхождений с runtime.
+
 ## 6. Скрипты подготовки окружения
 
 - `./setup_linux.sh` — настраивает headless Linux-среду: устанавливает системные
