@@ -879,6 +879,40 @@
       "title": "EnvironmentSettings",
       "type": "object"
     },
+    "ReflectionProbeSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "padding_m": {
+          "title": "Padding M",
+          "type": "number"
+        },
+        "quality": {
+          "title": "Quality",
+          "type": "string"
+        },
+        "refresh_mode": {
+          "title": "Refresh Mode",
+          "type": "string"
+        },
+        "time_slicing": {
+          "title": "Time Slicing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "padding_m",
+        "quality",
+        "refresh_mode",
+        "time_slicing"
+      ],
+      "title": "ReflectionProbeSettings",
+      "type": "object"
+    },
     "GeometryConstants": {
       "additionalProperties": false,
       "properties": {
@@ -1296,6 +1330,9 @@
         "environment": {
           "$ref": "#/$defs/EnvironmentSettings"
         },
+        "reflection_probe": {
+          "$ref": "#/$defs/ReflectionProbeSettings"
+        },
         "quality": {
           "$ref": "#/$defs/QualitySettings"
         },
@@ -1318,6 +1355,7 @@
       "required": [
         "lighting",
         "environment",
+        "reflection_probe",
         "quality",
         "camera",
         "materials",

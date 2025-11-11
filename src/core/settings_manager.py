@@ -54,6 +54,7 @@ from src.pneumo.valves import CheckValve
 
 _PROFILE_PATHS: tuple[str, ...] = (
     "graphics.environment",
+    "graphics.reflection_probe",
     "graphics.scene",
     "animation",
 )

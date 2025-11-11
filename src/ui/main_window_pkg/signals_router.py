@@ -916,16 +916,27 @@ class SignalsRouter:
             SignalsRouter._record_dispatched_payload(window, "environment", env_payload)
 
         reflection_updates = {}
+        reflection_settings_updates = {}
         if params.get("reflection_enabled") is not None:
             reflection_updates["enabled"] = bool(params["reflection_enabled"])
+            reflection_settings_updates["enabled"] = bool(params["reflection_enabled"])
         if params.get("reflection_padding_m") is not None:
             reflection_updates["padding"] = float(params["reflection_padding_m"])
+            reflection_settings_updates["padding_m"] = float(
+                params["reflection_padding_m"]
+            )
         if params.get("reflection_quality"):
-            reflection_updates["quality"] = str(params["reflection_quality"])
+            var_quality = str(params["reflection_quality"])
+            reflection_updates["quality"] = var_quality
+            reflection_settings_updates["quality"] = var_quality.lower()
         if params.get("reflection_refresh_mode"):
-            reflection_updates["refreshMode"] = str(params["reflection_refresh_mode"])
+            var_refresh = str(params["reflection_refresh_mode"])
+            reflection_updates["refreshMode"] = var_refresh
+            reflection_settings_updates["refresh_mode"] = var_refresh.lower()
         if params.get("reflection_time_slicing"):
-            reflection_updates["timeSlicing"] = str(params["reflection_time_slicing"])
+            var_slicing = str(params["reflection_time_slicing"])
+            reflection_updates["timeSlicing"] = var_slicing
+            reflection_settings_updates["time_slicing"] = var_slicing.lower()
 
         if reflection_updates:
             three_d_payload = {"reflectionProbe": reflection_updates}
@@ -941,6 +952,11 @@ class SignalsRouter:
                 SignalsRouter._record_dispatched_payload(
                     window, "threeD", three_d_payload
                 )
+
+        if reflection_settings_updates:
+            window._apply_settings_update(
+                "graphics.reflection_probe", reflection_settings_updates
+            )
 
         window._apply_settings_update("graphics.environment", params)
 

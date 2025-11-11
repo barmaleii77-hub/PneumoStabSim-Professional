@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -32,10 +33,17 @@ from src.ui.panels.graphics.environment_tab import EnvironmentTab
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
 
-def _create_simulation_root() -> tuple[QQmlEngine, QQmlComponent, QObject]:
+def _create_simulation_root(
+    context_overrides: dict[str, Any] | None = None,
+) -> tuple[QQmlEngine, QQmlComponent, QObject]:
     engine = QQmlEngine()
     qml_root = Path("assets/qml").resolve()
     engine.addImportPath(str(qml_root))
+
+    if context_overrides:
+        context = engine.rootContext()
+        for key, value in context_overrides.items():
+            context.setContextProperty(str(key), value)
 
     component = QQmlComponent(engine)
     root_path = qml_root / "PneumoStabSim" / "SimulationRoot.qml"
@@ -57,6 +65,8 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
     tab = EnvironmentTab()
 
     try:
+        assert not bool(root.property("reflectionProbeDefaultsWarningIssued"))
+        assert root.property("reflectionProbeMissingKeys") == []
         state = tab.get_state()
         state["fog_enabled"] = not state["fog_enabled"]
         state["fog_density"] = 0.35
@@ -146,6 +156,32 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
         )
     finally:
         tab.deleteLater()
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_reflection_probe_defaults_missing_keys_emits_warning(qapp) -> None:
+    overrides = {"initialReflectionProbeSettings": {"enabled": True}}
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        assert bool(root.property("reflectionProbeDefaultsWarningIssued"))
+        missing = root.property("reflectionProbeMissingKeys")
+        assert isinstance(missing, list)
+        assert set(missing) >= {"padding_m", "quality", "refresh_mode", "time_slicing"}
+
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert math.isclose(
+            float(assembly.property("reflectionProbePaddingM")),
+            0.15,
+            rel_tol=1e-6,
+            abs_tol=1e-6,
+        )
+    finally:
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
