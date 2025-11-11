@@ -71,6 +71,48 @@ class LeverGeom:
     def __post_init__(self) -> None:
         self._validate_parameters()
 
+    @property
+    def cylinder_geom(self) -> "CylinderGeom | None":
+        """Return the currently attached cylinder geometry if present."""
+
+        return self._cylinder_geom
+
+    @property
+    def neutral_length(self) -> float | None:
+        """Return the neutral rod length computed from the attached cylinder."""
+
+        return self._neutral_length
+
+    @property
+    def axis_unit(self) -> tuple[float, float, float] | None:
+        """Return unit vector of the cylinder axis in lever coordinates."""
+
+        return self._axis_unit
+
+    @property
+    def displacement_blend(self) -> float | None:
+        """Return blending coefficient between simple and axial displacement models."""
+
+        return self._displacement_blend
+
+    @property
+    def min_effective_angle(self) -> float | None:
+        """Return minimum effective angle used to model slack behaviour."""
+
+        return self._min_effective_angle
+
+    @property
+    def min_angle_active(self) -> bool:
+        """Return whether the minimum effective angle clamp is active."""
+
+        return self._min_angle_active
+
+    @min_angle_active.setter
+    def min_angle_active(self, value: bool) -> None:
+        """Enable or disable the minimum effective angle clamp."""
+
+        self._min_angle_active = bool(value)
+
     def _validate_parameters(self) -> None:
         """Проверить параметры рычага."""
         if self.L_lever <= 0:
