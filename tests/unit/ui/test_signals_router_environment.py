@@ -89,7 +89,7 @@ def test_handle_environment_changed_normalises_hdr_path() -> None:
     call_name, payload = _StubBridge.calls[0]
     assert call_name == "applyEnvironmentUpdates"
     assert payload["ibl_source"] == "assets/hdr/studio.hdr"
-    assert "iblSource" not in payload
+    assert payload["iblSource"] == payload["ibl_source"]
 
     assert params["ibl_source"] == "assets/hdr/studio.hdr"
     assert "iblSource" not in params
@@ -115,7 +115,7 @@ def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -
     assert _StubBridge.calls
     _, payload = _StubBridge.calls[0]
     assert payload["ibl_source"] == "assets/hdr/canonical.hdr"
-    assert "iblSource" not in payload
+    assert payload["iblSource"] == payload["ibl_source"]
 
     assert params["ibl_source"] == "assets/hdr/canonical.hdr"
     assert "iblSource" not in params
@@ -150,6 +150,11 @@ def test_handle_environment_changed_supports_nested_sections() -> None:
     assert payload["ibl_enabled"] is True
     assert payload["ibl_intensity"] == 1.25
     assert payload["ibl_source"] == "assets/hdr/nested.hdr"
+    assert payload["iblSource"] == payload["ibl_source"]
+    ibl_section = payload.get("ibl")
+    assert isinstance(ibl_section, dict)
+    assert ibl_section["source"] == payload["ibl_source"]
+    assert ibl_section["iblSource"] == payload["ibl_source"]
     assert payload["fog_enabled"] is True
     assert payload["fog_density"] == 0.42
     assert payload["ao_strength"] == 0.6
@@ -183,7 +188,7 @@ def test_environment_change_invoke_failure_queues_payload() -> None:
     category, queued_payload = _StubBridge.queue_calls[0]
     assert category == "environment"
     assert queued_payload["ibl_source"] == "assets/hdr/queued.hdr"
-    assert "iblSource" not in queued_payload
+    assert queued_payload["iblSource"] == queued_payload["ibl_source"]
 
     assert params["ibl_source"] == "assets/hdr/queued.hdr"
     assert "iblSource" not in params
@@ -220,7 +225,7 @@ def test_handle_preset_applied_normalizes_environment_section() -> None:
     assert env_queue_payloads
     queued_payload = env_queue_payloads[-1]
     assert queued_payload["ibl_source"] == "assets/hdr/preset.hdr"
-    assert "iblSource" not in queued_payload
+    assert queued_payload["iblSource"] == queued_payload["ibl_source"]
 
     saved_key, saved_payload = window.saved_updates[-1]
     assert saved_key == "graphics"
@@ -270,6 +275,7 @@ def test_handle_environment_changed_handles_empty_hdr_selection(raw_value: Any) 
     call_name, payload = _StubBridge.calls[-1]
     assert call_name == "applyEnvironmentUpdates"
     assert payload["ibl_source"] == ""
+    assert payload["iblSource"] == payload["ibl_source"]
     assert params["ibl_source"] == ""
 
     saved_payload = window.saved_updates[-1][1]
@@ -291,6 +297,7 @@ def test_handle_environment_changed_preserves_extreme_slider_values() -> None:
 
     _, payload = _StubBridge.calls[-1]
     assert payload["ibl_source"] == "assets/hdr/extreme.hdr"
+    assert payload["iblSource"] == payload["ibl_source"]
     assert payload["ibl_intensity"] == pytest.approx(4.5)
     assert payload["skybox_brightness"] == pytest.approx(6.0)
     assert payload["fog_density"] == pytest.approx(0.95)
@@ -327,7 +334,9 @@ def test_handle_preset_applied_handles_quick_toggle_sequences() -> None:
     ]
     assert len(env_payloads) == 2
     assert env_payloads[0]["ibl_source"] == "assets/hdr/first.hdr"
+    assert env_payloads[0]["iblSource"] == env_payloads[0]["ibl_source"]
     assert env_payloads[1]["ibl_source"] == "assets/hdr/second.hdr"
+    assert env_payloads[1]["iblSource"] == env_payloads[1]["ibl_source"]
 
     saved_payload = window.saved_updates[-1][1]
     assert saved_payload["environment"]["ibl_source"] == "assets/hdr/second.hdr"
