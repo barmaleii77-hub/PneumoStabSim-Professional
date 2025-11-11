@@ -81,9 +81,7 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
 
     new_volume = 0.03
     expected_pressure = receiver_state.p * ((receiver_state.V / new_volume) ** 1.4)
-    expected_temperature = receiver_state.T * (
-        (receiver_state.V / new_volume) ** 0.4
-    )
+    expected_temperature = receiver_state.T * ((receiver_state.V / new_volume) ** 0.4)
 
     worker.set_receiver_volume(new_volume, "geometric")
 

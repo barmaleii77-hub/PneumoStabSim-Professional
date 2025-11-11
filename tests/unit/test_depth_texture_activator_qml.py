@@ -72,3 +72,19 @@ def test_depth_texture_activator_warns_when_api_unavailable(
         "⚠️ DepthTextureActivator: Could not explicitly enable depth textures"
         in depth_texture_source
     ), "Warning log protects manual debugging flows"
+
+
+def test_depth_texture_activator_caches_property_presence(
+    depth_texture_source: str,
+) -> None:
+    assert "property var _propertyPresenceCache" in depth_texture_source
+    assert "function _readCachedPresence" in depth_texture_source
+    assert "function _cachePresenceResult" in depth_texture_source
+
+
+def test_depth_texture_activator_deduplicates_debug_logging(
+    depth_texture_source: str,
+) -> None:
+    assert "property var _diagnosticDedup" in depth_texture_source
+    assert "function _logDebugOnce" in depth_texture_source
+    assert "_clearPropertyCache()" in depth_texture_source
