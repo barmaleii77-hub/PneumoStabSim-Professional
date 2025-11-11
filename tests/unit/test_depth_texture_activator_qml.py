@@ -1,0 +1,44 @@
+"""Lightweight regression checks for the DepthTextureActivator QML helper."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+
+QML_PATH = Path(__file__).resolve().parents[2] / "assets" / "qml" / "components" / "DepthTextureActivator.qml"
+
+
+@pytest.fixture(scope="module")
+def depth_texture_source() -> str:
+    """Load the QML source once for this module's tests."""
+
+    return QML_PATH.read_text(encoding="utf-8")
+
+
+def test_depth_texture_activator_declares_singleton(depth_texture_source: str) -> None:
+    lines = [line.strip() for line in depth_texture_source.splitlines() if line.strip()]
+
+    assert lines[0] == "pragma Singleton", "DepthTextureActivator must remain a singleton utility"
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    (
+        ".depthTextureEnabled =",
+        ".depthPrePassEnabled =",
+        ".velocityTextureEnabled =",
+        ".velocityBufferEnabled =",
+    ),
+)
+def test_depth_texture_activator_avoids_direct_property_assignments(
+    depth_texture_source: str, pattern: str
+) -> None:
+    assert pattern not in depth_texture_source, f"Direct assignments to {pattern} must use helper wrappers"
+
+
+def test_depth_texture_activator_logs_success_message(depth_texture_source: str) -> None:
+    assert (
+        "DepthTextureActivator: Depth/velocity textures successfully activated" in depth_texture_source
+    ), "Success log output guards future refactors"
