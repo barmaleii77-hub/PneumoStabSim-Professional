@@ -16,7 +16,14 @@ import logging
 from dataclasses import dataclass
 from collections.abc import Mapping
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.diagnostics.logger_factory import LoggerProtocol as _LoggerProtocol
+
+    LoggerLike = logging.Logger | logging.LoggerAdapter | _LoggerProtocol
+else:
+    LoggerLike = logging.Logger | logging.LoggerAdapter
 
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
@@ -110,7 +117,7 @@ class PneumaticSystem:
         port: Port,
         *,
         default: float | None = None,
-        logger: logging.Logger | None = None,
+        logger: LoggerLike | None = None,
     ) -> float:
         """Return the absolute pressure for the line connected to ``wheel/port``.
 
@@ -126,24 +133,38 @@ class PneumaticSystem:
         line = self.lookup_line(wheel, port)
         fallback = default if default is not None else float(self._gas_network.tank.p)
 
+        def _log(level: str, message: str, **fields: str) -> None:
+            if logger is None:
+                return
+            log_method = getattr(logger, level, None)
+            if log_method is None:
+                return
+            if hasattr(logger, "bind"):
+                log_method(message, **fields)
+                return
+            if fields:
+                log_method(message, extra=fields)
+            else:
+                log_method(message)
+
         if line is None:
-            if logger is not None:
-                logger.warning(
-                    "Missing pneumatic line mapping for endpoint; using tank pressure.",
-                    wheel=wheel.name,
-                    port=port.name,
-                )
+            _log(
+                "warning",
+                "Missing pneumatic line mapping for endpoint; using tank pressure.",
+                wheel=wheel.name,
+                port=port.name,
+            )
             return fallback
 
         line_state = self._gas_network.lines.get(line)
         if line_state is None:
-            if logger is not None:
-                logger.error(
-                    "Pneumatic line state unavailable; using tank pressure.",
-                    line=line.name,
-                    wheel=wheel.name,
-                    port=port.name,
-                )
+            _log(
+                "error",
+                "Pneumatic line state unavailable; using tank pressure.",
+                line=line.name,
+                wheel=wheel.name,
+                port=port.name,
+            )
             return fallback
 
         return float(line_state.p)
