@@ -953,11 +953,6 @@ class SignalsRouter:
                     window, "threeD", three_d_payload
                 )
 
-        if reflection_settings_updates:
-            window._apply_settings_update(
-                "graphics.reflection_probe", reflection_settings_updates
-            )
-
         window._apply_settings_update("graphics.environment", params)
 
     @staticmethod
