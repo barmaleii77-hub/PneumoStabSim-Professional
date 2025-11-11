@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - main
+      - 'feature/**'
     paths:
       - "src/**"
       - "tests/**"
@@ -17,6 +18,10 @@ on:
       - "tests/**"
       - "tools/**"
       - "config/schemas/**"
+    branches:
+      - develop
+      - main
+      - 'feature/**'
 
 jobs:
   regression:
@@ -38,10 +43,13 @@ jobs:
 
           # Packages are installed conditionally; unavailable entries are skipped.
           pkgs=(
-            xvfb xauth mesa-utils mesa-utils-extra libosmesa6
-            libgl1-mesa-dri libglu1-mesa
-            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
-            libgl1-mesa-glx libegl1-mesa libgles2-mesa
+            xvfb xauth dbus-x11 mesa-utils mesa-utils-extra libosmesa6
+            libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa
+            libegl1 libegl1-mesa libgles2 libgles2-mesa
+            libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1
+            libxcb-render-util0 libxcb-shape0 libxcb-randr0 libxcb-glx0 libxcb-xfixes0
+            libxkbcommon0 libxkbcommon-x11-0 libxkbcommon-dev libvulkan1
+            mesa-vulkan-drivers vulkan-tools qt6-shader-baker
           )
 
           to_install=()
@@ -58,6 +66,11 @@ jobs:
           else
             echo "No packages available for installation"
           fi
+
+      - name: Ensure PySide6 runtime is present
+        run: |
+          uv pip install "PySide6>=6.10,<7" "PySide6-Essentials>=6.10,<7" \
+            "PySide6-Addons>=6.10,<7" "PySide6-QtQuick3D>=6.10,<7"
 
       - name: Run pytest suite
         run: bash scripts/xvfb_wrapper.sh uv run pytest --maxfail=1

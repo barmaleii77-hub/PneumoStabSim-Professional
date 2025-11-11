@@ -1,6 +1,16 @@
 name: Container tests (Linux headless)
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
 
 jobs:
   verify:

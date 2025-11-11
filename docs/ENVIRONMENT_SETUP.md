@@ -40,7 +40,7 @@ headless-профилей.
 
 | Сценарий | Обязательные переменные | Дополнительные шаги |
 | --- | --- | --- |
-| **Linux headless (CI, контейнер)** | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Убедитесь, что `DISPLAY` не установлен. Команда `make uv-run CMD="pytest -q"` автоматически применит профиль. |
+| **Linux headless (CI, контейнер)** | `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1` | Убедитесь, что `DISPLAY` не установлен. Команда `make uv-run CMD="pytest -q"` автоматически применит профиль. Требуются системные библиотеки `libgl1`, `libxkbcommon0`, `libxkbcommon-dev`, Mesa (`mesa-utils`, `libosmesa6`, `mesa-vulkan-drivers`) и `qt6-shader-baker`. |
 | **Vulkan smoke** | `QSG_RHI_BACKEND=vulkan`, `VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json` | Путь к ICD проверьте `ls /usr/share/vulkan/icd.d/`. Для headless добавьте `QT_QPA_PLATFORM=offscreen`. |
 | **Windows ANGLE fallback** | `QT_QPA_PLATFORM=windows`, `QT_OPENGL=angle` | Используйте при проблемах с драйверами OpenGL. Возвращаясь к GPU, удалите переменные или задайте `QT_OPENGL=desktop`. |
 | **Safe mode (software-only)** | `LIBGL_ALWAYS_SOFTWARE=1`, `QT_QUICK_BACKEND=software` | В Python можно вызвать `configure_qt_environment(safe_mode=True)`; переменные подхватятся автоматически. |
@@ -105,3 +105,24 @@ Qt или `pytest-qt` немедленно выявляется.
   и перезапускайте приложение, чтобы исключить артефакты прошлой сессии.
 - Всегда обновляйте этот документ при добавлении новых профилей или переменных;
   остальные инструкции должны ссылаться именно на него.
+
+## 6. Скрипты быстрой установки зависимостей
+
+- **Linux**: `sudo ./scripts/setup_linux.sh`
+
+  Устанавливает полный набор библиотек для Qt Quick 3D (включая `libGL`, Mesa,
+  `libxkbcommon`, `qt6-shader-baker`) и обновляет Python-зависимости
+  (`PySide6`, Qt Quick 3D модули). Если wheel `PySide6-QtQuick3D` временно недоступен
+  в PyPI, скрипт оставляет предупреждение и полагается на установленный Qt SDK.
+  Скрипт автоматически включает headless-настройки (`QT_QPA_PLATFORM=offscreen`,
+  `QT_QUICK_BACKEND=software`).
+
+- **Windows**: `pwsh ./scripts/setup_windows.ps1`
+
+  Проверяет наличие Chocolatey и при необходимости ставит `make`, Qt SDK и
+  Visual C++ runtime, затем устанавливает `PySide6`, `PySide6-QtQuick3D` и
+  активирует headless-профиль (`QT_QPA_PLATFORM=offscreen`, `QSG_RHI_BACKEND=d3d11`).
+
+Оба скрипта предназначены для подготовки окружения перед запуском тестов и
+используются в CI-конвейерах, чтобы исключить пропуски из-за отсутствующих
+библиотек.

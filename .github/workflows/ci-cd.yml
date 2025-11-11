@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, develop, 'feature/**']
   pull_request:
-    branches: [master, develop]
+    branches: [master, develop, 'feature/**']
 
 jobs:
   test:
@@ -32,9 +32,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
-            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
-            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+            xvfb xauth dbus-x11 \
+            mesa-utils mesa-utils-extra libosmesa6 \
+            libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa \
+            libegl1 libegl1-mesa libgles2 libgles2-mesa \
+            libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-shape0 libxcb-randr0 libxcb-glx0 libxcb-xfixes0 \
+            libxkbcommon0 libxkbcommon-x11-0 libxkbcommon-dev \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            qt6-shader-baker
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -46,6 +52,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install .[dev]
           pip install "PySide6>=6.10,<7" "PySide6-Addons>=6.10,<7" "PySide6-Essentials>=6.10,<7"
+          pip install "PySide6-QtQuick3D>=6.10,<7"
 
       - name: Check dependency graph with uv
         shell: bash
@@ -95,6 +102,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: choco install make --yes
+
+      - name: Provision Windows Qt runtime
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe"
 
       - name: Configure pytest command
         shell: bash
@@ -175,9 +187,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xvfb xauth mesa-utils mesa-utils-extra libosmesa6 \
-            libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa libegl1-mesa libgles2-mesa \
-            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+            xvfb xauth dbus-x11 \
+            mesa-utils mesa-utils-extra libosmesa6 \
+            libgl1 libgl1-mesa-dri libgl1-mesa-glx libglu1-mesa \
+            libegl1 libegl1-mesa libgles2 libgles2-mesa \
+            libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-shape0 libxcb-randr0 libxcb-glx0 libxcb-xfixes0 \
+            libxkbcommon0 libxkbcommon-x11-0 libxkbcommon-dev \
+            libvulkan1 mesa-vulkan-drivers vulkan-tools \
+            qt6-shader-baker
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -188,6 +206,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .[dev]
+          pip install "PySide6>=6.10,<7" "PySide6-Addons>=6.10,<7" \
+            "PySide6-Essentials>=6.10,<7" "PySide6-QtQuick3D>=6.10,<7"
 
       - name: Check dependency graph with uv
         shell: bash
