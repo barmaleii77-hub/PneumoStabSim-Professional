@@ -126,6 +126,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     try:
+        validator_cls.check_schema(schema_payload)
+    except schema_error as exc:  # type: ignore[misc]
+        _print_error(f"Invalid schema: {exc}")
+        return 1
+
+    try:
         errors = _collect_schema_errors(settings_payload, schema_payload, validator_cls)
     except schema_error as exc:  # type: ignore[misc]
         _print_error(f"Invalid schema: {exc}")
