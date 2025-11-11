@@ -202,10 +202,8 @@ _fallback_configured = False
 
 if HAS_STRUCTLOG:  # pragma: no cover - covered by integration when structlog present
     BoundLogger = _StructlogBoundLogger  # type: ignore[assignment]
-    _JSON_RENDERER = structlog.processors.JSONRenderer(ensure_ascii=False)
 else:  # pragma: no cover - exercised in kata env
     BoundLogger = _FallbackBoundLogger
-    _JSON_RENDERER = None
 
 
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -273,7 +271,10 @@ def _configure_fallback_logging(level: int) -> None:
 
 
 def _ensure_stdlib_bridge(
-    level: int, formatter: logging.Formatter | None = None
+    level: int,
+    formatter: logging.Formatter | None = None,
+    *,
+    json_renderer: Any | None = None,
 ) -> None:
     """Configure the logging bridge for structlog or provide a fallback."""
 
@@ -281,14 +282,15 @@ def _ensure_stdlib_bridge(
         _configure_fallback_logging(level)
         return
 
-    assert _JSON_RENDERER is not None
     handler = logging.StreamHandler()
     if formatter is None:
+        if json_renderer is None:
+            json_renderer = structlog.processors.JSONRenderer(ensure_ascii=False)
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                 _flatten_event_processor,
-                _JSON_RENDERER,
+                json_renderer,
             ],
             foreign_pre_chain=_shared_processors(),
         )
@@ -329,7 +331,7 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    assert _JSON_RENDERER is not None
+    json_renderer = structlog.processors.JSONRenderer(ensure_ascii=False)
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
@@ -345,7 +347,7 @@ def configure_logging(
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             _flatten_event_processor,
-            _JSON_RENDERER,
+            json_renderer,
         ],
         foreign_pre_chain=_shared_processors(),
     )
@@ -357,7 +359,7 @@ def configure_logging(
         cache_logger_on_first_use=cache_logger_on_first_use,
     )
 
-    _ensure_stdlib_bridge(level, formatter)
+    _ensure_stdlib_bridge(level, formatter, json_renderer=json_renderer)
 
 
 @dataclass(slots=True)
