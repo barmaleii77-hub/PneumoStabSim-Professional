@@ -208,4 +208,3 @@ class ReceiverState:
         return ValidationResult(
             is_valid=len(errors) == 0, errors=errors, warnings=warnings
         )
-
