@@ -1751,6 +1751,25 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             pointLightCastsShadow: lightingBool("point", ["cast_shadow", "castsShadow"], false)
             pointLightBindToCamera: lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
         }
+
+        SpotLights {
+            id: spotLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            spotLightBrightness: lightingNumber("spot", ["brightness", "intensity"], 0.0)
+            spotLightColor: lightingColor("spot", "color", "#ffffff")
+            spotLightX: lightingNumber("spot", ["position_x", "pos_x", "x"], 0.0)
+            spotLightY: lightingNumber("spot", ["position_y", "pos_y", "y"], 1.0)
+            spotLightZ: lightingNumber("spot", ["position_z", "pos_z", "z"], 2.0)
+            spotLightRange: lightingNumber("spot", ["range", "distance"], 2.0)
+            spotLightAngleX: lightingNumber("spot", ["angle_x", "angleX"], 0.0)
+            spotLightAngleY: lightingNumber("spot", ["angle_y", "angleY"], 0.0)
+            spotLightAngleZ: lightingNumber("spot", ["angle_z", "angleZ"], 0.0)
+            spotLightConeAngle: lightingNumber("spot", ["cone_angle", "outer_cone_angle", "coneAngle"], 30.0)
+            spotLightInnerConeAngle: lightingNumber("spot", ["inner_cone_angle", "innerConeAngle"], 15.0)
+            spotLightCastsShadow: lightingBool("spot", ["cast_shadow", "castsShadow"], false)
+            spotLightBindToCamera: lightingBool("spot", ["bind_to_camera", "bindToCamera"], false)
+        }
     }
 
     Binding {
@@ -1794,5 +1813,6 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
     readonly property alias sceneSharedMaterials: sharedMaterials
     readonly property alias sceneDirectionalLights: directionalLights
     readonly property alias scenePointLights: pointLights
+    readonly property alias sceneSpotLights: spotLights
     readonly property alias sceneSuspensionAssembly: suspensionAssembly
 }
