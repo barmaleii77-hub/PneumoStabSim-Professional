@@ -6,6 +6,7 @@ on:
       - develop
       - main
       - 'feature/*'
+      - feature/hdr-assets-migration
     paths:
       - "src/**"
       - "tests/**"
@@ -17,6 +18,7 @@ on:
       - develop
       - main
       - 'feature/*'
+      - feature/hdr-assets-migration
     paths:
       - "src/**"
       - "tests/**"
