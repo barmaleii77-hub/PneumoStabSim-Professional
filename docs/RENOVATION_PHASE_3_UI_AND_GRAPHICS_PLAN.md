@@ -19,10 +19,17 @@
    - Audit material definitions; normalize IOR, transmittance, and attenuation per design specs.
    - Align skybox orientation by standardizing cube map transforms; add automated validation script.
    - Integrate HDR tonemapping presets accessible from UI.
+   - Внедрить многоуровневый туман: базовый, глубинный и высотный профили с управлением
+     пропусканием света через новые поля `fog_depth_*`, `fog_height_*`, `fog_transmit_*`.
+   - Расширить пост-эффекты Qt Quick 3D параметрами HDR-блума и цветокоррекции так,
+     чтобы `panel_graphics.qml` отображала все флаги `color_adjustments_*` и
+     `bloom_hdr_*`.
 3. **Panel Modernization**
    - Build modular panels with reusable layout primitives (grid, collapsible sections).
    - Implement preset manager (save/load, reset to defaults) with undo/redo support.
    - Add contextual tooltips and inline documentation linking to docs.
+   - Перевести панели на `SettingsSyncController`, обеспечив батчевую синхронизацию
+     значений и использование `simulation.render_vsync_hz` как ритма обновления.
 4. **Animation & Performance**
    - Replace legacy animation loops with `NumberAnimation` or `Animator` classes tuned for smooth playback.
    - Integrate GPU profiler overlay toggled via diagnostics panel.
@@ -100,6 +107,15 @@ Track panel completion status, performance runs, and localization updates here.
 - Delivered the first iteration of the preset-aware panel stack under `assets/qml/panels/` with shared layout primitives.
 - Introduced `SettingsSyncController` bindings to surface change telemetry in the diagnostics overlay and documented
   the workflow in `docs/ui/panel_modernization_report.md`.
+
+### 2025-12-02 – Fog layering & post-processing uplift
+- Добавлены новые поля тумана (`fog_height_*`, `fog_depth_*`, `fog_transmit_*`) и
+  цветокоррекции (`color_adjustments_*`, `bloom_hdr_*`) в конфиг и схему. Панель
+  графики отражает состояние через `SettingsSyncController` и сохраняет историю
+  правок для отката.
+- Выполнены дымовые тесты на Windows (ANGLE) и Linux (OpenGL) с использованием
+  `make cross-platform-test` и зафиксированы результаты в
+  `reports/tests/ui_phase3_cross_platform_20251202.md`.
 
 ### 2025-10-20 – Static load equilibrium for suspension visuals
 - Normalised rigid-body static wheel loads so the scene holds a neutral pose without drift.

@@ -13,6 +13,13 @@ ExtendedSceneEnvironment {
     property var qualitySettings: sceneBridge && sceneBridge.quality ? sceneBridge.quality : ({})
     property var _warningCache: ({})
 
+    onSceneBridgeChanged: {
+        // Reset cached suppression when a new bridge arrives so diagnostics
+        // emitted before the overlay was available can be replayed for the
+        // fresh signalTrace target (tests rely on this behaviour).
+        _warningCache = ({})
+    }
+
     function _sectionPayload(section) {
         if (section === "environment")
             return environmentSettings
@@ -66,7 +73,17 @@ ExtendedSceneEnvironment {
         if (!overlay || typeof overlay.recordObservation !== "function")
             return
         try {
-            overlay.recordObservation("settings.graphicsFallback", entry, "qml", "RealismEnvironment")
+            var payload = {
+                section: entry && entry.section !== undefined ? String(entry.section) : "",
+                key: entry && entry.key !== undefined ? String(entry.key) : "",
+                reason: entry && entry.reason !== undefined ? String(entry.reason) : "",
+                fallback: entry && entry.fallback !== undefined ? String(entry.fallback) : "<undefined>"
+            }
+            overlay.recordObservation(
+                        "settings.graphicsFallback",
+                        payload,
+                        "qml",
+                        "RealismEnvironment")
         } catch (error) {
             console.debug("RealismEnvironment: overlay record failed", error)
         }
@@ -75,9 +92,11 @@ ExtendedSceneEnvironment {
     function _warn(section, keys, reason, fallback) {
         var keyName = _primaryKey(keys)
         var cacheKey = section + ":" + keyName + ":" + reason
-        if (_warningCache[cacheKey])
+        var currentTrace = diagnosticsTrace
+        var cachedTarget = _warningCache[cacheKey]
+        if (cachedTarget !== undefined && cachedTarget === currentTrace)
             return
-        _warningCache[cacheKey] = true
+        _warningCache[cacheKey] = currentTrace
 
         var fallbackText = fallback === undefined ? "<undefined>" : String(fallback)
         var message = "Missing graphics." + section + "." + keyName + " (" + reason + "); using " + fallbackText

@@ -476,19 +476,23 @@
         },
         "bloom_hdr_max": {
           "title": "Bloom Hdr Max",
-          "type": "number"
+          "type": "number",
+          "description": "Лимит HDR-интенсивности подсветки для предотвращения клиппинга бликов."
         },
         "bloom_hdr_scale": {
           "title": "Bloom Hdr Scale",
-          "type": "number"
+          "type": "number",
+          "description": "Множитель HDR до постобработки, позволяющий управлять шириной свечения."
         },
         "bloom_quality_high": {
           "title": "Bloom Quality High",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Переключает высокое качество блум-эффекта (дополнительные сэмплы/блюр)."
         },
         "bloom_bicubic_upscale": {
           "title": "Bloom Bicubic Upscale",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Использует бикубическую интерполяцию при апскейле блум-полос."
         },
         "tonemap_enabled": {
           "title": "Tonemap Enabled",
@@ -568,23 +572,28 @@
         },
         "color_adjustments_enabled": {
           "title": "Color Adjustments Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Глобальный флаг на активацию цветокоррекции постобработки."
         },
         "color_adjustments_active": {
           "title": "Color Adjustments Active",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Отражает текущее состояние слайдера цветокоррекции (для UI синхронизации)."
         },
         "adjustment_brightness": {
           "title": "Adjustment Brightness",
-          "type": "number"
+          "type": "number",
+          "description": "Добавочная яркость, применяемая к финальному кадру."
         },
         "adjustment_contrast": {
           "title": "Adjustment Contrast",
-          "type": "number"
+          "type": "number",
+          "description": "Коэффициент изменения контраста в постобработке."
         },
         "adjustment_saturation": {
           "title": "Adjustment Saturation",
-          "type": "number"
+          "type": "number",
+          "description": "Коэффициент насыщенности цвета для постобработки."
         }
       },
       "required": [
@@ -702,63 +711,78 @@
         },
         "fog_enabled": {
           "title": "Fog Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Переключает использование параметров тумана в окружении сцены."
         },
         "fog_color": {
           "title": "Fog Color",
-          "type": "string"
+          "type": "string",
+          "description": "Цвет тумана в формате HEX, применяется ко всем слоям эффекта."
         },
         "fog_density": {
           "title": "Fog Density",
-          "type": "number"
+          "type": "number",
+          "description": "Базовая плотность экспоненциального тумана без поправок по глубине и высоте."
         },
         "fog_depth_enabled": {
           "title": "Fog Depth Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Включает отдельную кривую ослабления по дальности (Depth Fog)."
         },
         "fog_depth_near": {
           "title": "Fog Depth Near",
-          "type": "number"
+          "type": "number",
+          "description": "Ближняя граница зоны, с которой начинает нарастать глубинный туман."
         },
         "fog_depth_far": {
           "title": "Fog Depth Far",
-          "type": "number"
+          "type": "number",
+          "description": "Дальняя граница глубинного тумана, где достигается максимальная плотность."
         },
         "fog_depth_curve": {
           "title": "Fog Depth Curve",
-          "type": "number"
+          "type": "number",
+          "description": "Экспонента для плавности перехода между `fog_depth_near` и `fog_depth_far`."
         },
         "fog_near": {
           "title": "Fog Near",
-          "type": "number"
+          "type": "number",
+          "description": "Минимальная дистанция общего тумана (baseline) относительно камеры."
         },
         "fog_far": {
           "title": "Fog Far",
-          "type": "number"
+          "type": "number",
+          "description": "Дистанция, на которой базовый туман достигает максимальной плотности."
         },
         "fog_height_enabled": {
           "title": "Fog Height Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Активирует затухание плотности тумана по высоте сцены."
         },
         "fog_least_intense_y": {
           "title": "Fog Least Intense Y",
-          "type": "number"
+          "type": "number",
+          "description": "Высота, на которой влияние высотного тумана минимально."
         },
         "fog_most_intense_y": {
           "title": "Fog Most Intense Y",
-          "type": "number"
+          "type": "number",
+          "description": "Высота максимальной концентрации высотного тумана."
         },
         "fog_height_curve": {
           "title": "Fog Height Curve",
-          "type": "number"
+          "type": "number",
+          "description": "Показатель степени для вертикальной кривой интенсивности."
         },
         "fog_transmit_enabled": {
           "title": "Fog Transmit Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Включает вычисление пропускания света (transmittance) через объем тумана."
         },
         "fog_transmit_curve": {
           "title": "Fog Transmit Curve",
-          "type": "number"
+          "type": "number",
+          "description": "Экспонента для ослабления освещенности при включенном transmittance."
         },
         "ao_enabled": {
           "title": "Ao Enabled",
@@ -2645,7 +2669,8 @@
         },
         "render_vsync_hz": {
           "title": "Render Vsync Hz",
-          "type": "number"
+          "type": "number",
+          "description": "Целевая частота вертикальной синхронизации рендера, используется контроллером синхронизации настроек."
         },
         "max_steps_per_frame": {
           "title": "Max Steps Per Frame",

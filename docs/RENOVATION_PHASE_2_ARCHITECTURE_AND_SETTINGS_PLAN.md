@@ -23,6 +23,11 @@
    - Finalize `config/settings_schema.json` with validation rules and defaults.
    - Implement `SettingsManager` (load, save, migrate) and CLI for exporting/importing configurations.
    - Integrate with QML via context properties and `Qt.labs.settings` wrappers.
+   - Расширить `app_settings.json` поддержкой слоёв тумана и пост-эффектов, добавив
+     описания (`description`) в схему для всех новых полей.
+   - Документировать механизм `SettingsSyncController`, отвечающий за
+     двунаправленное обновление UI и хранение `render_vsync_hz` как опорной
+     частоты синхронизации.
 4. **Signal/Slot Alignment**
    - Define `qml_bridge.yaml` metadata for automatic wiring.
    - Implement instrumentation to log every signal with correlation IDs.
@@ -81,6 +86,18 @@ Log architectural decisions, ADR references, and schema revisions here.
   enabling diagnostics panels to react to configuration changes in real time.
 - Added unit coverage ensuring subscribers receive instrumentation payloads and
   refreshed the service container guide with usage samples.
+
+### 2025-12-02 – Settings schema enrichment & sync controller rollout
+- Дополнены `schemas/settings/app_settings.schema.json` описаниями (`description`)
+  для новых полей тумана (`fog_height_*`, `fog_depth_*`, `fog_transmit_*`),
+  пост-эффектов (`bloom_hdr_*`, `color_adjustments_*`) и синхронизации
+  (`simulation.render_vsync_hz`).
+- `SettingsSyncController` интегрирован в панели и пресеты: события
+  синхронизации привязаны к `render_vsync_hz`, а история изменений позволяет
+  откатывать батчевые обновления.
+- Добавлены инструкции по тестированию новых конфигураций в
+  `docs/SETTINGS_ARCHITECTURE.md` и фазовом плане UI, чтобы команды Phase 3 и
+  Phase 4 имели актуальные ссылки.
 
 ### 2025-08-15 – Metadata-driven QML bridge registry
 - Introduced `config/qml_bridge.yaml` as the authoritative catalogue for
