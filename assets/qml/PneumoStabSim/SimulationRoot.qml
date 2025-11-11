@@ -715,6 +715,8 @@ signal animationToggled(bool running)
     }
 
     onSceneDefaultsChanged: _refreshSceneDefaults()
+    onReflectionProbeDefaultsChanged: _refreshReflectionProbeDefaults()
+    onEnvironmentDefaultsMapChanged: _refreshReflectionProbeDefaults()
 
     onSceneBridgeChanged: {
         _applyBridgeSnapshot(sceneBridge)
@@ -1108,6 +1110,17 @@ signal animationToggled(bool running)
     property var sceneRenderDefaults: ({})
     property var sceneEffectsDefaults: ({})
     property var sceneSuspensionDefaults: ({})
+    property var reflectionProbeDefaults: typeof initialReflectionProbeSettings !== "undefined" ? initialReflectionProbeSettings : null
+    property var reflectionProbeDefaultsMap: ({})
+    property var reflectionProbeMissingKeys: []
+    property bool reflectionProbeDefaultsWarningIssued: false
+    readonly property var reflectionProbeFallbackDefaults: ({
+        "enabled": true,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
+    })
  property var lightingState: ({})
  property var materialsState: ({})
  property var environmentState: ({})
@@ -1162,8 +1175,49 @@ signal animationToggled(bool running)
         sceneEffectsDefaults = _sceneDefaultsSection("effects")
         sceneSuspensionDefaults = _sceneDefaultsSection("suspension")
         environmentDefaultsMap = environmentDefaultsMapFor(sceneDefaults)
+        _refreshReflectionProbeDefaults()
         _syncSuspensionDefaults()
         _syncRenderSettingsState()
+    }
+
+    function _refreshReflectionProbeDefaults() {
+        var normalized = _normalizeReflectionProbePayload(reflectionProbeDefaults)
+        if (_isEmptyMap(normalized))
+            normalized = _normalizeReflectionProbePayload(
+                _resolveMapEntry(sceneDefaults, ["graphics", "reflection_probe"])
+            )
+        if (_isEmptyMap(normalized))
+            normalized = _normalizeReflectionProbePayload(
+                _resolveMapEntry(sceneDefaults, "reflection_probe")
+            )
+
+        var requiredKeys = [
+            "enabled",
+            "padding_m",
+            "quality",
+            "refresh_mode",
+            "time_slicing",
+        ]
+        var missing = []
+        for (var i = 0; i < requiredKeys.length; ++i) {
+            var key = requiredKeys[i]
+            if (normalized[key] === undefined)
+                missing.push(key)
+        }
+
+        if (missing.length) {
+            reflectionProbeDefaultsWarningIssued = true
+            reflectionProbeMissingKeys = missing.slice()
+            console.warn(
+                "[SimulationRoot] Reflection probe defaults missing keys:",
+                missing.join(", ")
+            )
+        } else {
+            reflectionProbeDefaultsWarningIssued = false
+            reflectionProbeMissingKeys = []
+        }
+
+        reflectionProbeDefaultsMap = normalized
     }
 
     function materialsSources() {
@@ -1217,6 +1271,93 @@ signal animationToggled(bool running)
     function environmentBool(keys, fallback) {
         var value = _valueFromSources(environmentSources(), keys)
         return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function _normalizeReflectionProbePayload(source) {
+        if (!_isPlainObject(source))
+            return ({})
+        var normalized = ({})
+        if (source.enabled !== undefined)
+            normalized.enabled = _coerceBool(source.enabled, true)
+        var paddingCandidate = _valueFromSources([source], ["padding_m", "padding"])
+        if (paddingCandidate !== undefined) {
+            var numericPadding = _coerceNumber(paddingCandidate, Number.NaN)
+            if (isFinite(numericPadding))
+                normalized.padding_m = numericPadding
+        }
+        var qualityCandidate = _valueFromSources([source], ["quality"])
+        if (qualityCandidate !== undefined) {
+            var qualityText = _coerceString(qualityCandidate, "")
+            if (qualityText.length)
+                normalized.quality = qualityText.toLowerCase()
+        }
+        var refreshCandidate = _valueFromSources([source], ["refresh_mode", "refreshMode"])
+        if (refreshCandidate !== undefined) {
+            var refreshText = _coerceString(refreshCandidate, "")
+            if (refreshText.length)
+                normalized.refresh_mode = refreshText.toLowerCase()
+        }
+        var slicingCandidate = _valueFromSources([source], ["time_slicing", "timeSlicing"])
+        if (slicingCandidate !== undefined) {
+            var slicingText = _coerceString(slicingCandidate, "")
+            if (slicingText.length)
+                normalized.time_slicing = slicingText.toLowerCase()
+        }
+        if (normalized.padding_m !== undefined)
+            normalized.padding = normalized.padding_m
+        return normalized
+    }
+
+    function _reflectionProbeSourceFromEnvironment(environmentMap) {
+        if (!_isPlainObject(environmentMap))
+            return ({})
+        var legacy = ({
+            enabled: _valueFromSources([environmentMap], ["reflection_enabled", "reflectionEnabled"]),
+            padding_m: _valueFromSources([environmentMap], ["reflection_padding_m", "reflectionPaddingM"]),
+            quality: _valueFromSources([environmentMap], ["reflection_quality", "reflectionQuality"]),
+            refresh_mode: _valueFromSources([environmentMap], ["reflection_refresh_mode", "reflectionRefreshMode"]),
+            time_slicing: _valueFromSources([environmentMap], ["reflection_time_slicing", "reflectionTimeSlicing"]),
+        })
+        return _normalizeReflectionProbePayload(legacy)
+    }
+
+    function reflectionProbeSources() {
+        var sources = []
+        var explicit = _normalizeReflectionProbePayload(reflectionProbeDefaultsMap)
+        if (!_isEmptyMap(explicit))
+            sources.push(explicit)
+        var sceneDirect = _normalizeReflectionProbePayload(_resolveMapEntry(sceneDefaults, "reflection_probe"))
+        if (!_isEmptyMap(sceneDirect))
+            sources.push(sceneDirect)
+        var sceneGraphics = _normalizeReflectionProbePayload(
+            _resolveMapEntry(sceneDefaults, ["graphics", "reflection_probe"])
+        )
+        if (!_isEmptyMap(sceneGraphics))
+            sources.push(sceneGraphics)
+        var legacyEnvironment = _reflectionProbeSourceFromEnvironment(environmentDefaultsMap)
+        if (!_isEmptyMap(legacyEnvironment))
+            sources.push(legacyEnvironment)
+        var fallback = _normalizeReflectionProbePayload(reflectionProbeFallbackDefaults)
+        if (!_isEmptyMap(fallback))
+            sources.push(fallback)
+        return sources
+    }
+
+    function reflectionProbeDefaultBool(keys, fallback) {
+        var value = _valueFromSources(reflectionProbeSources(), keys)
+        return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function reflectionProbeDefaultNumber(keys, fallback) {
+        return _coerceNumber(_valueFromSources(reflectionProbeSources(), keys), fallback)
+    }
+
+    function reflectionProbeDefaultString(keys, fallback) {
+        var value = _valueFromSources(reflectionProbeSources(), keys)
+        if (value === undefined || value === null)
+            return fallback
+        var text = String(value)
+        return text.length ? text : fallback
     }
 
     function lightingNumber(group, keys, fallback) {
@@ -1323,11 +1464,50 @@ readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focu
 property var environmentDefaultsMap: ({})
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
 readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
-property bool reflectionProbeEnabledState: environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
-property string reflectionProbeQualitySetting: environmentDefaultString(environmentDefaultsMap, ["reflection_quality", "reflectionQuality"], "veryhigh")
-property string reflectionProbeRefreshModeSetting: environmentDefaultString(environmentDefaultsMap, ["reflection_refresh_mode", "reflectionRefreshMode"], "everyframe")
-property string reflectionProbeTimeSlicingSetting: environmentDefaultString(environmentDefaultsMap, ["reflection_time_slicing", "reflectionTimeSlicing"], "individualfaces")
-property real reflectionProbePaddingM: environmentNumber(["reflection_probe_padding", "probePadding"], 0.15)
+property bool reflectionProbeEnabledState: reflectionProbeDefaultBool(
+    ["enabled", "reflection_enabled", "reflectionEnabled"],
+    environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
+)
+property string reflectionProbeQualitySetting: (function() {
+    var fallback = environmentDefaultString(
+        environmentDefaultsMap,
+        ["reflection_quality", "reflectionQuality"],
+        "veryhigh"
+    )
+    var value = reflectionProbeDefaultString(
+        ["quality", "reflection_quality", "reflectionQuality"],
+        fallback
+    )
+    return value.toLowerCase()
+})()
+property string reflectionProbeRefreshModeSetting: (function() {
+    var fallback = environmentDefaultString(
+        environmentDefaultsMap,
+        ["reflection_refresh_mode", "reflectionRefreshMode"],
+        "everyframe"
+    )
+    var value = reflectionProbeDefaultString(
+        ["refresh_mode", "refreshMode", "reflection_refresh_mode", "reflectionRefreshMode"],
+        fallback
+    )
+    return value.toLowerCase()
+})()
+property string reflectionProbeTimeSlicingSetting: (function() {
+    var fallback = environmentDefaultString(
+        environmentDefaultsMap,
+        ["reflection_time_slicing", "reflectionTimeSlicing"],
+        "individualfaces"
+    )
+    var value = reflectionProbeDefaultString(
+        ["time_slicing", "timeSlicing", "reflection_time_slicing", "reflectionTimeSlicing"],
+        fallback
+    )
+    return value.toLowerCase()
+})()
+property real reflectionProbePaddingM: reflectionProbeDefaultNumber(
+    ["padding_m", "padding"],
+    environmentNumber(["reflection_padding_m", "reflection_probe_padding", "reflectionProbePadding"], 0.15)
+)
 readonly property int reflectionProbeQualityValue: reflectionProbeQualityFrom(reflectionProbeQualitySetting)
 readonly property int reflectionProbeRefreshModeValue: reflectionProbeRefreshModeFrom(reflectionProbeRefreshModeSetting)
 readonly property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(reflectionProbeTimeSlicingSetting)
@@ -1476,7 +1656,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             flowTelemetry: root.flowTelemetry
             receiverTelemetry: root.receiverTelemetry
             reflectionProbeEnabled: root.reflectionProbeEnabledState
-            reflectionProbePaddingM: sanitizeReflectionProbePadding(environmentNumber(["reflection_probe_padding", "probePadding"], root.reflectionProbePaddingM))
+            reflectionProbePaddingM: sanitizeReflectionProbePadding(root.reflectionProbePaddingM)
             reflectionProbeQualityValue: root.reflectionProbeQualityValue
             reflectionProbeRefreshModeValue: root.reflectionProbeRefreshModeValue
             reflectionProbeTimeSlicingValue: root.reflectionProbeTimeSlicingValue

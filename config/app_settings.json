@@ -11,7 +11,7 @@
     "last_migration": "0002_remove_geometry_mesh_extras",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 317,
+    "total_parameters": 322,
     "description": "Unified settings file - single source of truth",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
@@ -346,6 +346,13 @@
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
+      },
+      "reflection_probe": {
+        "enabled": false,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
       },
       "quality": {
         "preset": "ultra",
@@ -1594,6 +1601,13 @@
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
+      },
+      "reflection_probe": {
+        "enabled": true,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
       },
       "quality": {
         "preset": "ultra",

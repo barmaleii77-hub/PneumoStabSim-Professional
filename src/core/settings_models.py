@@ -225,6 +225,14 @@ class EnvironmentSettings(_StrictModel):
     ao_sample_rate: int
 
 
+class ReflectionProbeSettings(_StrictModel):
+    enabled: bool
+    padding_m: float
+    quality: str
+    refresh_mode: str
+    time_slicing: str
+
+
 class ShadowsSettings(_StrictModel):
     enabled: bool
     resolution: int
@@ -393,6 +401,7 @@ class SceneSettings(_StrictModel):
 class GraphicsSettings(_StrictModel):
     lighting: LightingSettings
     environment: EnvironmentSettings
+    reflection_probe: ReflectionProbeSettings
     quality: QualitySettings
     camera: CameraSettings
     materials: MaterialsSettings
