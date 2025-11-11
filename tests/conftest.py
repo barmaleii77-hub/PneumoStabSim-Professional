@@ -585,7 +585,14 @@ def simulation_harness(qapp, qtbot):
     try:
         from src.runtime.sim_loop import SimulationManager
     except Exception as exc:  # pragma: no cover
-        pytest.skip(f"Simulation stack unavailable: {exc}")
+        pytest.fail(
+            (
+                "Simulation stack unavailable: "
+                f"{exc}. Re-run `python -m tools.cross_platform_test_prep --use-uv --run-tests` "
+                "to rebuild runtime dependencies before executing GUI suites."
+            ),
+            pytrace=False,
+        )
     manager = SimulationManager()
 
     def _run(*, runtime_ms: int = 50) -> dict[str, Any]:
