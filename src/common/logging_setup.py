@@ -12,7 +12,7 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Any
+from typing import Any, Hashable, cast
 from collections.abc import Mapping
 from datetime import UTC, datetime
 import traceback
@@ -22,6 +22,46 @@ import traceback
 _queue_listener: logging.handlers.QueueListener | None = None
 _logger_registry: dict[tuple[Any, ...], logging.Logger] = {}
 _base_context: dict[str, Any] = {"env_context": "env=unknown"}
+
+
+def _normalize_for_cache(value: Any) -> Hashable:
+    """Return a hashable representation for arbitrary context values."""
+
+    if isinstance(value, Mapping):
+        normalized = [
+            (key, _normalize_for_cache(val)) for key, val in value.items()
+        ]
+        return tuple(sorted(normalized, key=lambda item: item[0]))
+    if isinstance(value, list | tuple):
+        return tuple(_normalize_for_cache(item) for item in value)
+    if isinstance(value, set | frozenset):
+        return tuple(
+            sorted(
+                (_normalize_for_cache(item) for item in value),
+                key=repr,
+            )
+        )
+    if isinstance(value, (str, bytes, int, float, bool, type(None))):
+        return cast(Hashable, value)
+    try:
+        hash(value)
+    except TypeError:
+        return repr(value)
+    return cast(Hashable, value)
+
+
+def _make_hashable_context(
+    context: Mapping[str, Any] | None,
+) -> tuple[tuple[str, Hashable], ...]:
+    """Convert a context mapping into a deterministic, hashable structure."""
+
+    if not context:
+        return ()
+
+    normalized_items = [
+        (key, _normalize_for_cache(value)) for key, value in context.items()
+    ]
+    return tuple(sorted(normalized_items))
 
 
 class ContextualFilter(logging.Filter):
@@ -321,12 +361,8 @@ def get_category_logger(
     global _logger_registry
 
     # Кэшируем логгеры
-    base_key = tuple(sorted(_base_context.items()))
-    context_key: tuple[Any, ...]
-    if context:
-        context_key = tuple(sorted(context.items()))
-    else:
-        context_key = ()
+    base_key = _make_hashable_context(_base_context)
+    context_key = _make_hashable_context(context)
     cache_key = (category, base_key, context_key)
     if cache_key in _logger_registry:
         return _logger_registry[cache_key]

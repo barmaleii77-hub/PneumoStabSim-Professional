@@ -35,3 +35,28 @@ def test_init_logging_injects_environment_context(tmp_path: Path) -> None:
     assert "python=" in sample_line
     assert "os=" in sample_line
 
+
+def test_category_logger_accepts_unhashable_context(tmp_path: Path) -> None:
+    """Context caching must tolerate values like lists or dicts."""
+
+    app_name = "PneumoCacheTest"
+    logging_setup.init_logging(app_name, tmp_path)
+
+    try:
+        context = {"users": ["alice", "bob"], "meta": {"roles": ["admin", "editor"]}}
+        logger = logging_setup.get_category_logger("UI", context)
+
+        # Requesting an equivalent context should reuse the cached entry and not
+        # raise ``TypeError`` even though list values are unhashable.
+        duplicate_context = {
+            "meta": {"roles": ["admin", "editor"]},
+            "users": ["alice", "bob"],
+        }
+        cached_logger = logging_setup.get_category_logger("UI", duplicate_context)
+
+        assert cached_logger is logger
+        assert len(logging_setup._logger_registry) == 1
+    finally:
+        logging_setup._cleanup_logging(app_name)
+        logging.getLogger(app_name).handlers.clear()
+
