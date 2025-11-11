@@ -90,6 +90,30 @@ removed immediately._
 
 **See also**: `docs/HDR_PATHS_UNIFIED.md`, `docs/HDR_PATHS_QUICK_START.md`
 
+### Discovery paths and UI warnings
+
+`GraphicsPanel` индексирует HDR/EXR файлы из трёх каталогов по умолчанию:
+
+1. `assets/hdr/` — основной каталог репозитория
+2. `assets/hdri/` — внешние наборы, поставляемые art-командой
+3. `assets/qml/assets/` — ассеты, расположенные рядом с QML-сценами
+
+Виджет `FileCyclerWidget` формирует выпадающий список с уникальными именами и
+подсвечивает отсутствующие файлы красным индикатором. При смене значения статус
+`⚠ файл не найден` отображается рядом с селектором и передаётся в tooltip. Это
+поведение реализовано в `EnvironmentTab._discover_hdr_files()` и
+`EnvironmentTab._refresh_hdr_status()` и покрыто модульными тестами
+`tests/unit/ui/test_hdr_discovery.py` и
+`tests/unit/ui/test_main_window_hdr_paths.py`.
+
+Функция `normalizeHdrPath()` в слое Python (`src/ui/main_window_pkg/_hdr_paths.py`)
+выстраивает последовательность кандидатных путей (`assets/qml/`, `assets/hdr/`,
+`assets/`, корень проекта) и возвращает `file://` URL только при успешном
+нахождении файла. Если ни один кандидат не найден, в лог попадает предупреждение
+`normalizeHdrPath: HDR asset not found (input=…, candidates=…)`, а в UI
+очищается поле пути, что немедленно сигнализирует о проблеме с размещением
+ассета.
+
 ## Installation workflow
 
 1. Download the required HDR files from the sources listed above.
