@@ -662,17 +662,22 @@ ExtendedSceneEnvironment {
     readonly property string qtRuntimeVersionString: {
         if (typeof qtRuntimeVersionData === "string" && qtRuntimeVersionData.length > 0)
             return qtRuntimeVersionData
-        if (typeof Qt !== "undefined" && Qt.application && Qt.application.version !== undefined) {
-            var versionValue = Qt.application.version
-            if (versionValue !== undefined && versionValue !== null) {
-                var normalized = String(versionValue)
-                if (normalized.length)
-                    return normalized
+        if (typeof Qt !== "undefined") {
+            if (typeof Qt.version === "string" && Qt.version.length)
+                return Qt.version
+            if (Qt.application && Qt.application.version !== undefined) {
+                var versionValue = Qt.application.version
+                if (versionValue !== undefined && versionValue !== null) {
+                    var normalized = String(versionValue)
+                    if (normalized.length)
+                        return normalized
+                }
             }
         }
         return ""
     }
-    readonly property bool fogHelpersSupported: qtVersionAtLeast(6, 10) && typeof Fog !== "undefined"
+    readonly property bool qtSupports610: qtVersionAtLeast(6, 10)
+    readonly property bool fogHelpersSupported: qtSupports610 && typeof Fog !== "undefined"
 
     // Camera parameters required by custom fog shaders
     property real cameraClipNear: 0.1
@@ -718,7 +723,7 @@ ExtendedSceneEnvironment {
         root._syncColorAdjustmentFlags()
         root._syncSkyboxBackground()
 
-        root.canUseDithering = root.qtVersionAtLeast(6, 10)
+        root.canUseDithering = root.qtSupports610
 
         if (fogLoader.status === Loader.Ready && root.fog !== fogLoader.item)
             root.fog = fogLoader.item
