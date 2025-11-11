@@ -5,6 +5,7 @@ import enum
 import os
 import types
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
@@ -223,3 +224,83 @@ def test_check_qml_initialization_passes_when_ready(
 
     assert os.environ.get("PSS_POST_DIAG_TRACE") in (None, "")
     assert logger.messages == []
+
+
+def test_run_schema_validation_skips_when_validator_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
+    project_root = Path(__file__).resolve().parents[4]
+    validator_path = project_root / "tools" / "validate_settings.py"
+    real_exists = Path.exists
+
+    def _fake_exists(self: Path) -> bool:  # pragma: no cover - simple shim
+        if self == validator_path:
+            return False
+        return real_exists(self)
+
+    monkeypatch.setattr(Path, "exists", _fake_exists, raising=False)
+    schema_path = tmp_path / "schema.json"
+    schema_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(runner, "_resolve_schema_path", lambda: schema_path)
+
+    cfg_path = tmp_path / "settings.json"
+    cfg_path.write_text("{}", encoding="utf-8")
+
+    runner._run_schema_validation(cfg_path)
+
+
+def test_run_schema_validation_raises_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
+    project_root = Path(__file__).resolve().parents[4]
+    validator_path = project_root / "tools" / "validate_settings.py"
+    real_exists = Path.exists
+
+    def _exists(self: Path) -> bool:  # pragma: no cover - shim
+        if self == validator_path:
+            return True
+        return real_exists(self)
+
+    monkeypatch.setattr(Path, "exists", _exists, raising=False)
+    monkeypatch.setattr(
+        runner, "_resolve_schema_path", lambda: validator_path.with_suffix(".schema")
+    )
+
+    def _fake_run(*_args, **_kwargs):
+        return types.SimpleNamespace(returncode=1, stdout="", stderr="boom")
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+
+    with pytest.raises(RuntimeError) as exc:
+        runner._run_schema_validation(validator_path.with_suffix(".json"))
+
+    assert "exit code 1" in str(exc.value)
+
+
+def test_run_schema_validation_wraps_os_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
+    project_root = Path(__file__).resolve().parents[4]
+    validator_path = project_root / "tools" / "validate_settings.py"
+
+    monkeypatch.setattr(Path, "exists", lambda _self: True, raising=False)
+    monkeypatch.setattr(
+        runner, "_resolve_schema_path", lambda: validator_path.with_suffix(".schema")
+    )
+
+    def _raise(*_args, **_kwargs):
+        raise OSError("not executable")
+
+    monkeypatch.setattr("subprocess.run", _raise)
+
+    with pytest.raises(RuntimeError) as exc:
+        runner._run_schema_validation(validator_path.with_suffix(".json"))
+
+    assert "Failed to execute settings validator" in str(exc.value)

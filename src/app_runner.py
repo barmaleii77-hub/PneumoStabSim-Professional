@@ -927,7 +927,12 @@ class ApplicationRunner:
             "--quiet",
         ]
 
-        result = subprocess.run(command, capture_output=True, text=True)
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Failed to execute settings validator: {exc}") from exc
         if result.returncode != 0:
             output = (result.stderr or result.stdout or "").strip()
             raise RuntimeError(

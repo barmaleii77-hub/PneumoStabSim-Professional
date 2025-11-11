@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from collections.abc import Iterable, Mapping
@@ -109,9 +110,23 @@ def _load_settings_payload(path: Path) -> Mapping[str, Any]:
     return payload
 
 
+@lru_cache(maxsize=256)
+def _split_path(path: str) -> tuple[str, ...]:
+    """Cache dotted path segmentation for repeated lookups."""
+
+    stripped = path.strip()
+    if not stripped:
+        return tuple()
+    return tuple(segment for segment in stripped.split(".") if segment)
+
+
 def _get_path(payload: Mapping[str, Any], path: str) -> Any:
+    segments = _split_path(path)
+    if not segments:
+        raise KeyError("")
+
     node: Any = payload
-    for part in path.split("."):
+    for part in segments:
         if not isinstance(node, Mapping) or part not in node:
             raise KeyError(path)
         node = node[part]

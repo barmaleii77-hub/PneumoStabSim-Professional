@@ -7,7 +7,13 @@ from pathlib import Path
 import pytest
 
 
-QML_PATH = Path(__file__).resolve().parents[2] / "assets" / "qml" / "components" / "DepthTextureActivator.qml"
+QML_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "assets"
+    / "qml"
+    / "components"
+    / "DepthTextureActivator.qml"
+)
 
 
 @pytest.fixture(scope="module")
@@ -20,7 +26,9 @@ def depth_texture_source() -> str:
 def test_depth_texture_activator_declares_singleton(depth_texture_source: str) -> None:
     lines = [line.strip() for line in depth_texture_source.splitlines() if line.strip()]
 
-    assert lines[0] == "pragma Singleton", "DepthTextureActivator must remain a singleton utility"
+    assert lines[0] == "pragma Singleton", (
+        "DepthTextureActivator must remain a singleton utility"
+    )
 
 
 @pytest.mark.parametrize(
@@ -35,10 +43,32 @@ def test_depth_texture_activator_declares_singleton(depth_texture_source: str) -
 def test_depth_texture_activator_avoids_direct_property_assignments(
     depth_texture_source: str, pattern: str
 ) -> None:
-    assert pattern not in depth_texture_source, f"Direct assignments to {pattern} must use helper wrappers"
+    assert pattern not in depth_texture_source, (
+        f"Direct assignments to {pattern} must use helper wrappers"
+    )
 
 
-def test_depth_texture_activator_logs_success_message(depth_texture_source: str) -> None:
+def test_depth_texture_activator_logs_success_message(
+    depth_texture_source: str,
+) -> None:
     assert (
-        "DepthTextureActivator: Depth/velocity textures successfully activated" in depth_texture_source
+        "DepthTextureActivator: Depth/velocity textures successfully activated"
+        in depth_texture_source
     ), "Success log output guards future refactors"
+
+
+def test_depth_texture_activator_reports_status_header(
+    depth_texture_source: str,
+) -> None:
+    assert "=== DepthTextureActivator Status Report ===" in depth_texture_source, (
+        "Status report header ensures debugging output remains available"
+    )
+
+
+def test_depth_texture_activator_warns_when_api_unavailable(
+    depth_texture_source: str,
+) -> None:
+    assert (
+        "⚠️ DepthTextureActivator: Could not explicitly enable depth textures"
+        in depth_texture_source
+    ), "Warning log protects manual debugging flows"
