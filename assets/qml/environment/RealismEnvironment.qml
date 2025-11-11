@@ -13,6 +13,14 @@ ExtendedSceneEnvironment {
     property var qualitySettings: sceneBridge && sceneBridge.quality ? sceneBridge.quality : ({})
     property var _warningCache: ({})
 
+    onSceneBridgeChanged: {
+        _replayCachedWarnings()
+    }
+
+    onDiagnosticsTraceChanged: {
+        _replayCachedWarnings()
+    }
+
     function _sectionPayload(section) {
         if (section === "environment")
             return environmentSettings
@@ -61,12 +69,27 @@ ExtendedSceneEnvironment {
         return numeric * _sceneScaleFactor()
     }
 
-    function _recordOverlayWarning(entry) {
-        var overlay = diagnosticsTrace
+    function _recordOverlayWarning(entry, target) {
+        var overlay = target || diagnosticsTrace
         if (!overlay || typeof overlay.recordObservation !== "function")
             return
         try {
-            overlay.recordObservation("settings.graphicsFallback", entry, "qml", "RealismEnvironment")
+            var payload = ({})
+            payload.section = entry && entry.section !== undefined ? entry.section : ""
+            payload.key = entry && entry.key !== undefined ? entry.key : ""
+            payload.reason = entry && entry.reason !== undefined ? entry.reason : ""
+            payload.fallback = entry && entry.fallback !== undefined ? entry.fallback : "<undefined>"
+            var normalizedPayload
+            try {
+                normalizedPayload = JSON.parse(JSON.stringify(payload))
+            } catch (serializationError) {
+                normalizedPayload = payload
+            }
+            overlay.recordObservation(
+                        "settings.graphicsFallback",
+                        normalizedPayload,
+                        "qml",
+                        "RealismEnvironment")
         } catch (error) {
             console.debug("RealismEnvironment: overlay record failed", error)
         }
@@ -75,44 +98,142 @@ ExtendedSceneEnvironment {
     function _warn(section, keys, reason, fallback) {
         var keyName = _primaryKey(keys)
         var cacheKey = section + ":" + keyName + ":" + reason
-        if (_warningCache[cacheKey])
-            return
-        _warningCache[cacheKey] = true
+        var cacheEntry = _warningCache[cacheKey]
+        if (!cacheEntry) {
+            cacheEntry = {
+                entry: {
+                    section: "",
+                    key: "",
+                    reason: "",
+                    fallback: "<undefined>"
+                },
+                logged: false,
+                overlays: []
+            }
+            _warningCache[cacheKey] = cacheEntry
+        }
 
-        var fallbackText = fallback === undefined ? "<undefined>" : String(fallback)
-        var message = "Missing graphics." + section + "." + keyName + " (" + reason + "); using " + fallbackText
-        console.warn("RealismEnvironment:", message)
+        var sectionText = _stringify(section, "")
+        var keyText = _stringify(keyName, "")
+        var reasonText = _stringify(reason, "")
+        var fallbackText = _stringify(fallback, "<undefined>")
 
-        if (sceneBridge && typeof sceneBridge.logQmlEvent === "function") {
+        cacheEntry.entry.section = sectionText
+        cacheEntry.entry.key = keyText
+        cacheEntry.entry.reason = reasonText
+        cacheEntry.entry.fallback = fallbackText
+
+        if (!cacheEntry.logged) {
+            var qualifiedKey = keyText
+            if (sectionText)
+                qualifiedKey = sectionText + "." + keyText
+            var message = "Missing graphics." + qualifiedKey + " (" + reasonText + "; using " + fallbackText + ")"
+            console.warn("RealismEnvironment:", message)
+
+            if (sceneBridge && typeof sceneBridge.logQmlEvent === "function") {
+                try {
+                    sceneBridge.logQmlEvent("warning", "RealismEnvironment." + qualifiedKey)
+                } catch (error) {
+                    console.debug("RealismEnvironment: logQmlEvent failed", error)
+                }
+            }
+
             try {
-                sceneBridge.logQmlEvent("warning", "RealismEnvironment." + section + "." + keyName)
+                var structured = {
+                    level: "warning",
+                    logger: "qml.realism_environment",
+                    event: "settings_fallback",
+                    section: sectionText,
+                    key: keyText,
+                    reason: reasonText,
+                    fallback: fallbackText,
+                    timestamp: new Date().toISOString()
+                }
+                console.log(JSON.stringify(structured))
             } catch (error) {
-                console.debug("RealismEnvironment: logQmlEvent failed", error)
+                console.debug("RealismEnvironment: structured log failed", error)
             }
+
+            cacheEntry.logged = true
         }
 
+        var overlay = diagnosticsTrace
+        if (overlay && typeof overlay.recordObservation === "function") {
+            _syncOverlayWarning(cacheEntry, overlay)
+        }
+    }
+
+    function _stringify(value, defaultValue) {
+        if (value === undefined || value === null)
+            return defaultValue
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+            return String(value)
+        if (value && typeof value.toString === "function") {
+            try {
+                var rendered = value.toString()
+                if (rendered && rendered !== "[object Object]")
+                    return rendered
+            } catch (error) {
+                console.debug("RealismEnvironment: stringify failed", error)
+            }
+        }
+        return defaultValue
+    }
+
+    function _warningSignature(entry) {
+        if (!entry)
+            return ""
         try {
-            var structured = {
-                level: "warning",
-                logger: "qml.realism_environment",
-                event: "settings_fallback",
-                section: section,
-                key: keyName,
-                reason: reason,
-                fallback: fallbackText,
-                timestamp: new Date().toISOString()
-            }
-            console.log(JSON.stringify(structured))
+            return JSON.stringify(entry)
         } catch (error) {
-            console.debug("RealismEnvironment: structured log failed", error)
+            console.debug("RealismEnvironment: warning signature fallback", error)
         }
+        return (
+                    String(entry.section || "") + "|" + String(entry.key || "") + "|" + String(entry.reason || "") + "|" + String(entry.fallback || ""))
+    }
 
-        _recordOverlayWarning({
-            section: section,
-            key: keyName,
-            reason: reason,
-            fallback: fallbackText
-        })
+    function _findOverlayRecord(cacheEntry, overlay) {
+        if (!cacheEntry || !cacheEntry.overlays)
+            return null
+        for (var i = 0; i < cacheEntry.overlays.length; ++i) {
+            var candidate = cacheEntry.overlays[i]
+            if (candidate && candidate.target === overlay)
+                return candidate
+        }
+        return null
+    }
+
+    function _syncOverlayWarning(cacheEntry, overlay) {
+        if (!cacheEntry || !overlay)
+            return
+        var signature = _warningSignature(cacheEntry.entry)
+        var overlayRecord = _findOverlayRecord(cacheEntry, overlay)
+        if (overlayRecord) {
+            if (overlayRecord.signature !== signature) {
+                overlayRecord.signature = signature
+                _recordOverlayWarning(cacheEntry.entry, overlay)
+            }
+            return
+        }
+        cacheEntry.overlays.push({
+                                      target: overlay,
+                                      signature: signature
+                                  })
+        _recordOverlayWarning(cacheEntry.entry, overlay)
+    }
+
+    function _replayCachedWarnings() {
+        var overlay = diagnosticsTrace
+        if (!overlay || typeof overlay.recordObservation !== "function")
+            return
+        for (var key in _warningCache) {
+            if (!Object.prototype.hasOwnProperty.call(_warningCache, key))
+                continue
+            var cacheEntry = _warningCache[key]
+            if (!cacheEntry)
+                continue
+            _syncOverlayWarning(cacheEntry, overlay)
+        }
     }
 
     function _bool(section, keys, fallback) {

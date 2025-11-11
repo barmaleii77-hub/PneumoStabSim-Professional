@@ -49,6 +49,20 @@ It aligns with the Renovation Master Plan objectives for tooling, privacy, and r
 - Cross-platform parity is mandatory: `make cross-platform-test` (Linux) and
   `python -m tools.task_runner cross-platform-test` (Windows) must both pass for
   every change set before it is shared or committed.
+- Перед коммитом фиксируйте запуск обязательных проверок, чтобы свести к минимуму
+  ложные срабатывания ботов ревью:
+  1. `make uv-sync && make uv-run CMD="python tools/setup_qt.py --check"` —
+     убеждаемся, что зависимости и Qt-плагины готовы.
+  2. `make check` — агрегированные линтеры (`ruff`, `mypy`, `pytest`, `qmllint`).
+  3. `make cross-platform-test` (Linux) и `python -m tools.task_runner cross-platform-test`
+     (Windows) — smoke-тесты UI и синхронизации настроек.
+  4. `uv run python tools/validate_settings.py` — подтверждение, что
+     `config/app_settings.json` соответствует актуальной схеме.
+  5. `uv run python tools/settings/export_matrix.py --check` — dry-run генерации
+     матрицы контролов, отслеживающий несогласованность биндингов.
+- Если какой-либо шаг невозможен (например, нет доступа к Windows раннеру),
+  необходимо задокументировать причину в PR/комментарии и приложить логи
+  выполненных проверок.
 
 ## 7. Documentation Practices
 - Update relevant guides (`START_HERE.txt`, `QUICKSTART.md`, etc.) when workflows change.
