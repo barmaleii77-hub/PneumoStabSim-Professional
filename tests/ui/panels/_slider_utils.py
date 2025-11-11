@@ -37,24 +37,47 @@ def resolve_slider_step(slider: Any, delta: float) -> float:
     """Determine the appropriate step delta for ``slider``.
 
     Community builds of PySide6 occasionally omit the ``step`` property on
-    derived widgets.  Tests use this helper to gracefully fall back to the
-    requested ``delta`` when the property is unavailable.
+    derived widgets.  Tests use this helper to gracefully fall back to a
+    manual stepping strategy when the attribute is absent or unusable.
     """
 
-    raw_step = _call_getter(slider, "step")
-    try:
-        numeric_step = float(raw_step)
-    except (TypeError, ValueError):
-        return float(delta)
+    def _coerce_step(value: Any) -> float | None:
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
+        if math.isclose(numeric, 0.0, abs_tol=1e-12):
+            return None
+        return abs(numeric)
 
-    if math.isclose(numeric_step, 0.0, abs_tol=1e-12):
-        return float(delta)
+    numeric_step: float | None = None
+
+    if hasattr(slider, "step"):
+        numeric_step = _coerce_step(_call_getter(slider, "step"))
+
+    if numeric_step is None:
+        # Older RangeSlider builds keep the value on a private attribute.
+        numeric_step = _coerce_step(getattr(slider, "_step", None))
+
+    if numeric_step is None:
+        spinbox = getattr(slider, "value_spinbox", None)
+        if spinbox is not None:
+            numeric_step = _coerce_step(_call_getter(spinbox, "singleStep"))
+
+    if numeric_step is None:
+        requested = _coerce_step(delta)
+        if requested is None:
+            # As a last resort, fall back to a modest default so tests can still
+            # exercise behaviour without relying on PySide internals.
+            numeric_step = 1.0
+        else:
+            numeric_step = requested
 
     if math.isclose(delta, 0.0, abs_tol=1e-12):
-        return abs(numeric_step)
+        return numeric_step
 
     sign = 1.0 if delta >= 0 else -1.0
-    return abs(numeric_step) * sign
+    return numeric_step * sign
 
 
 def clamp_slider_value(slider: Any, candidate: float) -> float:
