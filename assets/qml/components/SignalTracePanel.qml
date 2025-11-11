@@ -63,7 +63,7 @@ Control {
                 required property string sender
                 required property var args
 
-                width: {
+                implicitWidth: {
                     const view = ListView.view
                     const fallbackParent = parent && parent.width !== undefined ? parent.width : 0
                     const baseWidth = view && view.width !== undefined ? view.width : fallbackParent

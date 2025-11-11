@@ -270,7 +270,7 @@ Item {
                             required property string label
                             required property string unit
                             required property color metricColor
-                            width: {
+                            implicitWidth: {
                                 const view = ListView.view
                                 const fallbackParent = parent && parent.width !== undefined ? parent.width : 0
                                 const baseWidth = view && view.width !== undefined ? view.width : fallbackParent

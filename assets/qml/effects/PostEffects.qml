@@ -1267,9 +1267,7 @@ Item {
         Connections {
             target: bloomFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
         }
 
         Shader {
@@ -1285,9 +1283,7 @@ Item {
         Connections {
             target: bloomFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
         }
 
 
@@ -1420,9 +1416,7 @@ Item {
         Connections {
             target: ssaoFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
         }
 
         Shader {
@@ -1438,9 +1432,7 @@ Item {
         Connections {
             target: ssaoFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
         }
 
 
@@ -1566,9 +1558,7 @@ Item {
         Connections {
             target: dofFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
         }
 
         Shader {
@@ -1584,9 +1574,7 @@ Item {
         Connections {
             target: dofFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
         }
 
 
@@ -1703,9 +1691,7 @@ Item {
         Connections {
             target: motionBlurFragmentShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
         }
 
         Shader {
@@ -1721,9 +1707,7 @@ Item {
         Connections {
             target: motionBlurFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
-            }
+            onStatusChanged: root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
         }
 
 
