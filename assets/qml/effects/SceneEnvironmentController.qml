@@ -20,24 +20,49 @@ ExtendedSceneEnvironment {
     property var materialsDefaultsData: null
     property var lightingAccessData: null
     property var qtRuntimeVersionData: null
+    property var _globalContextRef: undefined
+
+    function _globalContextObject() {
+        if (root._globalContextRef !== undefined)
+            return root._globalContextRef
+
+        var globalObject = null
+        try {
+            globalObject = Function("return this")()
+        } catch (error) {
+            globalObject = null
+        }
+
+        root._globalContextRef = globalObject
+        return globalObject
+    }
 
     function _contextValue(name) {
-        try {
-            if (name === "initialSceneSettings" && typeof initialSceneSettings !== "undefined")
-                return initialSceneSettings
-            if (name === "initialAnimationSettings" && typeof initialAnimationSettings !== "undefined")
-                return initialAnimationSettings
-            if (name === "initialGeometrySettings" && typeof initialGeometrySettings !== "undefined")
-                return initialGeometrySettings
-            if (name === "materialsDefaults" && typeof materialsDefaults !== "undefined")
-                return materialsDefaults
-            if (name === "lightingAccess" && typeof lightingAccess !== "undefined")
-                return lightingAccess
-            if (name === "qtRuntimeVersion" && typeof qtRuntimeVersion !== "undefined")
-                return qtRuntimeVersion
-        } catch (error) {
-            console.debug("SceneEnvironmentController", "context lookup failed", name, error)
+        if (!name)
+            return undefined
+
+        var globalObject = root._globalContextObject()
+        if (globalObject) {
+            try {
+                var globalCandidate = globalObject[name]
+                if (globalCandidate !== undefined)
+                    return globalCandidate
+            } catch (error) {
+                console.debug("SceneEnvironmentController", "context lookup failed", name, error)
+            }
         }
+
+        var host = root.parent
+        if (host) {
+            try {
+                var hostCandidate = host[name]
+                if (hostCandidate !== undefined)
+                    return hostCandidate
+            } catch (error) {
+                console.debug("SceneEnvironmentController", "host context lookup failed", name, error)
+            }
+        }
+
         return undefined
     }
 
@@ -660,22 +685,59 @@ ExtendedSceneEnvironment {
     property real sceneScaleFactor:1.0
 
     readonly property string qtRuntimeVersionString: {
-        if (typeof qtRuntimeVersionData === "string" && qtRuntimeVersionData.length > 0)
-            return qtRuntimeVersionData
-        if (typeof Qt !== "undefined") {
-            if (typeof Qt.version === "string" && Qt.version.length)
-                return Qt.version
-            if (Qt.application && Qt.application.version !== undefined) {
-                var versionValue = Qt.application.version
-                if (versionValue !== undefined && versionValue !== null) {
-                    var normalized = String(versionValue)
-                    if (normalized.length)
-                        return normalized
-                }
-            }
+        var sceneBridgeVersion = null
+        if (root.sceneBridge && root.sceneBridge.qtRuntimeVersion !== undefined)
+            sceneBridgeVersion = root.sceneBridge.qtRuntimeVersion
+
+        var candidates = [
+            root.qtRuntimeVersionData,
+            root._contextValue("qtRuntimeVersion"),
+            sceneBridgeVersion
+        ]
+
+        for (var index = 0; index < candidates.length; ++index) {
+            var normalized = root._normalizeVersionString(candidates[index])
+            if (normalized.length)
+                return normalized
         }
         return ""
     }
+    function _normalizeVersionString(candidate) {
+        if (candidate === undefined || candidate === null)
+            return ""
+
+        if (typeof candidate === "string") {
+            var trimmed = candidate.trim()
+            return trimmed.length ? trimmed : ""
+        }
+
+        if (typeof candidate === "number") {
+            if (!isFinite(candidate))
+                return ""
+            return String(candidate)
+        }
+
+        if (candidate && typeof candidate === "object") {
+            if (typeof candidate.version === "string") {
+                var versionString = candidate.version.trim()
+                if (versionString.length)
+                    return versionString
+            }
+            if (typeof candidate.qtVersion === "string") {
+                var qtVersionString = candidate.qtVersion.trim()
+                if (qtVersionString.length)
+                    return qtVersionString
+            }
+        }
+
+        try {
+            var normalized = String(candidate)
+            return normalized.length ? normalized : ""
+        } catch (error) {
+            return ""
+        }
+    }
+
     readonly property bool qtSupports610: qtVersionAtLeast(6, 10)
     readonly property bool fogHelpersSupported: qtSupports610 && typeof Fog !== "undefined"
 
