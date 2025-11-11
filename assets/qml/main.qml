@@ -363,8 +363,9 @@ Item {
         return false
     }
 
+    // `applyGeometryUpdates` is declared explicitly (see below) to avoid
+    // dynamic property installation errors when the scene loader initialises.
     readonly property var _proxyMethodNames: [
-        "applyGeometryUpdates",
         "updateGeometry",
         "applyAnimationUpdates",
         "updateAnimation",
