@@ -2,22 +2,54 @@
 
 import json
 import logging
+from typing import Any
 
 import structlog
 
 from src.diagnostics.logger_factory import configure_logging
 
 
+def _extract_structlog_payload(caplog: Any, capsys: Any) -> tuple[str, dict[str, Any]]:
+    """Return the rendered log line and its decoded payload."""
+
+    def _from_text(value: str | None) -> tuple[str, dict[str, Any]] | None:
+        if not value:
+            return None
+        text = value.strip()
+        if not text:
+            return None
+        start = text.find("{")
+        if start == -1:
+            return None
+        try:
+            payload = json.loads(text[start:])
+        except json.JSONDecodeError:
+            return None
+        return text, payload
+
+    for record in caplog.records:
+        message = getattr(record, "message", None) or record.getMessage()
+        if isinstance(message, dict):
+            serialised = json.dumps(message, ensure_ascii=False)
+            return serialised, message
+        if isinstance(message, str):
+            parsed = _from_text(message)
+            if parsed is not None:
+                return parsed
+
+    captured = capsys.readouterr()
+    for stream in (captured.err, captured.out):
+        parsed = _from_text(stream)
+        if parsed is not None:
+            return parsed
+
+    raise AssertionError("structured log entry was not captured")
+
+
 def test_structlog_json_contains_context(
     structlog_logger_config, caplog, capsys
 ) -> None:
-    """Emit a JSON log event and assert mandatory fields and bound context exist.
-
-    The logger is pre-bound with ``subsystem="diagnostics"`` and ``component``
-    context. After emitting an ``info`` event we expect the serialised JSON to
-    include the message, severity level, ISO-8601 timestamp, and the bound
-    context fields preserved by the processor chain.
-    """
+    """Emit a JSON log event and assert mandatory fields and bound context exist."""
 
     structlog.reset_defaults()
     caplog.set_level(logging.INFO)
@@ -27,23 +59,14 @@ def test_structlog_json_contains_context(
     logger = structlog_logger_config.build()
     logger.info("diagnostic_event", action="bind-check")
 
-    raw_message = None
-    if caplog.records:
-        raw_message = caplog.messages[0]
-    else:
-        captured = capsys.readouterr()
-        raw_message = (captured.err or captured.out).strip()
+    raw_message, payload = _extract_structlog_payload(caplog, capsys)
 
-    assert raw_message, "no log records captured"
-    payload_start = raw_message.find("{")
-    assert payload_start != -1, "expected JSON payload in log message"
-
-    payload = json.loads(raw_message[payload_start:])
     assert payload["event"] == "diagnostic_event"
     assert payload["level"] == "info"
     assert "timestamp" in payload
     assert payload["subsystem"] == "diagnostics"
     assert payload["component"] == "logger"
     assert payload["action"] == "bind-check"
+    assert "diagnostic_event" in raw_message
 
     structlog.reset_defaults()

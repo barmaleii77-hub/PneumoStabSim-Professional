@@ -41,3 +41,29 @@ def test_discover_hdr_files_recurses_and_normalises(tmp_path: Path) -> None:
         ("forest.hdr", "../hdri/forest.hdr"),
         ("studio.hdr", "assets/indoor/studio.hdr"),
     ]
+
+
+def test_discover_hdr_files_detects_added_and_removed_assets(tmp_path: Path) -> None:
+    assets_root = tmp_path / "assets"
+    hdr_dir = assets_root / "hdr"
+    qml_root = assets_root / "qml"
+    hdr_dir.mkdir(parents=True)
+    qml_root.mkdir(parents=True)
+
+    initial = hdr_dir / "initial.hdr"
+    initial.write_bytes(b"")
+
+    search_dirs = [hdr_dir]
+
+    results_initial = discover_hdr_files(search_dirs, qml_root=qml_root)
+    assert results_initial == [("initial.hdr", "../hdr/initial.hdr")]
+
+    new_file = hdr_dir / "added.exr"
+    new_file.write_bytes(b"")
+    results_after_add = discover_hdr_files(search_dirs, qml_root=qml_root)
+    assert ("added.exr", "../hdr/added.exr") in results_after_add
+
+    initial.unlink()
+    results_after_remove = discover_hdr_files(search_dirs, qml_root=qml_root)
+    discovered_names = [name for name, _ in results_after_remove]
+    assert "initial.hdr" not in discovered_names
