@@ -642,6 +642,27 @@ signal animationToggled(bool running)
                 console.debug("[SimulationRoot] rigAnimation.applyPistonPositions (threeD) failed", error)
             }
         }
+        var reflectionNode = _resolveMapEntry(normalized, ["reflectionProbe", "reflection_probe", "reflection"])
+        if (_isPlainObject(reflectionNode)) {
+            if (reflectionNode.enabled !== undefined)
+                reflectionProbeEnabledState = _coerceBool(reflectionNode.enabled, reflectionProbeEnabledState)
+            if (reflectionNode.padding !== undefined)
+                reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding)
+            if (reflectionNode.quality !== undefined) {
+                var qualityText = _coerceString(reflectionNode.quality, reflectionProbeQualitySetting)
+                reflectionProbeQualitySetting = qualityText.toLowerCase()
+            }
+            if (reflectionNode.refreshMode !== undefined || reflectionNode.refresh_mode !== undefined) {
+                var refreshCandidate = reflectionNode.refreshMode !== undefined ? reflectionNode.refreshMode : reflectionNode.refresh_mode
+                var refreshText = _coerceString(refreshCandidate, reflectionProbeRefreshModeSetting)
+                reflectionProbeRefreshModeSetting = refreshText.toLowerCase()
+            }
+            if (reflectionNode.timeSlicing !== undefined || reflectionNode.time_slicing !== undefined) {
+                var slicingCandidate = reflectionNode.timeSlicing !== undefined ? reflectionNode.timeSlicing : reflectionNode.time_slicing
+                var slicingText = _coerceString(slicingCandidate, reflectionProbeTimeSlicingSetting)
+                reflectionProbeTimeSlicingSetting = slicingText.toLowerCase()
+            }
+        }
         _storeLastUpdate("threeD", normalized)
     }
 
@@ -1263,7 +1284,14 @@ readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focu
 property var environmentDefaultsMap: ({})
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
 readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
+property bool reflectionProbeEnabledState: environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
+property string reflectionProbeQualitySetting: environmentDefaultString(environmentDefaultsMap, ["reflection_quality", "reflectionQuality"], "veryhigh")
+property string reflectionProbeRefreshModeSetting: environmentDefaultString(environmentDefaultsMap, ["reflection_refresh_mode", "reflectionRefreshMode"], "everyframe")
+property string reflectionProbeTimeSlicingSetting: environmentDefaultString(environmentDefaultsMap, ["reflection_time_slicing", "reflectionTimeSlicing"], "individualfaces")
 property real reflectionProbePaddingM: environmentNumber(["reflection_probe_padding", "probePadding"], 0.15)
+readonly property int reflectionProbeQualityValue: reflectionProbeQualityFrom(reflectionProbeQualitySetting)
+readonly property int reflectionProbeRefreshModeValue: reflectionProbeRefreshModeFrom(reflectionProbeRefreshModeSetting)
+readonly property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(reflectionProbeTimeSlicingSetting)
 property color environmentBackgroundColorDefault: environmentDefaultString(environmentDefaultsMap, ["background_color", "backgroundColor"], "#1f242c")
 property string environmentBackgroundModeDefault: environmentDefaultString(environmentDefaultsMap, ["background_mode", "backgroundMode"], "skybox")
 property bool environmentSkyboxEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["skybox_enabled", "skyboxEnabled"], true)
@@ -1279,6 +1307,44 @@ property real environmentIblRotationYawDefault: environmentDefaultNumber(environ
 property real environmentIblRotationRollDefault: environmentDefaultNumber(environmentDefaultsMap, ["ibl_offset_y", "iblRotationRollDeg"], 0.0)
 property real environmentSkyboxBlurDefault: environmentDefaultNumber(environmentDefaultsMap, ["skybox_blur", "skyboxBlur"], 0.08)
 property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultString(environmentDefaultsMap, ["ibl_source", "hdr_source", "iblPrimary"], ""))
+
+    function parseReflectionProbeEnum(value, mapping, fallback) {
+        if (value === undefined || value === null)
+            return fallback
+        var original = String(value).trim().toLowerCase()
+        if (!original.length)
+            return fallback
+        if (Object.prototype.hasOwnProperty.call(mapping, original))
+            return mapping[original]
+        var normalized = original.replace(/[^a-z0-9]/g, "")
+        if (Object.prototype.hasOwnProperty.call(mapping, normalized))
+            return mapping[normalized]
+        return fallback
+    }
+
+    function reflectionProbeQualityFrom(value) {
+        return parseReflectionProbeEnum(value, {
+            low: ReflectionProbe.Low,
+            medium: ReflectionProbe.Medium,
+            high: ReflectionProbe.High,
+            veryhigh: ReflectionProbe.VeryHigh,
+            very_high: ReflectionProbe.VeryHigh,
+            ultra: ReflectionProbe.VeryHigh
+        }, ReflectionProbe.VeryHigh)
+    }
+
+    function reflectionProbeRefreshModeFrom(value) {
+        return parseReflectionProbeEnum(value, {
+            everyframe: ReflectionProbe.EveryFrame,
+            always: ReflectionProbe.EveryFrame,
+            firstframe: ReflectionProbe.FirstFrame,
+            first_frame: ReflectionProbe.FirstFrame,
+            first: ReflectionProbe.FirstFrame,
+            never: ReflectionProbe.FirstFrame,
+            disabled: ReflectionProbe.FirstFrame,
+            off: ReflectionProbe.FirstFrame
+        }, ReflectionProbe.EveryFrame)
+    }
 
     function reflectionProbeTimeSlicingFrom(value) {
         return parseReflectionProbeEnum(value, {
@@ -1370,8 +1436,11 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             sceneScaleFactor: root.sceneScaleFactor
             flowTelemetry: root.flowTelemetry
             receiverTelemetry: root.receiverTelemetry
-            reflectionProbeEnabled: true
-            reflectionProbePaddingM: sanitizeReflectionProbePadding(environmentNumber(["reflection_probe_padding", "probePadding"], reflectionProbePaddingM))
+            reflectionProbeEnabled: root.reflectionProbeEnabledState
+            reflectionProbePaddingM: sanitizeReflectionProbePadding(environmentNumber(["reflection_probe_padding", "probePadding"], root.reflectionProbePaddingM))
+            reflectionProbeQualityValue: root.reflectionProbeQualityValue
+            reflectionProbeRefreshModeValue: root.reflectionProbeRefreshModeValue
+            reflectionProbeTimeSlicingValue: root.reflectionProbeTimeSlicingValue
         }
 
         DirectionalLights {

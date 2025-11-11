@@ -112,12 +112,25 @@ def test_environment_tab_missing_range_triggers_warning(qapp, monkeypatch):
     )
 
     captured: list[str] = []
+    logged: list[str] = []
 
     def _capture_warning(parent, title, text):
         captured.append(text)
         return None
 
     monkeypatch.setattr(environment_tab_module.QMessageBox, "warning", _capture_warning)
+
+    def _capture_log(message, *args, **kwargs):
+        if args:
+            try:
+                logged.append(message % args)
+            except Exception:
+                logged.append(str(message))
+        else:
+            logged.append(str(message))
+        return None
+
+    monkeypatch.setattr(environment_tab_module.logger, "warning", _capture_log)
 
     tab = EnvironmentTab()
     slider = tab.get_controls()["ibl.skybox_brightness"]
@@ -130,6 +143,7 @@ def test_environment_tab_missing_range_triggers_warning(qapp, monkeypatch):
     message = "\n".join(captured)
     assert "skybox_brightness" in message
     assert "Используются значения по умолчанию" in message
+    assert any("skybox_brightness" in entry for entry in logged)
 
 
 def test_environment_tab_uses_metadata_ranges_when_current_missing(qapp, monkeypatch):

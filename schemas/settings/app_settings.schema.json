@@ -691,23 +691,44 @@
         },
         "reflection_enabled": {
           "title": "Reflection Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "reflection_padding_m": {
           "title": "Reflection Padding M",
-          "type": "number"
+          "type": "number",
+          "default": 0.15
         },
         "reflection_quality": {
           "title": "Reflection Quality",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "veryhigh",
+            "high",
+            "medium",
+            "low"
+          ],
+          "default": "veryhigh"
         },
         "reflection_refresh_mode": {
           "title": "Reflection Refresh Mode",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "everyframe",
+            "firstframe",
+            "never"
+          ],
+          "default": "everyframe"
         },
         "reflection_time_slicing": {
           "title": "Reflection Time Slicing",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "individualfaces",
+            "allfacesatonce",
+            "notimeslicing"
+          ],
+          "default": "individualfaces"
         },
         "fog_enabled": {
           "title": "Fog Enabled",

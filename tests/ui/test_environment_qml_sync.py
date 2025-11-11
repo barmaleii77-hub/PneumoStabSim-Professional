@@ -63,6 +63,11 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
         state["ibl_enabled"] = True
         state["skybox_enabled"] = True
         state["ibl_bind_to_camera"] = True
+        state["reflection_enabled"] = not state["reflection_enabled"]
+        state["reflection_padding_m"] = float(state["reflection_padding_m"]) + 0.05
+        state["reflection_quality"] = "low"
+        state["reflection_refresh_mode"] = "firstframe"
+        state["reflection_time_slicing"] = "allfacesatonce"
 
         ok = QMetaObject.invokeMethod(
             root, "applyEnvironmentUpdates", Q_ARG("QVariant", state)
@@ -98,6 +103,47 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
         )
         assert environment_state.get("ibl_enabled") == state["ibl_enabled"]
         assert environment_state.get("skybox_enabled") == state["skybox_enabled"]
+
+        reflection_payload = {
+            "reflectionProbe": {
+                "enabled": state["reflection_enabled"],
+                "padding": state["reflection_padding_m"],
+                "quality": state["reflection_quality"],
+                "refreshMode": state["reflection_refresh_mode"],
+                "timeSlicing": state["reflection_time_slicing"],
+            }
+        }
+
+        ok = QMetaObject.invokeMethod(
+            root, "apply3DUpdates", Q_ARG("QVariant", reflection_payload)
+        )
+        assert ok, "apply3DUpdates invocation failed"
+        qapp.processEvents()
+
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert (
+            bool(assembly.property("reflectionProbeEnabled"))
+            == state["reflection_enabled"]
+        )
+        assert math.isclose(
+            float(assembly.property("reflectionProbePaddingM")),
+            float(state["reflection_padding_m"]),
+            rel_tol=1e-6,
+            abs_tol=1e-6,
+        )
+
+        probe = assembly.property("reflectionProbe")
+        assert isinstance(probe, QObject), "ReflectionProbe object unavailable"
+        assert int(assembly.property("reflectionProbeQualityValue")) == int(
+            probe.property("quality")
+        )
+        assert int(assembly.property("reflectionProbeRefreshModeValue")) == int(
+            probe.property("refreshMode")
+        )
+        assert int(assembly.property("reflectionProbeTimeSlicingValue")) == int(
+            probe.property("timeSlicing")
+        )
     finally:
         tab.deleteLater()
         root.deleteLater()
