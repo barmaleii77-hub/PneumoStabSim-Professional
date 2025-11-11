@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQml 6.10
 import QtQuick 6.10
 import QtQuick.Controls 6.10
