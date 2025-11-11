@@ -149,14 +149,15 @@ def _build_lever_geom() -> LeverGeom:
 
 @pytest.fixture()
 def step_state() -> PhysicsStepState:
+    lever_geoms = {wheel: _build_lever_geom() for wheel in Wheel}
     cylinder_specs = {
-        Wheel.LP: CylinderSpec(_build_cylinder_geom(), True, _build_lever_geom()),
-        Wheel.PP: CylinderSpec(_build_cylinder_geom(), True, _build_lever_geom()),
-        Wheel.LZ: CylinderSpec(_build_cylinder_geom(), False, _build_lever_geom()),
-        Wheel.PZ: CylinderSpec(_build_cylinder_geom(), False, _build_lever_geom()),
+        Wheel.LP: CylinderSpec(_build_cylinder_geom(), True, lever_geoms[Wheel.LP]),
+        Wheel.PP: CylinderSpec(_build_cylinder_geom(), True, lever_geoms[Wheel.PP]),
+        Wheel.LZ: CylinderSpec(_build_cylinder_geom(), False, lever_geoms[Wheel.LZ]),
+        Wheel.PZ: CylinderSpec(_build_cylinder_geom(), False, lever_geoms[Wheel.PZ]),
     }
 
-    lever_sample = cylinder_specs[Wheel.LP].lever_geom
+    lever_sample = lever_geoms[Wheel.LP]
 
     system = create_standard_diagonal_system(
         cylinder_specs=cylinder_specs,

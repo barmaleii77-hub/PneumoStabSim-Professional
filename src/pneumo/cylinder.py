@@ -25,6 +25,13 @@ class CylinderSpec:
                 "Lever geometry must provide attach_cylinder_geometry; "
                 "ensure each cylinder uses a real LeverGeom instance"
             )
+        for attr_name in ("_cylinder_geom", "_attached_geom"):
+            attached = getattr(self.lever_geom, attr_name, None)
+            if attached is not None and attached is not self.geometry:
+                raise GeometryError(
+                    "Lever geometry instance already attached to another cylinder; "
+                    "create dedicated LeverGeom per CylinderSpec"
+                )
         attach(self.geometry)
 
     def validate_invariants(self) -> ValidationResult:
