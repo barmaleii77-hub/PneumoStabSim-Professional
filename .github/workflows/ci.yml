@@ -27,42 +27,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
-      - name: Install headless Qt Quick dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-
-          packages=(
-            xvfb xauth dbus-x11
-            mesa-utils mesa-utils-extra
-            libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev
-            libegl1 libegl1-mesa-dev libgles2-mesa-dev
-            libosmesa6 libosmesa6-dev libgbm1 libdrm2
-            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0
-            libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0
-            libvulkan1 mesa-vulkan-drivers vulkan-tools
-            qt6-shader-baker
-          )
-
-          to_install=()
-          for pkg in "${packages[@]}"; do
-            if dpkg -s "$pkg" >/dev/null 2>&1; then
-              echo "Package $pkg already installed"
-              continue
-            fi
-            if apt-cache show "$pkg" >/dev/null 2>&1; then
-              to_install+=("$pkg")
-            else
-              echo "Skipping unavailable package: $pkg"
-            fi
-          done
-
-          if [ "${#to_install[@]}" -gt 0 ]; then
-            sudo apt-get install -y --no-install-recommends "${to_install[@]}"
-          else
-            echo "No additional apt packages required"
-          fi
-
       - name: Install GNU Make (Windows)
         if: runner.os == 'Windows'
         run: choco install make --no-progress -y
@@ -81,23 +45,21 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install uv aqtinstall
 
+      - name: Bootstrap Linux environment
+        if: runner.os == 'Linux'
+        run: bash ./scripts/setup_linux.sh
+
+      - name: Bootstrap Windows environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+          ./scripts/setup_windows.ps1
+
       - name: Discover available Qt versions
         run: |
           python -m aqt list-qt linux desktop
           python -m aqt list-qt windows desktop
-
-      - name: Install project dependencies
-        run: python -m pip install -r requirements-dev.txt
-
-      - name: Ensure PySide6 wheels are present
-        run: |
-          python -m pip install --upgrade --no-cache-dir \
-            "PySide6>=6.10,<7" \
-            "PySide6-Addons>=6.10,<7" \
-            "PySide6-Essentials>=6.10,<7" \
-            "shiboken6>=6.10,<7" \
-            "PyOpenGL==3.1.10" \
-            "PyOpenGL-accelerate==3.1.10"
 
       - name: Check dependency graph with uv
         shell: bash
@@ -159,13 +121,6 @@ jobs:
           MESA_GL_VERSION_OVERRIDE: "4.1"
           MESA_GLSL_VERSION_OVERRIDE: "410"
         run: bash scripts/xvfb_wrapper.sh make full_verify
-
-      - name: Run Windows dependency bootstrap
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-          ./scripts/setup_windows.ps1 -SkipUvSync
 
       - name: Run make full_verify (Windows)
         if: runner.os == 'Windows'

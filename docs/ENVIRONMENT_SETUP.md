@@ -5,6 +5,77 @@
 окружении. Используйте его как единую точку правды при настройке рабочих и
 headless-профилей.
 
+## 0. Пошаговая установка окружения
+
+### Linux (Ubuntu 22.04+/headless контейнеры)
+
+1. Обновите индекс пакетов и установите системные библиотеки Qt/X11/Xvfb. Скрипт
+   выполняет это автоматически, но команды перечислены для прозрачности:
+
+   ```sh
+   sudo apt-get update
+   sudo apt-get install -y --no-install-recommends \
+     build-essential git curl pkg-config \
+     xvfb xauth dbus-x11 \
+     mesa-utils mesa-utils-extra libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev \
+     libegl1 libegl1-mesa-dev libgles2-mesa-dev libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
+     libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 \
+     libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0 \
+     libvulkan1 mesa-vulkan-drivers vulkan-tools qt6-shader-baker
+   ```
+
+2. Запустите автоматическую настройку (устанавливает Python-зависимости через
+   `uv`/`pip`, гарантирует наличие колёс PySide6/QtQuick3D и экспортирует
+   headless-переменные):
+
+   ```sh
+   ./scripts/setup_linux.sh
+   ```
+
+   Параметры `--skip-system` и `--skip-python` позволяют пропустить системные
+   пакеты или Python-зависимости, если они уже установлены.
+
+3. Для Xvfb-сессии запустите виртуальный дисплей и экспортируйте переменную
+   `DISPLAY` (по умолчанию скрипт оставляет её пустой, чтобы Qt перешёл в
+   offscreen-режим):
+
+   ```sh
+   Xvfb :99 -screen 0 1920x1080x24 &
+   export DISPLAY=:99
+   ```
+
+4. Выполните тесты. В контейнере достаточно `pytest`, в локальном окружении
+   предпочтительно `make full_verify`.
+
+### Windows 10+/Windows Server 2022
+
+1. Убедитесь, что PowerShell запущен от имени администратора и разрешено
+   выполнение скриптов: `Set-ExecutionPolicy RemoteSigned -Scope Process`.
+
+2. Установите системные компоненты (DirectX runtime и VC++ Redistributable)
+   через Chocolatey. Скрипт делает это автоматически, но команды приведены для
+   контроля:
+
+   ```powershell
+   choco install directx --no-progress -y
+   choco install vcredist140 --no-progress -y
+   ```
+
+3. Выполните автоматическую настройку. Она синхронизирует `uv`-окружение (или
+   использует `pip`), ставит PySide6/QtQuick3D и прописывает переменные Qt
+   для headless-тестов:
+
+   ```powershell
+   powershell -File scripts/setup_windows.ps1
+   ```
+
+   Флаги `-SkipSystem` и `-SkipUvSync` доступны для CI, где зависимости уже
+   закэшированы.
+
+4. Для DirectX/headless-тестов убедитесь, что `QT_QPA_PLATFORM=offscreen` и
+   `QSG_RHI_BACKEND=d3d11`. Запуск `pytest` или `make full_verify` после скрипта
+   не требует дополнительных шагов.
+
 ## 1. Поддерживаемые профили Python/Qt
 
 | Профиль | Назначение | Python | PySide6/QtQuick3D | NumPy | SciPy | Примечания |
@@ -24,17 +95,20 @@ headless-профилей.
 
 | Переменная | Значение | Назначение |
 | --- | --- | --- |
-| `QSG_RHI_BACKEND` | `opengl` | Единый backend для Windows, Linux и macOS по умолчанию. |
+| `QSG_RHI_BACKEND` | `opengl` (Linux/macOS), `d3d11` (Windows) | Backend рендеринга Qt RHI. Устанавливается скриптами и в CI. |
+| `QT_QUICK_BACKEND` | `software` (Linux), `rhi` (Windows) | Контролирует использование RHI/софтверного backend. |
 | `QT_QUICK_CONTROLS_STYLE` | `Fusion` | Согласованный стиль контролов везде. |
 | `QSG_OPENGL_VERSION` | `3.3` | Минимальная версия OpenGL. |
-| `QT_OPENGL` | `desktop` | Принудительное использование desktop OpenGL. |
+| `QT_OPENGL` | `desktop` (Linux), `software` (Windows headless) | Принудительное использование desktop/ANGLE OpenGL. |
 | `QSG_INFO` | `0` | Отсечка шумных логов сцены. |
-| `QT_LOGGING_RULES` | `*.debug=false;*.info=false` | Глобальное снижение уровня логирования Qt. |
+| `QT_LOGGING_RULES` | `*.debug=false;qt.scenegraph.general=false` | Глобальное снижение уровня логирования Qt/SceneGraph. |
 | `QT_AUTO_SCREEN_SCALE_FACTOR` | `1` | Корректное масштабирование HiDPI. |
 | `QT_SCALE_FACTOR_ROUNDING_POLICY` | `PassThrough` | Стабильное масштабирование UI. |
 | `QT_ENABLE_HIGHDPI_SCALING` | `1` | Включение HiDPI. |
 | `QT_ASSUME_STDERR_HAS_CONSOLE` | `1` | Корректная маршрутизация stderr. |
+| `PSS_HEADLESS` | `1` (Windows) | Упрощает выбор headless-настроек в тестах. |
 | `PSS_DIAG` | `1` | Включение диагностического канала симулятора. |
+| `DISPLAY` | пусто (offscreen) или `:99` при Xvfb | Используется только на Linux. Экспортируется вручную после запуска Xvfb. |
 
 ## 3. Headless и Vulkan сценарии
 
@@ -114,14 +188,20 @@ Baker.
 
 ## 6. Скрипты подготовки окружения
 
-- `./setup_linux.sh` — настраивает headless Linux-среду: устанавливает системные
-  пакеты (`libGL`, `libxkbcommon`, Xvfb, Mesa, Shader Baker), синхронизирует
-  Python-зависимости через `uv` (либо `pip`) и экспортирует headless-переменные
-  `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `QSG_RHI_BACKEND=opengl`.
-- `powershell -File scripts/setup_windows.ps1` — выполняет `uv sync` (с
-  возможностью пропустить через `-SkipUvSync`), гарантирует наличие колёс PySide6,
-  `PyOpenGL`, экспортирует headless-настройки (`QT_QPA_PLATFORM=offscreen`,
-  `QT_OPENGL=software`, `QSG_RHI_BACKEND=d3d11`).
+- `./scripts/setup_linux.sh` — настраивает headless Linux-среду: устанавливает
+  системные пакеты (`libGL`, `libxkbcommon`, Xvfb, Mesa, Shader Baker),
+  синхронизирует Python-зависимости через `uv` (либо `pip`) и экспортирует
+  headless-переменные `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`,
+  `QSG_RHI_BACKEND=opengl`. Флаги `--skip-system`/`--skip-python` ускоряют
+  повторные прогонки.
+- `powershell -File scripts/setup_windows.ps1` — выполняет `uv sync`
+  (опционально пропускается `-SkipUvSync`), устанавливает DirectX runtime и VC++
+  зависимости через Chocolatey (отключается `-SkipSystem`), гарантирует наличие
+  колёс PySide6/`PyOpenGL` и экспортирует headless-настройки (`QT_QPA_PLATFORM=offscreen`,
+  `QT_QUICK_BACKEND=rhi`, `QT_OPENGL=software`, `QSG_RHI_BACKEND=d3d11`).
+
+Оба скрипта записывают переменные в `GITHUB_ENV`, если он определён (GitHub
+Actions), или применяют их к текущей сессии.
 
 Оба скрипта могут использоваться как локально, так и в CI. Они предназначены
 для устранения пропусков тестов, связанных с отсутствием библиотек Qt/OpenGL.
