@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
   pull_request:
-    branches: [main, develop, 'feature/*']
+    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
   workflow_dispatch:
 
 env:
