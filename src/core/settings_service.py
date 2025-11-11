@@ -127,7 +127,7 @@ class SettingsService:
         try:
             with path.open("r", encoding="utf-8") as stream:
                 payload: dict[str, Any] = json.load(stream)
-        except FileNotFoundError as exc:
+        except FileNotFoundError:
             logger.warning(
                 "Settings file not found at '%s'; loading default payload.", path
             )
