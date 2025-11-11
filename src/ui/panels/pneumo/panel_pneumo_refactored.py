@@ -249,6 +249,11 @@ class PneumoPanel(QWidget):
 
         return self.state_manager.export_storage_payload()
 
+    def get_parameters(self) -> dict[str, Any]:
+        """Return the current pneumatic state in UI units."""
+
+        return self.state_manager.get_state()
+
     def get_state(self) -> dict[str, Any]:
         return self._sync_controller.snapshot()
 
