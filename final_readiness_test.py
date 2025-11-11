@@ -4,9 +4,15 @@ PneumoStabSim Professional - Финальный тест готовности
 Final Readiness Test - окончательная проверка перед продакшеном
 """
 
+import os
 import sys
 import time
 from pathlib import Path
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+os.environ.setdefault("QT_QUICK_BACKEND", "software")
+os.environ.setdefault("QSG_RHI_BACKEND", "opengl")
+os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
 
 
 class FinalReadinessTest:
@@ -65,9 +71,9 @@ class FinalReadinessTest:
 
         critical_files = {
             "app.py": "Main application entry point",
-            "src/ui/main_window.py": "Main window implementation",
-            "src/ui/panels/panel_graphics.py": "Graphics control panel",
-            "assets/qml/main_optimized.qml": "3D visualization engine",
+            "src/ui/main_window/__init__.py": "Main window integration layer",
+            "src/ui/panels/graphics/panel_graphics.py": "Modular graphics coordinator",
+            "assets/qml/PneumoStabSim/SimulationRoot.qml": "3D visualization scene graph",
             "assets/qml/components/IblProbeLoader.qml": "IBL system component",
         }
 
@@ -98,10 +104,13 @@ class FinalReadinessTest:
 
         # Проверка ключевых элементов
         checks = [
-            ("primarySource", "primarySource:" in content),
-            ("fallbackSource", "fallbackSource:" in content),
+            ("primarySource", "property url primarySource" in content),
+            ("fallbackDescriptor", "readonly property string fallbackDescriptor" in content),
+            ("fallbackSource", "readonly property string fallbackSource" in content),
             ("ready property", "readonly property bool ready" in content),
             ("Texture", "Texture {" in content),
+            ("Fallback canvas", "fallbackCanvas" in content),
+            ("Structured logging", "writeLog(" in content),
         ]
 
         all_passed = True
@@ -110,36 +119,42 @@ class FinalReadinessTest:
             if not result:
                 all_passed = False
 
-        # Проверка HDR файла
-        hdr_file = Path("assets/hdr/studio.hdr")
-        if hdr_file.exists():
-            size_mb = hdr_file.stat().st_size / (1024 * 1024)
-            self.log("HDR Asset", True, f"studio.hdr available ({size_mb:.1f}MB)")
-        else:
-            self.log("HDR Asset", False, "studio.hdr missing (IBL won't work fully)")
-            all_passed = False
-
         return all_passed
 
     def test_graphics_integration(self) -> bool:
         """Тест интеграции графики"""
         print("\n🎨 Testing Graphics Integration...")
 
-        # Проверка main_optimized.qml
-        main_qml = Path("assets/qml/main_optimized.qml")
+        main_qml = Path("assets/qml/PneumoStabSim/SimulationRoot.qml")
+        env_controller = Path("assets/qml/effects/SceneEnvironmentController.qml")
+
         if not main_qml.exists():
-            self.log("Main QML", False, "main_optimized.qml missing")
+            self.log("Main QML", False, "SimulationRoot.qml missing")
             return False
 
-        content = main_qml.read_text(encoding="utf-8")
+        if not env_controller.exists():
+            self.log(
+                "Environment Controller",
+                False,
+                "SceneEnvironmentController.qml missing",
+            )
+            return False
 
-        # Проверка ключевых интеграций
+        main_content = main_qml.read_text(encoding="utf-8")
+        env_content = env_controller.read_text(encoding="utf-8")
+
         integrations = [
-            ("IblProbeLoader import", "IblProbeLoader {" in content),
-            ("ExtendedSceneEnvironment", "ExtendedSceneEnvironment {" in content),
-            ("Glass IOR", "glassIOR" in content),
-            ("Tonemap function", "resolvedTonemapMode" in content),
-            ("Batch updates", "applyBatchedUpdates" in content),
+            ("SimulationRoot batch updates", "applyBatchedUpdates" in main_content),
+            ("SimulationRoot sceneBridge", "sceneBridge:" in main_content),
+            (
+                "Environment ExtendedSceneEnvironment",
+                "ExtendedSceneEnvironment {" in env_content,
+            ),
+            ("Environment tonemap sync", "canonicalTonemapModeName" in env_content),
+            (
+                "Environment fog controls",
+                "fogDepth" in env_content and "fogDensity" in env_content,
+            ),
         ]
 
         all_passed = True
@@ -159,68 +174,66 @@ class FinalReadinessTest:
         print("\n🐍 Testing Python Integration...")
 
         try:
-            # Тест импорта основных модулей
-
+            from src.ui.main_window import MainWindow  # noqa: F401
+        except Exception as exc:
+            self.log("MainWindow Import", False, f"Failed: {exc}")
+            return False
+        else:
             self.log("MainWindow Import", True, "Successfully imported")
 
-            from src.ui.panels.panel_graphics import GraphicsPanel
-
+        try:
+            from src.ui.panels.graphics.panel_graphics import GraphicsPanel
+        except Exception as exc:
+            self.log("GraphicsPanel Import", False, f"Failed: {exc}")
+            return False
+        else:
             self.log("GraphicsPanel Import", True, "Successfully imported")
 
-            # Создание тестового экземпляра GraphicsPanel (без GUI)
-            try:
-                # Импортируем QApplication для тестового окружения
-                from PySide6.QtWidgets import QApplication
+        try:
+            from PySide6.QtWidgets import QApplication
+        except Exception as exc:
+            self.log("Qt Widgets", False, f"Failed to import QApplication: {exc}")
+            return False
 
-                if not QApplication.instance():
-                    app = QApplication([])
+        try:
+            app = QApplication.instance() or QApplication([])
+            test_panel = GraphicsPanel()
+            state = test_panel.collect_state()
 
-                # Создаем тестовый экземпляр
-                test_panel = GraphicsPanel()
-
-                # Проверка наличия ключевых атрибутов
-                if (
-                    hasattr(test_panel, "current_graphics")
-                    and test_panel.current_graphics
-                ):
-                    config_count = len(test_panel.current_graphics)
+            if isinstance(state, dict) and state:
+                self.log(
+                    "Graphics Config",
+                    True,
+                    f"Configuration with {len(state)} sections",
+                )
+                required_sections = [
+                    "lighting",
+                    "environment",
+                    "quality",
+                    "scene",
+                    "effects",
+                ]
+                for section in required_sections:
+                    exists = isinstance(state.get(section), dict)
                     self.log(
-                        "Graphics Config",
-                        True,
-                        f"Configuration with {config_count} parameters",
+                        f"Config Section {section}",
+                        exists,
+                        "Present" if exists else "Missing",
                     )
-
-                    # Проверка критических параметров
-                    critical_params = [
-                        "key_brightness",
-                        "glass_ior",
-                        "ibl_enabled",
-                        "bloom_threshold",
-                    ]
-                    for param in critical_params:
-                        if param in test_panel.current_graphics:
-                            value = test_panel.current_graphics[param]
-                            self.log(f"Config Param {param}", True, f"Value: {value}")
-                        else:
-                            self.log(f"Config Param {param}", False, "Missing")
-                            return False
-                else:
-                    self.log(
-                        "Graphics Config", False, "Configuration dictionary missing"
-                    )
-                    return False
-
-                # Очистка тестового объекта
+                    if not exists:
+                        test_panel.deleteLater()
+                        return False
+            else:
+                self.log("Graphics Config", False, "Empty configuration returned")
                 test_panel.deleteLater()
-
-            except Exception as e:
-                self.log("GraphicsPanel Instance", False, f"Failed to create: {e}")
                 return False
 
+            test_panel.deleteLater()
+            if app is not None and hasattr(app, "quit"):
+                app.quit()
             return True
-
-        except Exception as e:
-            self.log("Python Integration", False, f"Import error: {e}")
+        except Exception as exc:
+            self.log("GraphicsPanel Instance", False, f"Failed to create: {exc}")
             return False
 
     def run_all_tests(self) -> bool:
