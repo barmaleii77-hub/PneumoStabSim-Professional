@@ -949,15 +949,16 @@ class PhysicsWorker(QObject):
         if supports_structured:
             try:
                 self.logger.bind(**log_payload).info("Receiver volume updated")
+                return
             except Exception:  # pragma: no cover - structured logging guard
-                details = ", ".join(
-                    f"{key}={log_payload[key]!r}" for key in sorted(log_payload)
-                )
-                message = "Receiver volume updated"
-                if details:
-                    message = f"{message} | {details}"
-                self.logger.info(message)
-        else:
+                pass
+
+        try:
+            self.logger.info(
+                "Receiver volume updated",
+                extra={key: log_payload[key] for key in log_payload},
+            )
+        except Exception:  # pragma: no cover - logging compatibility guard
             details = ", ".join(
                 f"{key}={log_payload[key]!r}" for key in sorted(log_payload)
             )
