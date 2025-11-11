@@ -333,7 +333,11 @@ def test_environment_slider_range_validation_reports_missing_keys():
     fog_density = defaults["fog_density"]
 
     ranges = {
-        "fog_density": {"min": fog_density.minimum, "max": fog_density.maximum, "step": fog_density.step}
+        "fog_density": {
+            "min": fog_density.minimum,
+            "max": fog_density.maximum,
+            "step": fog_density.step,
+        }
     }
 
     validated, missing = validate_environment_slider_ranges(

@@ -30,6 +30,4 @@ def test_stabilizer_panel_get_parameters_reflects_spinbox(
 
     snapshot["diagonal_coupling_dia"] = 0.0
     refreshed = panel.get_parameters()
-    assert refreshed["diagonal_coupling_dia"] == pytest.approx(
-        panel._spinbox.value()
-    )
+    assert refreshed["diagonal_coupling_dia"] == pytest.approx(panel._spinbox.value())
