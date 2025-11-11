@@ -203,5 +203,5 @@ ShaderEffect {
         }
     }
 
-    onStatusChanged: handleStatus(status)
+    onStatusChanged: handleStatus(root.status)
 }
