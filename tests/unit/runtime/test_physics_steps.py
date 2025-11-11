@@ -134,13 +134,24 @@ def _make_line_pressure_getter(system, gas_network):
 @pytest.fixture()
 def step_state() -> PhysicsStepState:
     cylinder_geom = _build_cylinder_geom()
-    lever = LeverGeom(L_lever=0.75, rod_joint_frac=0.45, d_frame_to_lever_hinge=0.42)
+    lever_kwargs = dict(
+        L_lever=0.75,
+        rod_joint_frac=0.45,
+        d_frame_to_lever_hinge=0.42,
+    )
+
+    lever_geometries = {
+        wheel: LeverGeom(**lever_kwargs)
+        for wheel in (Wheel.LP, Wheel.PP, Wheel.LZ, Wheel.PZ)
+    }
+
+    lever_sample = next(iter(lever_geometries.values()))
 
     cylinder_specs = {
-        Wheel.LP: CylinderSpec(cylinder_geom, True, lever),
-        Wheel.PP: CylinderSpec(cylinder_geom, True, lever),
-        Wheel.LZ: CylinderSpec(cylinder_geom, False, lever),
-        Wheel.PZ: CylinderSpec(cylinder_geom, False, lever),
+        Wheel.LP: CylinderSpec(cylinder_geom, True, lever_geometries[Wheel.LP]),
+        Wheel.PP: CylinderSpec(cylinder_geom, True, lever_geometries[Wheel.PP]),
+        Wheel.LZ: CylinderSpec(cylinder_geom, False, lever_geometries[Wheel.LZ]),
+        Wheel.PZ: CylinderSpec(cylinder_geom, False, lever_geometries[Wheel.PZ]),
     }
 
     system = create_standard_diagonal_system(
@@ -199,7 +210,9 @@ def step_state() -> PhysicsStepState:
             damper_coefficient=2_000.0,
             damper_threshold=50.0,
             spring_rest_position=0.0,
-            lever_inertia=50.0 * lever.L_lever * lever.L_lever,
+            lever_inertia=50.0
+            * lever_sample.L_lever
+            * lever_sample.L_lever,
             integrator_method="rk4",
         ),
     )

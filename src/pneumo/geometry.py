@@ -106,6 +106,15 @@ class LeverGeom:
     def attach_cylinder_geometry(self, geometry: "CylinderGeom") -> None:
         """Привязать геометрию цилиндра и подготовить вспомогательные величины."""
 
+        if self._cylinder_geom is geometry:
+            return
+
+        if self._cylinder_geom is not None and self._cylinder_geom is not geometry:
+            raise GeometryError(
+                "Геометрия рычага уже привязана к другому цилиндру; "
+                "создайте отдельный экземпляр LeverGeom"
+            )
+
         self._cylinder_geom = geometry
 
         lever_arm = self.rod_joint_frac * self.L_lever
