@@ -1645,6 +1645,9 @@
         "environment_slider_ranges": {
           "$ref": "#/$defs/EnvironmentSliderRanges"
         },
+        "scene_defaults": {
+          "$ref": "#/$defs/SceneDefaultsMetadata"
+        },
         "legacy": {
           "additionalProperties": {
             "additionalProperties": true,
@@ -2598,6 +2601,9 @@
         "model_metalness": {
           "title": "Model Metalness",
           "type": "number"
+        },
+        "suspension": {
+          "$ref": "#/$defs/SceneSuspensionSettings"
         }
       },
       "required": [
@@ -2606,9 +2612,38 @@
         "default_clear_color",
         "model_base_color",
         "model_roughness",
-        "model_metalness"
+        "model_metalness",
+        "suspension"
       ],
       "title": "SceneSettings",
+      "type": "object"
+    },
+    "SceneSuspensionSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "rod_warning_threshold_m": {
+          "default": 0.001,
+          "title": "Rod Warning Threshold M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rod_warning_threshold_m"
+      ],
+      "title": "SceneSuspensionSettings",
+      "type": "object"
+    },
+    "SceneDefaultsMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "suspension": {
+          "$ref": "#/$defs/SceneSuspensionSettings"
+        }
+      },
+      "required": [
+        "suspension"
+      ],
+      "title": "SceneDefaultsMetadata",
       "type": "object"
     },
     "ShadowsSettings": {

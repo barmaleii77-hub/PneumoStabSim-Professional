@@ -147,6 +147,11 @@
         "step": 1.0
       }
     },
+    "scene_defaults": {
+      "suspension": {
+        "rod_warning_threshold_m": 0.001
+      }
+    },
     "legacy": {},
     "defaults_seed": "config/baseline/app_settings.json"
   },
@@ -683,7 +688,10 @@
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
-        "model_metalness": 0.82
+        "model_metalness": 0.82,
+        "suspension": {
+          "rod_warning_threshold_m": 0.001
+        }
       },
       "environment_ranges": {
         "ibl_intensity": {
@@ -1928,7 +1936,10 @@
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
-        "model_metalness": 0.82
+        "model_metalness": 0.82,
+        "suspension": {
+          "rod_warning_threshold_m": 0.001
+        }
       },
       "environment_ranges": {
         "ibl_intensity": {
