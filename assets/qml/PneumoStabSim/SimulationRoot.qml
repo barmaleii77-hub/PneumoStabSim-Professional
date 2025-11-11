@@ -199,6 +199,45 @@ signal animationToggled(bool running)
         return _valueFromSubsection(sources, [], keyNames)
     }
 
+    function _valueFromGroupOrPrefixes(sources, groupName, keyNames) {
+        var groupedValue = _valueFromSubsection(sources, groupName, keyNames)
+        if (groupedValue !== undefined)
+            return groupedValue
+
+        var groupVariants = _normaliseKeyList(groupName)
+        var keyVariants = _normaliseKeyList(keyNames)
+        var combinedKeys = []
+
+        function appendKey(candidate) {
+            if (!candidate || !candidate.length)
+                return
+            if (combinedKeys.indexOf(candidate) === -1)
+                combinedKeys.push(candidate)
+        }
+
+        for (var gi = 0; gi < groupVariants.length; ++gi) {
+            var groupVariant = groupVariants[gi]
+            if (!groupVariant || !groupVariant.length)
+                continue
+            for (var ki = 0; ki < keyVariants.length; ++ki) {
+                var keyVariant = keyVariants[ki]
+                if (!keyVariant || !keyVariant.length)
+                    continue
+                appendKey(groupVariant + "_" + keyVariant)
+                appendKey(
+                    groupVariant +
+                        keyVariant.charAt(0).toUpperCase() +
+                        keyVariant.slice(1)
+                )
+            }
+        }
+
+        if (!combinedKeys.length)
+            return undefined
+
+        return _valueFromSources(sources, combinedKeys)
+    }
+
     function _coerceNumber(value, fallback) {
         var numeric = Number(value)
         return isFinite(numeric) ? numeric : fallback
@@ -1386,16 +1425,18 @@ signal animationToggled(bool running)
     }
 
     function lightingNumber(group, keys, fallback) {
-        return _coerceNumber(_valueFromSubsection(lightingSources(), group, keys), fallback)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
+        return _coerceNumber(value, fallback)
     }
 
     function lightingBool(group, keys, fallback) {
-        var value = _valueFromSubsection(lightingSources(), group, keys)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
         return value === undefined ? fallback : _coerceBool(value, fallback)
     }
 
     function lightingColor(group, keys, fallback) {
-        return _coerceColor(_valueFromSubsection(lightingSources(), group, keys), fallback)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
+        return _coerceColor(value, fallback)
     }
 
     function qualityShadowBool(keys, fallback) {
