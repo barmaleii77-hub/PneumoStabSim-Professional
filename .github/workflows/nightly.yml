@@ -3,6 +3,11 @@ name: Nightly Regression
 on:
   schedule:
     - cron: '0 3 * * *'
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
   workflow_dispatch:
 
 env:
