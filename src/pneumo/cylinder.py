@@ -19,7 +19,13 @@ class CylinderSpec:
 
     def __post_init__(self) -> None:
         # Synchronise lever geometry with cylinder layout for kinematic helpers.
-        self.lever_geom.attach_cylinder_geometry(self.geometry)
+        attach = getattr(self.lever_geom, "attach_cylinder_geometry", None)
+        if attach is None:
+            raise GeometryError(
+                "Lever geometry must provide attach_cylinder_geometry; "
+                "ensure each cylinder uses a real LeverGeom instance"
+            )
+        attach(self.geometry)
 
     def validate_invariants(self) -> ValidationResult:
         """Validate cylinder specification"""
