@@ -468,21 +468,6 @@ class PneumoStateManager:
     def get_option(self, name: str) -> bool:
         return bool(self._state.get(name, DEFAULT_PNEUMATIC.get(name, False)))
 
-    def set_option(self, name: str, value: bool) -> None:
-        """Установить булеву опцию пневмосистемы.
-
-        Некритичный метод-хелпер: приводит значение к bool и записывает в state.
-        Используется панелью при обработке чекбоксов/переключателей.
-        """
-        try:
-            self._state[name] = bool(value)
-        except Exception:  # pragma: no cover - защитный путь
-            self._state[name] = (
-                True
-                if str(value).strip().lower() in {"1", "true", "yes", "on"}
-                else False
-            )
-
     def get_pressure_units(self) -> str:
         return str(
             self._state.get("pressure_units", DEFAULT_PNEUMATIC["pressure_units"])
