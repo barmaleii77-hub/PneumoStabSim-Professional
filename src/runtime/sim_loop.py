@@ -44,7 +44,11 @@ from src.pneumo.enums import (
     Port,
     ReceiverVolumeMode,
 )
-from src.pneumo.receiver import ReceiverState, ReceiverSpec
+from src.pneumo.receiver import (
+    ReceiverState,
+    ReceiverSpec,
+    ReceiverVolumeUpdate,
+)
 from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.gas_state import apply_instant_volume_change
 from src.pneumo.thermo import PolytropicParameters
@@ -895,6 +899,8 @@ class PhysicsWorker(QObject):
 
         mode_enum = self._resolve_receiver_mode(mode_token)
 
+        receiver_update: ReceiverVolumeUpdate | None = None
+
         receiver_pressure: float | None = None
         receiver_temperature: float | None = None
         pneumatic_tank_volume: float | None = None
@@ -903,10 +909,10 @@ class PhysicsWorker(QObject):
                 receiver_state = getattr(self.pneumatic_system, "receiver", None)
                 if receiver_state is None:
                     raise AttributeError("Pneumatic system missing receiver state")
-                receiver_state.mode = mode_enum
-                receiver_state.apply_instant_volume_change(volume)
-                receiver_pressure = getattr(receiver_state, "p", None)
-                receiver_temperature = getattr(receiver_state, "T", None)
+                receiver_update = receiver_state.set_volume(volume, mode_enum)
+                mode_enum = receiver_update.mode
+                receiver_pressure = receiver_update.pressure
+                receiver_temperature = receiver_update.temperature
 
                 pneumo_tank = getattr(self.pneumatic_system, "tank", None)
                 if pneumo_tank is not None:

@@ -1,12 +1,23 @@
-"""
-Receiver specification and state
-Handles volume changes with thermodynamic recalculation modes
-"""
+"""Receiver specification and state
+Handles volume changes with thermodynamic recalculation modes."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NamedTuple
+
 from .enums import ReceiverVolumeMode
 from .types import ValidationResult
 from ..common.errors import ModelConfigError, ThermoError
+
+
+class ReceiverVolumeUpdate(NamedTuple):
+    """Summary of a receiver volume update."""
+
+    volume: float
+    pressure: float
+    temperature: float
+    mode: ReceiverVolumeMode
 
 
 @dataclass
@@ -118,7 +129,7 @@ class ReceiverState:
         mode: ReceiverVolumeMode | str | None = None,
         *,
         recompute: bool = True,
-    ) -> None:
+    ) -> ReceiverVolumeUpdate:
         """Set the receiver volume with optional mode switching.
 
         Args:
@@ -127,17 +138,23 @@ class ReceiverState:
                 a case-insensitive string token.
             recompute: When ``True`` the state is recalculated using the configured
                 thermodynamic mode. When ``False`` only the volume is updated.
+        Returns:
+            ReceiverVolumeUpdate: A tuple describing the resulting receiver
+                state after the update.
         """
 
-        if mode is not None:
-            if isinstance(mode, ReceiverVolumeMode):
-                resolved_mode = mode
-            else:
-                try:
-                    resolved_mode = ReceiverVolumeMode[str(mode).upper()]
-                except KeyError as exc:  # pragma: no cover - defensive guard
-                    raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
-            self.mode = resolved_mode
+        resolved_mode: ReceiverVolumeMode
+        if mode is None:
+            resolved_mode = self.mode
+        elif isinstance(mode, ReceiverVolumeMode):
+            resolved_mode = mode
+        else:
+            try:
+                resolved_mode = ReceiverVolumeMode[str(mode).upper()]
+            except KeyError as exc:  # pragma: no cover - defensive guard
+                raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
+
+        self.mode = resolved_mode
 
         if recompute:
             self.apply_instant_volume_change(new_volume)
@@ -149,6 +166,13 @@ class ReceiverState:
                     )
                 )
             self.V = new_volume
+
+        return ReceiverVolumeUpdate(
+            volume=self.V,
+            pressure=self.p,
+            temperature=self.T,
+            mode=self.mode,
+        )
 
     def validate_invariants(self) -> ValidationResult:
         """Validate receiver state invariants"""
@@ -175,3 +199,4 @@ class ReceiverState:
         return ValidationResult(
             is_valid=len(errors) == 0, errors=errors, warnings=warnings
         )
+
