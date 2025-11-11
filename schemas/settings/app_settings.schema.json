@@ -1617,6 +1617,10 @@
           "title": "Operational Imperatives",
           "type": "array"
         },
+        "defaults_seed": {
+          "title": "Defaults Seed",
+          "type": "string"
+        },
         "environment_slider_ranges": {
           "$ref": "#/$defs/EnvironmentSliderRanges"
         },
