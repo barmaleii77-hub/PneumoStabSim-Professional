@@ -501,6 +501,12 @@ signal animationToggled(bool running)
         _logBatchEvent("function_called", "applyEnvironmentUpdates")
         var normalized = _normaliseState(params)
         environmentState = _deepMerge(environmentState, normalized)
+        var reflectionToggle = _valueFromSources(
+            [normalized],
+            ["reflection_enabled", "reflectionEnabled"],
+        )
+        if (reflectionToggle !== undefined)
+            _applyReflectionProbeEnabledOverride(reflectionToggle)
         if (sceneEnvironment && typeof sceneEnvironment.applyEnvironmentPayload === "function") {
             try {
                 sceneEnvironment.applyEnvironmentPayload(normalized)
@@ -605,6 +611,18 @@ signal animationToggled(bool running)
         _storeLastUpdate("render", payload)
     }
 
+    function _applyReflectionProbeEnabledOverride(candidate) {
+        if (candidate === undefined || candidate === null)
+            return
+        var normalized = _coerceBool(candidate, reflectionProbeEnabledState)
+        var coerced = !!normalized
+        var needsUpdate = !reflectionProbeEnabledOverrideActive || reflectionProbeEnabledOverride !== coerced
+        if (needsUpdate)
+            reflectionProbeEnabledOverride = coerced
+        if (!reflectionProbeEnabledOverrideActive || needsUpdate)
+            reflectionProbeEnabledOverrideActive = true
+    }
+
     function applyThreeDUpdates(params) {
         _logBatchEvent("function_called", "applyThreeDUpdates")
         var normalized = _normaliseState(params)
@@ -644,7 +662,7 @@ signal animationToggled(bool running)
         var reflectionNode = _resolveMapEntry(normalized, ["reflectionProbe", "reflection_probe", "reflection"])
         if (_isPlainObject(reflectionNode)) {
             if (reflectionNode.enabled !== undefined)
-                reflectionProbeEnabledState = _coerceBool(reflectionNode.enabled, reflectionProbeEnabledState)
+                _applyReflectionProbeEnabledOverride(reflectionNode.enabled)
             if (reflectionNode.padding !== undefined)
                 reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding)
             if (reflectionNode.quality !== undefined) {
@@ -1464,10 +1482,20 @@ readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focu
 property var environmentDefaultsMap: ({})
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
 readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
-property bool reflectionProbeEnabledState: reflectionProbeDefaultBool(
+property bool reflectionProbeEnabledDefault: reflectionProbeDefaultBool(
     ["enabled", "reflection_enabled", "reflectionEnabled"],
     environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
 )
+property bool reflectionProbeEnabledOverrideActive: false
+property bool reflectionProbeEnabledOverride: reflectionProbeEnabledDefault
+readonly property bool reflectionProbeEnabledState: reflectionProbeEnabledOverrideActive
+        ? reflectionProbeEnabledOverride
+        : reflectionProbeEnabledDefault
+
+onReflectionProbeEnabledDefaultChanged: {
+    if (!reflectionProbeEnabledOverrideActive)
+        reflectionProbeEnabledOverride = reflectionProbeEnabledDefault
+}
 property string reflectionProbeQualitySetting: (function() {
     var fallback = environmentDefaultString(
         environmentDefaultsMap,
