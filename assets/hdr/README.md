@@ -52,7 +52,7 @@ removed immediately._
 - Audit cache: `.cache/hdr_assets/` now contains validated copies for offline
   development; CI consumes the same cache path when available.
 
-## ✅ Path Unification (v4.9.8)
+## ✅ Path Unification (v4.9.9)
 
 **All HDR paths are now normalized to `file://` URLs through centralized processing.**
 
