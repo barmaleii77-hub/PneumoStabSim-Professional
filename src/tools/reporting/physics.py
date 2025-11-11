@@ -146,10 +146,11 @@ def summarise_assertions(
             actual_map = evaluation["vertical_forces"]
             actual = actual_map
             expected_map = {k: float(v) for k, v in expected.items()}
-            passed = all(
-                abs(actual_map[k] - expected_map[k]) <= tolerance
-                for k in expected_map
+            differences = (
+                abs(actual_map[key] - expected_map[key]) <= tolerance
+                for key in expected_map
             )
+            passed = all(differences)
         elif assertion.kind == "moment":
             actual_map = {"tau_x": tau_x, "tau_z": tau_z}
             actual = actual_map
