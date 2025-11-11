@@ -15,10 +15,47 @@ from .frame_tab import FrameTab
 from .suspension_tab import SuspensionTab
 from .cylinder_tab import CylinderTab
 from .options_tab import OptionsTab
+from .defaults import DEFAULT_GEOMETRY
 from src.common.settings_manager import get_settings_manager
 from src.core.history import HistoryStack
 from src.core.settings_sync_controller import SettingsSyncController
 from src.ui.panels.preset_manager import PanelPresetManager
+from src.ui.geometry_schema import (
+    GeometrySettings,
+    GeometryValidationError,
+    validate_geometry_settings,
+)
+
+
+try:
+    _VALIDATED_FIELD_NAMES = frozenset(
+        validate_geometry_settings(DEFAULT_GEOMETRY).to_config_dict().keys()
+    )
+except GeometryValidationError:  # pragma: no cover - defensive guardrail
+    _VALIDATED_FIELD_NAMES = frozenset(DEFAULT_GEOMETRY.keys())
+
+
+def _build_geometry_settings(
+    snapshot: Mapping[str, Any], logger: logging.Logger
+) -> GeometrySettings:
+    """Validate *snapshot* and convert it into :class:`GeometrySettings`.
+
+    The geometry panel historically allowed callers to request the current
+    parameters as a plain dictionary.  Modern unit tests expect that the
+    snapshot is validated against :mod:`src.ui.geometry_schema` before being
+    exposed to external consumers.  This helper keeps the coordinator lean
+    while providing a single location for validation and fallbacks.
+    """
+
+    try:
+        return validate_geometry_settings(snapshot)
+    except GeometryValidationError as exc:
+        logger.warning("Geometry settings validation failed, using fallback: %s", exc)
+        fallback_payload = {
+            key: snapshot.get(key, DEFAULT_GEOMETRY.get(key))
+            for key in _VALIDATED_FIELD_NAMES
+        }
+        return GeometrySettings(fallback_payload)
 
 
 class GeometryPanel(QWidget):
@@ -447,14 +484,24 @@ class GeometryPanel(QWidget):
     # PUBLIC API (backward compatibility)
     # =========================================================================
 
-    def get_parameters(self) -> dict[str, Any]:
-        """Return a snapshot of the current geometry parameters.
-
-        The returned dictionary is a shallow copy to ensure callers cannot
-        mutate the internal :class:`GeometryStateManager` state inadvertently.
-        """
+    def _collect_state_snapshot(self) -> dict[str, Any]:
+        """Return a shallow copy of the current panel state."""
 
         return dict(self.state_manager.get_all_parameters())
+
+    def get_geometry_settings(self) -> GeometrySettings:
+        """Return the validated geometry configuration for the current state."""
+
+        snapshot = self._collect_state_snapshot()
+        return _build_geometry_settings(snapshot, self.logger)
+
+    def get_parameters(self) -> dict[str, Any]:
+        """Return a snapshot of the current geometry parameters as a mapping."""
+
+        snapshot = self._collect_state_snapshot()
+        settings = self.get_geometry_settings()
+        snapshot.update(settings.to_config_dict())
+        return snapshot
 
     def set_parameters(self, params: dict):
         """Set geometry parameters
