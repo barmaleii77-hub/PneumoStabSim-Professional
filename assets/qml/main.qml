@@ -452,6 +452,14 @@ Item {
         return _invokeSimulationPanel("applyCylinderSettings", payload)
     }
 
+    function applyGeometryUpdates(payload) {
+        return _invokeSimulationPanel("applyGeometryUpdates", payload)
+    }
+
+    function updateGeometry(payload) {
+        return _invokeSimulationPanel("updateGeometry", payload)
+    }
+
     Component.onCompleted: {
         for (var i = 0; i < _proxyMethodNames.length; ++i) {
             var methodName = _proxyMethodNames[i]
