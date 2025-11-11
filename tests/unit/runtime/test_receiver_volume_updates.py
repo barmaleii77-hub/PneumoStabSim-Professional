@@ -9,7 +9,7 @@ from src.runtime.sim_loop import PhysicsWorker
 from src.runtime.state import TankState
 from src.pneumo.enums import ReceiverVolumeMode
 from src.pneumo.gas_state import R_AIR, TankGasState
-from src.pneumo.receiver import ReceiverSpec, ReceiverState
+from src.pneumo.receiver import ReceiverSpec, ReceiverState, ReceiverVolumeUpdate
 
 
 class _DummySignal:
@@ -80,6 +80,11 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     worker.gas_network = SimpleNamespace(tank=tank_state)
 
     new_volume = 0.03
+    expected_pressure = receiver_state.p * ((receiver_state.V / new_volume) ** 1.4)
+    expected_temperature = receiver_state.T * (
+        (receiver_state.V / new_volume) ** 0.4
+    )
+
     worker.set_receiver_volume(new_volume, "geometric")
 
     pneumo_tank = worker._test_pneumo_tank  # type: ignore[attr-defined]
@@ -88,6 +93,8 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert worker.receiver_volume_mode == "GEOMETRIC"
     assert worker.pneumatic_system.receiver.mode is ReceiverVolumeMode.ADIABATIC_RECALC
     assert worker.pneumatic_system.receiver.V == pytest.approx(new_volume)
+    assert worker.pneumatic_system.receiver.p == pytest.approx(expected_pressure)
+    assert worker.pneumatic_system.receiver.T == pytest.approx(expected_temperature)
     assert pneumo_tank.V == pytest.approx(new_volume)
     assert pneumo_tank.history, "Pneumatic tank should record volume updates"
     recorded_volume, recorded_mode = pneumo_tank.history[-1]
@@ -115,9 +122,46 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert log_record is not None, "Receiver volume update log entry is missing"
     assert log_record.volume_m3 == pytest.approx(new_volume)
     assert log_record.mode == "GEOMETRIC"
-    assert log_record.receiver_pressure_pa == pytest.approx(receiver_state.p)
-    assert log_record.receiver_temperature_k == pytest.approx(receiver_state.T)
+    assert log_record.receiver_pressure_pa == pytest.approx(expected_pressure)
+    assert log_record.receiver_temperature_k == pytest.approx(expected_temperature)
     assert log_record.pneumatic_tank_volume_m3 == pytest.approx(new_volume)
     assert log_record.tank_pressure_pa == pytest.approx(worker.gas_network.tank.p)
     assert log_record.tank_mass_kg == pytest.approx(worker.gas_network.tank.m)
     assert log_record.tank_temperature_k == pytest.approx(worker.gas_network.tank.T)
+    assert worker.error_occurred.emitted == []
+
+
+def test_receiver_state_set_volume_returns_updated_state() -> None:
+    spec = ReceiverSpec(V_min=0.01, V_max=0.5)
+    state = ReceiverState(
+        spec=spec,
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+
+    update = state.set_volume(0.03, ReceiverVolumeMode.ADIABATIC_RECALC)
+    assert isinstance(update, ReceiverVolumeUpdate)
+    assert update.volume == pytest.approx(0.03)
+    assert update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+
+    expected_pressure = 101325.0 * ((0.02 / 0.03) ** 1.4)
+    expected_temperature = 293.15 * ((0.02 / 0.03) ** 0.4)
+    assert update.pressure == pytest.approx(expected_pressure)
+    assert update.temperature == pytest.approx(expected_temperature)
+    assert state.p == pytest.approx(expected_pressure)
+    assert state.T == pytest.approx(expected_temperature)
+
+    second_state = ReceiverState(
+        spec=spec,
+        V=0.03,
+        p=update.pressure,
+        T=update.temperature,
+        mode=ReceiverVolumeMode.ADIABATIC_RECALC,
+    )
+    no_recalc_update = second_state.set_volume(0.025, recompute=False)
+    assert no_recalc_update.volume == pytest.approx(0.025)
+    assert no_recalc_update.pressure == pytest.approx(update.pressure)
+    assert no_recalc_update.temperature == pytest.approx(update.temperature)
+    assert no_recalc_update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
