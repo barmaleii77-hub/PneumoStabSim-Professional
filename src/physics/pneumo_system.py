@@ -13,15 +13,52 @@ rigid body model.
 from __future__ import annotations
 
 import logging
+from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
 
 from typing import Any, Dict, Tuple
 
+from src.diagnostics.logger_factory import LoggerProtocol
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.pneumo.system import PneumaticSystem as StructuralPneumaticSystem
+
+
+def _coerce_context_value(value: Any) -> Any:
+    """Return a logging-friendly representation for contextual fields."""
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _log_with_context(
+    logger: LoggerProtocol | logging.Logger | LoggerAdapter,
+    level: str,
+    message: str,
+    context: TypingMapping[str, Any],
+) -> None:
+    """Emit a structured log entry compatible with stdlib and structlog loggers."""
+
+    log_method: Any = getattr(logger, level, None)
+    if log_method is None:
+        return
+
+    if hasattr(logger, "bind") and not isinstance(
+        logger, (logging.Logger, LoggerAdapter)
+    ):
+        log_method(message, **context)
+        return
+
+    extra_payload = {
+        key: _coerce_context_value(value) for key, value in context.items()
+    }
+    try:
+        log_method(message, extra=extra_payload)
+    except TypeError:
+        log_method(message, **extra_payload)
 
 
 @dataclass(frozen=True)
