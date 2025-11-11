@@ -43,6 +43,7 @@ def test_unicode_roundtrip_in_console_logs(
     assert "графика" in raw_message
 
     payload = _extract_payload(raw_message)
+    assert payload["event"] == "unicode-event"
     assert payload["message"] == "привет"
     assert payload["emoji"] == "✨"
     assert payload["panel"] == "графика"
