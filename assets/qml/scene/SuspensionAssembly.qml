@@ -97,7 +97,7 @@ Node {
     // ------------------------------------------------------------------
     // Reflection probe configuration
     // ------------------------------------------------------------------
-    property bool reflectionProbeEnabled: true
+    required property bool reflectionProbeEnabled
     // Padding stored in metres; SimulationRoot provides SI values.
     property real reflectionProbePaddingM: 0.15
     property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
