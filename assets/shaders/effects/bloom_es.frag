@@ -1,6 +1,6 @@
 #version 300 es
 // Qt Quick 3D post-processing shader.
-// Shader logic must live in qt_customMain; a thin main() wrapper is appended for shader tooling compatibility.
+// Shader logic executes in main() with helper functions for readability.
 // Requires an OpenGL ES 3.0 context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES
@@ -111,14 +111,9 @@ void bloomESMain(inout vec4 fragColor)
     fragColor = vec4(result, original.a);
 }
 
-void qt_customMain()
+void main()
 {
     vec4 fragColor = vec4(0.0);
     bloomESMain(fragColor);
     FRAGCOLOR = fragColor;
-}
-
-void main()
-{
-    qt_customMain();
 }
