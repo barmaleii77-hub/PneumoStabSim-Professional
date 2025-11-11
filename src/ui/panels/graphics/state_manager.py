@@ -26,6 +26,7 @@ class GraphicsStateManager:
         "camera",
         "materials",
         "effects",
+        "scene",
     }
 
     def __init__(self, settings_manager: SettingsManager | None = None) -> None:
