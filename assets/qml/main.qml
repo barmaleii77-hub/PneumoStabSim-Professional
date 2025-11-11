@@ -310,6 +310,46 @@ Item {
         return null
     }
 
+    function registerShaderWarning(effectId, message) {
+        var target = _activeSimulationRoot()
+        if (target && typeof target.registerShaderWarning === "function") {
+            try {
+                target.registerShaderWarning(effectId, message)
+                return
+            } catch (error) {
+                console.debug("[main.qml] registerShaderWarning forwarding failed", error)
+            }
+        }
+
+        if (typeof window !== "undefined" && window && typeof window.registerShaderWarning === "function") {
+            try {
+                window.registerShaderWarning(effectId, message)
+            } catch (error) {
+                console.debug("[main.qml] window.registerShaderWarning failed", error)
+            }
+        }
+    }
+
+    function clearShaderWarning(effectId) {
+        var target = _activeSimulationRoot()
+        if (target && typeof target.clearShaderWarning === "function") {
+            try {
+                target.clearShaderWarning(effectId)
+                return
+            } catch (error) {
+                console.debug("[main.qml] clearShaderWarning forwarding failed", error)
+            }
+        }
+
+        if (typeof window !== "undefined" && window && typeof window.clearShaderWarning === "function") {
+            try {
+                window.clearShaderWarning(effectId)
+            } catch (error) {
+                console.debug("[main.qml] window.clearShaderWarning failed", error)
+            }
+        }
+    }
+
     function applyBatchedUpdates(updates) {
         if (!updates || typeof updates !== "object") {
             return false

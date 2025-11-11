@@ -15,6 +15,7 @@ import sys
 from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 from collections.abc import Mapping
+from functools import partial
 
 from importlib import import_module, util
 
@@ -727,9 +728,7 @@ class SignalsRouter:
         # Geometry panel
         if window.geometry_panel:
             window.geometry_panel.parameter_changed.connect(
-                lambda name, val: SignalsRouter.logger.debug(
-                    f"🔧 GeometryPanel: {name}={val}"
-                )
+                window._on_geometry_parameter_logged
             )
             window.geometry_panel.geometry_changed.connect(
                 window._on_geometry_changed_qml
@@ -738,33 +737,21 @@ class SignalsRouter:
 
         # Pneumo panel
         if window.pneumo_panel:
-            window.pneumo_panel.mode_changed.connect(
-                lambda mode_type, new_mode: SignalsRouter.logger.debug(
-                    f"🔧 Mode changed: {mode_type} -> {new_mode}"
-                )
-            )
+            window.pneumo_panel.mode_changed.connect(window._on_pneumo_mode_logged)
             window.pneumo_panel.parameter_changed.connect(
-                lambda name, value: SignalsRouter.logger.debug(
-                    f"🔧 Pneumo param: {name} = {value}"
-                )
+                window._on_pneumo_parameter_logged
             )
             window.pneumo_panel.receiver_volume_changed.connect(
-                lambda volume, mode: SignalsRouter.handle_receiver_volume_changed(
-                    window, volume, mode
-                )
+                window._on_pneumo_receiver_volume_changed
             )
             SignalsRouter.logger.info("✅ PneumoPanel signals connected")
 
         # Modes panel
         if window.modes_panel:
             window.modes_panel.simulation_control.connect(window._on_sim_control)
-            window.modes_panel.mode_changed.connect(
-                lambda mode_type, new_mode: SignalsRouter.logger.debug(
-                    f"🔧 Mode changed: {mode_type} -> {new_mode}"
-                )
-            )
+            window.modes_panel.mode_changed.connect(window._on_modes_mode_logged)
             window.modes_panel.parameter_changed.connect(
-                lambda n, v: SignalsRouter.logger.debug(f"🔧 Param: {n} = {v}")
+                window._on_modes_parameter_logged
             )
             window.modes_panel.animation_changed.connect(window._on_animation_changed)
             SignalsRouter.logger.info("✅ ModesPanel signals connected")
@@ -1879,8 +1866,10 @@ class SignalsRouter:
             timer.setSingleShot(True)
             try:
                 timer.timeout.connect(
-                    lambda cat=category: SignalsRouter._flush_debounced_update(
-                        window, cat
+                    partial(
+                        SignalsRouter._flush_debounced_update,
+                        window,
+                        category,
                     )
                 )
             except Exception:

@@ -853,6 +853,42 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Signal Handlers (delegation to SignalsRouter)
     # ------------------------------------------------------------------
+    @Slot(str, float)
+    def _on_geometry_parameter_logged(self, name: str, value: float) -> None:
+        """Debug helper for geometry panel value changes."""
+
+        SignalsRouter.logger.debug("🔧 GeometryPanel: %s=%s", name, value)
+
+    @Slot(str, str)
+    def _on_pneumo_mode_logged(self, mode_type: str, new_mode: str) -> None:
+        """Debug helper for pneumatic panel mode changes."""
+
+        SignalsRouter.logger.debug("🔧 Mode changed: %s -> %s", mode_type, new_mode)
+
+    @Slot(str, float)
+    def _on_pneumo_parameter_logged(self, name: str, value: float) -> None:
+        """Debug helper for pneumatic parameter edits."""
+
+        SignalsRouter.logger.debug("🔧 Pneumo param: %s = %s", name, value)
+
+    @Slot(float, str)
+    def _on_pneumo_receiver_volume_changed(self, volume: float, mode: str) -> None:
+        """Bridge receiver volume edits into the pneumatic pipeline."""
+
+        SignalsRouter.handle_receiver_volume_changed(self, volume, mode)
+
+    @Slot(str, str)
+    def _on_modes_mode_logged(self, mode_type: str, new_mode: str) -> None:
+        """Debug helper for modes panel mode selection."""
+
+        SignalsRouter.logger.debug("🔧 Mode changed: %s -> %s", mode_type, new_mode)
+
+    @Slot(str, float)
+    def _on_modes_parameter_logged(self, name: str, value: float) -> None:
+        """Debug helper for modes panel parameter updates."""
+
+        SignalsRouter.logger.debug("🔧 Param: %s = %s", name, value)
+
     @Slot(dict)
     def _on_geometry_changed_qml(self, params: dict[str, Any]) -> None:
         """Geometry changed → direct QML call"""
