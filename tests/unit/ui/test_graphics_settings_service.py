@@ -60,7 +60,10 @@ def _make_baseline_payload() -> dict[str, object]:
             "adjustment_contrast": 0.0,
             "adjustment_saturation": 0.0,
         },
-        "scene": {"exposure": 1.2},
+        "scene": {
+            "exposure": 1.2,
+            "suspension": {"rod_warning_threshold_m": 0.001},
+        },
     }
     animation = {"is_running": False, "frequency": 1.0}
     return {
@@ -129,6 +132,9 @@ def test_load_current_hydrates_legacy_shape(
     assert "joint_rod" in state["materials"]
     assert state["animation"]["is_running"] is False
     assert state["animation"]["frequency"] == 1.0
+    suspension = state["scene"].get("suspension", {})
+    assert suspension
+    assert suspension["rod_warning_threshold_m"] == pytest.approx(0.001)
 
 
 def test_load_current_rejects_legacy_tail_alias(
@@ -196,6 +202,7 @@ def test_save_current_persists_normalised_copy(
     state["materials"]["tail_rod"]["base_color"] = "#ff0000"
     state["animation"]["is_running"] = True
     state["animation"]["frequency"] = 2.5
+    state["scene"]["suspension"]["rod_warning_threshold_m"] = 0.003
 
     service.save_current(state)
 
@@ -205,6 +212,7 @@ def test_save_current_persists_normalised_copy(
     assert saved["materials"]["tail_rod"]["base_color"] == "#ff0000"
     assert "tail" not in saved["materials"]
     assert "lighting" in saved
+    assert saved["scene"]["suspension"]["rod_warning_threshold_m"] == pytest.approx(0.003)
     assert "animation" not in saved
     assert animation["is_running"] is True
     assert animation["frequency"] == 2.5

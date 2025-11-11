@@ -165,6 +165,7 @@ def test_scene_tab_roundtrip_preserves_types(qapp):
         "model_base_color": "#123456",
         "model_roughness": 0.35,
         "model_metalness": 0.9,
+        "suspension": {"rod_warning_threshold_m": 0.0025},
     }
 
     tab.set_state(payload)
@@ -176,6 +177,9 @@ def test_scene_tab_roundtrip_preserves_types(qapp):
     assert state["model_base_color"] == "#123456"
     assert math.isclose(state["model_roughness"], 0.35, rel_tol=1e-6)
     assert math.isclose(state["model_metalness"], 0.9, rel_tol=1e-6)
+    assert math.isclose(
+        state["suspension"]["rod_warning_threshold_m"], 0.0025, rel_tol=1e-6
+    )
 
 
 @pytest.mark.gui
