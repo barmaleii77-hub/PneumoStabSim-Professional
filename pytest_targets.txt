@@ -1,4 +1,0 @@
-# Explicitly track high-value regression suites that must run alongside the
-# default unit/integration/UI collections executed by ``make check``.
-tests/settings/test_environment_serialization.py
-tests/integration/test_scene_environment_controller.py
