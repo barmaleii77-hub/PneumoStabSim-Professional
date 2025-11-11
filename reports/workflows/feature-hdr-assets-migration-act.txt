@@ -1,0 +1,8 @@
+Workflow trigger attempt: feature/hdr-assets-migration
+Timestamp (UTC): Tue Nov 11 17:45:00 UTC 2025
+Command: act -W .github/workflows/ci.yml -b feature/hdr-assets-migration
+Status: failed - act not installed in container and Docker unavailable.
+Details:
+- apt-get install act -> E: Unable to locate package act
+- docker --version -> command not found
+Conclusion: Unable to execute GitHub Actions workflows locally within this environment. Manual trigger required in GitHub UI.
