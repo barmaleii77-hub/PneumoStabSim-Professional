@@ -53,8 +53,17 @@ def _normalize_for_cache(value: Any) -> Hashable:
 def _make_hashable_context(
     context: Mapping[str, Any] | None,
 ) -> tuple[tuple[str, Hashable], ...]:
-    """Convert a context mapping into a deterministic, hashable structure."""
+    """
+    Преобразует mapping контекста в детерминированную, хэшируемую структуру.
 
+    Args:
+        context: Необязательный mapping ключ-значение для контекста.
+
+    Returns:
+        Пустой кортеж, если context равен None или пустой mapping.
+        В противном случае — отсортированный кортеж пар (key, normalized_value),
+        где значения рекурсивно нормализуются через _normalize_for_cache для гарантии хэшируемости.
+    """
     if not context:
         return ()
 
