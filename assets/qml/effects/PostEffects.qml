@@ -1595,7 +1595,7 @@ Item {
         Connections {
             target: dofFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged(status) {
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
             }
         }
