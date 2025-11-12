@@ -35,6 +35,7 @@ from defusedxml import ElementTree as ET
 
 from tools import env_profiles
 from tools import merge_conflict_scan
+from tools import pytest_skip_guard
 from tools.headless import (
     apply_gpu_defaults,
     apply_headless_defaults,
@@ -315,6 +316,28 @@ def _prepare_cross_platform_test_environment(
     _safe_console_write(f"[ci_tasks] Qt launch mode: {mode}\n")
 
     return normalised or "unknown"
+
+
+def _ensure_no_forbidden_pytest_skips(paths: Sequence[str] | None = None) -> None:
+    """Scan *paths* for stray pytest skip/xfail markers and fail when found."""
+
+    search_paths = tuple(dict.fromkeys(paths or ["tests"]))
+    violations = pytest_skip_guard.scan_paths(search_paths)
+    if not violations:
+        return
+
+    lines = [
+        "Forbidden pytest skip/xfail markers detected. Remove them or annotate",
+        "the relevant lines with '# pytest-skip-ok' and document the rationale.",
+        "Detected occurrences:",
+    ]
+    for entry in violations:
+        display = _relative_display(entry.path)
+        lines.append(
+            f"  - {display}:{entry.line}:{entry.column} -> {entry.marker} :: {entry.source}"
+        )
+
+    raise TaskError("\n".join(lines))
 
 
 def _run_command(
@@ -937,6 +960,7 @@ def _collect_qml_targets() -> list[Path]:
 
 def task_test() -> None:
     _prepare_cross_platform_test_environment()
+    _ensure_no_forbidden_pytest_skips()
     use_coverage = _coverage_enabled()
     primary_error: TaskError | None = None
     skip_error: TaskError | None = None
@@ -987,16 +1011,19 @@ def task_test() -> None:
 
 def task_test_unit() -> None:
     _prepare_cross_platform_test_environment()
+    _ensure_no_forbidden_pytest_skips(["tests/unit"])
     _run_pytest_suites(["unit"], use_coverage=False)
 
 
 def task_test_integration() -> None:
     _prepare_cross_platform_test_environment()
+    _ensure_no_forbidden_pytest_skips(["tests/integration"])
     _run_pytest_suites(["integration"], use_coverage=False)
 
 
 def task_test_ui() -> None:
     _prepare_cross_platform_test_environment()
+    _ensure_no_forbidden_pytest_skips(["tests/ui"])
     _run_pytest_suites(["ui"], use_coverage=False)
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import math
 from copy import deepcopy
-from typing import Any
+from typing import Any, Mapping
 from collections.abc import Iterable
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
@@ -30,6 +30,24 @@ from .defaults import (
 
 LOGGER = logging.getLogger(__name__)
 
+# User-facing labels for hint messages.
+_PARAMETER_LABELS: dict[str, str] = {
+    "cv_atmo_dp": "ΔP атмосферного клапана",
+    "cv_tank_dp": "ΔP клапана ресивера",
+    "relief_min_pressure": "Мин. сброс",
+    "relief_stiff_pressure": "Сброс жёсткости",
+    "relief_safety_pressure": "Аварийный сброс",
+    "receiver_volume": "Объём ресивера",
+    "receiver_volume_limits": "Диапазон объёма ресивера",
+}
+
+_PRESSURE_REASON_HINTS: dict[str, str] = {
+    "must not exceed relief_stiff_pressure": "не может превышать «Сброс жёсткости»",
+    "must not exceed relief_safety_pressure": "не может превышать «Аварийный сброс»",
+    "must not fall below relief_min_pressure": "не может быть ниже «Мин. сброс»",
+    "must be >= max(relief_min_pressure, relief_stiff_pressure)": "не может быть ниже активного ограничения «Мин./Жёсткий сброс»",
+}
+
 # ``_UNITS_MIGRATION_FLAG`` marks payloads that have been normalised from
 # legacy unit representations.  The flag lives under ``metadata`` in the
 # settings file so repeated loads stay idempotent and avoid re-scaling values
@@ -48,6 +66,7 @@ class PneumoStateManager:
         self._state: dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
         self._defaults: dict[str, Any] = deepcopy(DEFAULT_PNEUMATIC)
         self._storage_units_version: str = "si_v2"
+        self._hints: dict[str, str] = {}
         self._load_from_settings()
 
     # ------------------------------------------------------------------- utils
@@ -67,6 +86,32 @@ class PneumoStateManager:
             )
 
     # ------------------------------------------------------------------ helpers
+    def _record_hint(self, key: str, message: str | None) -> None:
+        """Store or clear user-facing hint for *key*."""
+
+        if message:
+            self._hints[key] = message
+        else:
+            self._hints.pop(key, None)
+
+    def get_hint(self, key: str) -> str | None:
+        """Return the latest hint message recorded for *key*."""
+
+        return self._hints.get(key)
+
+    def consume_hint(self, key: str) -> str | None:
+        """Return and clear the latest hint message for *key*."""
+
+        return self._hints.pop(key, None)
+
+    @staticmethod
+    def _display_name(key: str) -> str:
+        return _PARAMETER_LABELS.get(key, key)
+
+    @staticmethod
+    def _format_value(value: float, units: str) -> str:
+        return f"{value:.3f} {units}".strip()
+
     @staticmethod
     def _convert_from_storage(
         payload: dict[str, Any], *, units_version: str = "si_v2"
@@ -241,6 +286,23 @@ class PneumoStateManager:
         limits = self.get_volume_limits()
         clamped = clamp(volume, limits["min_m3"], limits["max_m3"])
         self._state["receiver_volume"] = clamped
+        if not math.isclose(volume, clamped, rel_tol=1e-9, abs_tol=1e-9):
+            LOGGER.warning(
+                "receiver_volume adjusted from %.4f m^3 to %.4f m^3 (limits %.4f..%.4f)",
+                volume,
+                clamped,
+                limits["min_m3"],
+                limits["max_m3"],
+            )
+            self._record_hint(
+                "receiver_volume",
+                (
+                    "Объём ресивера скорректирован до "
+                    f"{clamped:.3f} м³ (диапазон: {limits['min_m3']:.3f}–{limits['max_m3']:.3f} м³)."
+                ),
+            )
+        else:
+            self._record_hint("receiver_volume", None)
 
     def get_volume_limits(self) -> dict[str, float]:
         return deepcopy(
@@ -248,6 +310,57 @@ class PneumoStateManager:
                 "receiver_volume_limits", DEFAULT_PNEUMATIC["receiver_volume_limits"]
             )
         )
+
+    def _apply_volume_limits(self, payload: Mapping[str, Any]) -> dict[str, float]:
+        current = self.get_volume_limits()
+        defaults = DEFAULT_PNEUMATIC["receiver_volume_limits"]
+
+        def _as_float(value: Any, fallback: float) -> float:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return fallback
+
+        min_value = _as_float(
+            payload.get("min_m3", current["min_m3"]), current["min_m3"]
+        )
+        max_value = _as_float(
+            payload.get("max_m3", current["max_m3"]), current["max_m3"]
+        )
+
+        changed = False
+        if min_value <= 0:
+            min_value = max(float(defaults["min_m3"]), 1e-6)
+            changed = True
+        if max_value <= min_value:
+            candidate = max(float(defaults["max_m3"]), min_value + 1e-6)
+            if candidate <= min_value:
+                candidate = min_value + 1e-6
+            max_value = candidate
+            changed = True
+
+        limits = {"min_m3": min_value, "max_m3": max_value}
+        self._state["receiver_volume_limits"] = limits
+
+        if changed:
+            LOGGER.warning(
+                "receiver_volume_limits adjusted to %.4f..%.4f m^3",
+                min_value,
+                max_value,
+            )
+            self._record_hint(
+                "receiver_volume_limits",
+                (
+                    "Диапазон объёма ресивера скорректирован до "
+                    f"{min_value:.3f}–{max_value:.3f} м³."
+                ),
+            )
+        else:
+            self._record_hint("receiver_volume_limits", None)
+
+        # Ensure the active manual volume still satisfies the updated limits.
+        self.set_manual_volume(self.get_manual_volume())
+        return limits
 
     def get_receiver_diameter(self) -> float:
         return float(
@@ -309,10 +422,13 @@ class PneumoStateManager:
         units: str,
         *,
         parameter_name: str,
-    ) -> float:
+        hint_key: str | None = None,
+    ) -> tuple[float, bool, str | None]:
         """Clamp *value* against *limits* respecting the active pressure units."""
 
         base_units = DEFAULT_PNEUMATIC["pressure_units"]
+        target_key = hint_key or parameter_name.split(".")[-1]
+        display_name = self._display_name(target_key)
         try:
             value_base = convert_pressure_value(value, units, base_units)
         except Exception as exc:
@@ -326,11 +442,16 @@ class PneumoStateManager:
                 value_base = float(value)
             except (TypeError, ValueError):
                 value_base = float(limits["min"])
+            units = base_units
 
         clamped_base = clamp(value_base, limits["min"], limits["max"])
         result_units = convert_pressure_value(clamped_base, base_units, units)
 
-        if not math.isclose(value_base, clamped_base, rel_tol=1e-9, abs_tol=1e-9):
+        is_clamped = not math.isclose(
+            value_base, clamped_base, rel_tol=1e-9, abs_tol=1e-9
+        )
+        hint: str | None = None
+        if is_clamped:
             try:
                 original_value = float(value)
             except (TypeError, ValueError):
@@ -346,8 +467,21 @@ class PneumoStateManager:
                 limits["max"],
                 base_units,
             )
+            try:
+                min_units = convert_pressure_value(limits["min"], base_units, units)
+                max_units = convert_pressure_value(limits["max"], base_units, units)
+            except Exception:
+                min_units = limits["min"]
+                max_units = limits["max"]
+            hint = (
+                f"{display_name} скорректирован до "
+                f"{self._format_value(result_units, units)} (диапазон: "
+                f"{self._format_value(min_units, units)}–{self._format_value(max_units, units)})."
+            )
+        else:
+            self._record_hint(target_key, None)
 
-        return result_units
+        return result_units, is_clamped, hint
 
     def _log_pressure_adjustment(
         self,
@@ -356,9 +490,9 @@ class PneumoStateManager:
         new_value: float,
         units: str,
         reason: str,
-    ) -> None:
+    ) -> str | None:
         if math.isclose(previous_value, new_value, rel_tol=1e-9, abs_tol=1e-9):
-            return
+            return None
         LOGGER.warning(
             "%s adjusted from %.3f %s to %.3f %s (%s)",
             parameter_name,
@@ -368,16 +502,25 @@ class PneumoStateManager:
             units,
             reason,
         )
+        target_key = parameter_name.split(".")[-1]
+        display_name = self._display_name(target_key)
+        reason_hint = _PRESSURE_REASON_HINTS.get(reason, reason)
+        return (
+            f"{display_name} скорректирован до {self._format_value(new_value, units)} "
+            f"({reason_hint})."
+        )
 
     def set_pressure_drop(self, name: str, value_bar: float) -> None:
         units = self.get_pressure_units()
-        value = self._clamp_pressure_value(
+        value, _clamped, hint = self._clamp_pressure_value(
             value_bar,
             PRESSURE_DROP_LIMITS,
             units,
             parameter_name=f"pressure_drop.{name}",
+            hint_key=name,
         )
         self._state[name] = value
+        self._record_hint(name, hint)
 
     def get_relief_pressure(self, name: str) -> float:
         return float(self._state.get(name, DEFAULT_PNEUMATIC.get(name, 0.0)))
@@ -385,28 +528,36 @@ class PneumoStateManager:
     def set_relief_pressure(self, name: str, value_bar: float) -> None:
         units = self.get_pressure_units()
         parameter_name = f"relief_pressure.{name}"
-        value = self._clamp_pressure_value(
+        value, _clamped, base_hint = self._clamp_pressure_value(
             value_bar,
             RELIEF_PRESSURE_LIMITS,
             units,
             parameter_name=parameter_name,
+            hint_key=name,
         )
 
         adjusted_value = value
+        hint_messages: list[str] = []
+        if base_hint:
+            hint_messages.append(base_hint)
 
         def _ensure_upper_bound(target: float, bound: float, reason: str) -> float:
             if bound > 0.0 and target > bound + 1e-12:
-                self._log_pressure_adjustment(
+                message = self._log_pressure_adjustment(
                     parameter_name, target, bound, units, reason
                 )
+                if message:
+                    hint_messages.append(message)
                 return bound
             return target
 
         def _ensure_lower_bound(target: float, bound: float, reason: str) -> float:
             if target + 1e-12 < bound:
-                self._log_pressure_adjustment(
+                message = self._log_pressure_adjustment(
                     parameter_name, target, bound, units, reason
                 )
+                if message:
+                    hint_messages.append(message)
                 return bound
             return target
 
@@ -447,6 +598,10 @@ class PneumoStateManager:
             )
 
         self._state[name] = adjusted_value
+        combined_hint = (
+            "\n".join(dict.fromkeys(hint_messages)) if hint_messages else None
+        )
+        self._record_hint(name, combined_hint)
 
     # Diameters ---------------------------------------------------------
     def get_valve_diameter(self, name: str) -> float:
@@ -643,10 +798,95 @@ class PneumoStateManager:
         self._settings.save()
 
     # Utilities ---------------------------------------------------------
+    def _apply_update(self, key: str, value: Any) -> None:
+        if key in {"cv_atmo_dp", "cv_tank_dp"}:
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                numeric = self.get_pressure_drop(key)
+            self.set_pressure_drop(key, numeric)
+            return
+        if key in {
+            "relief_min_pressure",
+            "relief_stiff_pressure",
+            "relief_safety_pressure",
+        }:
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                numeric = self.get_relief_pressure(key)
+            self.set_relief_pressure(key, numeric)
+            return
+        if key == "receiver_volume_limits" and isinstance(value, Mapping):
+            self._apply_volume_limits(value)
+            return
+        if key == "receiver_volume":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                numeric = self.get_manual_volume()
+            self.set_manual_volume(numeric)
+            return
+        if key == "receiver_diameter":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            self.set_receiver_diameter(numeric)
+            return
+        if key == "receiver_length":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            self.set_receiver_length(numeric)
+            return
+        if key == "pressure_units":
+            self.set_pressure_units(str(value))
+            return
+        if key == "volume_mode":
+            self.set_volume_mode(str(value))
+            return
+        if key == "thermo_mode":
+            self.set_thermo_mode(str(value))
+            return
+        if key == "polytropic_heat_transfer_coeff":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            self.set_polytropic_heat_transfer(numeric)
+            return
+        if key == "polytropic_exchange_area":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            self.set_polytropic_exchange_area(numeric)
+            return
+        if key == "leak_coefficient":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            self.set_leak_coefficient(numeric)
+            return
+        if key == "leak_reference_area":
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return
+            self.set_leak_reference_area(numeric)
+            return
+        if key == "master_isolation_open":
+            self.set_option(key, bool(value))
+            return
+        self._state[key] = value
+
     def update_from(self, updates: dict[str, Any]) -> None:
         for key, value in updates.items():
-            self._state[key] = value
+            self._apply_update(key, value)
 
     def update_many(self, pairs: Iterable[tuple[str, Any]]) -> None:
         for key, value in pairs:
-            self._state[key] = value
+            self._apply_update(key, value)

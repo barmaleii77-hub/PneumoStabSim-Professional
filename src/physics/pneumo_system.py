@@ -16,7 +16,6 @@ import logging
 from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
-
 from typing import Any
 
 from src.diagnostics.logger_factory import LoggerProtocol
@@ -24,6 +23,8 @@ from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.pneumo.system import PneumaticSystem as StructuralPneumaticSystem
+
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
 
 
 def _coerce_context_value(value: Any) -> Any:
@@ -38,7 +39,7 @@ LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
 
 
 def _log_with_context(
-    logger: LoggerLike | None,
+    logger: LoggerLike,
     level: str,
     message: str,
     context: Mapping[str, Any],
@@ -147,6 +148,20 @@ class PneumaticSystem:
 
         return self._line_for_endpoint(wheel, port)
 
+    def _log_endpoint_issue(
+        self,
+        logger: LoggerLike | None,
+        level: str,
+        message: str,
+        context: Mapping[str, str],
+    ) -> None:
+        """Emit a structured log entry without assuming the logger backend."""
+
+        if logger is None:
+            return
+
+        _log_with_context(logger, level, message, context)
+
     def line_pressure(
         self,
         wheel: Wheel,
@@ -169,6 +184,11 @@ class PneumaticSystem:
         line = self.lookup_line(wheel, port)
         fallback = default if default is not None else float(self._gas_network.tank.p)
 
+        def _log(level: str, message: str, **fields: str) -> None:
+            if logger is None:
+                return
+            _log_with_context(logger, level, message, fields)
+
         if line is None:
             _log_with_context(
                 logger,
@@ -180,7 +200,18 @@ class PneumaticSystem:
 
         line_state = self._gas_network.lines.get(line)
         if line_state is None:
-            _log_with_context(
+            if logger is not None:
+                _log_with_context(
+                    logger,
+                    "error",
+                    "Pneumatic line state unavailable; using tank pressure.",
+                    {
+                        "line": line.name,
+                        "wheel": wheel.name,
+                        "port": port.name,
+                    },
+                )
+            self._log_endpoint_issue(
                 logger,
                 "error",
                 "Pneumatic line state unavailable; using tank pressure.",
