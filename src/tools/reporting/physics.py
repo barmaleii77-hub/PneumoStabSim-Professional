@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
 from collections.abc import Iterable, Mapping
 from math import isclose
 
@@ -32,7 +30,7 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
         attachment_points[str(name)] = (values[0], values[1])
     state_name = next(iter(scene.state_vectors))
     state = np.asarray(scene.state_vectors[state_name], dtype=float)
-    axis: dict[str, Iterable[float]] = {
+    axis: dict[str, tuple[float, ...]] = {
         str(name): _as_tuple(direction)
         for name, direction in scene.axis_directions.items()
     }
@@ -90,7 +88,8 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
     )
 
     vertical_forces = {
-        wheel: float(value) for wheel, value in zip(attachment_points, vertical_array)
+        wheel: float(value)
+        for wheel, value in zip(attachment_points, vertical_array, strict=True)
     }
 
     return {
@@ -116,6 +115,12 @@ class AssertionResult:
     passed: bool
 
 
+def _within_tolerance(actual: float, expected: float, tolerance: float) -> bool:
+    """Return ``True`` if *actual* is within *tolerance* of *expected*."""
+
+    return math.isclose(actual, expected, abs_tol=tolerance)
+
+
 def summarise_assertions(
     case: Any, evaluation: Mapping[str, Any]
 ) -> list[AssertionResult]:
@@ -124,6 +129,17 @@ def summarise_assertions(
     results: list[AssertionResult] = []
     tau_x = evaluation["moments"]["tau_x"]
     tau_z = evaluation["moments"]["tau_z"]
+
+    scalar_extractors: Mapping[str, Callable[[Any], float]] = {
+        "axis-velocity": lambda data: float(
+            evaluation["kinematics"][data.target]["axial_velocity"]
+        ),
+        "cylinder-force": lambda data: float(
+            evaluation["cylinder_forces"][data.target]
+        ),
+        "spring-force": lambda data: float(evaluation["spring_forces"][data.target]),
+        "damper-force": lambda data: float(evaluation["damper_forces"][data.target]),
+    }
 
     for assertion in case.assertions:
         expected = assertion.expected
@@ -169,8 +185,7 @@ def summarise_assertions(
                 for key in expected_map
             )
         else:
-            actual = None
-            passed = False
+            raise ValueError(f"Unsupported assertion kind: {assertion.kind}")
 
         results.append(
             AssertionResult(
