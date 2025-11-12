@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%E2%80%933.13-blue.svg)](https://python.org)
 [![Qt](https://img.shields.io/badge/Qt-PySide6%206.10-green.svg)](https://qt.io)
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](.)
-[![Version](https://img.shields.io/badge/Version-4.9.9-orange.svg)](archive/2025-11/root-reports/PROJECT_STATUS.md)
+[![Version](https://img.shields.io/badge/Version-5.0.0-orange.svg)](archive/2025-11/root-reports/PROJECT_STATUS.md)
 
 ## 🧭 Engineering Charter
 
@@ -506,7 +506,7 @@ graph TD
 5. **Активируйте GitHub Copilot и Copilot Chat**: установите рекомендуемые расширения из всплывающего уведомления рабочей области, пройдите авторизацию GitHub и откройте вкладку *Chat* для ассистента в контексте проекта.
 6. **Дополнительно**: включите `Qt QML Language Server`, Black Formatter и Mypy Checker – они добавлены в список рекомендаций и повышают качество QML/ Python-анализа в Insiders.
 
-## 🔥 Новое в версии 4.9.9
+## 🔥 Новое в версии 5.0.0
 
 ### ✨ Архитектура и инструменты
 - **Единый идентификатор релиза**: unit-тест `tests/unit/test_version_consistency.py` теперь валидирует не только README и технические руководства, но и мастер-план (`docs/RENOVATION_MASTER_PLAN.md`), закрепляя `metadata.version` как единственный источник истины.
@@ -592,6 +592,6 @@ python app.py --no-block # Неблокирующий режим
 
 ---
 
-**🎯 PneumoStabSim Professional v4.9.9** - Готов к профессиональному использованию
+**🎯 PneumoStabSim Professional v5.0.0** - Готов к профессиональному использованию
 **📅 Последнее обновление**:2025-11-05
 **✅ Статус**: Production Ready

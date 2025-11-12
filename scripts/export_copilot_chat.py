@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 
-import argparse, datetime as dt, json, os, sys, sqlite3, glob
+import argparse
+import datetime as dt
+import glob
+import json
+import os
+import re
+import sqlite3
+import sys
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterable
+
+ConversationBlock = tuple[str, dt.datetime | None, list[dict[str, Any]], float]
 
 # ---------- утилиты ----------
 
@@ -60,7 +69,7 @@ def load_json_safe(p: Path) -> dict[str, Any] | None:
     except Exception:
         return None
 
-def extract_from_vscode_chatSessions(root: Path) -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
+def extract_from_vscode_chatSessions(root: Path) -> list[ConversationBlock]:
     """
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/chatSessions/*.json
     """
@@ -86,7 +95,7 @@ def extract_from_vscode_chatSessions(root: Path) -> list[tuple[str, dt.datetime 
             out.append((f"{jf}", conv_ts, msgs, jf.stat().st_mtime))
     return out
 
-def extract_from_vscode_state_db(db_path: Path) -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
+def extract_from_vscode_state_db(db_path: Path) -> list[ConversationBlock]:
     """
     VS Code: %APPDATA%/Code/User/workspaceStorage/<id>/state.vscdb -> keys:
       - 'interactive.sessions' (array)
@@ -152,7 +161,7 @@ def extract_from_vscode_state_db(db_path: Path) -> list[tuple[str, dt.datetime |
         pass
     return out
 
-def extract_vscode_all() -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
+def extract_vscode_all() -> list[ConversationBlock]:
     out = []
     # корни VS Code (Windows/macOS/Linux)
     roots: list[Path] = []
@@ -188,7 +197,7 @@ def extract_vscode_all() -> list[tuple[str, dt.datetime | None, list[dict[str,An
                 out += extract_from_vscode_state_db(db)
     return out
 
-def extract_visualstudio_logs() -> list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]]:
+def extract_visualstudio_logs() -> list[ConversationBlock]:
     """
     Visual Studio: логи Copilot Chat в %LOCALAPPDATA%\\Temp\\**\\*VSGitHubCopilot*.chat*.log
     """
@@ -229,33 +238,149 @@ def extract_visualstudio_logs() -> list[tuple[str, dt.datetime | None, list[dict
         out.append((fp, ts_guess, msgs, p.stat().st_mtime))
     return out
 
-# ---------- основной экспорт ----------
+# ---------- фильтрация и основной экспорт ----------
+
+
+def _compile_patterns(patterns: Iterable[str] | None, *, case_sensitive: bool) -> list[re.Pattern[str]]:
+    compiled: list[re.Pattern[str]] = []
+    if not patterns:
+        return compiled
+
+    flags = 0 if case_sensitive else re.IGNORECASE
+    for pattern in patterns:
+        if not pattern:
+            continue
+        try:
+            compiled.append(re.compile(pattern, flags))
+        except re.error as exc:  # pragma: no cover - validated in caller
+            raise ValueError(f"Некорректное регулярное выражение: {pattern!r} ({exc})") from exc
+    return compiled
+
+
+def filter_conversation_blocks(
+    blocks: Iterable[ConversationBlock],
+    substrings: Iterable[str] | None = None,
+    regex_patterns: Iterable[str] | None = None,
+    *,
+    case_sensitive: bool = False,
+    keep_empty: bool = False,
+) -> list[ConversationBlock]:
+    """Filter Copilot chat blocks by message content.
+
+    ``substrings`` performs containment checks while ``regex_patterns`` applies
+    regular expression matching. When both are provided a message passes if it
+    satisfies **any** filter. Blocks without matching messages are discarded
+    unless ``keep_empty`` is enabled. A defensive copy of every kept message is
+    returned so callers may mutate the result without touching the source
+    collection.
+    """
+
+    has_substrings = False
+    normalized_substrings: list[str] = []
+    if substrings:
+        for item in substrings:
+            if not item:
+                continue
+            has_substrings = True
+            normalized_substrings.append(item if case_sensitive else item.lower())
+
+    compiled_patterns = _compile_patterns(regex_patterns, case_sensitive=case_sensitive)
+    apply_filters = bool(has_substrings or compiled_patterns)
+
+    filtered: list[ConversationBlock] = []
+    for src, ts, messages, mtime in blocks:
+        if not apply_filters:
+            filtered.append((src, ts, [dict(msg) for msg in messages], mtime))
+            continue
+
+        kept_messages: list[dict[str, Any]] = []
+        for message in messages:
+            content = str(message.get("content", ""))
+            haystack = content if case_sensitive else content.lower()
+
+            matched = False
+            if has_substrings and any(sub in haystack for sub in normalized_substrings):
+                matched = True
+            if not matched and compiled_patterns:
+                for pattern in compiled_patterns:
+                    if pattern.search(content):
+                        matched = True
+                        break
+
+            if matched:
+                kept_messages.append(dict(message))
+
+        if kept_messages or keep_empty:
+            filtered.append((src, ts, kept_messages, mtime))
+
+    return filtered
+
 
 def main():
     ap = argparse.ArgumentParser(description="Export GitHub Copilot Chat history (VS Code + Visual Studio) to Markdown.")
     ap.add_argument("--out", "-o", type=str, default="copilot_chat_history.md", help="Выходной .md")
     ap.add_argument("--since", type=str, default=None, help="Фильтр по дате YYYY-MM-DD")
+    ap.add_argument(
+        "--contains",
+        "-c",
+        action="append",
+        default=None,
+        help="Оставить только сообщения, содержащие подстроку (можно указать несколько раз)",
+    )
+    ap.add_argument(
+        "--regex",
+        "-r",
+        action="append",
+        default=None,
+        help="Оставить сообщения, совпадающие с регулярным выражением",
+    )
+    ap.add_argument(
+        "--case-sensitive",
+        action="store_true",
+        help="Не понижать регистр фильтров",
+    )
+    ap.add_argument(
+        "--keep-empty",
+        action="store_true",
+        help="Сохранять блоки даже без совпадающих сообщений",
+    )
     args = ap.parse_args()
 
     since_dt: dt.datetime | None = None
     if args.since:
-        try: since_dt = dt.datetime.fromisoformat(args.since)
+        try:
+            since_dt = dt.datetime.fromisoformat(args.since)
         except Exception:
             print("Неверный формат --since. Используйте YYYY-MM-DD.")
             sys.exit(2)
 
-    collected: list[tuple[str, dt.datetime | None, list[dict[str,Any]], float]] = []
+    collected: list[ConversationBlock] = []
     collected += extract_vscode_all()
     collected += extract_visualstudio_logs()
 
     if since_dt:
         collected = [c for c in collected if dt.datetime.fromtimestamp(c[3]) >= since_dt]
 
+    try:
+        collected = filter_conversation_blocks(
+            collected,
+            substrings=args.contains,
+            regex_patterns=args.regex,
+            case_sensitive=args.case_sensitive,
+            keep_empty=args.keep_empty,
+        )
+    except ValueError as exc:
+        print(f"Ошибка фильтрации: {exc}")
+        sys.exit(2)
+
     if not collected:
-        print("История чатов не найдена в VS Code workspaceStorage или в логах Visual Studio.\n"
-              "Подсказки:\n"
-              "  • Для VS Code — чаты лежат в User/workspaceStorage (state.vscdb / chatSessions/*.json)\n"
-              "  • Для Visual Studio — попробуй ещё раз после новой беседы (логи создаются при сессии).")
+        print(
+            "История чатов не найдена в VS Code workspaceStorage или в логах Visual Studio.\n"
+            "Подсказки:\n"
+            "  • Для VS Code — чаты лежат в User/workspaceStorage (state.vscdb / chatSessions/*.json)\n"
+            "  • Для Visual Studio — попробуй ещё раз после новой беседы (логи создаются при сессии).\n"
+            "  • Проверь параметры фильтрации (--contains/--regex), они могли исключить все сообщения."
+        )
         sys.exit(1)
 
     collected.sort(key=lambda x: (x[1] or dt.datetime.fromtimestamp(x[3])))
