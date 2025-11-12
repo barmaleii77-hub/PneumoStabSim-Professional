@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -248,9 +249,36 @@ class MaterialsTab(QWidget):
             pass
         return default
 
+    @staticmethod
+    def _normalise_material_key(key: Any) -> str:
+        """Привести устаревшие ключи материалов к snake_case."""
+
+        if not isinstance(key, str):
+            return str(key)
+
+        token = key.strip()
+        if not token:
+            return ""
+
+        if "_" in token:
+            return token.lower()
+
+        return re.sub(r"(?<!^)(?=[A-Z])", "_", token).lower()
+
     def _coerce_material_state(self, state: dict[str, Any]) -> dict[str, Any]:
         """Нормализовать типы значений для совместимости со старыми пресетами"""
-        normalized = dict(state) if isinstance(state, dict) else {}
+        normalized: dict[str, Any] = {}
+        if isinstance(state, dict):
+            for raw_key, value in state.items():
+                canonical_key = self._normalise_material_key(raw_key)
+                if not canonical_key:
+                    continue
+                normalized[canonical_key] = value
+
+        if "color" in normalized and "base_color" not in normalized:
+            normalized["base_color"] = normalized["color"]
+        normalized.pop("color", None)
+
         if "texture_path" in normalized:
             normalized["texture_path"] = self._normalize_texture_path(
                 normalized.get("texture_path")

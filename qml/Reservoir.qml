@@ -33,6 +33,20 @@ Item {
 
     property var markers: []
     property bool showLegend: true
+    property var linePressures: ({})
+    property var lineValveStates: ({})
+    property var lineIntensities: ({})
+    property color valveOpenColor: Qt.rgba(0.32, 0.78, 0.48, 0.95)
+    property color valveClosedColor: Qt.rgba(0.86, 0.33, 0.33, 0.95)
+    property color lowPressureColor: Qt.rgba(0.26, 0.56, 0.94, 0.7)
+    property color highPressureColor: Qt.rgba(0.94, 0.43, 0.34, 0.85)
+
+    readonly property var lineDescriptors: [
+        { key: "A1", anchor: Qt.point(0.24, 0.8), valveAnchor: Qt.point(0.08, 0.8), label: "A1" },
+        { key: "A2", anchor: Qt.point(0.36, 0.3), valveAnchor: Qt.point(0.12, 0.3), label: "A2" },
+        { key: "B1", anchor: Qt.point(0.64, 0.7), valveAnchor: Qt.point(0.88, 0.7), label: "B1" },
+        { key: "B2", anchor: Qt.point(0.76, 0.25), valveAnchor: Qt.point(0.92, 0.25), label: "B2" }
+    ]
 
     readonly property real effectiveMinimum: _minValue(_rangeCandidates(), 0.0)
     readonly property real effectiveMaximum: _maxValue(_rangeCandidates(), 1.0)
@@ -128,6 +142,91 @@ Item {
         return normalized
     }
 
+    function _isPlainObject(value) {
+        return value && typeof value === "object" && !Array.isArray(value)
+    }
+
+    function _lineMapValue(map, key, fallback) {
+        if (!_isPlainObject(map))
+            return fallback
+        var variants = []
+        var base = String(key || "")
+        if (base.length)
+            variants.push(base)
+        var lower = base.toLowerCase()
+        if (lower.length && variants.indexOf(lower) === -1)
+            variants.push(lower)
+        var upper = base.toUpperCase()
+        if (upper.length && variants.indexOf(upper) === -1)
+            variants.push(upper)
+        variants.push(String(key))
+        for (var i = 0; i < variants.length; ++i) {
+            var candidate = variants[i]
+            if (Object.prototype.hasOwnProperty.call(map, candidate))
+                return map[candidate]
+        }
+        return fallback
+    }
+
+    function _clampUnit(value) {
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            numeric = 0.0
+        if (numeric < 0.0)
+            numeric = 0.0
+        else if (numeric > 1.0)
+            numeric = 1.0
+        return numeric
+    }
+
+    function _linePressureValue(key) {
+        var value = _lineMapValue(linePressures, key, null)
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            numeric = Number(pressure)
+        if (!Number.isFinite(numeric))
+            numeric = 0.0
+        return numeric
+    }
+
+    function _lineIntensityValue(key) {
+        var value = _lineMapValue(lineIntensities, key, 0.0)
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            numeric = 0.0
+        return _clampUnit(numeric)
+    }
+
+    function _mixColor(colorA, colorB, ratio) {
+        var clamped = _clampUnit(ratio)
+        return Qt.rgba(
+            colorA.r + (colorB.r - colorA.r) * clamped,
+            colorA.g + (colorB.g - colorA.g) * clamped,
+            colorA.b + (colorB.b - colorA.b) * clamped,
+            colorA.a + (colorB.a - colorA.a) * clamped
+        )
+    }
+
+    function _lineColor(key) {
+        var pressureValue = _linePressureValue(key)
+        var ratio = hasValidRange ? _clampUnit(_normalize(pressureValue)) : normalizedPressure
+        var baseColor = _mixColor(lowPressureColor, highPressureColor, ratio)
+        var intensity = _lineIntensityValue(key)
+        return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, Math.min(0.95, 0.55 + 0.35 * intensity))
+    }
+
+    function _lineValveState(key) {
+        var state = _lineMapValue(lineValveStates, key, null)
+        if (_isPlainObject(state))
+            return state
+        return { atmosphereOpen: false, tankOpen: false }
+    }
+
+    function _lineValveOpen(key) {
+        var state = _lineValveState(key)
+        return !!state.atmosphereOpen || !!state.tankOpen
+    }
+
     Rectangle {
         id: vessel
         anchors.fill: parent
@@ -186,6 +285,70 @@ Item {
                 NumberAnimation {
                     duration: 140
                     easing.type: Easing.OutQuad
+                }
+            }
+        }
+
+        Item {
+            id: lineIndicators
+            anchors.fill: parent
+
+            Repeater {
+                model: root.lineDescriptors
+                delegate: Item {
+                    id: lineDelegate
+
+                    required property var modelData
+
+                    width: parent.width
+                    height: parent.height
+
+                    readonly property real _pressureValue: root._linePressureValue(lineDelegate.modelData.key)
+                    readonly property real _normalized: root.hasValidRange ? root._clampUnit(root._normalize(lineDelegate._pressureValue)) : root.normalizedPressure
+                    readonly property real _intensity: root._lineIntensityValue(lineDelegate.modelData.key)
+                    readonly property bool valveOpen: root._lineValveOpen(lineDelegate.modelData.key)
+
+                    Components.SphericalMarker {
+                        id: lineSphere
+                        width: 22
+                        height: 22
+                        color: root._lineColor(lineDelegate.modelData.key)
+                        borderColor: Qt.rgba(0.14, 0.22, 0.32, 0.9)
+                        x: Math.round(parent.width * lineDelegate.modelData.anchor.x - width / 2)
+                        y: Math.round((parent.height - height) * (1.0 - lineDelegate._normalized))
+                    }
+
+                    Label {
+                        text: lineDelegate.modelData.label || ""
+                        visible: text.length > 0
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: "#dfe6f7"
+                        anchors.horizontalCenter: lineSphere.horizontalCenter
+                        anchors.top: lineSphere.bottom
+                        anchors.topMargin: 2
+                    }
+
+                    Rectangle {
+                        id: valveIcon
+                        width: 20
+                        height: 20
+                        radius: 5
+                        color: lineDelegate.valveOpen ? root.valveOpenColor : root.valveClosedColor
+                        border.width: 1
+                        border.color: Qt.rgba(0.08, 0.12, 0.18, 0.8)
+                        x: Math.round(parent.width * lineDelegate.modelData.valveAnchor.x - width / 2)
+                        y: Math.round((parent.height - height) * (1.0 - lineDelegate._normalized))
+                        opacity: 0.7 + 0.3 * lineDelegate._intensity
+
+                        Text {
+                            text: lineDelegate.valveOpen ? "✓" : "✕"
+                            anchors.centerIn: parent
+                            font.pixelSize: 12
+                            font.bold: true
+                            color: lineDelegate.valveOpen ? "#08210f" : "#2b1111"
+                        }
+                    }
                 }
             }
         }

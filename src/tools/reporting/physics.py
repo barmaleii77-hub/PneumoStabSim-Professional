@@ -156,10 +156,8 @@ def summarise_assertions(
             }
             actual = actual_map
             expected_map = {k: float(v) for k, v in expected.items()}
-            missing_keys = set(expected_map) - actual_map.keys()
-            passed = not missing_keys and all(
-                _within_tolerance(actual_map[key], expected_map[key], tolerance)
-                for key in expected_map
+            passed = all(
+                abs(actual_map[k] - expected_map[k]) <= tolerance for k in expected_map
             )
         elif assertion.kind == "moment":
             actual_map = {"tau_x": float(tau_x), "tau_z": float(tau_z)}
