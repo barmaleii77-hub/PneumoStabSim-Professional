@@ -1292,7 +1292,7 @@ Item {
         Connections {
             target: bloomFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged(status) {
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
             }
         }
