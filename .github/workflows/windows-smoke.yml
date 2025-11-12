@@ -68,9 +68,6 @@ jobs:
       - name: Install project dependencies
         run: uv sync --frozen --extra dev
 
-      - name: Ensure PySide6 runtime is present
-        run: uv pip install "PySide6>=6.10,<7" "PySide6-Essentials>=6.10,<7" \
-          "PySide6-Addons>=6.10,<7" "PySide6-QtQuick3D>=6.10,<7"
 
       - name: Provision Qt ${{ env.QT_VERSION }}
         run: python tools/setup_qt.py --qt-version ${{ env.QT_VERSION }} --force --prune-archives
