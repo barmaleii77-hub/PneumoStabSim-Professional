@@ -91,19 +91,31 @@ def _run_command(command: Iterable[str]) -> subprocess.CompletedProcess[str]:
     )
 
 
-def run_uv_sync() -> bool:
-    """Execute ``uv sync`` if the ``uv`` CLI is available."""
+def _resolve_uv_executable() -> str:
+    """Return the absolute path to the ``uv`` CLI or raise a helpful error."""
 
     uv_executable = shutil.which("uv")
-    if not uv_executable:
-        raise RuntimeError(
-            "uv executable not found. Install uv or run inside an existing environment."
-        )
+    if uv_executable:
+        return uv_executable
+
+    raise RuntimeError(
+        "uv executable not found. Install uv (https://docs.astral.sh/uv/) or run inside the "
+        "configured virtual environment via 'make uv-sync'."
+    )
+
+
+def run_uv_sync() -> bool:
+    """Execute ``uv sync`` and surface command output in case of failure."""
+
+    uv_executable = _resolve_uv_executable()
 
     result = _run_command([uv_executable, "sync"])
     print(result.stdout, end="")
     if result.returncode != 0:
-        raise RuntimeError("uv sync failed with exit code %d" % result.returncode)
+        raise RuntimeError(
+            "uv sync failed with exit code %d. Output:%s%s"
+            % (result.returncode, os.linesep, result.stdout)
+        )
     return True
 
 
