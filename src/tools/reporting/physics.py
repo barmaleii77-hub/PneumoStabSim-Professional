@@ -159,6 +159,7 @@ def summarise_assertions(
             passed = all(
                 abs(actual_map[k] - expected_map[k]) <= tolerance for k in expected_map
             )
+            passed = all(differences)
         elif assertion.kind == "moment":
             actual_map = {"tau_x": float(tau_x), "tau_z": float(tau_z)}
             actual = actual_map
