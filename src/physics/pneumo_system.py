@@ -24,6 +24,8 @@ from src.pneumo.enums import Line, Port, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.pneumo.system import PneumaticSystem as StructuralPneumaticSystem
 
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
+
 
 def _coerce_context_value(value: Any) -> Any:
     """Return a logging-friendly representation for contextual fields."""
