@@ -24,6 +24,71 @@ _logger_registry: dict[tuple[Any, ...], logging.Logger] = {}
 _base_context: dict[str, Any] = {"env_context": "env=unknown"}
 
 
+def _normalize_for_cache(value: Any) -> Hashable:
+    """
+    Возвращает хэшируемое представление для произвольных значений контекста.
+
+    Рекурсивно преобразует не-хэшируемые типы к хэшируемым эквивалентам:
+        - Mapping (dict, etc.): сортированный кортеж пар (key, normalized_value)
+        - list/tuple: кортеж нормализованных элементов
+        - set/frozenset: сортированный кортеж нормализованных элементов (по repr)
+        - Примитивы (str, int, float, bool, None, bytes): возвращаются как есть
+        - Другие хэшируемые типы: возвращаются как есть
+        - Не-хэшируемые объекты: строка через repr()
+
+    Аргументы:
+        value: Любое значение для нормализации
+
+    Возвращает:
+        Хэшируемое представление, пригодное для использования в качестве ключа dict.
+    """
+    if isinstance(value, Mapping):
+        normalized = [
+            (key, _normalize_for_cache(val)) for key, val in value.items()
+        ]
+        return tuple(sorted(normalized, key=lambda item: (item[0], type(item[0]).__name__)))
+    if isinstance(value, list | tuple):
+        return tuple(_normalize_for_cache(item) for item in value)
+    if isinstance(value, set | frozenset):
+        return tuple(
+            sorted(
+                (_normalize_for_cache(item) for item in value),
+                key=repr,
+            )
+        )
+    if isinstance(value, (str, bytes, int, float, bool, type(None))):
+        return cast(Hashable, value)
+    try:
+        hash(value)
+    except TypeError:
+        # Используем имя класса и str() для стабильного представления
+        return (type(value).__name__, str(value))
+    return cast(Hashable, value)
+
+
+def _make_hashable_context(
+    context: Mapping[str, Any] | None,
+) -> tuple[tuple[str, Hashable], ...]:
+    """
+    Преобразует mapping контекста в детерминированную, хэшируемую структуру.
+
+    Args:
+        context: Необязательный mapping ключ-значение для контекста.
+
+    Returns:
+        Пустой кортеж, если context равен None или пустой mapping.
+        В противном случае — отсортированный кортеж пар (key, normalized_value),
+        где значения рекурсивно нормализуются через _normalize_for_cache для гарантии хэшируемости.
+    """
+    if not context:
+        return ()
+
+    normalized_items = [
+        (key, _normalize_for_cache(value)) for key, value in context.items()
+    ]
+    return tuple(sorted(normalized_items, key=lambda item: str(item[0])))
+
+
 class ContextualFilter(logging.Filter):
     """Добавляет контекстную информацию к логам"""
 
