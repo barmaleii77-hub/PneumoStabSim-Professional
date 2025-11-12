@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
@@ -93,10 +95,26 @@ ExtendedSceneEnvironment {
         var keyName = _primaryKey(keys)
         var cacheKey = section + ":" + keyName + ":" + reason
         var currentTrace = diagnosticsTrace
-        var cachedTarget = _warningCache[cacheKey]
-        if (cachedTarget !== undefined && cachedTarget === currentTrace)
-            return
-        _warningCache[cacheKey] = currentTrace
+        var cacheEntry = _warningCache[cacheKey]
+
+        if (!cacheEntry) {
+            cacheEntry = {
+                trace: currentTrace,
+                entry: {
+                    section: "",
+                    key: "",
+                    reason: "",
+                    fallback: ""
+                },
+                overlays: [],
+                logged: false
+            }
+            _warningCache[cacheKey] = cacheEntry
+        } else if (cacheEntry.trace !== currentTrace) {
+            cacheEntry.trace = currentTrace
+            cacheEntry.overlays = []
+            cacheEntry.logged = false
+        }
 
         var sectionText = _stringify(section, "")
         var keyText = _stringify(keyName, "")

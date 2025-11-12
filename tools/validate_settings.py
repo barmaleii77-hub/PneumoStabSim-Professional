@@ -66,6 +66,15 @@ def _collect_schema_errors(
 ) -> list[str]:
     """Return a sorted list of human-readable schema validation errors."""
 
+    # ``check_schema`` ensures the schema itself is valid before attempting to
+    # instantiate the validator.  Newer versions of :mod:`jsonschema` accept
+    # some incorrect constructs (e.g. ``required`` as a string) without raising
+    # during instantiation which breaks our CLI contract.  Test doubles used in
+    # the unit-suite provide lightweight validator shims which omit this hook,
+    # therefore we only invoke it when available.
+    check_schema = getattr(validator_cls, "check_schema", None)
+    if callable(check_schema):
+        check_schema(schema)
     validator = validator_cls(schema)
     errors = []
     for error in sorted(validator.iter_errors(payload), key=lambda err: err.path):
