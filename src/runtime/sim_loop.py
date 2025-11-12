@@ -44,7 +44,11 @@ from src.pneumo.enums import (
     Port,
     ReceiverVolumeMode,
 )
-from src.pneumo.receiver import ReceiverState, ReceiverSpec
+from src.pneumo.receiver import (
+    ReceiverState,
+    ReceiverSpec,
+    ReceiverVolumeUpdate,
+)
 from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.gas_state import apply_instant_volume_change
 from src.pneumo.thermo import PolytropicParameters
@@ -80,6 +84,7 @@ class PhysicsWorker(QObject):
     state_ready = Signal(object)  # StateSnapshot
     error_occurred = Signal(str)  # Error message
     performance_update = Signal(object)  # PerformanceMetrics
+    receiver_volume_changed = Signal(float, str, object)  # volume, mode token, update
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -840,8 +845,8 @@ class PhysicsWorker(QObject):
         self.master_isolation_open = open
         self.logger.info(f"Master isolation: {'OPEN' if open else 'CLOSED'}")
 
-    @Slot(float, str)
-    def set_receiver_volume(self, volume: float, mode: str):
+    @Slot(float, str, result=object)
+    def set_receiver_volume(self, volume: float, mode: str) -> ReceiverVolumeUpdate | None:
         """Set receiver volume and recalculation mode
 
         Args:
@@ -850,7 +855,7 @@ class PhysicsWorker(QObject):
         """
         if volume <= 0 or volume > 1.0:  # Reasonable limits (0-1000L)
             self.error_occurred.emit(f"Invalid receiver volume: {volume} m?")
-            return
+            return None
 
         def _log_with_context(
             level: str,
@@ -895,6 +900,8 @@ class PhysicsWorker(QObject):
 
         mode_enum = self._resolve_receiver_mode(mode_token)
 
+        receiver_update: ReceiverVolumeUpdate | None = None
+
         receiver_pressure: float | None = None
         receiver_temperature: float | None = None
         pneumatic_tank_volume: float | None = None
@@ -903,10 +910,10 @@ class PhysicsWorker(QObject):
                 receiver_state = getattr(self.pneumatic_system, "receiver", None)
                 if receiver_state is None:
                     raise AttributeError("Pneumatic system missing receiver state")
-                receiver_state.mode = mode_enum
-                receiver_state.apply_instant_volume_change(volume)
-                receiver_pressure = getattr(receiver_state, "p", None)
-                receiver_temperature = getattr(receiver_state, "T", None)
+                receiver_update = receiver_state.set_volume(volume, mode_enum)
+                mode_enum = receiver_update.mode
+                receiver_pressure = receiver_update.pressure
+                receiver_temperature = receiver_update.temperature
 
                 pneumo_tank = getattr(self.pneumatic_system, "tank", None)
                 if pneumo_tank is not None:
@@ -983,6 +990,53 @@ class PhysicsWorker(QObject):
         }
 
         _log_with_context("info", "Receiver volume updated", log_payload)
+
+        if receiver_update is None:
+            fallback_pressure = receiver_pressure
+            fallback_temperature = receiver_temperature
+
+            if fallback_pressure is None and tank_pressure is not None:
+                fallback_pressure = float(tank_pressure)
+            if fallback_temperature is None and tank_temperature is not None:
+                fallback_temperature = float(tank_temperature)
+
+            latest_state = getattr(self, "_latest_tank_state", None)
+            if latest_state is not None:
+                if fallback_pressure is None and hasattr(latest_state, "pressure"):
+                    fallback_pressure = float(getattr(latest_state, "pressure"))
+                if fallback_temperature is None and hasattr(latest_state, "temperature"):
+                    fallback_temperature = float(getattr(latest_state, "temperature"))
+
+            receiver_state = getattr(self.pneumatic_system, "receiver", None)
+            if receiver_state is not None:
+                if fallback_pressure is None and hasattr(receiver_state, "p"):
+                    fallback_pressure = float(getattr(receiver_state, "p"))
+                if fallback_temperature is None and hasattr(receiver_state, "T"):
+                    fallback_temperature = float(getattr(receiver_state, "T"))
+
+            receiver_update = ReceiverVolumeUpdate(
+                volume=float(volume),
+                pressure=float(fallback_pressure or 0.0),
+                temperature=float(fallback_temperature or 0.0),
+                mode=mode_enum,
+            )
+
+        update_payload = receiver_update
+
+        signal_obj = getattr(self, "receiver_volume_changed", None)
+        emit = getattr(signal_obj, "emit", None)
+        if callable(emit):
+            try:
+                emit(float(self.receiver_volume), mode_token, update_payload)
+            except Exception as exc:  # pragma: no cover - defensive logging
+                _log_with_context(
+                    "warning",
+                    "WARNING: failed to emit receiver volume change",
+                    {"error": str(exc)},
+                    exc_info=True,
+                )
+
+        return update_payload
 
     @Slot(float)
     def set_physics_dt(self, dt: float):
@@ -1310,11 +1364,12 @@ class PhysicsWorker(QObject):
         return lookup
 
     def _get_line_pressure(self, wheel: Wheel, port: Port) -> float:
-        for line_name, line in self.pneumatic_system.lines.items():
-            for endpoint_wheel, endpoint_port in line.endpoints:
-                if endpoint_wheel == wheel and endpoint_port == port:
-                    return float(self.gas_network.lines[line_name].p)
-        return float(self.gas_network.tank.p)
+        return self.pneumatic_system.line_pressure(
+            wheel,
+            port,
+            default=float(self.gas_network.tank.p),
+            logger=self.logger,
+        )
 
 
 SNAPSHOT_BUFFER_CAPACITY = 4096

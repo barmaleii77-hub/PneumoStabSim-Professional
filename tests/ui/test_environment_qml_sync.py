@@ -154,8 +154,43 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
         assert int(assembly.property("reflectionProbeTimeSlicingValue")) == int(
             probe.property("timeSlicing")
         )
+        enabled_index = probe.metaObject().indexOfProperty("enabled")
+        assert enabled_index >= 0, "ReflectionProbe.enabled property unavailable"
+        assert bool(probe.property("enabled")) == bool(state["reflection_enabled"])
+        assert bool(probe.property("visible")) == bool(state["reflection_enabled"])
     finally:
         tab.deleteLater()
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_reflection_probe_disabled_when_settings_false(qapp) -> None:
+    overrides = {
+        "initialReflectionProbeSettings": {
+            "enabled": False,
+            "padding_m": 0.15,
+            "quality": "veryhigh",
+            "refresh_mode": "everyframe",
+            "time_slicing": "individualfaces",
+        }
+    }
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert not bool(assembly.property("reflectionProbeEnabled"))
+
+        probe = assembly.property("reflectionProbe")
+        assert isinstance(probe, QObject), "ReflectionProbe object unavailable"
+        enabled_index = probe.metaObject().indexOfProperty("enabled")
+        assert enabled_index >= 0, "ReflectionProbe.enabled property unavailable"
+        assert bool(probe.property("enabled")) is False
+        assert bool(probe.property("visible")) is False
+    finally:
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
@@ -181,6 +216,38 @@ def test_reflection_probe_defaults_missing_keys_emits_warning(qapp) -> None:
             rel_tol=1e-6,
             abs_tol=1e-6,
         )
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_environment_defaults_disable_reflection_probe_visibility(qapp) -> None:
+    overrides = {
+        "initialSceneSettings": {
+            "graphics": {
+                "environment": {
+                    "reflection_enabled": False,
+                    "reflection_padding_m": 0.2,
+                }
+            }
+        }
+    }
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert bool(assembly.property("reflectionProbeEnabled")) is False
+
+        probe = assembly.property("reflectionProbe")
+        assert isinstance(probe, QObject), "ReflectionProbe object unavailable"
+        enabled_index = probe.metaObject().indexOfProperty("enabled")
+        assert enabled_index >= 0, "ReflectionProbe.enabled property unavailable"
+        assert bool(probe.property("enabled")) is False
+        assert bool(probe.property("visible")) is False
     finally:
         root.deleteLater()
         component.deleteLater()

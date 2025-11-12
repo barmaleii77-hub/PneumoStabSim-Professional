@@ -425,7 +425,7 @@ class ApplicationRunner:
             )
 
             logger.info("=" * 60)
-            logger.info("PneumoStabSim v4.9.5 - Application Started")
+            logger.info("PneumoStabSim v4.9.9 - Application Started")
             logger.info("=" * 60)
             logger.info(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
             if self.logging_preset is not None:
@@ -534,7 +534,7 @@ class ApplicationRunner:
                     )
 
         app.setApplicationName("PneumoStabSim")
-        app.setApplicationVersion("4.9.5")
+        app.setApplicationVersion("4.9.9")
         app.setOrganizationName("PneumoStabSim")
 
         if self.app_logger:
@@ -927,7 +927,12 @@ class ApplicationRunner:
             "--quiet",
         ]
 
-        result = subprocess.run(command, capture_output=True, text=True)
+        try:
+            result = subprocess.run(
+                command, capture_output=True, text=True, check=False
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Failed to execute settings validator: {exc}") from exc
         if result.returncode != 0:
             output = (result.stderr or result.stdout or "").strip()
             raise RuntimeError(
@@ -1264,7 +1269,7 @@ class ApplicationRunner:
     def _print_header(self) -> None:
         """Печать заголовка приложения в консоль."""
         print("=" * 60)
-        print("🚀 PNEUMOSTABSIM v4.9.5")
+        print("🚀 PNEUMOSTABSIM v4.9.9")
         print("=" * 60)
 
         try:

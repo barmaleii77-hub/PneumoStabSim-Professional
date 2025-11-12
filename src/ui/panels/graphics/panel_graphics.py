@@ -519,6 +519,24 @@ class GraphicsPanel(QWidget):
             self.logger.error(f"❌ Failed to collect graphics state: {exc}")
             return self.state or {}
 
+    def get_parameters(self) -> dict[str, Any]:
+        """Return a defensive snapshot of the current graphics configuration."""
+
+        snapshot = self._sync_controller.snapshot()
+        try:
+            validated = self.settings_service.ensure_valid_state(snapshot)
+        except GraphicsSettingsError as exc:
+            self.logger.error(
+                "❌ GraphicsPanel.get_parameters validation failed: %s", exc
+            )
+            validated = snapshot
+        except Exception as exc:  # pragma: no cover - defensive logging
+            self.logger.error(
+                "❌ GraphicsPanel.get_parameters unexpected error: %s", exc
+            )
+            validated = snapshot
+        return deepcopy(validated)
+
     # ------------------------------------------------------------------
     # Анализ (не настройки)
     # ------------------------------------------------------------------

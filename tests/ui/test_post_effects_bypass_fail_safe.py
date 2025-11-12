@@ -6,20 +6,15 @@ from pathlib import Path
 
 import pytest
 
-pytest.importorskip(
+from tests.helpers import require_qt_modules
+
+require_qt_modules(
     "PySide6.QtQuick3D",
-    reason="PySide6 QtQuick3D module is required to instantiate PostEffects",
-    exc_type=ImportError,
-)
-pytest.importorskip(
     "PySide6.QtQml",
-    reason="PySide6 QtQml module is required for PostEffects fail-safe tests",
-    exc_type=ImportError,
 )
 
 from PySide6.QtCore import QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine
-
 from tests.helpers import SignalListener
 
 
@@ -86,9 +81,14 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
             failure_keys = []
 
         if baseline_bypass and not failure_keys:
-            pytest.skip(
-                "PostEffects started in fallback mode without persistent failures; "
-                "headless rendering lacks depth/normal/velocity buffers"
+            pytest.fail(
+                (
+                    "PostEffects started in fallback mode without persistent failures; "
+                    "headless rendering lacks depth/normal/velocity buffers. "
+                    "Re-run `python -m tools.cross_platform_test_prep --use-uv --run-tests` "
+                    "to provision the required GPU resources."
+                ),
+                pytrace=False,
             )
 
         initial_effects = scene_view.property("effects")

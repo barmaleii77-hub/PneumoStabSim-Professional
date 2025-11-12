@@ -32,17 +32,32 @@ class TestLabeledSlider:
 
         assert slider.value() == pytest.approx(2.5)
 
-        has_step_property = hasattr(type(slider), "step")
-        if has_step_property:
+        if hasattr(slider, "step"):
             slider.step = 0.25
-            assert getattr(slider, "step") == pytest.approx(0.25)
+            assert slider.step_size == pytest.approx(0.25)
         else:
-            slider.step_size = 0.25
-            # Qt 6.5 builds omit the ``RangeSlider.step`` alias; emulate the
-            # interaction by nudging the control value using the configured step
-            # size so the behaviour under test remains covered.
-            slider.set_value(slider.value() + slider.step_size)
-            assert slider.value() == pytest.approx(2.75)
-            slider.set_value(2.5)
+            # PySide6 community builds may not expose ``step``; fall back to
+            # validating that changing the canonical ``step_size`` attribute
+            # still reconfigures the slider correctly and emits updates.
+            captured: list[float] = []
 
-        assert slider.step_size == pytest.approx(0.25)
+            def _capture(value: float) -> None:
+                captured.append(value)
+
+            slider.valueChanged.connect(_capture)
+
+            slider.step_size = 0.25
+            slider.set_value(2.75)
+            assert slider.step_size == pytest.approx(0.25)
+            assert captured, "Expected valueChanged to fire after adjusting step"
+
+    def test_clamps_to_extreme_values(self, qtbot):
+        slider = LabeledSlider("Exposure", -5.0, 5.0, 0.1)
+        qtbot.addWidget(slider)
+
+        slider.set_value(4.5)
+        slider._spin.setValue(500.0)  # type: ignore[attr-defined]
+        assert slider.value() == pytest.approx(5.0)
+
+        slider._spin.setValue(-500.0)  # type: ignore[attr-defined]
+        assert slider.value() == pytest.approx(-5.0)

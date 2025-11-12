@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 pytest.importorskip(
@@ -11,6 +13,9 @@ pytest.importorskip(
 )
 
 from src.ui.panels.geometry import GeometryPanel
+from src.ui.geometry_schema import GeometrySettings
+
+from ._slider_utils import get_slider_value, nudge_slider
 
 
 def _get_wheelbase_slider(panel: GeometryPanel):
@@ -25,14 +30,23 @@ def test_get_parameters_returns_copy(qtbot: pytestqt.qtbot.QtBot) -> None:
     qtbot.addWidget(panel)
 
     snapshot = panel.get_parameters()
+    settings = panel.get_geometry_settings()
 
     assert isinstance(snapshot, dict)
     assert "wheelbase" in snapshot
+    assert isinstance(settings, GeometrySettings)
+    assert settings.to_config_dict()["wheelbase"] == pytest.approx(
+        snapshot["wheelbase"]
+    )
 
     snapshot["wheelbase"] = -123.0
 
     refreshed = panel.get_parameters()
     assert refreshed["wheelbase"] != snapshot["wheelbase"]
+    refreshed_settings = panel.get_geometry_settings()
+    assert refreshed_settings.to_config_dict()["wheelbase"] == pytest.approx(
+        refreshed["wheelbase"]
+    )
 
 
 @pytest.mark.gui
@@ -44,11 +58,14 @@ def test_get_parameters_tracks_slider_updates(
     qtbot.addWidget(panel)
 
     slider = _get_wheelbase_slider(panel)
-    initial = slider.value()
-    target = max(slider.minimum(), min(slider.maximum(), initial + delta))
-
-    slider.value_spinbox.setValue(target)
+    initial = get_slider_value(slider)
+    updated = nudge_slider(slider, delta)
     qtbot.wait(350)
 
     params = panel.get_parameters()
-    assert params["wheelbase"] == pytest.approx(slider.value())
+    settings = panel.get_geometry_settings()
+    assert not math.isclose(updated, initial, rel_tol=1e-9, abs_tol=1e-9)
+    assert params["wheelbase"] == pytest.approx(get_slider_value(slider))
+    assert settings.to_config_dict()["wheelbase"] == pytest.approx(
+        get_slider_value(slider)
+    )

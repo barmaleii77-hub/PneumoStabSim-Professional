@@ -13,14 +13,80 @@ import os
 import platform
 from pathlib import Path
 from typing import Any
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 import traceback
 
 
 # Global queue listener for cleanup
 _queue_listener: logging.handlers.QueueListener | None = None
-_logger_registry: dict[str, logging.Logger] = {}
+_logger_registry: dict[tuple[Any, ...], logging.Logger] = {}
+_base_context: dict[str, Any] = {"env_context": "env=unknown"}
+
+
+def _normalize_for_cache(value: Any) -> Hashable:
+    """
+    Возвращает хэшируемое представление для произвольных значений контекста.
+
+    Рекурсивно преобразует не-хэшируемые типы к хэшируемым эквивалентам:
+        - Mapping (dict, etc.): сортированный кортеж пар (key, normalized_value)
+        - list/tuple: кортеж нормализованных элементов
+        - set/frozenset: сортированный кортеж нормализованных элементов (по repr)
+        - Примитивы (str, int, float, bool, None, bytes): возвращаются как есть
+        - Другие хэшируемые типы: возвращаются как есть
+        - Не-хэшируемые объекты: строка через repr()
+
+    Аргументы:
+        value: Любое значение для нормализации
+
+    Возвращает:
+        Хэшируемое представление, пригодное для использования в качестве ключа dict.
+    """
+    if isinstance(value, Mapping):
+        normalized = [
+            (key, _normalize_for_cache(val)) for key, val in value.items()
+        ]
+        return tuple(sorted(normalized, key=lambda item: (item[0], type(item[0]).__name__)))
+    if isinstance(value, list | tuple):
+        return tuple(_normalize_for_cache(item) for item in value)
+    if isinstance(value, set | frozenset):
+        return tuple(
+            sorted(
+                (_normalize_for_cache(item) for item in value),
+                key=repr,
+            )
+        )
+    if isinstance(value, (str, bytes, int, float, bool, type(None))):
+        return cast(Hashable, value)
+    try:
+        hash(value)
+    except TypeError:
+        # Используем имя класса и str() для стабильного представления
+        return (type(value).__name__, str(value))
+    return cast(Hashable, value)
+
+
+def _make_hashable_context(
+    context: Mapping[str, Any] | None,
+) -> tuple[tuple[str, Hashable], ...]:
+    """
+    Преобразует mapping контекста в детерминированную, хэшируемую структуру.
+
+    Args:
+        context: Необязательный mapping ключ-значение для контекста.
+
+    Returns:
+        Пустой кортеж, если context равен None или пустой mapping.
+        В противном случае — отсортированный кортеж пар (key, normalized_value),
+        где значения рекурсивно нормализуются через _normalize_for_cache для гарантии хэшируемости.
+    """
+    if not context:
+        return ()
+
+    normalized_items = [
+        (key, _normalize_for_cache(value)) for key, value in context.items()
+    ]
+    return tuple(sorted(normalized_items, key=lambda item: str(item[0])))
 
 
 class ContextualFilter(logging.Filter):
@@ -33,8 +99,53 @@ class ContextualFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         # Добавляем контекст к каждому record
         for key, value in self.context.items():
-            setattr(record, key, value)
+            if not hasattr(record, key):
+                setattr(record, key, value)
         return True
+
+
+def _make_hashable(value: Any) -> Any:
+    """Convert arbitrary values into a hashable representation.
+
+    Logging contexts may include nested containers (lists, dicts, sets) or
+    other objects that are not inherently hashable. To safely cache loggers
+    using these contexts, we recursively normalise values into tuples while
+    preserving ordering semantics for sequences and deterministic ordering for
+    mappings/sets. Objects that remain unhashable fall back to their
+    ``repr`` representation.
+    """
+
+    try:
+        hash(value)
+    except TypeError:
+        if isinstance(value, Mapping):
+            return tuple(
+                sorted((key, _make_hashable(val)) for key, val in value.items())
+            )
+        if isinstance(value, (set, frozenset)):
+            return tuple(sorted(_make_hashable(item) for item in value))
+        if isinstance(value, Sequence) and not isinstance(
+            value, (str, bytes, bytearray)
+        ):
+            return tuple(_make_hashable(item) for item in value)
+        return repr(value)
+    return value
+
+
+def _build_environment_context(app_name: str) -> dict[str, str]:
+    """Собирает ключевые сведения об окружении для включения в логи."""
+
+    system = platform.system() or "unknown"
+    release = platform.release() or ""
+    machine = platform.machine() or "unknown"
+    python_version = platform.python_version()
+    parts = [
+        f"app={app_name}",
+        f"os={system}{' ' + release if release else ''}",
+        f"machine={machine}",
+        f"python={python_version}",
+    ]
+    return {"env_context": " | ".join(parts)}
 
 
 class ColoredFormatter(logging.Formatter):
@@ -70,7 +181,7 @@ def init_logging(
 ) -> logging.Logger:
     """Initialize application logging with non-blocking queue handler
 
-    УЛУЧШЕНИЯ v4.9.5:
+    УЛУЧШЕНИЯ v4.9.9:
     - Ротация логов (max_bytes, backup_count)
     - Опциональный вывод в консоль
     - Цветной вывод для консоли
@@ -116,6 +227,11 @@ def init_logging(
     # Также сохраняем копию в run.log для совместимости
     run_log = log_dir / "run.log"
 
+    # Refresh environment metadata for the current session
+    global _base_context
+    _base_context = _build_environment_context(app_name)
+    _logger_registry.clear()
+
     # Create log queue for non-blocking writes
     log_queue: "queue.Queue[logging.LogRecord]" = queue.Queue(-1)  # Unlimited size
 
@@ -141,7 +257,10 @@ def init_logging(
             return f"{base}.{int(record.msecs):03d}"
 
     formatter = MicrosecondFormatter(
-        fmt="%(asctime)s | PID:%(process)d TID:%(thread)d | %(levelname)-8s | %(name)s | %(message)s",
+        fmt=(
+            "%(asctime)s | PID:%(process)d TID:%(thread)d | %(levelname)-8s | "
+            "%(name)s | %(env_context)s | %(message)s"
+        ),
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
 
@@ -181,6 +300,7 @@ def init_logging(
     # Add QueueHandler to root logger (non-blocking)
     queue_handler = logging.handlers.QueueHandler(log_queue)
     root_logger.addHandler(queue_handler)
+    root_logger.addFilter(ContextualFilter(_base_context))
 
     # Register cleanup on exit
     atexit.register(_cleanup_logging, app_name)
@@ -265,7 +385,7 @@ def get_category_logger(
 ) -> logging.Logger:
     """Get logger for specific category with optional context
 
-    УЛУЧШЕНИЯ v4.9.5:
+    УЛУЧШЕНИЯ v4.9.9:
     - Кэширование логгеров
     - Контекстные фильтры
     - Автоматическое именование
@@ -294,16 +414,29 @@ def get_category_logger(
     global _logger_registry
 
     # Кэшируем логгеры
-    cache_key = f"{category}_{id(context)}"
+    base_key = tuple(
+        (key, _make_hashable(val)) for key, val in sorted(_base_context.items())
+    )
+    context_key: tuple[Any, ...]
+    if context:
+        context_key = tuple(
+            (key, _make_hashable(val)) for key, val in sorted(context.items())
+        )
+    else:
+        context_key = ()
+    cache_key = (category, base_key, context_key)
     if cache_key in _logger_registry:
         return _logger_registry[cache_key]
 
     # Use PneumoStabSim as root, category as child
     logger = logging.getLogger(f"PneumoStabSim.{category}")
 
-    # Добавляем контекстный фильтр если нужен
+    # Добавляем контекстный фильтр: глобальные сведения + пользовательский контекст
+    combined_context = dict(_base_context)
     if context:
-        logger.addFilter(ContextualFilter(context))
+        combined_context.update(context)
+    if combined_context:
+        logger.addFilter(ContextualFilter(combined_context))
 
     # Сохраняем в кэш
     _logger_registry[cache_key] = logger
