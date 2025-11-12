@@ -25,8 +25,23 @@ _base_context: dict[str, Any] = {"env_context": "env=unknown"}
 
 
 def _normalize_for_cache(value: Any) -> Hashable:
-    """Return a hashable representation for arbitrary context values."""
+    """
+    Возвращает хэшируемое представление для произвольных значений контекста.
 
+    Рекурсивно преобразует не-хэшируемые типы к хэшируемым эквивалентам:
+        - Mapping (dict, etc.): сортированный кортеж пар (key, normalized_value)
+        - list/tuple: кортеж нормализованных элементов
+        - set/frozenset: сортированный кортеж нормализованных элементов (по repr)
+        - Примитивы (str, int, float, bool, None, bytes): возвращаются как есть
+        - Другие хэшируемые типы: возвращаются как есть
+        - Не-хэшируемые объекты: строка через repr()
+
+    Аргументы:
+        value: Любое значение для нормализации
+
+    Возвращает:
+        Хэшируемое представление, пригодное для использования в качестве ключа dict.
+    """
     if isinstance(value, Mapping):
         normalized = [
             (key, _normalize_for_cache(val)) for key, val in value.items()
