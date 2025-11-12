@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 from collections.abc import Iterable, Mapping
+from math import isclose
 
 import numpy as np
 
@@ -13,6 +14,12 @@ from src.physics import forces
 
 def _as_tuple(values: Iterable[float]) -> tuple[float, ...]:
     return tuple(float(value) for value in values)
+
+
+def _within_tolerance(actual: float, expected: float, tolerance: float) -> bool:
+    """Return True when *actual* is within *tolerance* of *expected*."""
+
+    return isclose(actual, expected, rel_tol=0.0, abs_tol=tolerance)
 
 
 def evaluate_physics_case(case: Any) -> dict[str, Any]:
@@ -129,34 +136,37 @@ def summarise_assertions(
                 evaluation["kinematics"][assertion.target]["axial_velocity"]
             )
             actual = actual_value
-            passed = abs(actual_value - float(expected)) <= tolerance
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
         elif assertion.kind == "cylinder-force":
             actual_value = float(evaluation["cylinder_forces"][assertion.target])
             actual = actual_value
-            passed = abs(actual_value - float(expected)) <= tolerance
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
         elif assertion.kind == "spring-force":
             actual_value = float(evaluation["spring_forces"][assertion.target])
             actual = actual_value
-            passed = abs(actual_value - float(expected)) <= tolerance
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
         elif assertion.kind == "damper-force":
             actual_value = float(evaluation["damper_forces"][assertion.target])
             actual = actual_value
-            passed = abs(actual_value - float(expected)) <= tolerance
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
         elif assertion.kind == "vertical-force":
-            actual_map = evaluation["vertical_forces"]
+            actual_map = {
+                wheel: float(force)
+                for wheel, force in evaluation["vertical_forces"].items()
+            }
             actual = actual_map
             expected_map = {k: float(v) for k, v in expected.items()}
             passed = all(
-                abs(actual_map[k] - expected_map[k]) <= tolerance
-                for k in expected_map
+                abs(actual_map[k] - expected_map[k]) <= tolerance for k in expected_map
             )
+            passed = all(differences)
         elif assertion.kind == "moment":
-            actual_map = {"tau_x": tau_x, "tau_z": tau_z}
+            actual_map = {"tau_x": float(tau_x), "tau_z": float(tau_z)}
             actual = actual_map
             expected_map = {k: float(v) for k, v in expected.items()}
-            passed = (
-                abs(actual_map["tau_x"] - expected_map["tau_x"]) <= tolerance
-                and abs(actual_map["tau_z"] - expected_map["tau_z"]) <= tolerance
+            passed = all(
+                _within_tolerance(actual_map[key], expected_map[key], tolerance)
+                for key in expected_map
             )
         else:
             actual = None
