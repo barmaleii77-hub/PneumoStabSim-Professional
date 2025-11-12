@@ -1734,7 +1734,7 @@ Item {
         Connections {
             target: motionBlurFallbackShader
             ignoreUnknownSignals: true
-            function onStatusChanged(status) {
+            function onStatusChanged() {
                 root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
             }
         }
