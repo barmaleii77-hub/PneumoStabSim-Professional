@@ -1,12 +1,14 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
-import environment 1.0
+import "../../assets/qml/environment" as Environment
 
 QtObject {
     id: root
 
     property var sceneBridgePayload: null
 
-    property var env: RealismEnvironment {
+    property var env: Environment.RealismEnvironment {
         id: environmentComponent
         sceneBridge: root.sceneBridgePayload
     }

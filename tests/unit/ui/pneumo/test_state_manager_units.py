@@ -6,7 +6,11 @@ import logging
 
 import pytest
 
-from src.ui.panels.pneumo.defaults import PRESSURE_DROP_LIMITS, convert_pressure_value
+from src.ui.panels.pneumo.defaults import (
+    DEFAULT_PNEUMATIC,
+    PRESSURE_DROP_LIMITS,
+    convert_pressure_value,
+)
 from src.ui.panels.pneumo.state_manager import PneumoStateManager
 
 
@@ -260,3 +264,46 @@ def test_relief_safety_pressure_not_below_active_bounds(caplog):
         and "max(relief_min_pressure, relief_stiff_pressure)" in record.message
         for record in caplog.records
     ), "Expected warning about safety pressure falling below dependent bounds"
+
+
+def test_manual_volume_clamp_records_hint() -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    manager.set_manual_volume(5.0)
+    assert manager.get_manual_volume() == pytest.approx(
+        DEFAULT_PNEUMATIC["receiver_volume_limits"]["max_m3"], rel=1e-9
+    )
+    hint = manager.get_hint("receiver_volume")
+    assert hint is not None
+    assert "скорректирован" in hint
+
+    manager.set_manual_volume(0.05)
+    assert manager.get_hint("receiver_volume") is None
+
+
+def test_volume_limits_adjustment_clamps_and_warns(caplog) -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+    manager.set_manual_volume(0.5)
+
+    caplog.set_level(logging.WARNING)
+    manager.update_from({"receiver_volume_limits": {"min_m3": -1.0, "max_m3": 0.05}})
+
+    limits = manager.get_volume_limits()
+    assert limits["min_m3"] > 0
+    assert limits["max_m3"] > limits["min_m3"]
+    assert manager.get_manual_volume() == pytest.approx(limits["max_m3"])
+    hint = manager.get_hint("receiver_volume_limits")
+    assert hint is not None
+    assert "Диапазон" in hint
+    assert any(
+        "receiver_volume_limits adjusted" in record.message for record in caplog.records
+    )
+
+
+def test_relief_pressure_hint_exposes_reason() -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+    manager.set_relief_pressure("relief_min_pressure", 60.0)
+    hint = manager.get_hint("relief_min_pressure")
+    assert hint is not None
+    assert "скорректирован" in hint
+    assert "Сброс жёсткости" in hint or "Мин." in hint

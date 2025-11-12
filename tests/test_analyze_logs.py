@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from analyze_logs import LogAnalyzer
+from analyze_logs import GraphicsLogAnalyzer, LogAnalyzer
 
 
 @pytest.mark.usefixtures("tmp_path")
@@ -90,3 +90,54 @@ def test_log_analyzer_exports_unsynced_report(tmp_path, monkeypatch):
     statuses = {sample["status"] for sample in payload["samples"]}
     assert "failed" in statuses
     assert "pending" in statuses
+
+
+def test_graphics_log_analyzer_sync_rate_counts_changes(tmp_path):
+    session_path = tmp_path / "session.jsonl"
+    events = [
+        {
+            "event_type": "parameter_change",
+            "category": "lighting",
+            "parameter_name": "exposure",
+            "timestamp": "2025-10-31T23:15:52Z",
+        },
+        {
+            "event_type": "parameter_update",
+            "category": "lighting",
+            "parameter_name": "exposure",
+            "timestamp": "2025-10-31T23:15:53Z",
+            "applied_to_qml": True,
+        },
+        {
+            "event_type": "parameter_change",
+            "category": "lighting",
+            "parameter_name": "bloom_strength",
+            "timestamp": "2025-10-31T23:15:54Z",
+        },
+        {
+            "event_type": "parameter_update",
+            "category": "lighting",
+            "parameter_name": "bloom_strength",
+            "timestamp": "2025-10-31T23:15:55Z",
+            "applied_to_qml": False,
+            "qml_state": {"applied": False, "error": "shader busy"},
+        },
+    ]
+
+    with open(session_path, "w", encoding="utf-8") as handle:
+        for event in events:
+            json.dump(event, handle, ensure_ascii=False)
+            handle.write("\n")
+
+    analyzer = GraphicsLogAnalyzer(session_path)
+    assert analyzer.load_events()
+    analyzer.analyze()
+
+    stats = analyzer.stats
+    assert stats["total_changes"] == 2
+    assert stats["total_updates"] == 2
+    assert stats["synced"] == 1
+    assert stats["failed"] == 1
+    assert stats["pending"] == 0
+    assert stats["by_category"]["lighting"] == 2
+    assert analyzer.get_sync_rate() == pytest.approx(50.0)
