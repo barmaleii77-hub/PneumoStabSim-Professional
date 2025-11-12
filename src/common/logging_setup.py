@@ -46,7 +46,8 @@ def _normalize_for_cache(value: Any) -> Hashable:
     try:
         hash(value)
     except TypeError:
-        return repr(value)
+        # Используем имя класса и str() для стабильного представления
+        return (type(value).__name__, str(value))
     return cast(Hashable, value)
 
 
