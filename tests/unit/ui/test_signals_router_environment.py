@@ -89,17 +89,17 @@ def test_handle_environment_changed_normalises_hdr_path() -> None:
     call_name, payload = _StubBridge.calls[0]
     assert call_name == "applyEnvironmentUpdates"
     assert payload["ibl_source"] == "assets/hdr/studio.hdr"
-    assert "iblSource" not in payload
+    assert payload["iblSource"] == "assets/hdr/studio.hdr"
 
     assert params["ibl_source"] == "assets/hdr/studio.hdr"
-    assert "iblSource" not in params
+    assert params["iblSource"] == "assets/hdr/studio.hdr"
 
     assert not _StubBridge.queue_calls
 
     assert window.saved_updates
     _, saved_payload = window.saved_updates[0]
     assert saved_payload["ibl_source"] == "assets/hdr/studio.hdr"
-    assert "iblSource" not in saved_payload
+    assert saved_payload["iblSource"] == "assets/hdr/studio.hdr"
 
 
 def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -> None:
@@ -115,13 +115,33 @@ def test_handle_environment_changed_prefers_canonical_key_when_both_provided() -
     assert _StubBridge.calls
     _, payload = _StubBridge.calls[0]
     assert payload["ibl_source"] == "assets/hdr/canonical.hdr"
-    assert "iblSource" not in payload
+    assert payload["iblSource"] == "assets/hdr/canonical.hdr"
 
     assert params["ibl_source"] == "assets/hdr/canonical.hdr"
-    assert "iblSource" not in params
+    assert params["iblSource"] == "assets/hdr/canonical.hdr"
 
     saved_payload = window.saved_updates[0][1]
     assert saved_payload["ibl_source"] == "assets/hdr/canonical.hdr"
+    assert saved_payload["iblSource"] == "assets/hdr/canonical.hdr"
+
+
+def test_handle_environment_changed_logs_conflicting_aliases() -> None:
+    window = _StubWindow()
+    params: dict[str, Any] = {
+        "ibl_source": "assets/hdr/canonical.hdr",
+        "iblSource": "assets/hdr/canonical.hdr",
+        "hdr_source": "assets/hdr/legacy.hdr",
+        "ibl_enabled": True,
+    }
+
+    signals_router.SignalsRouter.handle_environment_changed(window, params)
+
+    warning_records = [
+        record for record in window.logger.records if record[0] == "warning"
+    ]
+    assert warning_records, "Conflicting aliases should trigger a warning"
+    message, *_ = warning_records[0][1]
+    assert "aliases mismatch" in message
 
 
 def test_handle_environment_changed_supports_nested_sections() -> None:
@@ -150,6 +170,7 @@ def test_handle_environment_changed_supports_nested_sections() -> None:
     assert payload["ibl_enabled"] is True
     assert payload["ibl_intensity"] == 1.25
     assert payload["ibl_source"] == "assets/hdr/nested.hdr"
+    assert payload["iblSource"] == "assets/hdr/nested.hdr"
     assert payload["fog_enabled"] is True
     assert payload["fog_density"] == 0.42
     assert payload["ao_strength"] == 0.6
@@ -163,6 +184,7 @@ def test_handle_environment_changed_supports_nested_sections() -> None:
     assert payload["ssao"]["dither"] is False
 
     assert params["ibl_source"] == "assets/hdr/nested.hdr"
+    assert params["iblSource"] == "assets/hdr/nested.hdr"
     assert params["ao_strength"] == 0.6
     assert params["ssao"]["radius"] == 5.0
     assert params["ao_bias"] == 0.035
@@ -183,13 +205,14 @@ def test_environment_change_invoke_failure_queues_payload() -> None:
     category, queued_payload = _StubBridge.queue_calls[0]
     assert category == "environment"
     assert queued_payload["ibl_source"] == "assets/hdr/queued.hdr"
-    assert "iblSource" not in queued_payload
+    assert queued_payload["iblSource"] == "assets/hdr/queued.hdr"
 
     assert params["ibl_source"] == "assets/hdr/queued.hdr"
-    assert "iblSource" not in params
+    assert params["iblSource"] == "assets/hdr/queued.hdr"
 
     saved_payload = window.saved_updates[0][1]
     assert saved_payload["ibl_source"] == "assets/hdr/queued.hdr"
+    assert saved_payload["iblSource"] == "assets/hdr/queued.hdr"
 
 
 def test_handle_preset_applied_normalizes_environment_section() -> None:
@@ -210,7 +233,7 @@ def test_handle_preset_applied_normalizes_environment_section() -> None:
 
     env_state = full_state["environment"]
     assert env_state["ibl_source"] == "assets/hdr/preset.hdr"
-    assert "iblSource" not in env_state
+    assert env_state["iblSource"] == "assets/hdr/preset.hdr"
 
     env_queue_payloads = [
         payload
@@ -220,11 +243,12 @@ def test_handle_preset_applied_normalizes_environment_section() -> None:
     assert env_queue_payloads
     queued_payload = env_queue_payloads[-1]
     assert queued_payload["ibl_source"] == "assets/hdr/preset.hdr"
-    assert "iblSource" not in queued_payload
+    assert queued_payload["iblSource"] == "assets/hdr/preset.hdr"
 
     saved_key, saved_payload = window.saved_updates[-1]
     assert saved_key == "graphics"
     assert saved_payload["environment"]["ibl_source"] == "assets/hdr/preset.hdr"
+    assert saved_payload["environment"]["iblSource"] == "assets/hdr/preset.hdr"
 
 
 def test_handle_environment_changed_skips_duplicate_payloads() -> None:
@@ -270,10 +294,13 @@ def test_handle_environment_changed_handles_empty_hdr_selection(raw_value: Any) 
     call_name, payload = _StubBridge.calls[-1]
     assert call_name == "applyEnvironmentUpdates"
     assert payload["ibl_source"] == ""
+    assert payload["iblSource"] == ""
     assert params["ibl_source"] == ""
+    assert params["iblSource"] == ""
 
     saved_payload = window.saved_updates[-1][1]
     assert saved_payload["ibl_source"] == ""
+    assert saved_payload["iblSource"] == ""
 
 
 def test_handle_environment_changed_preserves_extreme_slider_values() -> None:
@@ -291,6 +318,7 @@ def test_handle_environment_changed_preserves_extreme_slider_values() -> None:
 
     _, payload = _StubBridge.calls[-1]
     assert payload["ibl_source"] == "assets/hdr/extreme.hdr"
+    assert payload["iblSource"] == "assets/hdr/extreme.hdr"
     assert payload["ibl_intensity"] == pytest.approx(4.5)
     assert payload["skybox_brightness"] == pytest.approx(6.0)
     assert payload["fog_density"] == pytest.approx(0.95)

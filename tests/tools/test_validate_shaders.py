@@ -258,6 +258,26 @@ def test_validate_shaders_flags_warning_output(tmp_path: Path) -> None:
     ]
 
 
+def test_validate_shaders_reports_qt_custommain_usage(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    qsb_cmd = _make_qsb_stub(tmp_path)
+
+    _write_shader(
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
+    )
+
+    result = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert any(
+        "forbidden identifier 'qt_customMain'" in message for message in result.errors
+    ), "validator must flag legacy qt_customMain entry point usage"
+
+
 def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"

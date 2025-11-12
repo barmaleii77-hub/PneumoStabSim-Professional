@@ -58,6 +58,13 @@ EXPECTED_VERSIONS: Mapping[tuple[str, str], str] = {
     ("fallback_es", ".frag"): "#version 300 es",
 }
 
+# Identifier usage that is no longer supported by Qt 6.10+ shader pipelines.
+# The key stores the forbidden token, the value provides a short remediation
+# hint that surfaces in validation error messages.
+FORBIDDEN_IDENTIFIER_GUIDANCE: Mapping[str, str] = {
+    "qt_customMain": "replace with 'main()' to satisfy Qt 6.10 entry point requirements",
+}
+
 QSB_PROFILE_ARGUMENTS: tuple[str, ...] = (
     "-D",
     "QSB_USE_UNIFORM_BLOCK",
@@ -225,6 +232,27 @@ def _validate_versions(
         deprecated_entry = _detect_deprecated_entry_point(shader.path)
         if deprecated_entry is not None:
             errors.append(f"{_relative(shader.path, root)}: {deprecated_entry}")
+
+
+def _check_forbidden_identifiers(
+    files: Iterable[ShaderFile], root: Path, errors: ValidationErrors
+) -> None:
+    """Ensure shaders avoid legacy entry points rejected by Qt 6.10."""
+
+    for shader in files:
+        try:
+            contents = shader.path.read_text(encoding="utf-8")
+        except OSError as exc:
+            errors.append(
+                f"{_relative(shader.path, root)}: failed to read source: {exc}"
+            )
+            continue
+
+        for identifier, guidance in FORBIDDEN_IDENTIFIER_GUIDANCE.items():
+            if identifier in contents:
+                errors.append(
+                    f"{_relative(shader.path, root)}: forbidden identifier '{identifier}' detected; {guidance}"
+                )
 
 
 def _resolve_qsb_command() -> list[str]:
@@ -656,6 +684,7 @@ def validate_shaders(
                 )
 
         _validate_versions(files, shader_root, errors)
+        _check_forbidden_identifiers(files, shader_root, errors)
 
         for shader in files:
             try:
