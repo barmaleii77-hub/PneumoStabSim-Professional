@@ -199,21 +199,20 @@ class SignalsRouter:
             params, updated_payload
         )
 
-        mirrored_value = normalised_value
         payload_with_mirror = dict(updated_payload)
-        payload_with_mirror[legacy_key] = mirrored_value
+        payload_with_mirror[legacy_key] = normalised_value
 
         ibl_section = payload_with_mirror.get("ibl")
         if isinstance(ibl_section, Mapping):
             expanded = dict(ibl_section)
-            expanded["source"] = mirrored_value
-            expanded[legacy_key] = mirrored_value
+            expanded["source"] = normalised_value
+            expanded[legacy_key] = normalised_value
             payload_with_mirror["ibl"] = expanded
 
         params.pop(legacy_key, None)
         if isinstance(params.get("ibl"), Mapping):
             ibl_params = dict(params["ibl"])
-            ibl_params["source"] = mirrored_value
+            ibl_params["source"] = normalised_value
             ibl_params.pop(legacy_key, None)
             params["ibl"] = ibl_params
 
