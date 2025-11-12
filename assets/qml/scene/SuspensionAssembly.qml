@@ -263,38 +263,20 @@ Node {
 
     ReflectionProbe {
         id: mainReflectionProbe
-        parent: assembly
+        // В Qt 6.10 свойство enabled доступно — используем прямое биндинг
+        enabled: assembly.reflectionProbeEnabled
         visible: assembly.reflectionProbeEnabled
         parallaxCorrection: true
         quality: assembly.reflectionProbeQualityValue
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
-        property bool __enabledWarningIssued: false
 
-        function syncEnabledState() {
-            const desired = !!assembly.reflectionProbeEnabled
-            var applied = false
-            try {
-                if (mainReflectionProbe.setProperty !== undefined) {
-                    var result = mainReflectionProbe.setProperty("enabled", desired)
-                    if (result === undefined || result)
-                        applied = true
-                }
-            } catch (error) {
-                console.warn("[SuspensionAssembly] ReflectionProbe.setProperty('enabled') failed", error)
-            }
-            if (!applied && mainReflectionProbe.enabled !== undefined) {
-                mainReflectionProbe.enabled = desired
-                applied = true
-            }
-            if (!applied && !mainReflectionProbe.__enabledWarningIssued) {
-                console.warn("[SuspensionAssembly] ReflectionProbe.enabled property unavailable; relying on visibility toggle")
-                mainReflectionProbe.__enabledWarningIssued = true
+        Component.onCompleted: {
+            // Жёсткая проверка: в 6.10 отсутствие enabled — ошибка окружения
+            if (mainReflectionProbe.enabled === undefined) {
+                console.error("[SuspensionAssembly] ERROR: ReflectionProbe.enabled отсутствует (ожидалось в Qt 6.10). Фаллбек недопустим.")
             }
         }
-
-        Component.onCompleted: syncEnabledState()
-
         position: {
             const beam = Math.max(assembly.geometryValue("beamSize"), 0)
             const frameHeight = Math.max(assembly.geometryValue("frameHeight"), 0)
@@ -310,13 +292,6 @@ Node {
                         Math.max(1.0, assembly.toSceneLength(track + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameHeight + beam + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameLength + padding)))
-        }
-    }
-
-    Connections {
-        target: assembly
-        function onReflectionProbeEnabledChanged() {
-            mainReflectionProbe.syncEnabledState()
         }
     }
 
@@ -473,9 +448,5 @@ Node {
         receiverState: assembly.receiverTelemetryValue()
         geometryHelper: kinematics
         sceneScale: assembly.sceneScaleFactor
-    }
-
-    Component.onCompleted: {
-        console.log("✅ SuspensionAssembly loaded (all components initialized)")
     }
 }

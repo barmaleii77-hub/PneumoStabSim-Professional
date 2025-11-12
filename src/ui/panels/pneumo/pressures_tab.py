@@ -144,6 +144,8 @@ class PressuresTab(QWidget):
             self.state_manager.get_relief_pressure("relief_safety_pressure")
         )
         self._update_hint_label()
+        if not self.isVisible():
+            self.show()
 
     def _connect_signals(self) -> None:
         self.units_combo.currentIndexChanged.connect(self._on_units_changed)

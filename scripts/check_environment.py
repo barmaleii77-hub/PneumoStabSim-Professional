@@ -21,30 +21,41 @@ parse programmatically.
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any 
+from typing import Any
 
 
-MIN_PYTHON_VERSION = (3, 10)
+# Требуемая версия Python: 3.11–3.13 (исключаем 3.14+, т.к. PySide6 6.10 ещё не готов)
+MIN_PYTHON_VERSION = (3, 11)
+MAX_PYTHON_MINOR_SUPPORTED = 13
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_PATH = PROJECT_ROOT / "src"
 
 
 def _check_python_version() -> dict[str, Any]:
     current = sys.version_info[:3]
-    ok = current >= MIN_PYTHON_VERSION
+    major, minor = current[0], current[1]
+    ok = (major == 3 and MIN_PYTHON_VERSION <= (major, minor) <= (3, MAX_PYTHON_MINOR_SUPPORTED))
+    message: str
+    if ok:
+        message = "Python version is within supported range (3.11–3.13)"
+    else:
+        if major != 3:
+            message = "Python 3.x is required"
+        elif minor < MIN_PYTHON_VERSION[1]:
+            message = "Python 3.11+ is required"
+        else:
+            message = "Python 3.14+ is not supported by PySide6 6.10 yet"
     return {
         "check": "python-version",
         "status": "ok" if ok else "error",
         "current": list(current),
-        "minimum": list(MIN_PYTHON_VERSION),
-        "message": (
-            "Python version is sufficient"
-            if ok
-            else f"Python {MIN_PYTHON_VERSION[0]}.{MIN_PYTHON_VERSION[1]}+ is required"
-        ),
+        "minimum": [*MIN_PYTHON_VERSION, 0],
+        "maximum_minor": MAX_PYTHON_MINOR_SUPPORTED,
+        "message": message,
     }
 
 
@@ -64,9 +75,13 @@ def _check_repository_layout() -> dict[str, Any]:
 
 
 def _check_imports() -> dict[str, Any]:
+    # Расширенный список обязательных модулей для исключения запуска без GUI-стека
     required_modules = [
         "numpy",
+        "scipy",
         "PySide6",
+        "PySide6.QtQml",
+        "PySide6.QtQuick3D",
         "src",
     ]
     failures: list[str] = []
@@ -96,7 +111,7 @@ def _check_imports() -> dict[str, Any]:
     }
 
 
-def main() -> int:
+def _build_payload() -> dict[str, Any]:
     checks = [
         _check_python_version(),
         _check_repository_layout(),
@@ -114,9 +129,43 @@ def main() -> int:
         "checks": checks,
         "project_root": str(PROJECT_ROOT),
     }
+    return payload
 
+
+def _first_error_message(payload: dict[str, Any]) -> str:
+    for c in payload.get("checks", []):
+        if c.get("status") != "ok":
+            msg = c.get("message") or c.get("check") or "unknown error"
+            return str(msg)
+    return "ok"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Environment diagnostics")
+    parser.add_argument("--compact", action="store_true", help="Однострочный вывод в stdout; полный JSON сохраняется в файл")
+    parser.add_argument("--output", type=str, default="", help="Путь к файлу для записи полного JSON-отчёта")
+    args = parser.parse_args()
+
+    payload = _build_payload()
+
+    # Если указан выходной файл — записываем полный JSON
+    if args.output:
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    if args.compact:
+        # Краткая строка статуса для PowerShell/CI консоли
+        if payload["status"] == "ok":
+            print("ENV OK")
+            return 0
+        else:
+            print(f"ENV ERROR: {_first_error_message(payload)}")
+            return 1
+
+    # Полный вывод в stdout (исторический режим)
     print(json.dumps(payload, ensure_ascii=False, indent=2))
-    return 0 if overall_status == "ok" else 1
+    return 0 if payload["status"] == "ok" else 1
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point

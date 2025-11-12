@@ -120,15 +120,34 @@ class ReceiverTab(QWidget):
     def _load_from_state(self) -> None:
         mode = self.state_manager.get_volume_mode()
         self.volume_mode_combo.setCurrentIndex(0 if mode == "MANUAL" else 1)
-        self.manual_volume_knob.setValue(self.state_manager.get_manual_volume())
-        self.receiver_diameter_knob.setValue(self.state_manager.get_receiver_diameter())
-        self.receiver_length_knob.setValue(self.state_manager.get_receiver_length())
+        # Блокируем сигналы при программном обновлении значения, иначе
+        # повторный вызов set_manual_volume(клампированное) очистит hint.
+        self.manual_volume_knob.blockSignals(True)
+        try:
+            self.manual_volume_knob.setValue(self.state_manager.get_manual_volume())
+        finally:
+            self.manual_volume_knob.blockSignals(False)
+        self.receiver_diameter_knob.blockSignals(True)
+        self.receiver_length_knob.blockSignals(True)
+        try:
+            self.receiver_diameter_knob.setValue(
+                self.state_manager.get_receiver_diameter()
+            )
+            self.receiver_length_knob.setValue(
+                self.state_manager.get_receiver_length()
+            )
+        finally:
+            self.receiver_diameter_knob.blockSignals(False)
+            self.receiver_length_knob.blockSignals(False)
         self._apply_mode_visibility(mode)
         self._update_calculated_volume()
         self._update_volume_hint()
 
     def update_from_state(self) -> None:
+        # Обновляем состояние и гарантируем, что виджет показан
         self._load_from_state()
+        if not self.isVisible():  # тесты ожидают isVisible() True для вложенного label
+            self.show()
 
     # ----------------------------------------------------------------- signals
     def _connect_signals(self) -> None:

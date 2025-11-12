@@ -1,39 +1,19 @@
 import QtQuick
 import QtQuick3D
 
-/*
- * DirectionalLights - Модуль направленных источников света
- * Управляет Key, Fill и Rim освещением
- *
- * Использование:
- *   DirectionalLights {
- *       worldRoot: someNode
- *       cameraRig: cameraNode
- *       keyLightBrightness: 1.2
- *       ...
- *   }
- */
 Node {
     id: root
-
-    // ===============================================================
-    // REQUIRED PROPERTIES (must be set by parent)
-    // ===============================================================
 
     required property Node worldRoot
     required property Node cameraRig
 
-    // OPTIONAL PROPERTIES (default values are provided)
     property bool shadowsEnabled: true
     property int shadowResolution: 4096
     property int shadowFilterSamples: 32
     property real shadowBias: 8.0
     property real shadowFactor: 80.0
 
-    // ===============================================================
-    // KEY LIGHT PROPERTIES
-    // ===============================================================
-
+    // KEY
     property real keyLightBrightness: 1.0
     property color keyLightColor: "#ffffff"
     property real keyLightAngleX: 25.0
@@ -45,10 +25,7 @@ Node {
     property real keyLightPosY: 0.0
     property real keyLightPosZ: 0.0
 
-    // ===============================================================
-    // FILL LIGHT PROPERTIES
-    // ===============================================================
-
+    // FILL
     property real fillLightBrightness: 1.0
     property color fillLightColor: "#f1f4ff"
     property real fillLightAngleX: 0.0
@@ -60,10 +37,7 @@ Node {
     property real fillLightPosY: 0.0
     property real fillLightPosZ: 0.0
 
-    // ===============================================================
-    // RIM LIGHT PROPERTIES
-    // ===============================================================
-
+    // RIM
     property real rimLightBrightness: 1.1
     property color rimLightColor: "#ffe1bd"
     property real rimLightAngleX: 30.0
@@ -75,103 +49,113 @@ Node {
     property real rimLightPosY: 0.0
     property real rimLightPosZ: 0.0
 
-    // ===============================================================
-    // KEY LIGHT (основной источник освещения)
-    // ===============================================================
-
-    DirectionalLight {
-        id: keyLight
-        parent: root.keyLightBindToCamera ? root.cameraRig : root.worldRoot
-
-        eulerRotation: Qt.vector3d(
-            root.keyLightAngleX,
-            root.keyLightAngleY,
-            root.keyLightAngleZ
-        )
-        position: Qt.vector3d(root.keyLightPosX, root.keyLightPosY, root.keyLightPosZ)
-
-        brightness: root.keyLightBrightness
-        color: root.keyLightColor
-
-        castsShadow: (root.shadowsEnabled && root.keyLightCastsShadow)
-
-        // ✅ Shadow quality mapping (preserve legacy preset semantics)
-        shadowMapQuality: root.shadowResolution >= 2048 ? Light.ShadowMapQualityVeryHigh :
-                          root.shadowResolution >= 1024 ? Light.ShadowMapQualityHigh :
-                          root.shadowResolution >= 512 ? Light.ShadowMapQualityMedium :
-                                                          Light.ShadowMapQualityLow
-
-        shadowFactor: root.shadowFactor
-        shadowBias: root.shadowBias
-
-        // ✅ Shadow filter mapping
-        shadowFilter: {
-            var samples = Math.floor(root.shadowFilterSamples || 16)
-            return samples === 32 ? Light.ShadowFilterPCF32 :
-                   samples === 16 ? Light.ShadowFilterPCF16 :
-                   samples === 8  ? Light.ShadowFilterPCF8  :
-                   samples === 4  ? Light.ShadowFilterPCF4  :
-                                    Light.ShadowFilterNone
+    function _safeSet(obj, name, value) {
+        if (!obj) return false
+        try {
+            if (obj.setProperty !== undefined) {
+                var r = obj.setProperty(name, value)
+                return r === undefined ? true : Boolean(r)
+            }
+            obj[name] = value
+            return true
+        } catch (e) {
+            return false
         }
     }
 
-    // ===============================================================
-    // FILL LIGHT (заполняющий свет)
-    // ===============================================================
-
-    DirectionalLight {
-        id: fillLight
-        parent: root.fillLightBindToCamera ? root.cameraRig : root.worldRoot
-
-        eulerRotation: Qt.vector3d(
-            root.fillLightAngleX,
-            root.fillLightAngleY,
-            root.fillLightAngleZ
-        )
-        position: Qt.vector3d(root.fillLightPosX, root.fillLightPosY, root.fillLightPosZ)
-
-        brightness: root.fillLightBrightness
-        color: root.fillLightColor
-
-        castsShadow: (root.shadowsEnabled && root.fillLightCastsShadow)
+    function _shadowQualityFor(res) {
+        if (res >= 4096) return Light.ShadowMapQualityUltra || Light.ShadowMapQualityVeryHigh
+        if (res >= 2048) return Light.ShadowMapQualityVeryHigh
+        if (res >= 1024) return Light.ShadowMapQualityHigh
+        if (res >= 512) return Light.ShadowMapQualityMedium
+        return Light.ShadowMapQualityLow
     }
 
-    // ===============================================================
-    // RIM LIGHT (контровой свет)
-    // ===============================================================
-
-    DirectionalLight {
-        id: rimLight
-        parent: root.rimLightBindToCamera ? root.cameraRig : root.worldRoot
-
-        eulerRotation: Qt.vector3d(
-            root.rimLightAngleX,
-            root.rimLightAngleY,
-            root.rimLightAngleZ
-        )
-        position: Qt.vector3d(root.rimLightPosX, root.rimLightPosY, root.rimLightPosZ)
-
-        brightness: root.rimLightBrightness
-        color: root.rimLightColor
-
-        castsShadow: (root.shadowsEnabled && root.rimLightCastsShadow)
+    function _shadowFilterFor(samples) {
+        var s = Math.floor(samples || 16)
+        return s >= 32 ? Light.ShadowFilterPCF32 :
+               s >= 16 ? Light.ShadowFilterPCF16 :
+               s >= 8  ? Light.ShadowFilterPCF8  :
+               s >= 4  ? Light.ShadowFilterPCF4  : Light.ShadowFilterNone
     }
 
-    // ===============================================================
-    // DEBUG (опционально)
-    // ===============================================================
+    function _applyKey() {
+        _safeSet(keyLight, 'eulerRotation', Qt.vector3d(keyLightAngleX, keyLightAngleY, keyLightAngleZ))
+        _safeSet(keyLight, 'position', Qt.vector3d(keyLightPosX, keyLightPosY, keyLightPosZ))
+        _safeSet(keyLight, 'brightness', keyLightBrightness)
+        _safeSet(keyLight, 'color', keyLightColor)
+        _safeSet(keyLight, 'castsShadow', (shadowsEnabled && keyLightCastsShadow))
+        _safeSet(keyLight, 'shadowMapQuality', _shadowQualityFor(shadowResolution))
+        _safeSet(keyLight, 'shadowFactor', shadowFactor)
+        _safeSet(keyLight, 'shadowBias', shadowBias)
+        _safeSet(keyLight, 'shadowFilter', _shadowFilterFor(shadowFilterSamples))
+    }
+
+    function _applyFill() {
+        _safeSet(fillLight, 'eulerRotation', Qt.vector3d(fillLightAngleX, fillLightAngleY, fillLightAngleZ))
+        _safeSet(fillLight, 'position', Qt.vector3d(fillLightPosX, fillLightPosY, fillLightPosZ))
+        _safeSet(fillLight, 'brightness', fillLightBrightness)
+        _safeSet(fillLight, 'color', fillLightColor)
+        _safeSet(fillLight, 'castsShadow', (shadowsEnabled && fillLightCastsShadow))
+    }
+
+    function _applyRim() {
+        _safeSet(rimLight, 'eulerRotation', Qt.vector3d(rimLightAngleX, rimLightAngleY, rimLightAngleZ))
+        _safeSet(rimLight, 'position', Qt.vector3d(rimLightPosX, rimLightPosY, rimLightPosZ))
+        _safeSet(rimLight, 'brightness', rimLightBrightness)
+        _safeSet(rimLight, 'color', rimLightColor)
+        _safeSet(rimLight, 'castsShadow', (shadowsEnabled && rimLightCastsShadow))
+    }
+
+    DirectionalLight { id: keyLight; parent: keyLightBindToCamera ? cameraRig : worldRoot; Component.onCompleted: _applyKey() }
+    DirectionalLight { id: fillLight; parent: fillLightBindToCamera ? cameraRig : worldRoot; Component.onCompleted: _applyFill() }
+    DirectionalLight { id: rimLight; parent: rimLightBindToCamera ? cameraRig : worldRoot; Component.onCompleted: _applyRim() }
+
+    // Reactive reapplication
+    onKeyLightBrightnessChanged: _applyKey()
+    onKeyLightColorChanged: _applyKey()
+    onKeyLightAngleXChanged: _applyKey()
+    onKeyLightAngleYChanged: _applyKey()
+    onKeyLightAngleZChanged: _applyKey()
+    onKeyLightPosXChanged: _applyKey()
+    onKeyLightPosYChanged: _applyKey()
+    onKeyLightPosZChanged: _applyKey()
+    onKeyLightCastsShadowChanged: _applyKey()
+    onKeyLightBindToCameraChanged: { keyLight.parent = keyLightBindToCamera ? cameraRig : worldRoot; _applyKey() }
+
+    onFillLightBrightnessChanged: _applyFill()
+    onFillLightColorChanged: _applyFill()
+    onFillLightAngleXChanged: _applyFill()
+    onFillLightAngleYChanged: _applyFill()
+    onFillLightAngleZChanged: _applyFill()
+    onFillLightPosXChanged: _applyFill()
+    onFillLightPosYChanged: _applyFill()
+    onFillLightPosZChanged: _applyFill()
+    onFillLightCastsShadowChanged: _applyFill()
+    onFillLightBindToCameraChanged: { fillLight.parent = fillLightBindToCamera ? cameraRig : worldRoot; _applyFill() }
+
+    onRimLightBrightnessChanged: _applyRim()
+    onRimLightColorChanged: _applyRim()
+    onRimLightAngleXChanged: _applyRim()
+    onRimLightAngleYChanged: _applyRim()
+    onRimLightAngleZChanged: _applyRim()
+    onRimLightPosXChanged: _applyRim()
+    onRimLightPosYChanged: _applyRim()
+    onRimLightPosZChanged: _applyRim()
+    onRimLightCastsShadowChanged: _applyRim()
+    onRimLightBindToCameraChanged: { rimLight.parent = rimLightBindToCamera ? cameraRig : worldRoot; _applyRim() }
+
+    onShadowsEnabledChanged: { _applyKey(); _applyFill(); _applyRim() }
+    onShadowResolutionChanged: _applyKey()
+    onShadowFilterSamplesChanged: _applyKey()
+    onShadowBiasChanged: _applyKey()
+    onShadowFactorChanged: _applyKey()
 
     Component.onCompleted: {
-        console.log("💡 DirectionalLights initialized:")
-        console.log("   Key:", keyLightBrightness, keyLightColor,
-                    "angles:", keyLightAngleX, keyLightAngleY, keyLightAngleZ,
-                    "pos:", keyLightPosX, keyLightPosY, keyLightPosZ)
-        console.log("   Fill:", fillLightBrightness, fillLightColor,
-                    "angles:", fillLightAngleX, fillLightAngleY, fillLightAngleZ,
-                    "pos:", fillLightPosX, fillLightPosY, fillLightPosZ)
-        console.log("   Rim:", rimLightBrightness, rimLightColor,
-                    "angles:", rimLightAngleX, rimLightAngleY, rimLightAngleZ,
-                    "pos:", rimLightPosX, rimLightPosY, rimLightPosZ)
-        console.log("   Shadows:", shadowsEnabled, shadowResolution)
+        console.log('💡 DirectionalLights initialized (compat dynamic):')
+        console.log('   key brightness:', keyLightBrightness)
+        console.log('   fill brightness:', fillLightBrightness)
+        console.log('   rim brightness:', rimLightBrightness)
+        console.log('   shadows:', shadowsEnabled, shadowResolution)
     }
 }

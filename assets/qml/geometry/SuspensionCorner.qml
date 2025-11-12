@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick3D
+import "../components/GeometryCompat.js" as GeometryCompat
 
 /*
  * Suspension Corner Component - Complete suspension assembly
@@ -204,6 +205,7 @@ Node {
         position: pistonCenter
         scale: Qt.vector3d(pistonRadius, pistonHalfThickness, pistonRadius)
         eulerRotation: Qt.vector3d(0, 0, cylinderAngleDeg + 90)
+        Component.onCompleted: GeometryCompat.applyCylinderMesh(this, 32, 1)
         materials: [pistonBodyMaterial]
     }
 
@@ -226,6 +228,7 @@ Node {
         position: j_tail
         scale: Qt.vector3d(jointTailRadius, jointTailHalfHeight, jointTailRadius)
         eulerRotation: Qt.vector3d(90, 0, 0)
+        Component.onCompleted: GeometryCompat.applyCylinderMesh(this, 24, 1)
         materials: [jointTailMaterial]
     }
 
@@ -235,6 +238,7 @@ Node {
         position: j_arm
         scale: Qt.vector3d(jointArmRadius, jointArmHalfHeight, jointArmRadius)
         eulerRotation: Qt.vector3d(90, 0, 0)
+        Component.onCompleted: GeometryCompat.applyCylinderMesh(this, 24, 1)
         materials: [jointArmMaterial]
     }
 
@@ -244,6 +248,7 @@ Node {
         position: j_rod
         scale: Qt.vector3d(jointRodRadius, jointRodHalfHeight, jointRodRadius)
         eulerRotation: Qt.vector3d(90, 0, 0)
+        Component.onCompleted: GeometryCompat.applyCylinderMesh(this, 24, 1)
         materials: [jointRodMaterial]
     }
 

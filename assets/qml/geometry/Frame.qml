@@ -1,5 +1,7 @@
 import QtQuick
 import QtQuick3D
+import "../components/GeometryCompat.js" as GeometryCompat
+import "../components/MaterialCompat.js" as MaterialCompat
 
 /*
  * Frame Component - U-shaped frame (3 beams)
@@ -31,29 +33,35 @@ Node {
 
     // 1. BOTTOM BEAM (horizontal, along Z axis) — центр по Z в 0
     Model {
+        id: bottomBeam
         parent: worldRoot
         source: "#Cube"
         position: Qt.vector3d(0, beamSizeM /2,0)
         scale: Qt.vector3d(beamSizeM, beamSizeM, frameLengthM)
         materials: [frameMaterial]
+        Component.onCompleted: _applyMaterial(frameMaterial)
     }
 
     // 2. FRONT VERTICAL BEAM (at Z = -frameLength/2 + beamSize/2)
     Model {
+        id: frontBeam
         parent: worldRoot
         source: "#Cube"
         position: Qt.vector3d(0, beamSizeM + frameHeightM /2, -frameLengthM /2 + beamSizeM /2)
         scale: Qt.vector3d(beamSizeM, frameHeightM, beamSizeM)
         materials: [frameMaterial]
+        Component.onCompleted: _applyMaterial(frameMaterial)
     }
 
     // 3. REAR VERTICAL BEAM (at Z = +frameLength/2 - beamSize/2)
     Model {
+        id: rearBeam
         parent: worldRoot
         source: "#Cube"
         position: Qt.vector3d(0, beamSizeM + frameHeightM /2, frameLengthM /2 - beamSizeM /2)
         scale: Qt.vector3d(beamSizeM, frameHeightM, beamSizeM)
         materials: [frameMaterial]
+        Component.onCompleted: _applyMaterial(frameMaterial)
     }
 
     // ===============================================================
@@ -61,6 +69,6 @@ Node {
     // ===============================================================
 
     Component.onCompleted: {
-        console.log("🏗️ Frame initialized (centered): " + beamSizeM.toFixed(3) + " × " + frameHeightM.toFixed(3) + " × " + frameLengthM.toFixed(3) + " m")
+        console.log("🏗️ Frame initialized (compat material):" + beamSizeM.toFixed(3) + "×" + frameHeightM.toFixed(3) + "×" + frameLengthM.toFixed(3) + " m")
     }
 }

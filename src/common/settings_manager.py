@@ -431,6 +431,26 @@ class SettingsManager:
             return False
         return _normalise_dict_keys(section, _CAMERA_KEY_ALIASES)
 
+    def _strip_legacy_material_keys(self, materials: dict[str, Any]) -> bool:
+        """Удаляет устаревшие свойства материалов, не поддерживаемые Qt 6.10.
+
+        Секции ``graphics.materials`` могут содержать ключи specular/specular_tint/
+        transmission/ior из старых конфигов. Эти параметры больше не применяются
+        и должны быть убраны, чтобы UI и рантайм не ссылались на них.
+        """
+        if not isinstance(materials, dict):
+            return False
+        changed = False
+        legacy_keys = ("specular", "specular_tint", "transmission", "ior")
+        for mat_key, payload in list(materials.items()):
+            if not isinstance(payload, dict):
+                continue
+            for legacy in legacy_keys:
+                if legacy in payload:
+                    payload.pop(legacy, None)
+                    changed = True
+        return changed
+
     def _normalise_graphics_sections(self) -> bool:
         changed = False
         for container in (self._data, self._defaults):
@@ -449,6 +469,11 @@ class SettingsManager:
                 changed = True
             camera = graphics.get("camera")
             if isinstance(camera, dict) and self._normalise_camera_section(camera):
+                changed = True
+            materials = graphics.get("materials")
+            if isinstance(materials, dict) and self._strip_legacy_material_keys(
+                materials
+            ):
                 changed = True
         return changed
 
@@ -1234,7 +1259,18 @@ _settings_event_bus: SettingsEventBus | None = None
 def get_settings_manager(settings_file: Path | str | None = None) -> SettingsManager:
     global _settings_manager
     if _settings_manager is None or settings_file is not None:
-        _settings_manager = SettingsManager(settings_file)
+        self = SettingsManager(settings_file)
+        # Нормализуем материалы немедленно, чтобы убрать legacy-ключи даже при прямом доступе
+        try:
+            graphics = self._data.get("graphics") if isinstance(self._data, dict) else None
+            if isinstance(graphics, dict):
+                mats = graphics.get("materials")
+                if isinstance(mats, dict) and self._strip_legacy_material_keys(mats):
+                    self._dirty = True
+                    self.save_if_dirty()
+        except Exception:
+            pass
+        _settings_manager = self
     return _settings_manager
 
 

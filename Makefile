@@ -49,7 +49,7 @@ qml-lint qmllint:
 	 echo "No QML lint targets specified; skipping."; \
 	 exit 0; \
 	fi; \
-	for file in "$${qml_files[@]}"; do \
+	for file in "$$${qml_files[@]}"; do \
 	 if [ -n "$$file" ]; then \
 	 if [ -d "$$file" ]; then \
 	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
@@ -166,6 +166,8 @@ validate-hdr-orientation:
 	$(PYTHON) tools/render_checks/validate_hdr_orientation.py
 
 check: uv-sync
+	# Strict preflight: fail fast when core modules are missing
+	$(PYTHON) scripts/check_environment.py --compact --output $(LOG_DIR)/env_check.json
 	$(PYTHON) -m json.tool config/app_settings.json >/dev/null
 	$(PYTHON) tools/validate_settings.py --quiet
 	$(PYTHON) -m tools.ci_tasks verify

@@ -1,6 +1,11 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
+import QtQuick3D.Helpers 6.10
 import QtQuick3D.Particles3D 6.10
+import "../../components/GeometryCompat.js" as GeometryCompat
+import "../../components/MaterialCompat.js" as MaterialCompat
+
+pragma ComponentBehavior: Bound
 
 Node {
     id: root
@@ -23,6 +28,7 @@ Node {
     property string lineLabel: ""
     property real flowPhase: 0.0
     property real glowPhase: 0.0
+    property bool particlesEnabled: true   // включение системы частиц
 
     readonly property real _intensityCeiling: Math.max(1e-6, Math.abs(maxIntensity))
     readonly property real normalizedIntensity: Math.min(Math.abs(flowIntensity) / _intensityCeiling, 1.0)
@@ -34,10 +40,6 @@ Node {
     readonly property real _glowStrength: valveOpen ? (0.4 + normalizedIntensity * 0.4) : 0.0
     property real animationSpeedFactor: normalizedIntensity
     property int pulseCount: active ? Math.max(3, Math.round(6 * normalizedIntensity + 2)) : 0
-    property real particleBaseRate: 24
-    property real particleRateRange: 160
-    property real particleBaseVelocity: 0.2
-    property real particleVelocityRange: 1.4
 
     eulerRotation: Qt.vector3d(orientationEuler.x, orientationEuler.y, orientationEuler.z)
     visible: normalizedIntensity > 0.001 || valveOpen
@@ -65,12 +67,22 @@ Node {
     onNormalizedIntensityChanged: {
         flowAnimation.duration = Math.max(250, 1400 - Math.min(0.98, animationSpeedFactor) * 900)
         glowAnimation.duration = Math.max(400, 1500 - Math.min(0.98, animationSpeedFactor) * 900)
+        // реактивное обновление эмиссии
+        MaterialCompat.applyEmissive(shaftMat, _activeColor, _emissive)
+        MaterialCompat.applyEmissive(arrowHaloMat, _activeColor, _glowStrength * 2.0)
+        if (particleMat)
+            MaterialCompat.applyEmissive(particleMat, _activeColor, normalizedIntensity * 3.0)
+        for (var i = 0; i < pulseRepeater.count; ++i) {
+            var obj = pulseRepeater.itemAt(i)
+            if (obj && obj.pulseMaterial) {
+                MaterialCompat.applyEmissive(obj.pulseMaterial, _activeColor, normalizedIntensity * 1.2)
+            }
+        }
     }
 
     onActiveChanged: {
         if (!active)
             flowPhase = 0.0
-        flowParticles.paused = !active
     }
 
     onAnimationSpeedFactorChanged: {
@@ -82,53 +94,52 @@ Node {
         arrowContent.position = Qt.vector3d(0, 0, _directionSign * offset)
     }
 
+    // --- СИСТЕМА ЧАСТИЦ (вернута) ---
+    ParticleSystem3D {
+        id: flowParticles
+        running: root.active && root.particlesEnabled
+        // базовый материал частиц
+        ModelParticle3D {
+            id: particleDelegate
+            maxAmount: 400
+            delegate: Model {
+                source: "#Sphere"
+                scale: Qt.vector3d(0.05, 0.05, 0.05) * root.sceneScale
+                materials: PrincipledMaterial {
+                    id: particleMat
+                    baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
+                    opacity: Math.min(0.9, 0.25 + root.normalizedIntensity * 0.5)
+                    alphaMode: PrincipledMaterial.Blend
+                    roughness: 0.4
+                    metalness: 0.0
+                    Component.onCompleted: MaterialCompat.applyEmissive(particleMat, root._activeColor, root.normalizedIntensity * 3.0)
+                }
+            }
+        }
+        // REPLACED: Emitter3D -> ParticleEmitter3D for Qt 6.10 compatibility
+        ParticleEmitter3D {
+            id: mainEmitter
+            particle: particleDelegate
+            enabled: root.active && root.particlesEnabled
+            emitRate: 40 + root.normalizedIntensity * 160
+            lifeSpan: 650
+            lifeSpanVariation: 150
+            velocity: VectorDirection3D { direction: Qt.vector3d(0, 0, root._directionSign * 1.0) }
+            shape: ParticleShape3D {
+                type: ParticleShape3D.Cylinder
+                extents: Qt.vector3d(root.radiusM * root.sceneScale * 0.4, (root.bodyLengthM * root.sceneScale) / 2, root.radiusM * root.sceneScale * 0.4)
+            }
+        }
+    }
+
     Node {
         id: arrowContent
         position: Qt.vector3d(0, 0, 0)
 
-        ParticleSystem3D {
-            id: flowParticles
-            running: root.active
-            paused: !root.active
-
-            SpriteParticle3D {
-                id: flowParticle
-                system: flowParticles
-                maxAmount: 220
-                color: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b,
-                               Math.max(0.25, root.normalizedIntensity * 0.9))
-                fadeInDuration: 90
-                fadeOutDuration: 160
-                size: root.radiusM * root.sceneScale * (0.4 + root.normalizedIntensity * 0.3)
-                blendMode: SpriteParticle3D.Screen
-            }
-
-            ParticleEmitter3D {
-                id: flowEmitter
-                system: flowParticles
-                enabled: root.active
-                shape: ParticleShape3D {
-                    type: ParticleShape3D.Cylinder
-                    radius: root.radiusM * root.sceneScale * 0.55
-                    length: root.bodyLengthM * root.sceneScale
-                }
-                emitRate: root.active ? root.particleBaseRate + root.particleRateRange * root.normalizedIntensity : 0
-                lifeSpan: 600
-                lifeSpanVariation: 120
-                velocity: VectorDirection3D {
-                    direction: Qt.vector3d(0, 0, root._directionSign)
-                    magnitude: root.sceneScale * (root.particleBaseVelocity + root.particleVelocityRange * root.animationSpeedFactor)
-                }
-                acceleration: VectorDirection3D {
-                    direction: Qt.vector3d(0, 0, root._directionSign)
-                    magnitude: root.sceneScale * 0.35
-                }
-            }
-        }
-
         Model {
             id: shaft
-            mesh: CylinderMesh {}
+            source: "#Cylinder"
+            Component.onCompleted: GeometryCompat.applyCylinderMesh(shaft, 32, 8)
             eulerRotation.x: 90
             scale: Qt.vector3d(
                 root.radiusM * root.sceneScale,
@@ -136,19 +147,20 @@ Node {
                 root.radiusM * root.sceneScale
             )
             materials: PrincipledMaterial {
+                id: shaftMat
                 baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
                 opacity: root._opacity
-                alphaMode: PrincipledMaterial.AlphaBlend
+                alphaMode: PrincipledMaterial.Blend
                 roughness: 0.35
                 metalness: 0.05
-                emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                emissiveFactor: root._emissive * (0.7 + 0.3 * Math.sin(root.glowPhase * Math.PI * 2))
+                Component.onCompleted: MaterialCompat.applyEmissive(shaftMat, root._activeColor, root._emissive)
             }
         }
 
         Model {
             id: arrowHalo
-            mesh: CylinderMesh {}
+            source: "#Cylinder"
+            Component.onCompleted: GeometryCompat.applyCylinderMesh(arrowHalo, 48, 8)
             eulerRotation.x: 90
             visible: root.active
             scale: Qt.vector3d(
@@ -157,13 +169,13 @@ Node {
                 root.radiusM * root.sceneScale * 1.8
             )
             materials: PrincipledMaterial {
+                id: arrowHaloMat
                 baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
                 opacity: root._glowStrength * 0.25
-                alphaMode: PrincipledMaterial.AlphaBlend
+                alphaMode: PrincipledMaterial.Blend
                 roughness: 1.0
                 metalness: 0.0
-                emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                emissiveFactor: root._glowStrength * (0.4 + 0.4 * Math.sin(root.glowPhase * Math.PI * 2))
+                Component.onCompleted: MaterialCompat.applyEmissive(arrowHaloMat, root._activeColor, root._glowStrength * 2.0)
             }
         }
 
@@ -177,7 +189,8 @@ Node {
                 delegate: Model {
                     id: pulseModel
                     readonly property real progress: ((root.flowPhase + index / Math.max(1, root.pulseCount)) % 1)
-                    mesh: ConeMesh {}
+                    source: "#Cone"
+                    Component.onCompleted: GeometryCompat.applyConeMesh(pulseModel, 24, 8)
                     position: Qt.vector3d(
                         0,
                         0,
@@ -191,13 +204,13 @@ Node {
                     eulerRotation.x: 90
                     eulerRotation.z: root._directionSign < 0 ? 180 : 0
                     materials: PrincipledMaterial {
+                        id: pulseMaterial
                         baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
                         opacity: Math.max(0.12, root.normalizedIntensity * 0.8)
-                        alphaMode: PrincipledMaterial.AlphaBlend
+                        alphaMode: PrincipledMaterial.Blend
                         roughness: 0.3
                         metalness: 0.0
-                        emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                        emissiveFactor: 0.4 + root.normalizedIntensity * (1.4 + 0.4 * Math.sin(root.glowPhase * Math.PI * 2))
+                        Component.onCompleted: MaterialCompat.applyEmissive(pulseMaterial, root._activeColor, root.normalizedIntensity * 1.2)
                     }
                 }
             }
@@ -205,7 +218,8 @@ Node {
 
         Model {
             id: head
-            mesh: ConeMesh {}
+            source: "#Cone"
+            Component.onCompleted: GeometryCompat.applyConeMesh(head, 32, 8)
             eulerRotation.x: 90
             position: Qt.vector3d(0, 0, (root.bodyLengthM * root.sceneScale) / 2)
             scale: Qt.vector3d(
@@ -216,11 +230,9 @@ Node {
             materials: PrincipledMaterial {
                 baseColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
                 opacity: root._opacity
-                alphaMode: PrincipledMaterial.AlphaBlend
+                alphaMode: PrincipledMaterial.Blend
                 roughness: 0.35
                 metalness: 0.05
-                emissiveColor: Qt.rgba(root._activeColor.r, root._activeColor.g, root._activeColor.b, 1)
-                emissiveFactor: root._emissive
             }
         }
     }

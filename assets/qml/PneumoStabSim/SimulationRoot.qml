@@ -42,6 +42,15 @@ import "../diagnostics/LogBridge.js" as Diagnostics
     readonly property var emptyDefaultsObject: Object.freeze({})
     readonly property var emptyGeometryDefaults: emptyDefaultsObject
     readonly property var emptyMaterialsDefaults: emptyDefaultsObject
+    // Сопоставление суффиксов свойств материалов (snake_case → CamelCase)
+    readonly property var propertySuffixMap: ({
+        texture_path: "TexturePath",
+        normal_strength: "NormalStrength",
+        occlusion_amount: "OcclusionAmount",
+        thickness: "Thickness",
+        alpha_mode: "AlphaMode",
+        alpha_cutoff: "AlphaCutoff"
+    })
     property var geometryState: ({})
     property var simulationState: ({})
     property var threeDState: ({})

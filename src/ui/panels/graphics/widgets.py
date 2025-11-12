@@ -364,13 +364,18 @@ class FileCyclerWidget(QWidget):
     def set_items(self, items: list[tuple[str, str]]) -> None:
         """Задать коллекцию доступных файлов.
 
-        ``items`` — список пар ``(label, path)``. Пути нормализуются в POSIX
-        представление. При повторном вызове сохраняется текущий выбор, если
-        соответствующий путь присутствует в новом списке.
+        Правила (обновлённые):
+        1. Сохраняем текущий путь перед заменой списка.
+        2. Присваиваем новый список без изменения состояния.
+        3. Если previous_path непустой — вызываем set_current_data(previous_path, emit=False) и выходим.
+           Это сохраняет custom выбор, даже если путь отсутствует в новом списке.
+        4. Если previous_path пустой — НЕ трогаем существующий custom_entry.
+        5. Автовыбор первого элемента только когда нет previous_path, нет custom_entry и пустой выбор запрещён.
         """
 
         self._invalidate_path_cache()
 
+        # Нормализация входных элементов
         normalised: list[tuple[str, str]] = []
         seen: set[str] = set()
         for label, path in items:
@@ -385,23 +390,30 @@ class FileCyclerWidget(QWidget):
             normalised.append((name, text))
 
         previous_path = self.current_path()
+
+        # Присваиваем новый список, но пока не трогаем _index/_custom_entry
         self._items = normalised
 
         if previous_path:
+            # Восстанавливаем предыдущий выбор (в том числе custom) и выходим
             self.set_current_data(previous_path, emit=False)
-        elif self._allow_empty_selection:
-            self._index = -1
-            self._custom_entry = None
+            return
+
+        # previous_path пустой: оставляем существующий custom_entry (если есть)
+        if self._custom_entry is not None:
+            # Сохраняем текущее состояние без изменений
             self._update_ui(emit=False)
-        elif self._items:
+            return
+
+        # Нет предыдущего пути и custom_entry — решаем про автоселект
+        if not self._allow_empty_selection and self._items:
             self._index = 0
             self._custom_entry = None
-            self._update_ui(emit=False)
         else:
+            # Разрешён пустой выбор или список пуст — оставляем индекс -1
             self._index = -1
-            if self._custom_entry and self._custom_entry[1] not in seen:
-                self._custom_entry = None
-            self._update_ui(emit=False)
+            # custom_entry остаётся None
+        self._update_ui(emit=False)
 
     def set_resolution_roots(self, roots: Sequence[Path]) -> None:
         """Define base directories for resolving relative paths."""
@@ -607,14 +619,11 @@ class FileCyclerWidget(QWidget):
             self._logger.warning("Файл не найден: %s", path)
             self._logged_missing_paths.add(path)
 
+        # Показываем предупреждение один раз, независимо от видимости
         if path in self._dialogued_missing_paths:
             return
-
-        if self.isVisible():
-            self._show_warning_dialog(path)
-            self._dialogued_missing_paths.add(path)
-        elif path not in self._pending_dialog_paths:
-            self._pending_dialog_paths.append(path)
+        self._show_warning_dialog(path)
+        self._dialogued_missing_paths.add(path)
 
     def _show_warning_dialog(self, path: str) -> None:
         try:

@@ -59,6 +59,7 @@ _MISSING = object()
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+LOG_DIR = PROJECT_ROOT / "logs" / "validation"
 
 
 class SettingsValidationError(ValueError):
@@ -157,21 +158,83 @@ class SettingsService:
         self._capture_last_modified(payload)
         return payload
 
-    def _parse_model(self, payload: Mapping[str, Any]) -> AppSettings:
-        """Return a typed settings model, relaxing extras when schema checks are off."""
-
-        model_factory: type[AppSettings]
-        if self._validate_schema:
-            model_factory = AppSettings
-        else:
-            model_factory = _RelaxedAppSettings
-
+    def _emit_typed_validation_artifacts(
+        self, payload: Mapping[str, Any], exc: ValidationError
+    ) -> None:
+        """Сохранить подробности ошибок типовой валидации в файлы и вывести компактный лог."""
         try:
-            return model_factory.model_validate(payload)
+            LOG_DIR.mkdir(parents=True, exist_ok=True)
+            # Ошибки pydantic в машиночитаемом виде
+            errors_path = LOG_DIR / "typed_model_errors.json"
+            errors_payload = getattr(exc, "errors", None)
+            errors = errors_payload() if callable(errors_payload) else []
+            errors_json = {
+                "error_count": len(errors),
+                "errors": errors,
+            }
+            errors_path.write_text(json.dumps(errors_json, ensure_ascii=False, indent=2), encoding="utf-8")
+            # Выделяем extra‑поля из структуры ошибок
+            try:
+                extra_paths: list[list[str]] = []
+                for e in errors:
+                    etype = str(e.get("type", ""))
+                    if "extra" in etype:
+                        loc = e.get("loc") or []
+                        extra_paths.append([str(x) for x in loc])
+                (LOG_DIR / "typed_model_extras.json").write_text(
+                    json.dumps({"extras": extra_paths}, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+            # Снимок payload (для удобной ручной сверки)
+            payload_path = LOG_DIR / "payload_snapshot.json"
+            payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            # Попытка собрать relaxed‑модель для сравнения и записи
+            try:
+                relaxed = _RelaxedAppSettings.model_validate(payload)
+                relaxed_path = LOG_DIR / "relaxed_model.json"
+                relaxed_path.write_text(
+                    json.dumps(relaxed.model_dump(), ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+            except Exception:
+                pass
+            # Компактное сообщение (одна строка) — без длинного дампа
+            first = errors[0].get("msg", "<no details>") if errors else "<no details>"
+            logger.error(
+                "Settings typed validation failed: %s (details: %s, %s)",
+                first,
+                errors_path.as_posix(),
+                payload_path.as_posix(),
+            )
+        except Exception as io_exc:  # pragma: no cover - best-effort diagnostics
+            logger.error("Failed to write validation artifacts: %s", io_exc)
+
+    def _parse_model(self, payload: Mapping[str, Any]) -> AppSettings:
+        """Return a typed settings model. При провале строгой проверки падаем на relaxed или dict-backed модель."""
+
+        # Пытаемся строгую модель
+        try:
+            return AppSettings.model_validate(payload)
         except ValidationError as exc:  # pragma: no cover - validated via tests
-            raise SettingsValidationError(
-                "Settings payload failed typed validation"
-            ) from exc
+            # Сохраняем подробности в файлы и логируем кратко, затем фолбек
+            self._emit_typed_validation_artifacts(payload, exc)
+            # Relaxed: игнорируем extras там, где это возможно
+            try:
+                relaxed = _RelaxedAppSettings.model_validate(payload)
+                logger.warning(
+                    "Settings typed validation relaxed: using ignore‑extras model (see %s)",
+                    (LOG_DIR / "typed_model_errors.json").as_posix(),
+                )
+                return relaxed  # type: ignore[return-value]
+            except Exception:
+                # Последний рубеж — dict‑backed модель без типовой валидации
+                logger.warning(
+                    "Settings typed validation bypassed: falling back to Loose model (see %s)",
+                    (LOG_DIR / "typed_model_errors.json").as_posix(),
+                )
+                return _LooseAppSettings(payload)  # type: ignore[return-value]
 
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None

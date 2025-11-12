@@ -1,31 +1,11 @@
 import QtQuick
 import QtQuick3D
 
-/*
- * SpotLights - Модуль прожекторного освещения
- * Управляет направленным источником с ограниченным конусом
- *
- * Использование:
- *   SpotLights {
- *       worldRoot: someNode
- *       cameraRig: cameraNode
- *       spotLightBrightness: 1200.0
- *       ...
- *   }
- */
 Node {
     id: root
 
-    // ===============================================================
-    // REQUIRED PROPERTIES (must be set by parent)
-    // ===============================================================
-
     required property Node worldRoot
     required property Node cameraRig
-
-    // ===============================================================
-    // SPOT LIGHT PROPERTIES
-    // ===============================================================
 
     property real spotLightBrightness: 0.0
     property color spotLightColor: "#ffffff"
@@ -42,32 +22,56 @@ Node {
     property bool spotLightBindToCamera: false
 
     readonly property real _outerCone: Math.max(1.0, spotLightConeAngle)
-    readonly property real _innerCone: Math.max(
-        0.0,
-        Math.min(spotLightInnerConeAngle, _outerCone - 0.1)
-    )
+    readonly property real _innerCone: Math.max(0.0, Math.min(spotLightInnerConeAngle, _outerCone - 0.1))
+
+    function _safeSet(target, name, value) {
+        if (!target) return
+        try {
+            if (target.setProperty !== undefined) {
+                var r = target.setProperty(name, value)
+                return r === undefined ? true : Boolean(r)
+            }
+            target[name] = value
+            return true
+        } catch (e) {
+            // тихо игнорируем отсутствующие свойства
+            return false
+        }
+    }
+
+    function _applySpotProperties() {
+        _safeSet(spotLight, "position", Qt.vector3d(spotLightX, spotLightY, spotLightZ))
+        _safeSet(spotLight, "eulerRotation", Qt.vector3d(spotLightAngleX, spotLightAngleY, spotLightAngleZ))
+        _safeSet(spotLight, "brightness", spotLightBrightness)
+        _safeSet(spotLight, "color", spotLightColor)
+        _safeSet(spotLight, "range", spotLightRange)
+        _safeSet(spotLight, "coneAngle", _outerCone)
+        _safeSet(spotLight, "innerConeAngle", _innerCone)
+        _safeSet(spotLight, "castsShadow", spotLightCastsShadow)
+    }
 
     SpotLight {
         id: spotLight
         parent: root.spotLightBindToCamera ? root.cameraRig : root.worldRoot
-
-        position: Qt.vector3d(root.spotLightX, root.spotLightY, root.spotLightZ)
-        eulerRotation: Qt.vector3d(
-            root.spotLightAngleX,
-            root.spotLightAngleY,
-            root.spotLightAngleZ
-        )
-
-        brightness: root.spotLightBrightness
-        color: root.spotLightColor
-        range: root.spotLightRange
-        coneAngle: root._outerCone
-        innerConeAngle: root._innerCone
-        castsShadow: root.spotLightCastsShadow
+        Component.onCompleted: _applySpotProperties()
     }
 
+    onSpotLightBrightnessChanged: _applySpotProperties()
+    onSpotLightColorChanged: _applySpotProperties()
+    onSpotLightXChanged: _applySpotProperties()
+    onSpotLightYChanged: _applySpotProperties()
+    onSpotLightZChanged: _applySpotProperties()
+    onSpotLightRangeChanged: _applySpotProperties()
+    onSpotLightAngleXChanged: _applySpotProperties()
+    onSpotLightAngleYChanged: _applySpotProperties()
+    onSpotLightAngleZChanged: _applySpotProperties()
+    onSpotLightConeAngleChanged: _applySpotProperties()
+    onSpotLightInnerConeAngleChanged: _applySpotProperties()
+    onSpotLightCastsShadowChanged: _applySpotProperties()
+    onSpotLightBindToCameraChanged: { spotLight.parent = spotLightBindToCamera ? cameraRig : worldRoot; _applySpotProperties() }
+
     Component.onCompleted: {
-        console.log("💡 SpotLights initialized:")
+        console.log("💡 SpotLights initialized (compat mode):")
         console.log("   Brightness:", spotLightBrightness)
         console.log("   Color:", spotLightColor)
         console.log("   Position:", spotLightX, spotLightY, spotLightZ)

@@ -1,479 +1,175 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "App Settings",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["metadata", "current", "defaults_snapshot"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["units_version"],
+      "properties": {
+        "units_version": {"type": "string"},
+        "version": {"type": "string"},
+        "total_parameters": {"type": "integer"}
+      }
+    },
+    "current": {"type": "object"},
+    "defaults_snapshot": {"type": "object"}
+  },
   "$defs": {
     "AnimationSettings": {
       "additionalProperties": false,
       "properties": {
-        "is_running": {
-          "title": "Is Running",
-          "type": "boolean"
-        },
-        "animation_time": {
-          "title": "Animation Time",
-          "type": "number"
-        },
-        "amplitude": {
-          "title": "Amplitude",
-          "type": "number"
-        },
-        "frequency": {
-          "title": "Frequency",
-          "type": "number"
-        },
-        "phase_global": {
-          "title": "Phase Global",
-          "type": "number"
-        },
-        "phase_fl": {
-          "title": "Phase Fl",
-          "type": "number"
-        },
-        "phase_fr": {
-          "title": "Phase Fr",
-          "type": "number"
-        },
-        "phase_rl": {
-          "title": "Phase Rl",
-          "type": "number"
-        },
-        "phase_rr": {
-          "title": "Phase Rr",
-          "type": "number"
-        },
-        "smoothing_enabled": {
-          "title": "Smoothing Enabled",
-          "type": "boolean"
-        },
-        "smoothing_duration_ms": {
-          "title": "Smoothing Duration Ms",
-          "type": "number"
-        },
-        "smoothing_angle_snap_deg": {
-          "title": "Smoothing Angle Snap Deg",
-          "type": "number"
-        },
-        "smoothing_piston_snap_m": {
-          "title": "Smoothing Piston Snap M",
-          "type": "number"
-        },
-        "smoothing_easing": {
-          "title": "Smoothing Easing",
-          "type": "string"
-        }
+        "is_running": {"title": "Is Running", "type": "boolean"},
+        "animation_time": {"title": "Animation Time", "type": "number"},
+        "amplitude": {"title": "Amplitude", "type": "number"},
+        "frequency": {"title": "Frequency", "type": "number"},
+        "phase_global": {"title": "Phase Global", "type": "number"},
+        "phase_fl": {"title": "Phase Fl", "type": "number"},
+        "phase_fr": {"title": "Phase Fr", "type": "number"},
+        "phase_rl": {"title": "Phase Rl", "type": "number"},
+        "phase_rr": {"title": "Phase Rr", "type": "number"},
+        "smoothing_enabled": {"title": "Smoothing Enabled", "type": "boolean"},
+        "smoothing_duration_ms": {"title": "Smoothing Duration Ms", "type": "number"},
+        "smoothing_angle_snap_deg": {"title": "Smoothing Angle Snap Deg", "type": "number"},
+        "smoothing_piston_snap_m": {"title": "Smoothing Piston Snap M", "type": "number"},
+        "smoothing_easing": {"title": "Smoothing Easing", "type": "string"}
       },
-      "required": [
-        "is_running",
-        "animation_time",
-        "amplitude",
-        "frequency",
-        "phase_global",
-        "phase_fl",
-        "phase_fr",
-        "phase_rl",
-        "phase_rr",
-        "smoothing_enabled",
-        "smoothing_duration_ms",
-        "smoothing_angle_snap_deg",
-        "smoothing_piston_snap_m",
-        "smoothing_easing"
-      ],
+      "required": ["is_running", "animation_time", "amplitude", "frequency", "phase_global", "phase_fl", "phase_fr", "phase_rl", "phase_rr", "smoothing_enabled", "smoothing_duration_ms", "smoothing_angle_snap_deg", "smoothing_piston_snap_m", "smoothing_easing"],
       "title": "AnimationSettings",
       "type": "object"
     },
     "AntialiasingSettings": {
       "additionalProperties": false,
       "properties": {
-        "primary": {
-          "title": "Primary",
-          "type": "string"
-        },
-        "quality": {
-          "title": "Quality",
-          "type": "string"
-        },
-        "post": {
-          "title": "Post",
-          "type": "string"
-        }
+        "primary": {"title": "Primary", "type": "string"},
+        "quality": {"title": "Quality", "type": "string"},
+        "post": {"title": "Post", "type": "string"}
       },
-      "required": [
-        "primary",
-        "quality",
-        "post"
-      ],
+      "required": ["primary", "quality", "post"],
       "title": "AntialiasingSettings",
       "type": "object"
     },
     "AttachmentPoint": {
       "additionalProperties": false,
       "properties": {
-        "x_m": {
-          "title": "X M",
-          "type": "number"
-        },
-        "z_m": {
-          "title": "Z M",
-          "type": "number"
-        }
+        "x_m": {"title": "X M", "type": "number"},
+        "z_m": {"title": "Z M", "type": "number"}
       },
-      "required": [
-        "x_m",
-        "z_m"
-      ],
+      "required": ["x_m", "z_m"],
       "title": "AttachmentPoint",
       "type": "object"
     },
     "CameraHUDSettings": {
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "precision": {
-          "title": "Precision",
-          "type": "integer"
-        },
-        "showAngles": {
-          "title": "Showangles",
-          "type": "boolean"
-        },
-        "showDamping": {
-          "title": "Showdamping",
-          "type": "boolean"
-        },
-        "showInertia": {
-          "title": "Showinertia",
-          "type": "boolean"
-        },
-        "showMotion": {
-          "title": "Showmotion",
-          "type": "boolean"
-        },
-        "showPan": {
-          "title": "Showpan",
-          "type": "boolean"
-        },
-        "showPivot": {
-          "title": "Showpivot",
-          "type": "boolean"
-        },
-        "showPreset": {
-          "title": "Showpreset",
-          "type": "boolean"
-        },
-        "showSmoothing": {
-          "title": "Showsmoothing",
-          "type": "boolean"
-        },
-        "showTimestamp": {
-          "title": "Showtimestamp",
-          "type": "boolean"
-        }
+        "enabled": {"title": "Enabled", "type": "boolean"},
+        "precision": {"title": "Precision", "type": "integer"},
+        "showAngles": {"title": "Showangles", "type": "boolean"},
+        "showDamping": {"title": "Showdamping", "type": "boolean"},
+        "showInertia": {"title": "Showinertia", "type": "boolean"},
+        "showMotion": {"title": "Showmotion", "type": "boolean"},
+        "showPan": {"title": "Showpan", "type": "boolean"},
+        "showPivot": {"title": "Showpivot", "type": "boolean"},
+        "showPreset": {"title": "Showpreset", "type": "boolean"},
+        "showSmoothing": {"title": "Showsmoothing", "type": "boolean"},
+        "showTimestamp": {"title": "Showtimestamp", "type": "boolean"}
       },
-      "required": [
-        "enabled",
-        "precision",
-        "showAngles",
-        "showDamping",
-        "showInertia",
-        "showMotion",
-        "showPan",
-        "showPivot",
-        "showPreset",
-        "showSmoothing",
-        "showTimestamp"
-      ],
+      "required": ["enabled", "precision", "showAngles", "showDamping", "showInertia", "showMotion", "showPan", "showPivot", "showPreset", "showSmoothing", "showTimestamp"],
       "title": "CameraHUDSettings",
       "type": "object"
     },
     "CameraSettings": {
       "additionalProperties": false,
       "properties": {
-        "fov": {
-          "title": "Fov",
-          "type": "number"
-        },
-        "near": {
-          "title": "Near",
-          "type": "number"
-        },
-        "far": {
-          "title": "Far",
-          "type": "number"
-        },
-        "speed": {
-          "title": "Speed",
-          "type": "number"
-        },
-        "auto_rotate": {
-          "title": "Auto Rotate",
-          "type": "boolean"
-        },
-        "auto_rotate_speed": {
-          "title": "Auto Rotate Speed",
-          "type": "number"
-        },
-        "auto_fit": {
-          "title": "Auto Fit",
-          "type": "boolean"
-        },
-        "manual_camera": {
-          "title": "Manual Camera",
-          "type": "boolean"
-        },
-        "camera_pos_x": {
-          "title": "Camera Pos X",
-          "type": "number"
-        },
-        "camera_pos_y": {
-          "title": "Camera Pos Y",
-          "type": "number"
-        },
-        "camera_pos_z": {
-          "title": "Camera Pos Z",
-          "type": "number"
-        },
-        "camera_rot_x": {
-          "title": "Camera Rot X",
-          "type": "number"
-        },
-        "camera_rot_y": {
-          "title": "Camera Rot Y",
-          "type": "number"
-        },
-        "camera_rot_z": {
-          "title": "Camera Rot Z",
-          "type": "number"
-        },
-        "orbit_target_x": {
-          "title": "Orbit Target X",
-          "type": "number"
-        },
-        "orbit_target_y": {
-          "title": "Orbit Target Y",
-          "type": "number"
-        },
-        "orbit_target_z": {
-          "title": "Orbit Target Z",
-          "type": "number"
-        },
-        "orbit_yaw": {
-          "title": "Orbit Yaw",
-          "type": "number"
-        },
-        "orbit_pitch": {
-          "title": "Orbit Pitch",
-          "type": "number"
-        },
-        "orbit_distance": {
-          "title": "Orbit Distance",
-          "type": "number"
-        },
-        "orbit_inertia_enabled": {
-          "title": "Orbit Inertia Enabled",
-          "type": "boolean"
-        },
-        "orbit_inertia": {
-          "title": "Orbit Inertia",
-          "type": "number"
-        },
-        "orbit_rotate_smoothing": {
-          "title": "Orbit Rotate Smoothing",
-          "type": "number"
-        },
-        "orbit_pan_smoothing": {
-          "title": "Orbit Pan Smoothing",
-          "type": "number"
-        },
-        "orbit_zoom_smoothing": {
-          "title": "Orbit Zoom Smoothing",
-          "type": "number"
-        },
-        "orbit_friction": {
-          "title": "Orbit Friction",
-          "type": "number"
-        },
-        "world_pos_x": {
-          "title": "World Pos X",
-          "type": "number"
-        },
-        "world_pos_y": {
-          "title": "World Pos Y",
-          "type": "number"
-        },
-        "world_pos_z": {
-          "title": "World Pos Z",
-          "type": "number"
-        },
-        "world_rot_x": {
-          "title": "World Rot X",
-          "type": "number"
-        },
-        "world_rot_y": {
-          "title": "World Rot Y",
-          "type": "number"
-        },
-        "world_rot_z": {
-          "title": "World Rot Z",
-          "type": "number"
-        },
-        "world_scale": {
-          "title": "World Scale",
-          "type": "number"
-        }
+        "fov": {"title": "Fov", "type": "number"},
+        "near": {"title": "Near", "type": "number"},
+        "far": {"title": "Far", "type": "number"},
+        "speed": {"title": "Speed", "type": "number"},
+        "auto_rotate": {"title": "Auto Rotate", "type": "boolean"},
+        "auto_rotate_speed": {"title": "Auto Rotate Speed", "type": "number"},
+        "auto_fit": {"title": "Auto Fit", "type": "boolean"},
+        "manual_camera": {"title": "Manual Camera", "type": "boolean"},
+        "camera_pos_x": {"title": "Camera Pos X", "type": "number"},
+        "camera_pos_y": {"title": "Camera Pos Y", "type": "number"},
+        "camera_pos_z": {"title": "Camera Pos Z", "type": "number"},
+        "camera_rot_x": {"title": "Camera Rot X", "type": "number"},
+        "camera_rot_y": {"title": "Camera Rot Y", "type": "number"},
+        "camera_rot_z": {"title": "Camera Rot Z", "type": "number"},
+        "orbit_target_x": {"title": "Orbit Target X", "type": "number"},
+        "orbit_target_y": {"title": "Orbit Target Y", "type": "number"},
+        "orbit_target_z": {"title": "Orbit Target Z", "type": "number"},
+        "orbit_yaw": {"title": "Orbit Yaw", "type": "number"},
+        "orbit_pitch": {"title": "Orbit Pitch", "type": "number"},
+        "orbit_distance": {"title": "Orbit Distance", "type": "number"},
+        "orbit_inertia_enabled": {"title": "Orbit Inertia Enabled", "type": "boolean"},
+        "orbit_inertia": {"title": "Orbit Inertia", "type": "number"},
+        "orbit_rotate_smoothing": {"title": "Orbit Rotate Smoothing", "type": "number"},
+        "orbit_pan_smoothing": {"title": "Orbit Pan Smoothing", "type": "number"},
+        "orbit_zoom_smoothing": {"title": "Orbit Zoom Smoothing", "type": "number"},
+        "orbit_friction": {"title": "Orbit Friction", "type": "number"},
+        "world_pos_x": {"title": "World Pos X", "type": "number"},
+        "world_pos_y": {"title": "World Pos Y", "type": "number"},
+        "world_pos_z": {"title": "World Pos Z", "type": "number"},
+        "world_rot_x": {"title": "World Rot X", "type": "number"},
+        "world_rot_y": {"title": "World Rot Y", "type": "number"},
+        "world_rot_z": {"title": "World Rot Z", "type": "number"},
+        "world_scale": {"title": "World Scale", "type": "number"}
       },
-      "required": [
-        "fov",
-        "near",
-        "far",
-        "speed",
-        "auto_rotate",
-        "auto_rotate_speed",
-        "auto_fit",
-        "manual_camera",
-        "camera_pos_x",
-        "camera_pos_y",
-        "camera_pos_z",
-        "camera_rot_x",
-        "camera_rot_y",
-        "camera_rot_z",
-        "orbit_target_x",
-        "orbit_target_y",
-        "orbit_target_z",
-        "orbit_yaw",
-        "orbit_pitch",
-        "orbit_distance",
-        "orbit_inertia_enabled",
-        "orbit_inertia",
-        "orbit_rotate_smoothing",
-        "orbit_pan_smoothing",
-        "orbit_zoom_smoothing",
-        "orbit_friction",
-        "world_pos_x",
-        "world_pos_y",
-        "world_pos_z",
-        "world_rot_x",
-        "world_rot_y",
-        "world_rot_z",
-        "world_scale"
-      ],
+      "required": ["fov", "near", "far", "speed", "auto_rotate", "auto_rotate_speed", "auto_fit", "manual_camera", "camera_pos_x", "camera_pos_y", "camera_pos_z", "camera_rot_x", "camera_rot_y", "camera_rot_z", "orbit_target_x", "orbit_target_y", "orbit_target_z", "orbit_yaw", "orbit_pitch", "orbit_distance", "orbit_inertia_enabled", "orbit_inertia", "orbit_rotate_smoothing", "orbit_pan_smoothing", "orbit_zoom_smoothing", "orbit_friction", "world_pos_x", "world_pos_y", "world_pos_z", "world_rot_x", "world_rot_y", "world_rot_z", "world_scale"],
       "title": "CameraSettings",
       "type": "object"
     },
     "Constants": {
       "additionalProperties": false,
       "properties": {
-        "geometry": {
-          "$ref": "#/$defs/GeometryConstants"
-        },
-        "pneumo": {
-          "$ref": "#/$defs/PneumoConstants"
-        },
-        "physics": {
-          "$ref": "#/$defs/PhysicsConstants"
-        }
+        "geometry": {"$ref": "#/$defs/GeometryConstants"},
+        "pneumo": {"$ref": "#/$defs/PneumoConstants"},
+        "physics": {"$ref": "#/$defs/PhysicsConstants"}
       },
-      "required": [
-        "geometry",
-        "pneumo",
-        "physics"
-      ],
+      "required": ["geometry", "pneumo", "physics"],
       "title": "Constants",
       "type": "object"
     },
     "CurrentSettings": {
       "additionalProperties": false,
       "properties": {
-        "simulation": {
-          "$ref": "#/$defs/SimulationSettings"
-        },
-        "pneumatic": {
-          "$ref": "#/$defs/PneumaticSettings"
-        },
-        "geometry": {
-          "$ref": "#/$defs/GeometrySettings"
-        },
-        "modes": {
-          "$ref": "#/$defs/ModesSettings"
-        },
-        "graphics": {
-          "$ref": "#/$defs/GraphicsSettings"
-        },
-        "animation": {
-          "$ref": "#/$defs/AnimationSettings"
-        },
-        "physics": {
-          "$ref": "#/$defs/PhysicsSettings"
-        },
-        "quality_presets": {
-          "$ref": "#/$defs/QualityPresets"
-        },
-        "diagnostics": {
-          "$ref": "#/$defs/DiagnosticsSettings"
-        },
-        "system": {
-          "$ref": "#/$defs/SystemSettings"
-        },
-        "constants": {
-          "$ref": "#/$defs/Constants"
-        }
+        "simulation": {"$ref": "#/$defs/SimulationSettings"},
+        "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
+        "geometry": {"$ref": "#/$defs/GeometrySettings"},
+        "modes": {"$ref": "#/$defs/ModesSettings"},
+        "graphics": {"$ref": "#/$defs/GraphicsSettings"},
+        "animation": {"$ref": "#/$defs/AnimationSettings"},
+        "physics": {"$ref": "#/$defs/PhysicsSettings"},
+        "quality_presets": {"$ref": "#/$defs/QualityPresets"},
+        "diagnostics": {"$ref": "#/$defs/DiagnosticsSettings"},
+        "system": {"$ref": "#/$defs/SystemSettings"},
+        "constants": {"$ref": "#/$defs/Constants"}
       },
-      "required": [
-        "simulation",
-        "pneumatic",
-        "geometry",
-        "modes",
-        "graphics",
-        "animation",
-        "physics",
-        "quality_presets",
-        "diagnostics",
-        "system",
-        "constants"
-      ],
+      "required": ["simulation", "pneumatic", "geometry", "modes", "graphics", "animation", "physics", "quality_presets", "diagnostics", "system", "constants"],
       "title": "CurrentSettings",
       "type": "object"
     },
     "DiagnosticsSettings": {
       "additionalProperties": false,
       "properties": {
-        "signal_trace": {
-          "$ref": "#/$defs/SignalTraceSettings"
-        },
-        "camera_hud": {
-          "$ref": "#/$defs/CameraHUDSettings"
-        }
+        "signal_trace": {"$ref": "#/$defs/SignalTraceSettings"},
+        "camera_hud": {"$ref": "#/$defs/CameraHUDSettings"}
       },
-      "required": [
-        "signal_trace",
-        "camera_hud"
-      ],
+      "required": ["signal_trace", "camera_hud"],
       "title": "DiagnosticsSettings",
       "type": "object"
     },
     "EffectsSettings": {
       "additionalProperties": false,
       "properties": {
-        "bloom_enabled": {
-          "title": "Bloom Enabled",
-          "type": "boolean"
-        },
-        "bloom_intensity": {
-          "title": "Bloom Intensity",
-          "type": "number"
-        },
-        "bloom_threshold": {
-          "title": "Bloom Threshold",
-          "type": "number"
-        },
-        "bloom_spread": {
-          "title": "Bloom Spread",
-          "type": "number"
-        },
-        "bloom_glow_strength": {
-          "title": "Bloom Glow Strength",
-          "type": "number"
-        },
+        "bloom_enabled": {"title": "Bloom Enabled", "type": "boolean"},
+        "bloom_intensity": {"title": "Bloom Intensity", "type": "number"},
+        "bloom_threshold": {"title": "Bloom Threshold", "type": "number"},
+        "bloom_spread": {"title": "Bloom Spread", "type": "number"},
+        "bloom_glow_strength": {"title": "Bloom Glow Strength", "type": "number"},
         "bloom_hdr_max": {
           "title": "Bloom Hdr Max",
           "type": "number",
@@ -494,82 +190,25 @@
           "type": "boolean",
           "description": "Использует бикубическую интерполяцию при апскейле блум-полос."
         },
-        "tonemap_enabled": {
-          "title": "Tonemap Enabled",
-          "type": "boolean"
-        },
-        "tonemap_mode": {
-          "title": "Tonemap Mode",
-          "type": "string"
-        },
-        "tonemap_exposure": {
-          "title": "Tonemap Exposure",
-          "type": "number"
-        },
-        "tonemap_white_point": {
-          "title": "Tonemap White Point",
-          "type": "number"
-        },
-        "depth_of_field": {
-          "title": "Depth Of Field",
-          "type": "boolean"
-        },
-        "dof_auto_focus": {
-          "title": "Dof Auto Focus",
-          "type": "boolean"
-        },
-        "dof_focus_distance": {
-          "title": "Dof Focus Distance",
-          "type": "number"
-        },
-        "dof_blur": {
-          "title": "Dof Blur",
-          "type": "number"
-        },
-        "motion_blur": {
-          "title": "Motion Blur",
-          "type": "boolean"
-        },
-        "motion_blur_amount": {
-          "title": "Motion Blur Amount",
-          "type": "number"
-        },
-        "lens_flare": {
-          "title": "Lens Flare",
-          "type": "boolean"
-        },
-        "lens_flare_ghost_count": {
-          "title": "Lens Flare Ghost Count",
-          "type": "integer"
-        },
-        "lens_flare_ghost_dispersal": {
-          "title": "Lens Flare Ghost Dispersal",
-          "type": "number"
-        },
-        "lens_flare_halo_width": {
-          "title": "Lens Flare Halo Width",
-          "type": "number"
-        },
-        "lens_flare_bloom_bias": {
-          "title": "Lens Flare Bloom Bias",
-          "type": "number"
-        },
-        "lens_flare_stretch_to_aspect": {
-          "title": "Lens Flare Stretch To Aspect",
-          "type": "boolean"
-        },
-        "vignette": {
-          "title": "Vignette",
-          "type": "boolean"
-        },
-        "vignette_strength": {
-          "title": "Vignette Strength",
-          "type": "number"
-        },
-        "vignette_radius": {
-          "title": "Vignette Radius",
-          "type": "number"
-        },
+        "tonemap_enabled": {"title": "Tonemap Enabled", "type": "boolean"},
+        "tonemap_mode": {"title": "Tonemap Mode", "type": "string"},
+        "tonemap_exposure": {"title": "Tonemap Exposure", "type": "number"},
+        "tonemap_white_point": {"title": "Tonemap White Point", "type": "number"},
+        "depth_of_field": {"title": "Depth Of Field", "type": "boolean"},
+        "dof_auto_focus": {"title": "Dof Auto Focus", "type": "boolean"},
+        "dof_focus_distance": {"title": "Dof Focus Distance", "type": "number"},
+        "dof_blur": {"title": "Dof Blur", "type": "number"},
+        "motion_blur": {"title": "Motion Blur", "type": "boolean"},
+        "motion_blur_amount": {"title": "Motion Blur Amount", "type": "number"},
+        "lens_flare": {"title": "Lens Flare", "type": "boolean"},
+        "lens_flare_ghost_count": {"title": "Lens Flare Ghost Count", "type": "integer"},
+        "lens_flare_ghost_dispersal": {"title": "Lens Flare Ghost Dispersal", "type": "number"},
+        "lens_flare_halo_width": {"title": "Lens Flare Halo Width", "type": "number"},
+        "lens_flare_bloom_bias": {"title": "Lens Flare Bloom Bias", "type": "number"},
+        "lens_flare_stretch_to_aspect": {"title": "Lens Flare Stretch To Aspect", "type": "boolean"},
+        "vignette": {"title": "Vignette", "type": "boolean"},
+        "vignette_strength": {"title": "Vignette Strength", "type": "number"},
+        "vignette_radius": {"title": "Vignette Radius", "type": "number"},
         "color_adjustments_enabled": {
           "title": "Color Adjustments Enabled",
           "type": "boolean",
@@ -637,97 +276,37 @@
     "EnvironmentSettings": {
       "additionalProperties": false,
       "properties": {
-        "background_mode": {
-          "title": "Background Mode",
-          "type": "string"
-        },
-        "background_color": {
-          "title": "Background Color",
-          "type": "string"
-        },
-        "skybox_enabled": {
-          "title": "Skybox Enabled",
-          "type": "boolean"
-        },
-        "ibl_enabled": {
-          "title": "Ibl Enabled",
-          "type": "boolean"
-        },
-        "ibl_intensity": {
-          "title": "Ibl Intensity",
-          "type": "number"
-        },
-        "skybox_brightness": {
-          "title": "Skybox Brightness",
-          "type": "number"
-        },
-        "probe_horizon": {
-          "title": "Probe Horizon",
-          "type": "number"
-        },
-        "ibl_rotation": {
-          "title": "Ibl Rotation",
-          "type": "number"
-        },
-        "ibl_source": {
-          "title": "Ibl Source",
-          "type": "string"
-        },
-        "skybox_blur": {
-          "title": "Skybox Blur",
-          "type": "number"
-        },
-        "ibl_offset_x": {
-          "title": "Ibl Offset X",
-          "type": "number"
-        },
-        "ibl_offset_y": {
-          "title": "Ibl Offset Y",
-          "type": "number"
-        },
-        "ibl_bind_to_camera": {
-          "title": "Ibl Bind To Camera",
-          "type": "boolean"
-        },
-        "reflection_enabled": {
-          "title": "Reflection Enabled",
-          "type": "boolean",
-          "default": true
-        },
-        "reflection_padding_m": {
-          "title": "Reflection Padding M",
-          "type": "number",
-          "default": 0.15
-        },
+        "background_mode": {"title": "Background Mode", "type": "string"},
+        "background_color": {"title": "Background Color", "type": "string"},
+        "skybox_enabled": {"title": "Skybox Enabled", "type": "boolean"},
+        "ibl_enabled": {"title": "Ibl Enabled", "type": "boolean"},
+        "ibl_intensity": {"title": "Ibl Intensity", "type": "number"},
+        "skybox_brightness": {"title": "Skybox Brightness", "type": "number"},
+        "probe_horizon": {"title": "Probe Horizon", "type": "number"},
+        "ibl_rotation": {"title": "Ibl Rotation", "type": "number"},
+        "ibl_source": {"title": "Ibl Source", "type": "string"},
+        "skybox_blur": {"title": "Skybox Blur", "type": "number"},
+        "ibl_offset_x": {"title": "Ibl Offset X", "type": "number"},
+        "ibl_offset_y": {"title": "Ibl Offset Y", "type": "number"},
+        "ibl_bind_to_camera": {"title": "Ibl Bind To Camera", "type": "boolean"},
+        "reflection_enabled": {"title": "Reflection Enabled", "type": "boolean", "default": true},
+        "reflection_padding_m": {"title": "Reflection Padding M", "type": "number", "default": 0.15},
         "reflection_quality": {
           "title": "Reflection Quality",
           "type": "string",
-          "enum": [
-            "veryhigh",
-            "high",
-            "medium",
-            "low"
-          ],
+          "enum": ["veryhigh", "high", "medium", "low"],
           "default": "veryhigh"
         },
         "reflection_refresh_mode": {
           "title": "Reflection Refresh Mode",
           "type": "string",
-          "enum": [
-            "everyframe",
-            "firstframe",
-            "never"
-          ],
+          "enum": ["everyframe", "firstframe", "never"],
           "default": "everyframe"
         },
         "reflection_time_slicing": {
           "title": "Reflection Time Slicing",
           "type": "string",
-          "enum": [
-            "individualfaces",
-            "allfacesatonce",
-            "notimeslicing"
-          ],
+          "enum": ["individualfaces", "allfacesatonce", "notimeslicing"],
           "default": "individualfaces"
         },
         "fog_enabled": {
@@ -805,34 +384,13 @@
           "type": "number",
           "description": "Экспонента для ослабления освещенности при включенном transmittance."
         },
-        "ao_enabled": {
-          "title": "Ao Enabled",
-          "type": "boolean"
-        },
-        "ao_strength": {
-          "title": "Ao Strength",
-          "type": "number"
-        },
-        "ao_radius": {
-          "title": "Ao Radius",
-          "type": "number"
-        },
-        "ao_bias": {
-          "title": "Ao Bias",
-          "type": "number"
-        },
-        "ao_softness": {
-          "title": "Ao Softness",
-          "type": "number"
-        },
-        "ao_dither": {
-          "title": "Ao Dither",
-          "type": "boolean"
-        },
-        "ao_sample_rate": {
-          "title": "Ao Sample Rate",
-          "type": "integer"
-        }
+        "ao_enabled": {"title": "Ao Enabled", "type": "boolean"},
+        "ao_strength": {"title": "Ao Strength", "type": "number"},
+        "ao_radius": {"title": "Ao Radius", "type": "number"},
+        "ao_bias": {"title": "Ao Bias", "type": "number"},
+        "ao_softness": {"title": "Ao Softness", "type": "number"},
+        "ao_dither": {"title": "Ao Dither", "type": "boolean"},
+        "ao_sample_rate": {"title": "Ao Sample Rate", "type": "integer"}
       },
       "required": [
         "background_mode",
@@ -882,810 +440,324 @@
     "ReflectionProbeSettings": {
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "padding_m": {
-          "title": "Padding M",
-          "type": "number"
-        },
-        "quality": {
-          "title": "Quality",
-          "type": "string"
-        },
-        "refresh_mode": {
-          "title": "Refresh Mode",
-          "type": "string"
-        },
-        "time_slicing": {
-          "title": "Time Slicing",
-          "type": "string"
-        }
+        "enabled": {"title": "Enabled", "type": "boolean"},
+        "padding_m": {"title": "Padding M", "type": "number"},
+        "quality": {"title": "Quality", "type": "string"},
+        "refresh_mode": {"title": "Refresh Mode", "type": "string"},
+        "time_slicing": {"title": "Time Slicing", "type": "string"}
       },
-      "required": [
-        "enabled",
-        "padding_m",
-        "quality",
-        "refresh_mode",
-        "time_slicing"
-      ],
+      "required": ["enabled", "padding_m", "quality", "refresh_mode", "time_slicing"],
       "title": "ReflectionProbeSettings",
       "type": "object"
     },
     "GeometryConstants": {
       "additionalProperties": false,
       "properties": {
-        "kinematics": {
-          "$ref": "#/$defs/GeometryKinematicsConstants"
-        },
-        "cylinder": {
-          "$ref": "#/$defs/GeometryCylinderConstants"
-        },
-        "visualization": {
-          "$ref": "#/$defs/GeometryVisualizationConstants"
-        },
-        "initial_state": {
-          "$ref": "#/$defs/GeometryInitialStateConstants"
-        },
+        "kinematics": {"$ref": "#/$defs/GeometryKinematicsConstants"},
+        "cylinder": {"$ref": "#/$defs/GeometryCylinderConstants"},
+        "visualization": {"$ref": "#/$defs/GeometryVisualizationConstants"},
+        "initial_state": {"$ref": "#/$defs/GeometryInitialStateConstants"},
         "ui_ranges": {
-          "additionalProperties": {
-            "$ref": "#/$defs/SliderRange"
-          },
+          "additionalProperties": {"$ref": "#/$defs/SliderRange"},
           "title": "Ui Ranges",
           "type": "object"
         },
         "presets": {
-          "items": {
-            "$ref": "#/$defs/GeometryPreset"
-          },
+          "items": {"$ref": "#/$defs/GeometryPreset"},
           "title": "Presets",
           "type": "array"
         }
       },
-      "required": [
-        "kinematics",
-        "cylinder",
-        "visualization",
-        "initial_state",
-        "ui_ranges",
-        "presets"
-      ],
+      "required": ["kinematics", "cylinder", "visualization", "initial_state", "ui_ranges", "presets"],
       "title": "GeometryConstants",
       "type": "object"
     },
     "GeometryCylinderConstants": {
       "additionalProperties": false,
       "properties": {
-        "inner_diameter_m": {
-          "title": "Inner Diameter M",
-          "type": "number"
-        },
-        "piston_thickness_m": {
-          "title": "Piston Thickness M",
-          "type": "number"
-        },
-        "rod_diameter_m": {
-          "title": "Rod Diameter M",
-          "type": "number"
-        },
-        "body_length_m": {
-          "title": "Body Length M",
-          "type": "number"
-        },
-        "dead_zone_head_m3": {
-          "title": "Dead Zone Head M3",
-          "type": "number"
-        },
-        "dead_zone_rod_m3": {
-          "title": "Dead Zone Rod M3",
-          "type": "number"
-        }
+        "inner_diameter_m": {"title": "Inner Diameter M", "type": "number"},
+        "piston_thickness_m": {"title": "Piston Thickness M", "type": "number"},
+        "rod_diameter_m": {"title": "Rod Diameter M", "type": "number"},
+        "body_length_m": {"title": "Body Length M", "type": "number"},
+        "dead_zone_head_m3": {"title": "Dead Zone Head M3", "type": "number"},
+        "dead_zone_rod_m3": {"title": "Dead Zone Rod M3", "type": "number"}
       },
-      "required": [
-        "inner_diameter_m",
-        "piston_thickness_m",
-        "rod_diameter_m",
-        "body_length_m",
-        "dead_zone_head_m3",
-        "dead_zone_rod_m3"
-      ],
+      "required": ["inner_diameter_m", "piston_thickness_m", "rod_diameter_m", "body_length_m", "dead_zone_head_m3", "dead_zone_rod_m3"],
       "title": "GeometryCylinderConstants",
       "type": "object"
     },
     "GeometryInitialStateConstants": {
       "additionalProperties": false,
       "properties": {
-        "frame_length_m": {
-          "title": "Frame Length M",
-          "type": "number"
-        },
-        "frame_height_m": {
-          "title": "Frame Height M",
-          "type": "number"
-        },
-        "frame_beam_size_m": {
-          "title": "Frame Beam Size M",
-          "type": "number"
-        },
-        "lever_length_m": {
-          "title": "Lever Length M",
-          "type": "number"
-        },
-        "cylinder_body_length_m": {
-          "title": "Cylinder Body Length M",
-          "type": "number"
-        },
-        "tail_rod_length_m": {
-          "title": "Tail Rod Length M",
-          "type": "number"
-        },
+        "frame_length_m": {"title": "Frame Length M", "type": "number"},
+        "frame_height_m": {"title": "Frame Height M", "type": "number"},
+        "frame_beam_size_m": {"title": "Frame Beam Size M", "type": "number"},
+        "lever_length_m": {"title": "Lever Length M", "type": "number"},
+        "cylinder_body_length_m": {"title": "Cylinder Body Length M", "type": "number"},
+        "tail_rod_length_m": {"title": "Tail Rod Length M", "type": "number"},
         "j_arm_left": {
-          "items": {
-            "type": "number"
-          },
+          "items": {"type": "number"},
           "title": "J Arm Left",
           "type": "array"
         },
         "j_arm_right": {
-          "items": {
-            "type": "number"
-          },
+          "items": {"type": "number"},
           "title": "J Arm Right",
           "type": "array"
         },
         "j_tail_left": {
-          "items": {
-            "type": "number"
-          },
+          "items": {"type": "number"},
           "title": "J Tail Left",
           "type": "array"
         },
         "j_tail_right": {
-          "items": {
-            "type": "number"
-          },
+          "items": {"type": "number"},
           "title": "J Tail Right",
           "type": "array"
         }
       },
-      "required": [
-        "frame_length_m",
-        "frame_height_m",
-        "frame_beam_size_m",
-        "lever_length_m",
-        "cylinder_body_length_m",
-        "tail_rod_length_m",
-        "j_arm_left",
-        "j_arm_right",
-        "j_tail_left",
-        "j_tail_right"
-      ],
+      "required": ["frame_length_m", "frame_height_m", "frame_beam_size_m", "lever_length_m", "cylinder_body_length_m", "tail_rod_length_m", "j_arm_left", "j_arm_right", "j_tail_left", "j_tail_right"],
       "title": "GeometryInitialStateConstants",
       "type": "object"
     },
     "GeometryKinematicsConstants": {
       "additionalProperties": false,
       "properties": {
-        "track_width_m": {
-          "title": "Track Width M",
-          "type": "number"
-        },
-        "lever_length_m": {
-          "title": "Lever Length M",
-          "type": "number"
-        },
-        "pivot_offset_from_frame_m": {
-          "title": "Pivot Offset From Frame M",
-          "type": "number"
-        },
-        "rod_attach_fraction": {
-          "title": "Rod Attach Fraction",
-          "type": "number"
-        }
+        "track_width_m": {"title": "Track Width M", "type": "number"},
+        "lever_length_m": {"title": "Lever Length M", "type": "number"},
+        "pivot_offset_from_frame_m": {"title": "Pivot Offset From Frame M", "type": "number"},
+        "rod_attach_fraction": {"title": "Rod Attach Fraction", "type": "number"}
       },
-      "required": [
-        "track_width_m",
-        "lever_length_m",
-        "pivot_offset_from_frame_m",
-        "rod_attach_fraction"
-      ],
+      "required": ["track_width_m", "lever_length_m", "pivot_offset_from_frame_m", "rod_attach_fraction"],
       "title": "GeometryKinematicsConstants",
       "type": "object"
     },
     "GeometryPreset": {
       "additionalProperties": false,
       "properties": {
-        "key": {
-          "title": "Key",
-          "type": "string"
-        },
-        "label": {
-          "title": "Label",
-          "type": "string"
-        },
+        "key": {"title": "Key", "type": "string"},
+        "label": {"title": "Label", "type": "string"},
         "values": {
           "additionalProperties": {
             "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "string"
-              }
+              {"type": "number"},
+              {"type": "boolean"},
+              {"type": "string"}
             ]
           },
           "title": "Values",
           "type": "object"
         }
       },
-      "required": [
-        "key",
-        "label",
-        "values"
-      ],
+      "required": ["key", "label", "values"],
       "title": "GeometryPreset",
       "type": "object"
     },
     "GeometrySettings": {
       "additionalProperties": false,
       "properties": {
-        "wheelbase": {
-          "title": "Wheelbase",
-          "type": "number"
-        },
-        "track": {
-          "title": "Track",
-          "type": "number"
-        },
-        "frame_to_pivot": {
-          "title": "Frame To Pivot",
-          "type": "number"
-        },
-        "lever_length": {
-          "title": "Lever Length",
-          "type": "number"
-        },
-        "rod_position": {
-          "title": "Rod Position",
-          "type": "number"
-        },
-        "cylinder_length": {
-          "title": "Cylinder Length",
-          "type": "number"
-        },
-        "cyl_diam_m": {
-          "title": "Cyl Diam M",
-          "type": "number"
-        },
-        "stroke_m": {
-          "title": "Stroke M",
-          "type": "number"
-        },
-        "dead_gap_m": {
-          "title": "Dead Gap M",
-          "type": "number"
-        },
-        "rod_diameter_m": {
-          "title": "Rod Diameter M",
-          "type": "number"
-        },
-        "rod_diameter_rear_m": {
-          "title": "Rod Diameter Rear M",
-          "type": "number"
-        },
-        "piston_rod_length_m": {
-          "title": "Piston Rod Length M",
-          "type": "number"
-        },
-        "piston_thickness_m": {
-          "title": "Piston Thickness M",
-          "type": "number"
-        },
-        "frame_mass": {
-          "title": "Frame Mass",
-          "type": "number"
-        },
-        "wheel_mass": {
-          "title": "Wheel Mass",
-          "type": "number"
-        },
-        "tail_rod_length_m": {
-          "title": "Tail Rod Length M",
-          "type": "number"
-        },
-        "interference_check": {
-          "title": "Interference Check",
-          "type": "boolean"
-        },
-        "link_rod_diameters": {
-          "title": "Link Rod Diameters",
-          "type": "boolean"
-        },
-        "frame_height_m": {
-          "title": "Frame Height M",
-          "type": "number"
-        },
-        "frame_beam_size_m": {
-          "title": "Frame Beam Size M",
-          "type": "number"
-        },
-        "frame_length_m": {
-          "title": "Frame Length M",
-          "type": "number"
-        },
-        "lever_length_m": {
-          "title": "Lever Length M",
-          "type": "number"
-        },
-        "cylinder_body_length_m": {
-          "title": "Cylinder Body Length M",
-          "type": "number"
-        },
-        "active_preset": {
-          "title": "Active Preset",
-          "type": "string"
-        }
+        "wheelbase": {"title": "Wheelbase", "type": "number"},
+        "track": {"title": "Track", "type": "number"},
+        "frame_to_pivot": {"title": "Frame To Pivot", "type": "number"},
+        "lever_length": {"title": "Lever Length", "type": "number"},
+        "rod_position": {"title": "Rod Position", "type": "number"},
+        "cylinder_length": {"title": "Cylinder Length", "type": "number"},
+        "cyl_diam_m": {"title": "Cyl Diam M", "type": "number"},
+        "stroke_m": {"title": "Stroke M", "type": "number"},
+        "dead_gap_m": {"title": "Dead Gap M", "type": "number"},
+        "rod_diameter_m": {"title": "Rod Diameter M", "type": "number"},
+        "rod_diameter_rear_m": {"title": "Rod Diameter Rear M", "type": "number"},
+        "piston_rod_length_m": {"title": "Piston Rod Length M", "type": "number"},
+        "piston_thickness_m": {"title": "Piston Thickness M", "type": "number"},
+        "frame_mass": {"title": "Frame Mass", "type": "number"},
+        "wheel_mass": {"title": "Wheel Mass", "type": "number"},
+        "tail_rod_length_m": {"title": "Tail Rod Length M", "type": "number"},
+        "interference_check": {"title": "Interference Check", "type": "boolean"},
+        "link_rod_diameters": {"title": "Link Rod Diameters", "type": "boolean"},
+        "frame_height_m": {"title": "Frame Height M", "type": "number"},
+        "frame_beam_size_m": {"title": "Frame Beam Size M", "type": "number"},
+        "frame_length_m": {"title": "Frame Length M", "type": "number"},
+        "lever_length_m": {"title": "Lever Length M", "type": "number"},
+        "cylinder_body_length_m": {"title": "Cylinder Body Length M", "type": "number"},
+        "active_preset": {"title": "Active Preset", "type": "string"}
       },
       "allOf": [
         {
           "not": {
             "anyOf": [
-              {
-                "required": [
-                  "cylinder_segments"
-                ]
-              },
-              {
-                "required": [
-                  "cylinder_rings"
-                ]
-              }
+              {"required": ["cylinder_segments"]},
+              {"required": ["cylinder_rings"]}
             ]
           }
         }
       ],
-      "required": [
-        "wheelbase",
-        "track",
-        "frame_to_pivot",
-        "lever_length",
-        "rod_position",
-        "cylinder_length",
-        "cyl_diam_m",
-        "stroke_m",
-        "dead_gap_m",
-        "rod_diameter_m",
-        "rod_diameter_rear_m",
-        "piston_rod_length_m",
-        "piston_thickness_m",
-        "frame_mass",
-        "wheel_mass",
-        "tail_rod_length_m",
-        "interference_check",
-        "link_rod_diameters",
-        "frame_height_m",
-        "frame_beam_size_m",
-        "frame_length_m",
-        "lever_length_m",
-        "cylinder_body_length_m",
-        "active_preset"
-      ],
+      "required": ["wheelbase", "track", "frame_to_pivot", "lever_length", "rod_position", "cylinder_length", "cyl_diam_m", "stroke_m", "dead_gap_m", "rod_diameter_m", "rod_diameter_rear_m", "piston_rod_length_m", "piston_thickness_m", "frame_mass", "wheel_mass", "tail_rod_length_m", "interference_check", "link_rod_diameters", "frame_height_m", "frame_beam_size_m", "frame_length_m", "lever_length_m", "cylinder_body_length_m", "active_preset"],
       "title": "GeometrySettings",
       "type": "object"
     },
     "GeometryVisualizationConstants": {
       "additionalProperties": false,
       "properties": {
-        "cylinder_radius_m": {
-          "title": "Cylinder Radius M",
-          "type": "number"
-        },
-        "arm_radius_m": {
-          "title": "Arm Radius M",
-          "type": "number"
-        },
-        "pivot_offset_x_m": {
-          "title": "Pivot Offset X M",
-          "type": "number"
-        },
-        "tail_offset_x_m": {
-          "title": "Tail Offset X M",
-          "type": "number"
-        },
-        "piston_clip_min_fraction": {
-          "title": "Piston Clip Min Fraction",
-          "type": "number"
-        },
-        "piston_clip_max_fraction": {
-          "title": "Piston Clip Max Fraction",
-          "type": "number"
-        },
-        "max_stroke_fraction": {
-          "title": "Max Stroke Fraction",
-          "type": "number"
-        }
+        "cylinder_radius_m": {"title": "Cylinder Radius M", "type": "number"},
+        "arm_radius_m": {"title": "Arm Radius M", "type": "number"},
+        "pivot_offset_x_m": {"title": "Pivot Offset X M", "type": "number"},
+        "tail_offset_x_m": {"title": "Tail Offset X M", "type": "number"},
+        "piston_clip_min_fraction": {"title": "Piston Clip Min Fraction", "type": "number"},
+        "piston_clip_max_fraction": {"title": "Piston Clip Max Fraction", "type": "number"},
+        "max_stroke_fraction": {"title": "Max Stroke Fraction", "type": "number"}
       },
-      "required": [
-        "cylinder_radius_m",
-        "arm_radius_m",
-        "pivot_offset_x_m",
-        "tail_offset_x_m",
-        "piston_clip_min_fraction",
-        "piston_clip_max_fraction",
-        "max_stroke_fraction"
-      ],
+      "required": ["cylinder_radius_m", "arm_radius_m", "pivot_offset_x_m", "tail_offset_x_m", "piston_clip_min_fraction", "piston_clip_max_fraction", "max_stroke_fraction"],
       "title": "GeometryVisualizationConstants",
       "type": "object"
     },
     "GraphicsSettings": {
       "additionalProperties": false,
       "properties": {
-        "lighting": {
-          "$ref": "#/$defs/LightingSettings"
-        },
-        "environment": {
-          "$ref": "#/$defs/EnvironmentSettings"
-        },
-        "reflection_probe": {
-          "$ref": "#/$defs/ReflectionProbeSettings"
-        },
-        "quality": {
-          "$ref": "#/$defs/QualitySettings"
-        },
-        "camera": {
-          "$ref": "#/$defs/CameraSettings"
-        },
-        "materials": {
-          "$ref": "#/$defs/MaterialsSettings"
-        },
-        "effects": {
-          "$ref": "#/$defs/EffectsSettings"
-        },
-        "scene": {
-          "$ref": "#/$defs/SceneSettings"
-        },
-        "environment_ranges": {
-          "$ref": "#/$defs/EnvironmentSliderRanges"
-        }
+        "lighting": {"$ref": "#/$defs/LightingSettings"},
+        "environment": {"$ref": "#/$defs/EnvironmentSettings"},
+        "reflection_probe": {"$ref": "#/$defs/ReflectionProbeSettings"},
+        "quality": {"$ref": "#/$defs/QualitySettings"},
+        "camera": {"$ref": "#/$defs/CameraSettings"},
+        "materials": {"$ref": "#/$defs/MaterialsSettings"},
+        "effects": {"$ref": "#/$defs/EffectsSettings"},
+        "scene": {"$ref": "#/$defs/SceneSettings"},
+        "environment_ranges": {"$ref": "#/$defs/EnvironmentSliderRanges"}
       },
-      "required": [
-        "lighting",
-        "environment",
-        "reflection_probe",
-        "quality",
-        "camera",
-        "materials",
-        "effects",
-        "scene",
-        "environment_ranges"
-      ],
+      "required": ["lighting", "environment", "reflection_probe", "quality", "camera", "materials", "effects", "scene", "environment_ranges"],
       "title": "GraphicsSettings",
       "type": "object"
     },
     "LightingSettings": {
       "additionalProperties": false,
       "properties": {
-        "key": {
-          "$ref": "#/$defs/_LightBase"
-        },
-        "fill": {
-          "$ref": "#/$defs/_LightBase"
-        },
-        "rim": {
-          "$ref": "#/$defs/_LightBase"
-        },
-        "point": {
-          "$ref": "#/$defs/PointLightSettings"
-        },
-        "spot": {
-          "$ref": "#/$defs/SpotLightSettings"
-        }
+        "key": {"$ref": "#/$defs/_LightBase"},
+        "fill": {"$ref": "#/$defs/_LightBase"},
+        "rim": {"$ref": "#/$defs/_LightBase"},
+        "point": {"$ref": "#/$defs/PointLightSettings"},
+        "spot": {"$ref": "#/$defs/SpotLightSettings"}
       },
-      "required": [
-        "key",
-        "fill",
-        "rim",
-        "point",
-        "spot"
-      ],
+      "required": ["key", "fill", "rim", "point", "spot"],
       "title": "LightingSettings",
       "type": "object"
     },
     "MaterialSettings": {
       "additionalProperties": false,
       "properties": {
-        "base_color": {
-          "title": "Base Color",
-          "type": "string"
-        },
-        "metalness": {
-          "title": "Metalness",
-          "type": "number"
-        },
-        "roughness": {
-          "title": "Roughness",
-          "type": "number"
-        },
-        "specular": {
-          "title": "Specular",
-          "type": "number"
-        },
+        "base_color": {"title": "Base Color", "type": "string"},
+        "metalness": {"title": "Metalness", "type": "number"},
+        "roughness": {"title": "Roughness", "type": "number"},
+        "specular": {"title": "Specular", "type": "number"},
         "specular_tint": {
           "title": "Specular Tint",
           "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            }
+            {"type": "number"},
+            {"type": "string"}
           ]
         },
-        "opacity": {
-          "title": "Opacity",
-          "type": "number"
-        },
-        "clearcoat": {
-          "title": "Clearcoat",
-          "type": "number"
-        },
-        "clearcoat_roughness": {
-          "title": "Clearcoat Roughness",
-          "type": "number"
-        },
-        "transmission": {
-          "title": "Transmission",
-          "type": "number"
-        },
-        "ior": {
-          "title": "Ior",
-          "type": "number"
-        },
-        "thickness": {
-          "title": "Thickness",
-          "type": "number"
-        },
-        "attenuation_distance": {
-          "title": "Attenuation Distance",
-          "type": "number"
-        },
-        "attenuation_color": {
-          "title": "Attenuation Color",
-          "type": "string"
-        },
-        "emissive_color": {
-          "title": "Emissive Color",
-          "type": "string"
-        },
-        "emissive_intensity": {
-          "title": "Emissive Intensity",
-          "type": "number"
-        },
-        "normal_strength": {
-          "title": "Normal Strength",
-          "type": "number"
-        },
+        "opacity": {"title": "Opacity", "type": "number"},
+        "clearcoat": {"title": "Clearcoat", "type": "number"},
+        "clearcoat_roughness": {"title": "Clearcoat Roughness", "type": "number"},
+        "transmission": {"title": "Transmission", "type": "number"},
+        "ior": {"title": "Ior", "type": "number"},
+        "thickness": {"title": "Thickness", "type": "number"},
+        "attenuation_distance": {"title": "Attenuation Distance", "type": "number"},
+        "attenuation_color": {"title": "Attenuation Color", "type": "string"},
+        "emissive_color": {"title": "Emissive Color", "type": "string"},
+        "emissive_intensity": {"title": "Emissive Intensity", "type": "number"},
+        "normal_strength": {"title": "Normal Strength", "type": "number"},
         "texture_path": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Texture Path"
         },
-        "occlusion_amount": {
-          "title": "Occlusion Amount",
-          "type": "number"
-        },
-        "alpha_mode": {
-          "title": "Alpha Mode",
-          "type": "string"
-        },
-        "alpha_cutoff": {
-          "title": "Alpha Cutoff",
-          "type": "number"
-        },
+        "occlusion_amount": {"title": "Occlusion Amount", "type": "number"},
+        "alpha_mode": {"title": "Alpha Mode", "type": "string"},
+        "alpha_cutoff": {"title": "Alpha Cutoff", "type": "number"},
         "warning_color": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Warning Color"
         },
         "ok_color": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Ok Color"
         },
         "error_color": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Error Color"
         },
-        "id": {
-          "title": "Id",
-          "type": "string"
-        }
+        "id": {"title": "Id", "type": "string"}
       },
-      "required": [
-        "base_color",
-        "metalness",
-        "roughness",
-        "specular",
-        "specular_tint",
-        "opacity",
-        "clearcoat",
-        "clearcoat_roughness",
-        "transmission",
-        "ior",
-        "thickness",
-        "attenuation_distance",
-        "attenuation_color",
-        "emissive_color",
-        "emissive_intensity",
-        "normal_strength",
-        "occlusion_amount",
-        "alpha_mode",
-        "alpha_cutoff",
-        "id"
-      ],
+      "required": ["base_color", "metalness", "roughness", "specular", "specular_tint", "opacity", "clearcoat", "clearcoat_roughness", "transmission", "ior", "thickness", "attenuation_distance", "attenuation_color", "emissive_color", "emissive_intensity", "normal_strength", "occlusion_amount", "alpha_mode", "alpha_cutoff", "id"],
       "title": "MaterialSettings",
       "type": "object"
     },
     "MaterialsSettings": {
       "additionalProperties": false,
       "properties": {
-        "frame": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "lever": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "tail_rod": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "cylinder": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "piston_body": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "piston_rod": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "joint_tail": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "joint_arm": {
-          "$ref": "#/$defs/MaterialSettings"
-        },
-        "joint_rod": {
-          "$ref": "#/$defs/MaterialSettings"
-        }
+        "frame": {"$ref": "#/$defs/MaterialSettings"},
+        "lever": {"$ref": "#/$defs/MaterialSettings"},
+        "tail_rod": {"$ref": "#/$defs/MaterialSettings"},
+        "cylinder": {"$ref": "#/$defs/MaterialSettings"},
+        "piston_body": {"$ref": "#/$defs/MaterialSettings"},
+        "piston_rod": {"$ref": "#/$defs/MaterialSettings"},
+        "joint_tail": {"$ref": "#/$defs/MaterialSettings"},
+        "joint_arm": {"$ref": "#/$defs/MaterialSettings"},
+        "joint_rod": {"$ref": "#/$defs/MaterialSettings"}
       },
-      "required": [
-        "frame",
-        "lever",
-        "tail_rod",
-        "cylinder",
-        "piston_body",
-        "piston_rod",
-        "joint_tail",
-        "joint_arm",
-        "joint_rod"
-      ],
+      "required": ["frame", "lever", "tail_rod", "cylinder", "piston_body", "piston_rod", "joint_tail", "joint_arm", "joint_rod"],
       "title": "MaterialsSettings",
       "type": "object"
     },
     "MeshSettings": {
       "additionalProperties": false,
       "properties": {
-        "cylinder_segments": {
-          "title": "Cylinder Segments",
-          "type": "integer"
-        },
-        "cylinder_rings": {
-          "title": "Cylinder Rings",
-          "type": "integer"
-        }
+        "cylinder_segments": {"title": "Cylinder Segments", "type": "integer"},
+        "cylinder_rings": {"title": "Cylinder Rings", "type": "integer"}
       },
-      "required": [
-        "cylinder_segments",
-        "cylinder_rings"
-      ],
+      "required": ["cylinder_segments", "cylinder_rings"],
       "title": "MeshSettings",
       "type": "object"
     },
     "Metadata": {
       "additionalProperties": false,
       "properties": {
-        "version": {
-          "title": "Version",
-          "type": "string"
-        },
-        "schema_version": {
-          "title": "Schema Version",
-          "type": "string"
-        },
-        "last_modified": {
-          "title": "Last Modified",
-          "type": "string"
-        },
-        "units_version": {
-          "title": "Units Version",
-          "type": "string"
-        },
+        "version": {"title": "Version", "type": "string"},
+        "schema_version": {"title": "Schema Version", "type": "string"},
+        "last_modified": {"title": "Last Modified", "type": "string"},
+        "units_version": {"title": "Units Version", "type": "string"},
         "migrations": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Migrations",
           "type": "array"
         },
-        "last_migration": {
-          "title": "Last Migration",
-          "type": "string"
-        },
-        "migrated_from": {
-          "title": "Migrated From",
-          "type": "string"
-        },
-        "migration_date": {
-          "title": "Migration Date",
-          "type": "string"
-        },
-        "total_parameters": {
-          "title": "Total Parameters",
-          "type": "integer"
-        },
-        "description": {
-          "title": "Description",
-          "type": "string"
-        },
+        "last_migration": {"title": "Last Migration", "type": "string"},
+        "migrated_from": {"title": "Migrated From", "type": "string"},
+        "migration_date": {"title": "Migration Date", "type": "string"},
+        "total_parameters": {"title": "Total Parameters", "type": "integer"},
+        "description": {"title": "Description", "type": "string"},
         "operational_imperatives": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Operational Imperatives",
           "type": "array"
         },
-        "defaults_seed": {
-          "title": "Defaults Seed",
-          "type": "string"
-        },
-        "environment_slider_ranges": {
-          "$ref": "#/$defs/EnvironmentSliderRanges"
-        },
-        "scene_defaults": {
-          "$ref": "#/$defs/SceneDefaultsMetadata"
-        },
+        "defaults_seed": {"title": "Defaults Seed", "type": "string"},
+        "environment_slider_ranges": {"$ref": "#/$defs/EnvironmentSliderRanges"},
+        "scene_defaults": {"$ref": "#/$defs/SceneDefaultsMetadata"},
         "legacy": {
           "additionalProperties": {
             "additionalProperties": true,
@@ -1695,273 +767,103 @@
           "type": "object"
         }
       },
-      "required": [
-        "version",
-        "schema_version",
-        "last_modified",
-        "units_version",
-        "migrations",
-        "last_migration",
-        "migrated_from",
-        "migration_date",
-        "total_parameters",
-        "description",
-        "operational_imperatives",
-        "environment_slider_ranges"
-      ],
+      "required": ["version", "schema_version", "last_modified", "units_version", "migrations", "last_migration", "migrated_from", "migration_date", "total_parameters", "description", "operational_imperatives", "environment_slider_ranges"],
       "title": "Metadata",
       "type": "object"
     },
     "ModesPhysicsSettings": {
       "additionalProperties": false,
       "properties": {
-        "include_springs": {
-          "title": "Include Springs",
-          "type": "boolean"
-        },
-        "include_dampers": {
-          "title": "Include Dampers",
-          "type": "boolean"
-        },
-        "include_pneumatics": {
-          "title": "Include Pneumatics",
-          "type": "boolean"
-        },
-        "spring_constant": {
-          "title": "Spring Constant",
-          "type": "number"
-        },
-        "damper_coefficient": {
-          "title": "Damper Coefficient",
-          "type": "number"
-        },
-        "lever_inertia_multiplier": {
-          "title": "Lever Inertia Multiplier",
-          "type": "number"
-        },
-        "damper_force_threshold_n": {
-          "title": "Damper Force Threshold N",
-          "type": "number"
-        },
-        "spring_rest_position_m": {
-          "title": "Spring Rest Position M",
-          "type": "number"
-        },
+        "include_springs": {"title": "Include Springs", "type": "boolean"},
+        "include_dampers": {"title": "Include Dampers", "type": "boolean"},
+        "include_pneumatics": {"title": "Include Pneumatics", "type": "boolean"},
+        "spring_constant": {"title": "Spring Constant", "type": "number"},
+        "damper_coefficient": {"title": "Damper Coefficient", "type": "number"},
+        "lever_inertia_multiplier": {"title": "Lever Inertia Multiplier", "type": "number"},
+        "damper_force_threshold_n": {"title": "Damper Force Threshold N", "type": "number"},
+        "spring_rest_position_m": {"title": "Spring Rest Position M", "type": "number"},
         "integrator_method": {
           "title": "Integrator Method",
           "type": "string",
-          "enum": [
-            "rk4",
-            "euler"
-          ]
+          "enum": ["rk4", "euler"]
         }
       },
-      "required": [
-        "include_springs",
-        "include_dampers",
-        "include_pneumatics",
-        "spring_constant",
-        "damper_coefficient",
-        "lever_inertia_multiplier",
-        "damper_force_threshold_n",
-        "spring_rest_position_m",
-        "integrator_method"
-      ],
+      "required": ["include_springs", "include_dampers", "include_pneumatics", "spring_constant", "damper_coefficient", "lever_inertia_multiplier", "damper_force_threshold_n", "spring_rest_position_m", "integrator_method"],
       "title": "ModesPhysicsSettings",
       "type": "object"
     },
     "ModesSettings": {
       "additionalProperties": false,
       "properties": {
-        "sim_type": {
-          "title": "Sim Type",
-          "type": "string"
-        },
-        "mode_preset": {
-          "title": "Mode Preset",
-          "type": "string"
-        },
-        "amplitude": {
-          "title": "Amplitude",
-          "type": "number"
-        },
-        "frequency": {
-          "title": "Frequency",
-          "type": "number"
-        },
-        "phase": {
-          "title": "Phase",
-          "type": "number"
-        },
-        "lf_phase": {
-          "title": "Lf Phase",
-          "type": "number"
-        },
-        "rf_phase": {
-          "title": "Rf Phase",
-          "type": "number"
-        },
-        "lr_phase": {
-          "title": "Lr Phase",
-          "type": "number"
-        },
-        "rr_phase": {
-          "title": "Rr Phase",
-          "type": "number"
-        },
-        "physics": {
-          "$ref": "#/$defs/ModesPhysicsSettings"
-        }
+        "sim_type": {"title": "Sim Type", "type": "string"},
+        "mode_preset": {"title": "Mode Preset", "type": "string"},
+        "amplitude": {"title": "Amplitude", "type": "number"},
+        "frequency": {"title": "Frequency", "type": "number"},
+        "phase": {"title": "Phase", "type": "number"},
+        "lf_phase": {"title": "Lf Phase", "type": "number"},
+        "rf_phase": {"title": "Rf Phase", "type": "number"},
+        "lr_phase": {"title": "Lr Phase", "type": "number"},
+        "rr_phase": {"title": "Rr Phase", "type": "number"},
+        "physics": {"$ref": "#/$defs/ModesPhysicsSettings"}
       },
-      "required": [
-        "sim_type",
-        "mode_preset",
-        "amplitude",
-        "frequency",
-        "phase",
-        "lf_phase",
-        "rf_phase",
-        "lr_phase",
-        "rr_phase",
-        "physics"
-      ],
+      "required": ["sim_type", "mode_preset", "amplitude", "frequency", "phase", "lf_phase", "rf_phase", "lr_phase", "rr_phase", "physics"],
       "title": "ModesSettings",
       "type": "object"
     },
     "PhysicsConstants": {
       "additionalProperties": false,
       "properties": {
-        "suspension": {
-          "$ref": "#/$defs/PhysicsSuspensionSettings"
-        },
-        "reference_axes": {
-          "$ref": "#/$defs/PhysicsReferenceAxes"
-        },
-        "validation": {
-          "$ref": "#/$defs/PhysicsValidationSettings"
-        },
-        "integrator": {
-          "$ref": "#/$defs/PhysicsIntegratorSettings"
-        },
-        "rigid_body": {
-          "$ref": "#/$defs/PhysicsRigidBodySettings"
-        }
+        "suspension": {"$ref": "#/$defs/PhysicsSuspensionSettings"},
+        "reference_axes": {"$ref": "#/$defs/PhysicsReferenceAxes"},
+        "validation": {"$ref": "#/$defs/PhysicsValidationSettings"},
+        "integrator": {"$ref": "#/$defs/PhysicsIntegratorSettings"},
+        "rigid_body": {"$ref": "#/$defs/PhysicsRigidBodySettings"}
       },
-      "required": [
-        "suspension",
-        "reference_axes",
-        "validation",
-        "integrator",
-        "rigid_body"
-      ],
+      "required": ["suspension", "reference_axes", "validation", "integrator", "rigid_body"],
       "title": "PhysicsConstants",
       "type": "object"
     },
     "PhysicsIntegratorLoopSettings": {
       "additionalProperties": false,
       "properties": {
-        "max_steps_per_render": {
-          "title": "Max Steps Per Render",
-          "type": "integer"
-        },
-        "max_linear_velocity_m_s": {
-          "title": "Max Linear Velocity M S",
-          "type": "number"
-        },
-        "max_angular_velocity_rad_s": {
-          "title": "Max Angular Velocity Rad S",
-          "type": "number"
-        },
-        "lever_ratio_clip_min": {
-          "title": "Lever Ratio Clip Min",
-          "type": "number"
-        },
-        "lever_ratio_clip_max": {
-          "title": "Lever Ratio Clip Max",
-          "type": "number"
-        },
-        "nan_replacement_value": {
-          "title": "Nan Replacement Value",
-          "type": "number"
-        },
-        "posinf_replacement_value": {
-          "title": "Posinf Replacement Value",
-          "type": "number"
-        },
-        "neginf_replacement_value": {
-          "title": "Neginf Replacement Value",
-          "type": "number"
-        },
-        "statistics_min_total_steps": {
-          "title": "Statistics Min Total Steps",
-          "type": "integer"
-        }
+        "max_steps_per_render": {"title": "Max Steps Per Render", "type": "integer"},
+        "max_linear_velocity_m_s": {"title": "Max Linear Velocity M S", "type": "number"},
+        "max_angular_velocity_rad_s": {"title": "Max Angular Velocity Rad S", "type": "number"},
+        "lever_ratio_clip_min": {"title": "Lever Ratio Clip Min", "type": "number"},
+        "lever_ratio_clip_max": {"title": "Lever Ratio Clip Max", "type": "number"},
+        "nan_replacement_value": {"title": "Nan Replacement Value", "type": "number"},
+        "posinf_replacement_value": {"title": "Posinf Replacement Value", "type": "number"},
+        "neginf_replacement_value": {"title": "Neginf Replacement Value", "type": "number"},
+        "statistics_min_total_steps": {"title": "Statistics Min Total Steps", "type": "integer"}
       },
-      "required": [
-        "max_steps_per_render",
-        "max_linear_velocity_m_s",
-        "max_angular_velocity_rad_s",
-        "lever_ratio_clip_min",
-        "lever_ratio_clip_max",
-        "nan_replacement_value",
-        "posinf_replacement_value",
-        "neginf_replacement_value",
-        "statistics_min_total_steps"
-      ],
+      "required": ["max_steps_per_render", "max_linear_velocity_m_s", "max_angular_velocity_rad_s", "lever_ratio_clip_min", "lever_ratio_clip_max", "nan_replacement_value", "posinf_replacement_value", "neginf_replacement_value", "statistics_min_total_steps"],
       "title": "PhysicsIntegratorLoopSettings",
       "type": "object"
     },
     "PhysicsIntegratorSettings": {
       "additionalProperties": false,
       "properties": {
-        "loop": {
-          "$ref": "#/$defs/PhysicsIntegratorLoopSettings"
-        },
-        "solver": {
-          "$ref": "#/$defs/PhysicsIntegratorSolverSettings"
-        }
+        "loop": {"$ref": "#/$defs/PhysicsIntegratorLoopSettings"},
+        "solver": {"$ref": "#/$defs/PhysicsIntegratorSolverSettings"}
       },
-      "required": [
-        "loop",
-        "solver"
-      ],
+      "required": ["loop", "solver"],
       "title": "PhysicsIntegratorSettings",
       "type": "object"
     },
     "PhysicsIntegratorSolverSettings": {
       "additionalProperties": false,
       "properties": {
-        "primary_method": {
-          "title": "Primary Method",
-          "type": "string"
-        },
+        "primary_method": {"title": "Primary Method", "type": "string"},
         "fallback_methods": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Fallback Methods",
           "type": "array"
         },
-        "relative_tolerance": {
-          "title": "Relative Tolerance",
-          "type": "number"
-        },
-        "absolute_tolerance": {
-          "title": "Absolute Tolerance",
-          "type": "number"
-        },
-        "max_step_divisor": {
-          "title": "Max Step Divisor",
-          "type": "number"
-        }
+        "relative_tolerance": {"title": "Relative Tolerance", "type": "number"},
+        "absolute_tolerance": {"title": "Absolute Tolerance", "type": "number"},
+        "max_step_divisor": {"title": "Max Step Divisor", "type": "number"}
       },
-      "required": [
-        "primary_method",
-        "fallback_methods",
-        "relative_tolerance",
-        "absolute_tolerance",
-        "max_step_divisor"
-      ],
+      "required": ["primary_method", "fallback_methods", "relative_tolerance", "absolute_tolerance", "max_step_divisor"],
       "title": "PhysicsIntegratorSolverSettings",
       "type": "object"
     },
@@ -1969,250 +871,105 @@
       "additionalProperties": false,
       "properties": {
         "vertical_world": {
-          "items": {
-            "type": "number"
-          },
+          "items": {"type": "number"},
           "title": "Vertical World",
           "type": "array"
         }
       },
-      "required": [
-        "vertical_world"
-      ],
+      "required": ["vertical_world"],
       "title": "PhysicsReferenceAxes",
       "type": "object"
     },
     "PhysicsRigidBodySettings": {
       "additionalProperties": false,
       "properties": {
-        "default_mass_kg": {
-          "title": "Default Mass Kg",
-          "type": "number"
-        },
-        "default_inertia_roll_kg_m2": {
-          "title": "Default Inertia Roll Kg M2",
-          "type": "number"
-        },
-        "default_inertia_pitch_kg_m2": {
-          "title": "Default Inertia Pitch Kg M2",
-          "type": "number"
-        },
-        "gravity_m_s2": {
-          "title": "Gravity M S2",
-          "type": "number"
-        },
-        "track_width_m": {
-          "title": "Track Width M",
-          "type": "number"
-        },
-        "wheelbase_m": {
-          "title": "Wheelbase M",
-          "type": "number"
-        },
-        "static_load_tolerance": {
-          "title": "Static Load Tolerance",
-          "type": "number"
-        },
-        "load_sum_tolerance_scale": {
-          "title": "Load Sum Tolerance Scale",
-          "type": "number"
-        },
-        "load_sum_min_reference": {
-          "title": "Load Sum Min Reference",
-          "type": "number"
-        },
-        "damping_coefficient": {
-          "title": "Damping Coefficient",
-          "type": "number"
-        },
-        "angle_limit_rad": {
-          "title": "Angle Limit Rad",
-          "type": "number"
-        },
+        "default_mass_kg": {"title": "Default Mass Kg", "type": "number"},
+        "default_inertia_roll_kg_m2": {"title": "Default Inertia Roll Kg M2", "type": "number"},
+        "default_inertia_pitch_kg_m2": {"title": "Default Inertia Pitch Kg M2", "type": "number"},
+        "gravity_m_s2": {"title": "Gravity M S2", "type": "number"},
+        "track_width_m": {"title": "Track Width M", "type": "number"},
+        "wheelbase_m": {"title": "Wheelbase M", "type": "number"},
+        "static_load_tolerance": {"title": "Static Load Tolerance", "type": "number"},
+        "load_sum_tolerance_scale": {"title": "Load Sum Tolerance Scale", "type": "number"},
+        "load_sum_min_reference": {"title": "Load Sum Min Reference", "type": "number"},
+        "damping_coefficient": {"title": "Damping Coefficient", "type": "number"},
+        "angle_limit_rad": {"title": "Angle Limit Rad", "type": "number"},
         "attachment_points_m": {
-          "additionalProperties": {
-            "$ref": "#/$defs/AttachmentPoint"
-          },
+          "additionalProperties": {"$ref": "#/$defs/AttachmentPoint"},
           "title": "Attachment Points M",
           "type": "object"
         }
       },
-      "required": [
-        "default_mass_kg",
-        "default_inertia_roll_kg_m2",
-        "default_inertia_pitch_kg_m2",
-        "gravity_m_s2",
-        "track_width_m",
-        "wheelbase_m",
-        "static_load_tolerance",
-        "load_sum_tolerance_scale",
-        "load_sum_min_reference",
-        "damping_coefficient",
-        "angle_limit_rad",
-        "attachment_points_m"
-      ],
+      "required": ["default_mass_kg", "default_inertia_roll_kg_m2", "default_inertia_pitch_kg_m2", "gravity_m_s2", "track_width_m", "wheelbase_m", "static_load_tolerance", "load_sum_tolerance_scale", "load_sum_min_reference", "damping_coefficient", "angle_limit_rad", "attachment_points_m"],
       "title": "PhysicsRigidBodySettings",
       "type": "object"
     },
     "PhysicsSettings": {
       "additionalProperties": false,
       "properties": {
-        "suspension": {
-          "$ref": "#/$defs/PhysicsSuspensionSettings"
-        },
-        "reference_axes": {
-          "$ref": "#/$defs/PhysicsReferenceAxes"
-        },
-        "validation": {
-          "$ref": "#/$defs/PhysicsValidationSettings"
-        }
+        "suspension": {"$ref": "#/$defs/PhysicsSuspensionSettings"},
+        "reference_axes": {"$ref": "#/$defs/PhysicsReferenceAxes"},
+        "validation": {"$ref": "#/$defs/PhysicsValidationSettings"}
       },
-      "required": [
-        "suspension",
-        "reference_axes",
-        "validation"
-      ],
+      "required": ["suspension", "reference_axes", "validation"],
       "title": "PhysicsSettings",
       "type": "object"
     },
     "PhysicsSuspensionSettings": {
       "additionalProperties": false,
       "properties": {
-        "spring_constant": {
-          "title": "Spring Constant",
-          "type": "number"
-        },
-        "damper_coefficient": {
-          "title": "Damper Coefficient",
-          "type": "number"
-        },
-        "damper_force_threshold_n": {
-          "title": "Damper Force Threshold N",
-          "type": "number"
-        },
-        "spring_rest_position_m": {
-          "title": "Spring Rest Position M",
-          "type": "number"
-        },
-        "cylinder_head_area_m2": {
-          "title": "Cylinder Head Area M2",
-          "type": "number"
-        },
-        "cylinder_rod_area_m2": {
-          "title": "Cylinder Rod Area M2",
-          "type": "number"
-        },
+        "spring_constant": {"title": "Spring Constant", "type": "number"},
+        "damper_coefficient": {"title": "Damper Coefficient", "type": "number"},
+        "damper_force_threshold_n": {"title": "Damper Force Threshold N", "type": "number"},
+        "spring_rest_position_m": {"title": "Spring Rest Position M", "type": "number"},
+        "cylinder_head_area_m2": {"title": "Cylinder Head Area M2", "type": "number"},
+        "cylinder_rod_area_m2": {"title": "Cylinder Rod Area M2", "type": "number"},
         "axis_unit_world": {
-          "items": {
-            "type": "number"
-          },
+          "items": {"type": "number"},
           "title": "Axis Unit World",
           "type": "array"
         }
       },
-      "required": [
-        "spring_constant",
-        "damper_coefficient",
-        "damper_force_threshold_n",
-        "spring_rest_position_m",
-        "cylinder_head_area_m2",
-        "cylinder_rod_area_m2",
-        "axis_unit_world"
-      ],
+      "required": ["spring_constant", "damper_coefficient", "damper_force_threshold_n", "spring_rest_position_m", "cylinder_head_area_m2", "cylinder_rod_area_m2", "axis_unit_world"],
       "title": "PhysicsSuspensionSettings",
       "type": "object"
     },
     "PhysicsValidationSettings": {
       "additionalProperties": false,
       "properties": {
-        "max_force_n": {
-          "title": "Max Force N",
-          "type": "number"
-        },
-        "max_moment_n_m": {
-          "title": "Max Moment N M",
-          "type": "number"
-        }
+        "max_force_n": {"title": "Max Force N", "type": "number"},
+        "max_moment_n_m": {"title": "Max Moment N M", "type": "number"}
       },
-      "required": [
-        "max_force_n",
-        "max_moment_n_m"
-      ],
+      "required": ["max_force_n", "max_moment_n_m"],
       "title": "PhysicsValidationSettings",
       "type": "object"
     },
     "PneumaticSettings": {
       "additionalProperties": false,
       "properties": {
-        "volume_mode": {
-          "title": "Volume Mode",
-          "type": "string"
-        },
-        "receiver_volume": {
-          "title": "Receiver Volume",
-          "type": "number"
-        },
-        "receiver_diameter": {
-          "title": "Receiver Diameter",
-          "type": "number"
-        },
-        "receiver_length": {
-          "title": "Receiver Length",
-          "type": "number"
-        },
-        "cv_atmo_dp": {
-          "title": "Cv Atmo Dp",
-          "type": "number"
-        },
-        "cv_tank_dp": {
-          "title": "Cv Tank Dp",
-          "type": "number"
-        },
-        "cv_atmo_dia": {
-          "title": "Cv Atmo Dia",
-          "type": "number"
-        },
-        "cv_tank_dia": {
-          "title": "Cv Tank Dia",
-          "type": "number"
-        },
-        "relief_min_pressure": {
-          "title": "Relief Min Pressure",
-          "type": "number"
-        },
-        "relief_stiff_pressure": {
-          "title": "Relief Stiff Pressure",
-          "type": "number"
-        },
-        "relief_safety_pressure": {
-          "title": "Relief Safety Pressure",
-          "type": "number"
-        },
-        "throttle_min_dia": {
-          "title": "Throttle Min Dia",
-          "type": "number"
-        },
-        "throttle_stiff_dia": {
-          "title": "Throttle Stiff Dia",
-          "type": "number"
-        },
+        "volume_mode": {"title": "Volume Mode", "type": "string"},
+        "receiver_volume": {"title": "Receiver Volume", "type": "number"},
+        "receiver_diameter": {"title": "Receiver Diameter", "type": "number"},
+        "receiver_length": {"title": "Receiver Length", "type": "number"},
+        "cv_atmo_dp": {"title": "Cv Atmo Dp", "type": "number"},
+        "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number"},
+        "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number"},
+        "cv_tank_dia": {"title": "Cv Tank Dia", "type": "number"},
+        "relief_min_pressure": {"title": "Relief Min Pressure", "type": "number"},
+        "relief_stiff_pressure": {"title": "Relief Stiff Pressure", "type": "number"},
+        "relief_safety_pressure": {"title": "Relief Safety Pressure", "type": "number"},
+        "throttle_min_dia": {"title": "Throttle Min Dia", "type": "number"},
+        "throttle_stiff_dia": {"title": "Throttle Stiff Dia", "type": "number"},
         "diagonal_coupling_dia": {
           "title": "Diagonal Coupling Diameter",
           "type": "number",
           "minimum": 0
         },
-        "atmo_temp": {
-          "title": "Atmo Temp",
-          "type": "number"
-        },
+        "atmo_temp": {"title": "Atmo Temp", "type": "number"},
         "thermo_mode": {
           "title": "Thermo Mode",
           "type": "string",
-          "enum": [
-            "ISOTHERMAL",
-            "ADIABATIC",
-            "POLYTROPIC"
-          ]
+          "enum": ["ISOTHERMAL", "ADIABATIC", "POLYTROPIC"]
         },
         "polytropic_heat_transfer_coeff": {
           "title": "Polytropic Heat Transfer Coeff",
@@ -2234,221 +991,78 @@
           "type": "number",
           "minimum": 0
         },
-        "master_isolation_open": {
-          "title": "Master Isolation Open",
-          "type": "boolean"
-        },
-        "pressure_units": {
-          "title": "Pressure Units",
-          "type": "string"
-        },
-        "receiver_volume_limits": {
-          "$ref": "#/$defs/ReceiverVolumeLimits"
-        }
+        "master_isolation_open": {"title": "Master Isolation Open", "type": "boolean"},
+        "pressure_units": {"title": "Pressure Units", "type": "string"},
+        "receiver_volume_limits": {"$ref": "#/$defs/ReceiverVolumeLimits"}
       },
-      "required": [
-        "volume_mode",
-        "receiver_volume",
-        "receiver_diameter",
-        "receiver_length",
-        "cv_atmo_dp",
-        "cv_tank_dp",
-        "cv_atmo_dia",
-        "cv_tank_dia",
-        "relief_min_pressure",
-        "relief_stiff_pressure",
-        "relief_safety_pressure",
-        "throttle_min_dia",
-        "throttle_stiff_dia",
-        "diagonal_coupling_dia",
-        "atmo_temp",
-        "thermo_mode",
-        "polytropic_heat_transfer_coeff",
-        "polytropic_exchange_area",
-        "leak_coefficient",
-        "leak_reference_area",
-        "master_isolation_open",
-        "pressure_units",
-        "receiver_volume_limits"
-      ],
+      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
       "title": "PneumaticSettings",
       "type": "object"
     },
     "PneumoConstants": {
       "additionalProperties": false,
       "properties": {
-        "valves": {
-          "$ref": "#/$defs/PneumoValveConstants"
-        },
-        "receiver": {
-          "$ref": "#/$defs/PneumoReceiverConstants"
-        },
-        "gas": {
-          "$ref": "#/$defs/PneumoGasConstants"
-        }
+        "valves": {"$ref": "#/$defs/PneumoValveConstants"},
+        "receiver": {"$ref": "#/$defs/PneumoReceiverConstants"},
+        "gas": {"$ref": "#/$defs/PneumoGasConstants"}
       },
-      "required": [
-        "valves",
-        "receiver",
-        "gas"
-      ],
+      "required": ["valves", "receiver", "gas"],
       "title": "PneumoConstants",
       "type": "object"
     },
     "PneumoGasConstants": {
       "additionalProperties": false,
       "properties": {
-        "tank_volume_initial_m3": {
-          "title": "Tank Volume Initial M3",
-          "type": "number"
-        },
-        "tank_pressure_initial_pa": {
-          "title": "Tank Pressure Initial Pa",
-          "type": "number"
-        },
-        "tank_temperature_initial_k": {
-          "title": "Tank Temperature Initial K",
-          "type": "number"
-        },
-        "tank_volume_mode": {
-          "title": "Tank Volume Mode",
-          "type": "string"
-        },
-        "thermo_mode": {
-          "title": "Thermo Mode",
-          "type": "string"
-        },
-        "time_step_s": {
-          "title": "Time Step S",
-          "type": "number"
-        },
-        "total_time_s": {
-          "title": "Total Time S",
-          "type": "number"
-        },
-        "relief_min_threshold_pa": {
-          "title": "Relief Min Threshold Pa",
-          "type": "number"
-        },
-        "relief_stiff_threshold_pa": {
-          "title": "Relief Stiff Threshold Pa",
-          "type": "number"
-        },
-        "relief_safety_threshold_pa": {
-          "title": "Relief Safety Threshold Pa",
-          "type": "number"
-        }
+        "tank_volume_initial_m3": {"title": "Tank Volume Initial M3", "type": "number"},
+        "tank_pressure_initial_pa": {"title": "Tank Pressure Initial Pa", "type": "number"},
+        "tank_temperature_initial_k": {"title": "Tank Temperature Initial K", "type": "number"},
+        "tank_volume_mode": {"title": "Tank Volume Mode", "type": "string"},
+        "thermo_mode": {"title": "Thermo Mode", "type": "string"},
+        "time_step_s": {"title": "Time Step S", "type": "number"},
+        "total_time_s": {"title": "Total Time S", "type": "number"},
+        "relief_min_threshold_pa": {"title": "Relief Min Threshold Pa", "type": "number"},
+        "relief_stiff_threshold_pa": {"title": "Relief Stiff Threshold Pa", "type": "number"},
+        "relief_safety_threshold_pa": {"title": "Relief Safety Threshold Pa", "type": "number"}
       },
-      "required": [
-        "tank_volume_initial_m3",
-        "tank_pressure_initial_pa",
-        "tank_temperature_initial_k",
-        "tank_volume_mode",
-        "thermo_mode",
-        "time_step_s",
-        "total_time_s",
-        "relief_min_threshold_pa",
-        "relief_stiff_threshold_pa",
-        "relief_safety_threshold_pa"
-      ],
+      "required": ["tank_volume_initial_m3", "tank_pressure_initial_pa", "tank_temperature_initial_k", "tank_volume_mode", "thermo_mode", "time_step_s", "total_time_s", "relief_min_threshold_pa", "relief_stiff_threshold_pa", "relief_safety_threshold_pa"],
       "title": "PneumoGasConstants",
       "type": "object"
     },
     "PneumoReceiverConstants": {
       "additionalProperties": false,
       "properties": {
-        "volume_min_m3": {
-          "title": "Volume Min M3",
-          "type": "number"
-        },
-        "volume_max_m3": {
-          "title": "Volume Max M3",
-          "type": "number"
-        },
-        "initial_volume_m3": {
-          "title": "Initial Volume M3",
-          "type": "number"
-        },
-        "initial_pressure_pa": {
-          "title": "Initial Pressure Pa",
-          "type": "number"
-        },
-        "initial_temperature_k": {
-          "title": "Initial Temperature K",
-          "type": "number"
-        },
-        "volume_mode": {
-          "title": "Volume Mode",
-          "type": "string"
-        }
+        "volume_min_m3": {"title": "Volume Min M3", "type": "number"},
+        "volume_max_m3": {"title": "Volume Max M3", "type": "number"},
+        "initial_volume_m3": {"title": "Initial Volume M3", "type": "number"},
+        "initial_pressure_pa": {"title": "Initial Pressure Pa", "type": "number"},
+        "initial_temperature_k": {"title": "Initial Temperature K", "type": "number"},
+        "volume_mode": {"title": "Volume Mode", "type": "string"}
       },
-      "required": [
-        "volume_min_m3",
-        "volume_max_m3",
-        "initial_volume_m3",
-        "initial_pressure_pa",
-        "initial_temperature_k",
-        "volume_mode"
-      ],
+      "required": ["volume_min_m3", "volume_max_m3", "initial_volume_m3", "initial_pressure_pa", "initial_temperature_k", "volume_mode"],
       "title": "PneumoReceiverConstants",
       "type": "object"
     },
     "PneumoValveConstants": {
       "additionalProperties": false,
       "properties": {
-        "delta_open_pa": {
-          "title": "Delta Open Pa",
-          "type": "number"
-        },
-        "equivalent_diameter_m": {
-          "title": "Equivalent Diameter M",
-          "type": "number"
-        },
-        "relief_min_orifice_diameter_m": {
-          "title": "Relief Min Orifice Diameter M",
-          "type": "number"
-        },
-        "relief_stiff_orifice_diameter_m": {
-          "title": "Relief Stiff Orifice Diameter M",
-          "type": "number"
-        }
+        "delta_open_pa": {"title": "Delta Open Pa", "type": "number"},
+        "equivalent_diameter_m": {"title": "Equivalent Diameter M", "type": "number"},
+        "relief_min_orifice_diameter_m": {"title": "Relief Min Orifice Diameter M", "type": "number"},
+        "relief_stiff_orifice_diameter_m": {"title": "Relief Stiff Orifice Diameter M", "type": "number"}
       },
-      "required": [
-        "delta_open_pa",
-        "equivalent_diameter_m",
-        "relief_min_orifice_diameter_m",
-        "relief_stiff_orifice_diameter_m"
-      ],
+      "required": ["delta_open_pa", "equivalent_diameter_m", "relief_min_orifice_diameter_m", "relief_stiff_orifice_diameter_m"],
       "title": "PneumoValveConstants",
       "type": "object"
     },
     "PointLightSettings": {
       "additionalProperties": false,
       "properties": {
-        "brightness": {
-          "title": "Brightness",
-          "type": "number"
-        },
-        "color": {
-          "title": "Color",
-          "type": "string"
-        },
-        "position_x": {
-          "title": "Position X",
-          "type": "number"
-        },
-        "position_y": {
-          "title": "Position Y",
-          "type": "number"
-        },
-        "position_z": {
-          "title": "Position Z",
-          "type": "number"
-        },
-        "range": {
-          "title": "Range",
-          "type": "number"
-        },
+        "brightness": {"title": "Brightness", "type": "number"},
+        "color": {"title": "Color", "type": "string"},
+        "position_x": {"title": "Position X", "type": "number"},
+        "position_y": {"title": "Position Y", "type": "number"},
+        "position_z": {"title": "Position Z", "type": "number"},
+        "range": {"title": "Range", "type": "number"},
         "constant_fade": {
           "title": "Constant Fade",
           "type": "number",
@@ -2467,53 +1081,22 @@
           "minimum": 0.0,
           "maximum": 10.0
         },
-        "cast_shadow": {
-          "title": "Cast Shadow",
-          "type": "boolean"
-        },
-        "bind_to_camera": {
-          "title": "Bind To Camera",
-          "type": "boolean"
-        }
+        "cast_shadow": {"title": "Cast Shadow", "type": "boolean"},
+        "bind_to_camera": {"title": "Bind To Camera", "type": "boolean"}
       },
-      "required": [
-        "brightness",
-        "color",
-        "position_x",
-        "position_y",
-        "position_z",
-        "range",
-        "constant_fade",
-        "linear_fade",
-        "quadratic_fade",
-        "cast_shadow",
-        "bind_to_camera"
-      ],
+      "required": ["brightness", "color", "position_x", "position_y", "position_z", "range", "constant_fade", "linear_fade", "quadratic_fade", "cast_shadow", "bind_to_camera"],
       "title": "PointLightSettings",
       "type": "object"
     },
     "QualityPresets": {
       "additionalProperties": false,
       "properties": {
-        "ultra": {
-          "$ref": "#/$defs/QualitySettings"
-        },
-        "high": {
-          "$ref": "#/$defs/QualitySettings"
-        },
-        "medium": {
-          "$ref": "#/$defs/QualitySettings"
-        },
-        "low": {
-          "$ref": "#/$defs/QualitySettings"
-        }
+        "ultra": {"$ref": "#/$defs/QualitySettings"},
+        "high": {"$ref": "#/$defs/QualitySettings"},
+        "medium": {"$ref": "#/$defs/QualitySettings"},
+        "low": {"$ref": "#/$defs/QualitySettings"}
       },
-      "required": [
-        "ultra",
-        "high",
-        "medium",
-        "low"
-      ],
+      "required": ["ultra", "high", "medium", "low"],
       "title": "QualityPresets",
       "type": "object"
     },
@@ -2522,143 +1105,52 @@
       "properties": {
         "preset": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Preset"
         },
-        "shadows": {
-          "$ref": "#/$defs/ShadowsSettings"
-        },
-        "antialiasing": {
-          "$ref": "#/$defs/AntialiasingSettings"
-        },
-        "taa_enabled": {
-          "title": "Taa Enabled",
-          "type": "boolean"
-        },
-        "taa_strength": {
-          "title": "Taa Strength",
-          "type": "number"
-        },
-        "taa_motion_adaptive": {
-          "title": "Taa Motion Adaptive",
-          "type": "boolean"
-        },
-        "fxaa_enabled": {
-          "title": "Fxaa Enabled",
-          "type": "boolean"
-        },
-        "specular_aa": {
-          "title": "Specular Aa",
-          "type": "boolean"
-        },
-        "dithering": {
-          "title": "Dithering",
-          "type": "boolean"
-        },
-        "render_scale": {
-          "title": "Render Scale",
-          "type": "number"
-        },
-        "render_policy": {
-          "title": "Render Policy",
-          "type": "string"
-        },
-        "frame_rate_limit": {
-          "title": "Frame Rate Limit",
-          "type": "number"
-        },
-        "oit": {
-          "title": "Oit",
-          "type": "string"
-        },
-        "mesh": {
-          "$ref": "#/$defs/MeshSettings"
-        }
+        "shadows": {"$ref": "#/$defs/ShadowsSettings"},
+        "antialiasing": {"$ref": "#/$defs/AntialiasingSettings"},
+        "taa_enabled": {"title": "Taa Enabled", "type": "boolean"},
+        "taa_strength": {"title": "Taa Strength", "type": "number"},
+        "taa_motion_adaptive": {"title": "Taa Motion Adaptive", "type": "boolean"},
+        "fxaa_enabled": {"title": "Fxaa Enabled", "type": "boolean"},
+        "specular_aa": {"title": "Specular Aa", "type": "boolean"},
+        "dithering": {"title": "Dithering", "type": "boolean"},
+        "render_scale": {"title": "Render Scale", "type": "number"},
+        "render_policy": {"title": "Render Policy", "type": "string"},
+        "frame_rate_limit": {"title": "Frame Rate Limit", "type": "number"},
+        "oit": {"title": "Oit", "type": "string"},
+        "mesh": {"$ref": "#/$defs/MeshSettings"}
       },
-      "required": [
-        "shadows",
-        "antialiasing",
-        "taa_enabled",
-        "taa_strength",
-        "taa_motion_adaptive",
-        "fxaa_enabled",
-        "specular_aa",
-        "dithering",
-        "render_scale",
-        "render_policy",
-        "frame_rate_limit",
-        "oit",
-        "mesh"
-      ],
+      "required": ["shadows", "antialiasing", "taa_enabled", "taa_strength", "taa_motion_adaptive", "fxaa_enabled", "specular_aa", "dithering", "render_scale", "render_policy", "frame_rate_limit", "oit", "mesh"],
       "title": "QualitySettings",
       "type": "object"
     },
     "ReceiverVolumeLimits": {
       "additionalProperties": false,
       "properties": {
-        "min_m3": {
-          "title": "Min M3",
-          "type": "number"
-        },
-        "max_m3": {
-          "title": "Max M3",
-          "type": "number"
-        }
+        "min_m3": {"title": "Min M3", "type": "number"},
+        "max_m3": {"title": "Max M3", "type": "number"}
       },
-      "required": [
-        "min_m3",
-        "max_m3"
-      ],
+      "required": ["min_m3", "max_m3"],
       "title": "ReceiverVolumeLimits",
       "type": "object"
     },
     "SceneSettings": {
       "additionalProperties": false,
       "properties": {
-        "scale_factor": {
-          "title": "Scale Factor",
-          "type": "number"
-        },
-        "exposure": {
-          "title": "Exposure",
-          "type": "number"
-        },
-        "default_clear_color": {
-          "title": "Default Clear Color",
-          "type": "string"
-        },
-        "model_base_color": {
-          "title": "Model Base Color",
-          "type": "string"
-        },
-        "model_roughness": {
-          "title": "Model Roughness",
-          "type": "number"
-        },
-        "model_metalness": {
-          "title": "Model Metalness",
-          "type": "number"
-        },
-        "suspension": {
-          "$ref": "#/$defs/SceneSuspensionSettings"
-        }
+        "scale_factor": {"title": "Scale Factor", "type": "number"},
+        "exposure": {"title": "Exposure", "type": "number"},
+        "default_clear_color": {"title": "Default Clear Color", "type": "string"},
+        "model_base_color": {"title": "Model Base Color", "type": "string"},
+        "model_roughness": {"title": "Model Roughness", "type": "number"},
+        "model_metalness": {"title": "Model Metalness", "type": "number"},
+        "suspension": {"$ref": "#/$defs/SceneSuspensionSettings"}
       },
-      "required": [
-        "scale_factor",
-        "exposure",
-        "default_clear_color",
-        "model_base_color",
-        "model_roughness",
-        "model_metalness",
-        "suspension"
-      ],
+      "required": ["scale_factor", "exposure", "default_clear_color", "model_base_color", "model_roughness", "model_metalness", "suspension"],
       "title": "SceneSettings",
       "type": "object"
     },
@@ -2671,140 +1163,74 @@
           "type": "number"
         }
       },
-      "required": [
-        "rod_warning_threshold_m"
-      ],
+      "required": ["rod_warning_threshold_m"],
       "title": "SceneSuspensionSettings",
       "type": "object"
     },
     "SceneDefaultsMetadata": {
       "additionalProperties": false,
       "properties": {
-        "suspension": {
-          "$ref": "#/$defs/SceneSuspensionSettings"
-        }
+        "suspension": {"$ref": "#/$defs/SceneSuspensionSettings"}
       },
-      "required": [
-        "suspension"
-      ],
+      "required": ["suspension"],
       "title": "SceneDefaultsMetadata",
       "type": "object"
     },
     "ShadowsSettings": {
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "resolution": {
-          "title": "Resolution",
-          "type": "integer"
-        },
-        "filter": {
-          "title": "Filter",
-          "type": "number"
-        },
-        "bias": {
-          "title": "Bias",
-          "type": "number"
-        },
-        "darkness": {
-          "title": "Darkness",
-          "type": "number"
-        }
+        "enabled": {"title": "Enabled", "type": "boolean"},
+        "resolution": {"title": "Resolution", "type": "integer"},
+        "filter": {"title": "Filter", "type": "number"},
+        "bias": {"title": "Bias", "type": "number"},
+        "darkness": {"title": "Darkness", "type": "number"}
       },
-      "required": [
-        "enabled",
-        "resolution",
-        "filter",
-        "bias",
-        "darkness"
-      ],
+      "required": ["enabled", "resolution", "filter", "bias", "darkness"],
       "title": "ShadowsSettings",
       "type": "object"
     },
     "SignalTraceSettings": {
       "additionalProperties": false,
       "properties": {
-        "enabled": {
-          "title": "Enabled",
-          "type": "boolean"
-        },
-        "history_limit": {
-          "title": "History Limit",
-          "type": "integer"
-        },
+        "enabled": {"title": "Enabled", "type": "boolean"},
+        "history_limit": {"title": "History Limit", "type": "integer"},
         "include": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Include",
           "type": "array"
         },
         "exclude": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Exclude",
           "type": "array"
         },
-        "overlay_enabled": {
-          "title": "Overlay Enabled",
-          "type": "boolean"
-        }
+        "overlay_enabled": {"title": "Overlay Enabled", "type": "boolean"}
       },
-      "required": [
-        "enabled",
-        "history_limit",
-        "include",
-        "exclude",
-        "overlay_enabled"
-      ],
+      "required": ["enabled", "history_limit", "include", "exclude", "overlay_enabled"],
       "title": "SignalTraceSettings",
       "type": "object"
     },
     "SimulationSettings": {
       "additionalProperties": false,
       "properties": {
-        "physics_dt": {
-          "title": "Physics Dt",
-          "type": "number"
-        },
+        "physics_dt": {"title": "Physics Dt", "type": "number"},
         "render_vsync_hz": {
           "title": "Render Vsync Hz",
           "type": "number",
           "description": "Целевая частота вертикальной синхронизации рендера, используется контроллером синхронизации настроек."
         },
-        "max_steps_per_frame": {
-          "title": "Max Steps Per Frame",
-          "type": "integer"
-        },
-        "max_frame_time": {
-          "title": "Max Frame Time",
-          "type": "number"
-        }
+        "max_steps_per_frame": {"title": "Max Steps Per Frame", "type": "integer"},
+        "max_frame_time": {"title": "Max Frame Time", "type": "number"}
       },
-      "required": [
-        "physics_dt",
-        "render_vsync_hz",
-        "max_steps_per_frame",
-        "max_frame_time"
-      ],
+      "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
       "title": "SimulationSettings",
       "type": "object"
     },
     "SliderRange": {
       "additionalProperties": false,
       "properties": {
-        "min": {
-          "type": "number",
-          "title": "Minimum"
-        },
-        "max": {
-          "type": "number",
-          "title": "Maximum"
-        },
+        "min": {"type": "number", "title": "Minimum"},
+        "max": {"type": "number", "title": "Maximum"},
         "step": {
           "type": "number",
           "exclusiveMinimum": 0,
@@ -2821,173 +1247,77 @@
           "title": "Units"
         }
       },
-      "required": [
-        "min",
-        "max",
-        "step"
-      ],
+      "required": ["min", "max", "step"],
       "title": "SliderRange",
       "type": "object"
     },
     "SpotLightSettings": {
       "additionalProperties": false,
       "properties": {
-        "brightness": {
-          "title": "Brightness",
-          "type": "number"
-        },
-        "color": {
-          "title": "Color",
-          "type": "string"
-        },
-        "position_x": {
-          "title": "Position X",
-          "type": "number"
-        },
-        "position_y": {
-          "title": "Position Y",
-          "type": "number"
-        },
-        "position_z": {
-          "title": "Position Z",
-          "type": "number"
-        },
-        "range": {
-          "title": "Range",
-          "type": "number"
-        },
-        "cone_angle": {
-          "title": "Cone Angle",
-          "type": "number"
-        },
-        "inner_cone_angle": {
-          "title": "Inner Cone Angle",
-          "type": "number"
-        },
-        "angle_x": {
-          "title": "Angle X",
-          "type": "number"
-        },
-        "angle_y": {
-          "title": "Angle Y",
-          "type": "number"
-        },
-        "angle_z": {
-          "title": "Angle Z",
-          "type": "number"
-        },
-        "cast_shadow": {
-          "title": "Cast Shadow",
-          "type": "boolean"
-        },
-        "bind_to_camera": {
-          "title": "Bind To Camera",
-          "type": "boolean"
-        }
+        "brightness": {"title": "Brightness", "type": "number"},
+        "color": {"title": "Color", "type": "string"},
+        "position_x": {"title": "Position X", "type": "number"},
+        "position_y": {"title": "Position Y", "type": "number"},
+        "position_z": {"title": "Position Z", "type": "number"},
+        "range": {"title": "Range", "type": "number"},
+        "cone_angle": {"title": "Cone Angle", "type": "number"},
+        "inner_cone_angle": {"title": "Inner Cone Angle", "type": "number"},
+        "angle_x": {"title": "Angle X", "type": "number"},
+        "angle_y": {"title": "Angle Y", "type": "number"},
+        "angle_z": {"title": "Angle Z", "type": "number"},
+        "cast_shadow": {"title": "Cast Shadow", "type": "boolean"},
+        "bind_to_camera": {"title": "Bind To Camera", "type": "boolean"}
       },
-      "required": [
-        "brightness",
-        "color",
-        "position_x",
-        "position_y",
-        "position_z",
-        "range",
-        "cone_angle",
-        "inner_cone_angle",
-        "angle_x",
-        "angle_y",
-        "angle_z",
-        "cast_shadow",
-        "bind_to_camera"
-      ],
+      "required": ["brightness", "color", "position_x", "position_y", "position_z", "range", "cone_angle", "inner_cone_angle", "angle_x", "angle_y", "angle_z", "cast_shadow", "bind_to_camera"],
       "title": "SpotLightSettings",
       "type": "object"
     },
     "SystemDependencies": {
       "additionalProperties": false,
       "properties": {
-        "egl_runtime": {
-          "$ref": "#/$defs/SystemDependency"
-        },
-        "opengl_runtime": {
-          "$ref": "#/$defs/SystemDependency"
-        },
-        "xkb_runtime": {
-          "$ref": "#/$defs/SystemDependency"
-        }
+        "egl_runtime": {"$ref": "#/$defs/SystemDependency"},
+        "opengl_runtime": {"$ref": "#/$defs/SystemDependency"},
+        "xkb_runtime": {"$ref": "#/$defs/SystemDependency"}
       },
-      "required": [
-        "egl_runtime",
-        "opengl_runtime",
-        "xkb_runtime"
-      ],
+      "required": ["egl_runtime", "opengl_runtime", "xkb_runtime"],
       "title": "SystemDependencies",
       "type": "object"
     },
     "SystemDependency": {
       "additionalProperties": false,
       "properties": {
-        "description": {
-          "title": "Description",
-          "type": "string"
-        },
-        "missing_message": {
-          "title": "Missing Message",
-          "type": "string"
-        },
+        "description": {"title": "Description", "type": "string"},
+        "missing_message": {"title": "Missing Message", "type": "string"},
         "variants": {
-          "items": {
-            "$ref": "#/$defs/SystemDependencyVariant"
-          },
+          "items": {"$ref": "#/$defs/SystemDependencyVariant"},
           "title": "Variants",
           "type": "array"
         }
       },
-      "required": [
-        "description",
-        "missing_message",
-        "variants"
-      ],
+      "required": ["description", "missing_message", "variants"],
       "title": "SystemDependency",
       "type": "object"
     },
     "SystemDependencyVariant": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "human_name": {
-          "title": "Human Name",
-          "type": "string"
-        },
+        "id": {"title": "Id", "type": "string"},
+        "human_name": {"title": "Human Name", "type": "string"},
         "platform_prefixes": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Platform Prefixes",
           "type": "array"
         },
         "error_markers": {
-          "items": {
-            "type": "string"
-          },
+          "items": {"type": "string"},
           "title": "Error Markers",
           "type": "array"
         },
-        "install_hint": {
-          "title": "Install Hint",
-          "type": "string"
-        },
+        "install_hint": {"title": "Install Hint", "type": "string"},
         "library_name": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Library Name"
@@ -2995,182 +1325,79 @@
         "packages": {
           "anyOf": [
             {
-              "items": {
-                "type": "string"
-              },
+              "items": {"type": "string"},
               "type": "array"
             },
-            {
-              "type": "null"
-            }
+            {"type": "null"}
           ],
           "default": null,
           "title": "Packages"
         },
         "install_command": {
           "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
+            {"type": "string"},
+            {"type": "null"}
           ],
           "default": null,
           "title": "Install Command"
         }
       },
-      "required": [
-        "id",
-        "human_name",
-        "platform_prefixes",
-        "error_markers",
-        "install_hint"
-      ],
+      "required": ["id", "human_name", "platform_prefixes", "error_markers", "install_hint"],
       "title": "SystemDependencyVariant",
       "type": "object"
     },
     "SystemSettings": {
       "additionalProperties": false,
       "properties": {
-        "dependencies": {
-          "$ref": "#/$defs/SystemDependencies"
-        }
+        "dependencies": {"$ref": "#/$defs/SystemDependencies"}
       },
-      "required": [
-        "dependencies"
-      ],
+      "required": ["dependencies"],
       "title": "SystemSettings",
       "type": "object"
     },
     "_LightBase": {
       "additionalProperties": false,
       "properties": {
-        "brightness": {
-          "title": "Brightness",
-          "type": "number"
-        },
-        "color": {
-          "title": "Color",
-          "type": "string"
-        },
-        "angle_x": {
-          "title": "Angle X",
-          "type": "number"
-        },
-        "angle_y": {
-          "title": "Angle Y",
-          "type": "number"
-        },
-        "angle_z": {
-          "title": "Angle Z",
-          "type": "number"
-        },
-        "position_x": {
-          "title": "Position X",
-          "type": "number"
-        },
-        "position_y": {
-          "title": "Position Y",
-          "type": "number"
-        },
-        "position_z": {
-          "title": "Position Z",
-          "type": "number"
-        },
-        "cast_shadow": {
-          "title": "Cast Shadow",
-          "type": "boolean"
-        },
-        "bind_to_camera": {
-          "title": "Bind To Camera",
-          "type": "boolean"
-        }
+        "brightness": {"title": "Brightness", "type": "number"},
+        "color": {"title": "Color", "type": "string"},
+        "angle_x": {"title": "Angle X", "type": "number"},
+        "angle_y": {"title": "Angle Y", "type": "number"},
+        "angle_z": {"title": "Angle Z", "type": "number"},
+        "position_x": {"title": "Position X", "type": "number"},
+        "position_y": {"title": "Position Y", "type": "number"},
+        "position_z": {"title": "Position Z", "type": "number"},
+        "cast_shadow": {"title": "Cast Shadow", "type": "boolean"},
+        "bind_to_camera": {"title": "Bind To Camera", "type": "boolean"}
       },
-      "required": [
-        "brightness",
-        "color",
-        "angle_x",
-        "angle_y",
-        "angle_z",
-        "position_x",
-        "position_y",
-        "position_z",
-        "cast_shadow",
-        "bind_to_camera"
-      ],
+      "required": ["brightness", "color", "angle_x", "angle_y", "angle_z", "position_x", "position_y", "position_z", "cast_shadow", "bind_to_camera"],
       "title": "_LightBase",
       "type": "object"
     },
     "EnvironmentSliderRanges": {
       "additionalProperties": false,
       "properties": {
-        "ibl_intensity": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "skybox_brightness": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "probe_horizon": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "skybox_blur": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ibl_rotation": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ibl_offset_x": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ibl_offset_y": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "reflection_padding_m": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_density": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_depth_near": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_near": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_depth_far": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_far": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_least_intense_y": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_most_intense_y": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_height_curve": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_depth_curve": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "fog_transmit_curve": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ao_strength": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ao_radius": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ao_bias": {
-          "$ref": "#/$defs/SliderRange"
-        },
-        "ao_softness": {
-          "$ref": "#/$defs/SliderRange"
-        }
+        "ibl_intensity": {"$ref": "#/$defs/SliderRange"},
+        "skybox_brightness": {"$ref": "#/$defs/SliderRange"},
+        "probe_horizon": {"$ref": "#/$defs/SliderRange"},
+        "skybox_blur": {"$ref": "#/$defs/SliderRange"},
+        "ibl_rotation": {"$ref": "#/$defs/SliderRange"},
+        "ibl_offset_x": {"$ref": "#/$defs/SliderRange"},
+        "ibl_offset_y": {"$ref": "#/$defs/SliderRange"},
+        "reflection_padding_m": {"$ref": "#/$defs/SliderRange"},
+        "fog_density": {"$ref": "#/$defs/SliderRange"},
+        "fog_depth_near": {"$ref": "#/$defs/SliderRange"},
+        "fog_near": {"$ref": "#/$defs/SliderRange"},
+        "fog_depth_far": {"$ref": "#/$defs/SliderRange"},
+        "fog_far": {"$ref": "#/$defs/SliderRange"},
+        "fog_least_intense_y": {"$ref": "#/$defs/SliderRange"},
+        "fog_most_intense_y": {"$ref": "#/$defs/SliderRange"},
+        "fog_height_curve": {"$ref": "#/$defs/SliderRange"},
+        "fog_depth_curve": {"$ref": "#/$defs/SliderRange"},
+        "fog_transmit_curve": {"$ref": "#/$defs/SliderRange"},
+        "ao_strength": {"$ref": "#/$defs/SliderRange"},
+        "ao_radius": {"$ref": "#/$defs/SliderRange"},
+        "ao_bias": {"$ref": "#/$defs/SliderRange"},
+        "ao_softness": {"$ref": "#/$defs/SliderRange"}
       },
       "required": [
         "ibl_intensity",
@@ -3199,25 +1426,5 @@
       "title": "EnvironmentSliderRanges",
       "type": "object"
     }
-  },
-  "additionalProperties": false,
-  "properties": {
-    "metadata": {
-      "$ref": "#/$defs/Metadata"
-    },
-    "current": {
-      "$ref": "#/$defs/CurrentSettings"
-    },
-    "defaults_snapshot": {
-      "$ref": "#/$defs/CurrentSettings"
-    }
-  },
-  "required": [
-    "metadata",
-    "current",
-    "defaults_snapshot"
-  ],
-  "title": "App Settings",
-  "type": "object",
-  "$schema": "https://json-schema.org/draft/2020-12/schema"
+  }
 }

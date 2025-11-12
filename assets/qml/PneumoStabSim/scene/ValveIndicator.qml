@@ -1,5 +1,8 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
+pragma ComponentBehavior: Bound
+import "../../components/GeometryCompat.js" as GeometryCompat
+import "../../components/MaterialCompat.js" as MaterialCompat
 
 Node {
     id: root
@@ -38,55 +41,58 @@ Node {
         id: glowAnimation
         from: 0
         to: 1
-        duration: Math.max(500, 1800 - _clampedIntensity * 800)
+        duration: Math.max(500, 1800 - root._clampedIntensity * 800)
         loops: Animation.Infinite
         running: root.active
         easing.type: Easing.InOutSine
     }
 
+    onGlowPhaseChanged: {
+        MaterialCompat.applyEmissive(valveBodyMat, _currentColor, _emissive)
+    }
+
     Model {
         id: valveBody
-        mesh: SphereMesh {}
+        source: "#Sphere"
+        Component.onCompleted: GeometryCompat.applySphereMesh(valveBody, 24, 36)
         scale: Qt.vector3d(
             root.radiusM * root.sceneScale,
             root.radiusM * root.sceneScale,
             root.radiusM * root.sceneScale
         )
         materials: PrincipledMaterial {
+            id: valveBodyMat
             baseColor: Qt.rgba(root._currentColor.r, root._currentColor.g, root._currentColor.b, 1)
             opacity: root._opacity
-                alphaMode: PrincipledMaterial.AlphaBlend
-                roughness: 0.4
-                metalness: 0.0
-                emissiveColor: Qt.rgba(root._currentColor.r, root._currentColor.g, root._currentColor.b, 1)
-                emissiveFactor: root._emissive
-            }
+            alphaMode: PrincipledMaterial.Blend
+            roughness: 0.4
+            metalness: 0.0
+            Component.onCompleted: MaterialCompat.applyEmissive(valveBodyMat, root._currentColor, root._emissive)
         }
     }
 
     Model {
         id: valveHalo
-        mesh: TorusMesh {
-            minorRadius: root.radiusM * root.sceneScale * 0.32
-            majorRadius: root.radiusM * root.sceneScale * 1.05
-            rings: 32
-            slices: 16
-        }
+        source: "#Torus"
         visible: root.active
+        scale: Qt.vector3d(
+            root.radiusM * root.sceneScale * 1.05,
+            root.radiusM * root.sceneScale * 1.05,
+            root.radiusM * root.sceneScale * 1.05
+        )
         materials: PrincipledMaterial {
             baseColor: Qt.rgba(root._currentColor.r, root._currentColor.g, root._currentColor.b, 1)
             opacity: 0.08 + root._clampedIntensity * 0.22
-            alphaMode: PrincipledMaterial.AlphaBlend
+            alphaMode: PrincipledMaterial.Blend
             roughness: 0.9
             metalness: 0.0
-            emissiveColor: Qt.rgba(root._currentColor.r, root._currentColor.g, root._currentColor.b, 1)
-            emissiveFactor: 0.2 + root._clampedIntensity * 0.6 + 0.2 * Math.sin(root.glowPhase * Math.PI * 2)
         }
     }
 
     Model {
         id: gaugeColumn
-        mesh: CylinderMesh {}
+        source: "#Cylinder"
+        Component.onCompleted: GeometryCompat.applyCylinderMesh(gaugeColumn, 32, 1)
         visible: root.active && root._clampedIntensity > 0.01
         position: Qt.vector3d(
             0,
@@ -101,11 +107,9 @@ Node {
         materials: PrincipledMaterial {
             baseColor: Qt.rgba(root.activeColor.r, root.activeColor.g, root.activeColor.b, 1)
             opacity: 0.3 + root._clampedIntensity * 0.6
-            alphaMode: PrincipledMaterial.AlphaBlend
+            alphaMode: PrincipledMaterial.Blend
             roughness: 0.3
             metalness: 0.0
-            emissiveColor: Qt.rgba(root.activeColor.r, root.activeColor.g, root.activeColor.b, 1)
-            emissiveFactor: 0.5 + root._clampedIntensity * 1.8
         }
     }
 }

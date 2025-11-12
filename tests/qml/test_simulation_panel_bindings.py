@@ -4,14 +4,10 @@ import os
 
 import pytest
 
-from _pytest.outcomes import Failed
-
 from tests.helpers.qt import require_qt_modules
 
-try:
-    require_qt_modules("PySide6.QtQml", "PySide6.QtQuick")
-except Failed as error:
-    pytest.skip(str(error), allow_module_level=True)
+# Инициализируем обязательные Qt модули; при отсутствии произойдёт pytest.fail
+require_qt_modules("PySide6.QtQml", "PySide6.QtQuick")
 
 from PySide6.QtCore import QObject, QUrl
 from PySide6.QtQml import QQmlComponent, QQmlEngine

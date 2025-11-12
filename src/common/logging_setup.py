@@ -12,7 +12,7 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Any
+from typing import Any, Hashable, cast  # <-- добавлены Hashable, cast
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 import traceback
@@ -47,9 +47,9 @@ def _normalize_for_cache(value: Any) -> Hashable:
             (key, _normalize_for_cache(val)) for key, val in value.items()
         ]
         return tuple(sorted(normalized, key=lambda item: (item[0], type(item[0]).__name__)))
-    if isinstance(value, list | tuple):
+    if isinstance(value, (list, tuple)):  # исправлено
         return tuple(_normalize_for_cache(item) for item in value)
-    if isinstance(value, set | frozenset):
+    if isinstance(value, (set, frozenset)):  # исправлено
         return tuple(
             sorted(
                 (_normalize_for_cache(item) for item in value),

@@ -1,7 +1,7 @@
 import QtQuick 6.10
 import QtQuick3D 6.10
-import "."
-import CustomGeometry 1.0 as CustomGeometry
+import "../components/GeometryCompat.js" as GeometryCompat
+import CustomGeometry 1.0
 
 /*
  * LinearCylinder - reusable helper for cylinders stretched between two points
@@ -55,6 +55,23 @@ Node {
     Component.onCompleted: {
         if (warnOnTinyLength && _rawLength < minimumLength * 2)
             console.warn("LinearCylinder: endpoints nearly overlapping", startPoint, endPoint)
+        // Применяем исходные параметры к процедурной геометрии
+        proceduralGeometry.segments = segments
+        proceduralGeometry.rings = rings
+        proceduralGeometry.radius = safeRadius
+        proceduralGeometry.length = length
+    }
+
+    onSegmentsChanged: proceduralGeometry.segments = segments
+    onRingsChanged: proceduralGeometry.rings = rings
+    onRadiusChanged: proceduralGeometry.radius = safeRadius
+    onLengthChanged: proceduralGeometry.length = length
+    onStartPointChanged: proceduralGeometry.length = length
+    onEndPointChanged: proceduralGeometry.length = length
+
+    ProceduralCylinderGeometry {
+        id: proceduralGeometry
+        objectName: "proceduralGeometry"
     }
 
     Model {
@@ -62,14 +79,17 @@ Node {
         objectName: "cylinderModel"
         position: root.midpoint
         eulerRotation: Qt.vector3d(0, 0, root.rotationDeg)
-        // ВАЖНО: ProceduralCylinderGeometry по умолчанию имеет высоту 2 единицы (ось Y).
-        // Поэтому масштабирование по Y через (length / 2) устанавливает нужную длину цилиндра.
-        // Это отличается от старого CylinderGeometry, где длина задавалась напрямую.
-        scale: Qt.vector3d(root.safeRadius, root.length / 2, root.safeRadius)
-        geometry: CustomGeometry.ProceduralCylinderGeometry {
-            segments: Math.max(3, root.segments)
-            rings: Math.max(1, root.rings)
+        // Базовый примитив: #Cylinder; затем пытаемся апгрейдить до CylinderMesh при наличии плагина
+        source: "#Cylinder"
+        // Используем процедурную геометрию, если доступна; иначе апгрейд через Helpers.
+        geometry: proceduralGeometry
+        Component.onCompleted: {
+            // Попытка апгрейда только если proceduralGeometry не создан (fallback сценарий)
+            if (!proceduralGeometry) {
+                GeometryCompat.applyCylinderMesh(cylinderModel, root.segments, root.rings)
+            }
         }
+        scale: Qt.vector3d(root.safeRadius, root.length / 2, root.safeRadius)
         materials: root.material ? [root.material] : root.materialOverrides
     }
 }
