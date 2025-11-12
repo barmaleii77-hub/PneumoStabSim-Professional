@@ -419,11 +419,12 @@ class UISetup:
                 fallback_sources.append(("snapshot", snapshot_suspension))
 
             raw_suspension = scene_payload.get("suspension")
+            section_present = raw_suspension is not None
             normalised_suspension: dict[str, Any] = {}
             if isinstance(raw_suspension, dict):
                 normalised_suspension.update(raw_suspension)
             else:
-                if raw_suspension is not None:
+                if section_present:
                     UISetup.logger.warning(
                         "    ⚠️ Scene settings 'suspension' section has invalid type (%s); "
                         "using defaults.",

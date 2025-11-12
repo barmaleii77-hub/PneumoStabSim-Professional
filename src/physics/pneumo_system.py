@@ -171,7 +171,7 @@ class PneumaticSystem:
         port: Port,
         *,
         default: float | None = None,
-        logger: LoggerLike | None = None,
+        logger: LoggerProtocol | logging.Logger | LoggerAdapter | None = None,
     ) -> float:
         """Return the absolute pressure for the line connected to ``wheel/port``.
 
