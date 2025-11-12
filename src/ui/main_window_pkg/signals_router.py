@@ -126,10 +126,15 @@ class SignalsRouter:
         canonical representation.
         """
 
+        canonical_key = "ibl_source"
+        legacy_key = "iblSource"
+
         source_key: str | None = None
+        source_container: Mapping[str, Any] | None = None
         for candidate in SignalsRouter._HDR_SOURCE_KEYS:
             if candidate in params:
                 source_key = candidate
+                source_container = params
                 break
 
         if source_key is None:
@@ -153,7 +158,11 @@ class SignalsRouter:
                 SignalsRouter._propagate_hdr_aliases(env_payload, canonical_nested)
             return SignalsRouter._apply_environment_aliases(params, env_payload)
 
-        raw_value = params.get(source_key)
+        # Извлекаем значение HDR источника по ключу, избегая сложной тернарной логики
+        if source_container is params and source_key is not None:
+            raw_value = source_container.get(source_key)
+        else:
+            raw_value = source_container.get(nested_source_key)
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
         allow_empty_selection = SignalsRouter._allow_empty_selection(

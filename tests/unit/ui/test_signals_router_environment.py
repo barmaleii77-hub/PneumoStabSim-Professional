@@ -355,7 +355,9 @@ def test_handle_preset_applied_handles_quick_toggle_sequences() -> None:
     ]
     assert len(env_payloads) == 2
     assert env_payloads[0]["ibl_source"] == "assets/hdr/first.hdr"
+    assert env_payloads[0]["iblSource"] == env_payloads[0]["ibl_source"]
     assert env_payloads[1]["ibl_source"] == "assets/hdr/second.hdr"
+    assert env_payloads[1]["iblSource"] == env_payloads[1]["ibl_source"]
 
     saved_payload = window.saved_updates[-1][1]
     assert saved_payload["environment"]["ibl_source"] == "assets/hdr/second.hdr"
