@@ -149,8 +149,17 @@ class ReceiverState:
         elif isinstance(mode, ReceiverVolumeMode):
             resolved_mode = mode
         else:
+            token = str(mode).strip().upper()
+            alias_map = {
+                "MANUAL": ReceiverVolumeMode.NO_RECALC,
+                "GEOMETRIC": ReceiverVolumeMode.ADIABATIC_RECALC,
+                ReceiverVolumeMode.NO_RECALC.name: ReceiverVolumeMode.NO_RECALC,
+                ReceiverVolumeMode.ADIABATIC_RECALC.name: ReceiverVolumeMode.ADIABATIC_RECALC,
+                ReceiverVolumeMode.NO_RECALC.value: ReceiverVolumeMode.NO_RECALC,
+                ReceiverVolumeMode.ADIABATIC_RECALC.value: ReceiverVolumeMode.ADIABATIC_RECALC,
+            }
             try:
-                resolved_mode = ReceiverVolumeMode[str(mode).upper()]
+                resolved_mode = alias_map[token]
             except KeyError as exc:  # pragma: no cover - defensive guard
                 raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
 

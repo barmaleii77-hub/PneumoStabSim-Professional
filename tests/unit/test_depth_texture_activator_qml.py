@@ -88,3 +88,41 @@ def test_depth_texture_activator_deduplicates_debug_logging(
     assert "property var _diagnosticDedup" in depth_texture_source
     assert "function _logDebugOnce" in depth_texture_source
     assert "_clearPropertyCache()" in depth_texture_source
+
+
+def test_depth_texture_activator_skips_legacy_properties(
+    depth_texture_source: str,
+) -> None:
+    assert "readonly property var _legacyDepthProperties" in depth_texture_source
+    assert "_legacyDepthProperties.indexOf(propertyName) !== -1" in depth_texture_source
+    assert "legacy property skipped" in depth_texture_source
+
+
+def test_depth_texture_activator_avoids_removed_qt_properties(
+    depth_texture_source: str,
+) -> None:
+    forbidden_tokens = (
+        "explicitDepthTextureEnabled",
+        "explicitVelocityTextureEnabled",
+        "requiresDepthTexture",
+        "requiresVelocityTexture",
+    )
+
+    guard_comment = "// Guard rails for Qt 6.10+"
+    guard_anchor = "readonly property var _legacyDepthProperties"
+    assert guard_anchor in depth_texture_source, (
+        "Legacy guard list must remain present to protect against removed Qt properties"
+    )
+
+    guard_start = depth_texture_source.index(guard_comment)
+    guard_end = depth_texture_source.index("]", depth_texture_source.index(guard_anchor)) + 1
+    guard_block = depth_texture_source[guard_start:guard_end]
+
+    for token in forbidden_tokens:
+        assert token in guard_block, (
+            f"Legacy property {token} must remain documented in the guard list"
+        )
+        sanitized = depth_texture_source[:guard_start] + depth_texture_source[guard_end:]
+        assert token not in sanitized, (
+            f"Legacy property {token} must not appear outside the guard block"
+        )

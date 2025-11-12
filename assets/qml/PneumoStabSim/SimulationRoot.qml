@@ -199,6 +199,45 @@ signal animationToggled(bool running)
         return _valueFromSubsection(sources, [], keyNames)
     }
 
+    function _valueFromGroupOrPrefixes(sources, groupName, keyNames) {
+        var groupedValue = _valueFromSubsection(sources, groupName, keyNames)
+        if (groupedValue !== undefined)
+            return groupedValue
+
+        var groupVariants = _normaliseKeyList(groupName)
+        var keyVariants = _normaliseKeyList(keyNames)
+        var combinedKeys = []
+
+        function appendKey(candidate) {
+            if (!candidate || !candidate.length)
+                return
+            if (combinedKeys.indexOf(candidate) === -1)
+                combinedKeys.push(candidate)
+        }
+
+        for (var gi = 0; gi < groupVariants.length; ++gi) {
+            var groupVariant = groupVariants[gi]
+            if (!groupVariant || !groupVariant.length)
+                continue
+            for (var ki = 0; ki < keyVariants.length; ++ki) {
+                var keyVariant = keyVariants[ki]
+                if (!keyVariant || !keyVariant.length)
+                    continue
+                appendKey(groupVariant + "_" + keyVariant)
+                appendKey(
+                    groupVariant +
+                        keyVariant.charAt(0).toUpperCase() +
+                        keyVariant.slice(1)
+                )
+            }
+        }
+
+        if (!combinedKeys.length)
+            return undefined
+
+        return _valueFromSources(sources, combinedKeys)
+    }
+
     function _coerceNumber(value, fallback) {
         var numeric = Number(value)
         return isFinite(numeric) ? numeric : fallback
@@ -1295,8 +1334,9 @@ signal animationToggled(bool running)
         if (!_isPlainObject(source))
             return ({})
         var normalized = ({})
-        if (source.enabled !== undefined)
-            normalized.enabled = _coerceBool(source.enabled, true)
+        var enabledCandidate = _valueFromSources([source], ["enabled", "reflection_enabled", "reflectionEnabled"])
+        if (enabledCandidate !== undefined)
+            normalized.enabled = _coerceBool(enabledCandidate, true)
         var paddingCandidate = _valueFromSources([source], ["padding_m", "padding"])
         if (paddingCandidate !== undefined) {
             var numericPadding = _coerceNumber(paddingCandidate, Number.NaN)
@@ -1341,6 +1381,12 @@ signal animationToggled(bool running)
 
     function reflectionProbeSources() {
         var sources = []
+        var environmentLive = _normalizeReflectionProbePayload(environmentState)
+        if (!_isEmptyMap(environmentLive))
+            sources.push(environmentLive)
+        var environmentDefaultsNormalized = _normalizeReflectionProbePayload(sceneEnvironmentDefaults)
+        if (!_isEmptyMap(environmentDefaultsNormalized))
+            sources.push(environmentDefaultsNormalized)
         var explicit = _normalizeReflectionProbePayload(reflectionProbeDefaultsMap)
         if (!_isEmptyMap(explicit))
             sources.push(explicit)
@@ -1379,16 +1425,18 @@ signal animationToggled(bool running)
     }
 
     function lightingNumber(group, keys, fallback) {
-        return _coerceNumber(_valueFromSubsection(lightingSources(), group, keys), fallback)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
+        return _coerceNumber(value, fallback)
     }
 
     function lightingBool(group, keys, fallback) {
-        var value = _valueFromSubsection(lightingSources(), group, keys)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
         return value === undefined ? fallback : _coerceBool(value, fallback)
     }
 
     function lightingColor(group, keys, fallback) {
-        return _coerceColor(_valueFromSubsection(lightingSources(), group, keys), fallback)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
+        return _coerceColor(value, fallback)
     }
 
     function qualityShadowBool(keys, fallback) {
@@ -1480,11 +1528,15 @@ signal animationToggled(bool running)
 readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
 property var environmentDefaultsMap: ({})
+readonly property bool environmentReflectionEnabledDefault: environmentBool(
+    ["reflection_enabled", "reflectionEnabled"],
+    environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], false)
+)
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
 readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
 property bool reflectionProbeEnabledDefault: reflectionProbeDefaultBool(
     ["enabled", "reflection_enabled", "reflectionEnabled"],
-    environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], true)
+    environmentReflectionEnabledDefault
 )
 property bool reflectionProbeEnabledOverrideActive: false
 property bool reflectionProbeEnabledOverride: reflectionProbeEnabledDefault
@@ -1751,6 +1803,25 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             pointLightCastsShadow: lightingBool("point", ["cast_shadow", "castsShadow"], false)
             pointLightBindToCamera: lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
         }
+
+        SpotLights {
+            id: spotLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            spotLightBrightness: lightingNumber("spot", ["brightness", "intensity"], 0.0)
+            spotLightColor: lightingColor("spot", "color", "#ffffff")
+            spotLightX: lightingNumber("spot", ["position_x", "pos_x", "x"], 0.0)
+            spotLightY: lightingNumber("spot", ["position_y", "pos_y", "y"], 1.0)
+            spotLightZ: lightingNumber("spot", ["position_z", "pos_z", "z"], 2.0)
+            spotLightRange: lightingNumber("spot", ["range", "distance"], 2.0)
+            spotLightAngleX: lightingNumber("spot", ["angle_x", "angleX"], 0.0)
+            spotLightAngleY: lightingNumber("spot", ["angle_y", "angleY"], 0.0)
+            spotLightAngleZ: lightingNumber("spot", ["angle_z", "angleZ"], 0.0)
+            spotLightConeAngle: lightingNumber("spot", ["cone_angle", "outer_cone_angle", "coneAngle"], 30.0)
+            spotLightInnerConeAngle: lightingNumber("spot", ["inner_cone_angle", "innerConeAngle"], 15.0)
+            spotLightCastsShadow: lightingBool("spot", ["cast_shadow", "castsShadow"], false)
+            spotLightBindToCamera: lightingBool("spot", ["bind_to_camera", "bindToCamera"], false)
+        }
     }
 
     Binding {
@@ -1794,5 +1865,6 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
     readonly property alias sceneSharedMaterials: sharedMaterials
     readonly property alias sceneDirectionalLights: directionalLights
     readonly property alias scenePointLights: pointLights
+    readonly property alias sceneSpotLights: spotLights
     readonly property alias sceneSuspensionAssembly: suspensionAssembly
 }

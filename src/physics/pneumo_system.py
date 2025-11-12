@@ -12,15 +12,63 @@ rigid body model.
 
 from __future__ import annotations
 
+import logging
+from logging import LoggerAdapter
 from dataclasses import dataclass
 from collections.abc import Mapping
+from typing import Any
 
-from typing import Dict, Tuple
-
+from src.diagnostics.logger_factory import LoggerProtocol
 from src.physics.forces import compute_cylinder_force
 from src.pneumo.enums import Line, Port, ThermoMode, Wheel
 from src.pneumo.network import GasNetwork
 from src.pneumo.system import PneumaticSystem as StructuralPneumaticSystem
+
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
+
+
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
+
+
+def _coerce_context_value(value: Any) -> Any:
+    """Return a logging-friendly representation for contextual fields."""
+
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
+
+
+def _log_with_context(
+    logger: LoggerLike,
+    level: str,
+    message: str,
+    context: Mapping[str, Any],
+) -> None:
+    """Emit a structured log entry compatible with stdlib and structlog loggers."""
+
+    if logger is None:
+        return
+
+    log_method: Any = getattr(logger, level, None)
+    if log_method is None:
+        return
+
+    if hasattr(logger, "bind") and not isinstance(
+        logger, (logging.Logger, LoggerAdapter)
+    ):
+        log_method(message, **context)
+        return
+
+    extra_payload = {
+        key: _coerce_context_value(value) for key, value in context.items()
+    }
+    try:
+        log_method(message, extra=extra_payload)
+    except TypeError:
+        log_method(message, **extra_payload)
 
 
 @dataclass(frozen=True)
@@ -56,7 +104,7 @@ class PneumaticSystem:
         # not need to be recomputed every frame.
         self._max_head_volume: dict[Wheel, float] = {}
         self._max_rod_volume: dict[Wheel, float] = {}
-        self._line_lookup: Dict[Tuple[Wheel, Port], Line] = {}
+        self._line_lookup: dict[tuple[Wheel, Port], Line] = {}
         for wheel, cylinder in self._structure.cylinders.items():
             geom = cylinder.spec.geometry
             half_travel = geom.L_travel_max / 2.0
@@ -97,6 +145,84 @@ class PneumaticSystem:
     # ------------------------------------------------------------------
     def _line_for_endpoint(self, wheel: Wheel, port: Port) -> Line | None:
         return self._line_lookup.get((wheel, port))
+
+    def lookup_line(self, wheel: Wheel, port: Port) -> Line | None:
+        """Expose cached line resolution for the given wheel/port endpoint."""
+
+        return self._line_for_endpoint(wheel, port)
+
+    def _log_endpoint_issue(
+        self,
+        logger: LoggerLike | None,
+        level: str,
+        message: str,
+        context: Mapping[str, str],
+    ) -> None:
+        """Emit a structured log entry without assuming the logger backend."""
+
+        if logger is None:
+            return
+
+        _log_with_context(logger, level, message, context)
+
+    def line_pressure(
+        self,
+        wheel: Wheel,
+        port: Port,
+        *,
+        default: float | None = None,
+        logger: LoggerProtocol | logging.Logger | LoggerAdapter | None = None,
+    ) -> float:
+        """Return the absolute pressure for the line connected to ``wheel/port``.
+
+        Args:
+            wheel: Wheel identifier for the endpoint.
+            port: Port (head or rod) on the cylinder.
+            default: Optional explicit fallback value. When omitted, receiver
+                pressure is used.
+            logger: Optional standard-library or structlog-compatible logger for
+                emitting diagnostics when the lookup fails.
+        """
+
+        line = self.lookup_line(wheel, port)
+        fallback = default if default is not None else float(self._gas_network.tank.p)
+
+        def _log(level: str, message: str, **fields: str) -> None:
+            if logger is None:
+                return
+            _log_with_context(logger, level, message, fields)
+
+        if line is None:
+            _log_with_context(
+                logger,
+                "warning",
+                "Missing pneumatic line mapping for endpoint; using tank pressure.",
+                {"wheel": wheel.name, "port": port.name},
+            )
+            return fallback
+
+        line_state = self._gas_network.lines.get(line)
+        if line_state is None:
+            if logger is not None:
+                _log_with_context(
+                    logger,
+                    "error",
+                    "Pneumatic line state unavailable; using tank pressure.",
+                    {
+                        "line": line.name,
+                        "wheel": wheel.name,
+                        "port": port.name,
+                    },
+                )
+            self._log_endpoint_issue(
+                logger,
+                "error",
+                "Pneumatic line state unavailable; using tank pressure.",
+                {"line": line.name, "wheel": wheel.name, "port": port.name},
+            )
+            return fallback
+
+        return float(line_state.p)
 
     @staticmethod
     def _normalise(vector: tuple[float, float, float]) -> tuple[float, float, float]:

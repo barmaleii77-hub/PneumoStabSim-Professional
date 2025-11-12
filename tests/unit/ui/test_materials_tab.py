@@ -101,6 +101,15 @@ def test_coerce_color_accepts_normalised_tuple(qapp):
     assert coerced_255 == "#4080ff"
 
 
+def test_materials_tab_accepts_color_alias(qapp):
+    tab = MaterialsTab()
+
+    tab.set_state({"frame": {"color": "#112233"}})
+
+    cached = tab.get_all_state()
+    assert cached["frame"]["base_color"] == "#112233"
+
+
 @pytest.mark.gui
 def test_materials_tab_preserves_missing_texture_until_user_confirms(
     qapp,

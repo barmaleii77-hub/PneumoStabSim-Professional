@@ -407,23 +407,24 @@ class UISetup:
                     return {}
                 return payload if isinstance(payload, dict) else {}
 
-            fallback_sources: list[dict[str, Any]] = []
+            fallback_sources: list[tuple[str, dict[str, Any]]] = []
             metadata_defaults = _fallback_section("metadata.scene_defaults")
             suspension_defaults = metadata_defaults.get("suspension")
             if isinstance(suspension_defaults, dict):
-                fallback_sources.append(suspension_defaults)
+                fallback_sources.append(("metadata", suspension_defaults))
 
             snapshot_scene = _fallback_section("defaults_snapshot.graphics.scene")
             snapshot_suspension = snapshot_scene.get("suspension")
             if isinstance(snapshot_suspension, dict):
-                fallback_sources.append(snapshot_suspension)
+                fallback_sources.append(("snapshot", snapshot_suspension))
 
             raw_suspension = scene_payload.get("suspension")
+            section_present = raw_suspension is not None
             normalised_suspension: dict[str, Any] = {}
             if isinstance(raw_suspension, dict):
                 normalised_suspension.update(raw_suspension)
             else:
-                if raw_suspension is not None:
+                if section_present:
                     UISetup.logger.warning(
                         "    ⚠️ Scene settings 'suspension' section has invalid type (%s); "
                         "using defaults.",
@@ -441,13 +442,33 @@ class UISetup:
                     normalised_suspension[key] = float(value)
                     continue
 
-                for fallback in fallback_sources:
+                fallback_source: str | None = None
+                fallback_value: float | None = None
+                for source_name, fallback in fallback_sources:
                     candidate = fallback.get(key)
                     if isinstance(candidate, (int, float)) and not isinstance(
                         candidate, bool
                     ):
                         normalised_suspension[key] = float(candidate)
+                        fallback_source = source_name
+                        fallback_value = float(candidate)
                         break
+
+                if fallback_source is not None:
+                    if fallback_source == "metadata":
+                        default_value = _SCENE_SUSPENSION_DEFAULTS.get(key)
+                        if default_value is None:
+                            missing_keys.append(key)
+                        else:
+                            default_float = float(default_value)
+                            if (
+                                fallback_value is None
+                                or abs(fallback_value - default_float) <= 1e-9
+                            ):
+                                missing_keys.append(key)
+                    else:
+                        missing_keys.append(key)
+                    continue
 
                 if key not in normalised_suspension:
                     normalised_suspension[key] = float(

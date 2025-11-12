@@ -1,6 +1,6 @@
 #version 300 es
 // Qt Quick 3D post-processing shader.
-// Shader logic executes in main() with helper functions for readability.
+// Shader logic executes directly inside main() for Qt 6.10 compatibility.
 // Requires an OpenGL ES 3.0 context for Qt Quick 3D runtime compatibility.
 
 #ifdef GL_ES

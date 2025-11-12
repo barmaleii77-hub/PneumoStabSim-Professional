@@ -11,10 +11,12 @@ warn() {
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/setup_linux.sh [--skip-system] [--skip-python]
+Usage: scripts/setup_linux.sh [--skip-system] [--skip-python] [--skip-qt] [--qt-version <version>]
 
-  --skip-system  Skip installation of system packages (apt).
-  --skip-python  Skip synchronising Python dependencies.
+  --skip-system   Skip installation of system packages (apt).
+  --skip-python   Skip synchronising Python dependencies.
+  --skip-qt       Skip offline Qt runtime provisioning via tools/setup_qt.py.
+  --qt-version    Override the Qt version to provision (defaults to 6.10.0).
 
 The script installs Qt/graphics packages required by the test-suite and
 ensures the PySide6 runtime is available. Environment variables for headless
@@ -24,6 +26,8 @@ USAGE
 
 skip_system=0
 skip_python=0
+skip_qt=0
+qt_version="${QT_VERSION:-6.10.0}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +38,19 @@ while [[ $# -gt 0 ]]; do
     --skip-python)
       skip_python=1
       shift
+      ;;
+    --skip-qt)
+      skip_qt=1
+      shift
+      ;;
+    --qt-version)
+      if [[ -z "${2:-}" ]]; then
+        warn "--qt-version requires a value"
+        usage
+        exit 1
+      fi
+      qt_version="$2"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -109,6 +126,8 @@ if [[ ${skip_system} -eq 0 ]]; then
       libvulkan1
       mesa-vulkan-drivers
       vulkan-tools
+      qt6-base-dev
+      qt6-base-dev-tools
       qt6-shader-baker
     )
 
@@ -145,34 +164,79 @@ if ! command -v "$python_cmd" >/dev/null 2>&1; then
     exit 1
   fi
 fi
+python_for_scripts="${python_cmd}"
 
 if [[ ${skip_python} -eq 0 ]]; then
   if command -v uv >/dev/null 2>&1; then
     log "Synchronising Python environment via uv"
     uv sync --extra dev
 
+    if [[ -x ".venv/bin/python" ]]; then
+      python_for_scripts="$(pwd)/.venv/bin/python"
+      log "Using ${python_for_scripts} for subsequent provisioning steps"
+    fi
+
     log "Ensuring PySide6/OpenGL wheels via uv"
     uv pip install --upgrade --no-cache-dir \
-      "PySide6>=6.10,<7" \
-      "PySide6-Addons>=6.10,<7" \
-      "PySide6-Essentials>=6.10,<7" \
-      "shiboken6>=6.10,<7" \
+      "PySide6==6.10.*" \
+      "PySide6-Addons==6.10.*" \
+      "PySide6-Essentials==6.10.*" \
+      "shiboken6==6.10.*" \
+      numpy \
+      pytest-qt \
       "PyOpenGL==3.1.10" \
-      "PyOpenGL-accelerate==3.1.10"
+      "PyOpenGL-accelerate==3.1.10" \
+      "aqtinstall>=3.2.1,<3.3"
   else
     log "uv not found; falling back to pip"
     "$python_cmd" -m pip install --upgrade pip
     "$python_cmd" -m pip install -r requirements-dev.txt
     "$python_cmd" -m pip install --upgrade --no-cache-dir \
-      "PySide6>=6.10,<7" \
-      "PySide6-Addons>=6.10,<7" \
-      "PySide6-Essentials>=6.10,<7" \
-      "shiboken6>=6.10,<7" \
+      "PySide6==6.10.*" \
+      "PySide6-Addons==6.10.*" \
+      "PySide6-Essentials==6.10.*" \
+      "shiboken6==6.10.*" \
+      numpy \
+      pytest-qt \
       "PyOpenGL==3.1.10" \
-      "PyOpenGL-accelerate==3.1.10"
+      "PyOpenGL-accelerate==3.1.10" \
+      "aqtinstall>=3.2.1,<3.3"
+    python_for_scripts="${python_cmd}"
   fi
 else
   log "Skipping Python dependency installation"
+fi
+
+qt_bin=""
+qt_plugins=""
+qt_qml=""
+if [[ ${skip_qt} -eq 0 ]]; then
+  log "Provisioning Qt runtime via tools/setup_qt.py (version ${qt_version})"
+  if [[ ! -f tools/setup_qt.py ]]; then
+    warn "tools/setup_qt.py not found; skipping Qt provisioning"
+  else
+    if "${python_for_scripts}" tools/setup_qt.py --qt-version "${qt_version}" --prune-archives; then
+      host_arch="gcc_64"
+      qt_root="$(pwd)/Qt/${qt_version}/${host_arch}"
+      if [[ -d "${qt_root}" ]]; then
+        qt_bin="${qt_root}/bin"
+        qt_plugins="${qt_root}/plugins"
+        qt_qml="${qt_root}/qml"
+        if [[ -n "${GITHUB_PATH:-}" && -d "${qt_bin}" ]]; then
+          log "Registering Qt bin directory with GITHUB_PATH"
+          printf '%s\n' "${qt_bin}" >> "${GITHUB_PATH}"
+        elif [[ -d "${qt_bin}" ]]; then
+          export PATH="${qt_bin}:${PATH}"
+        fi
+      else
+        warn "Qt root ${qt_root} not found after provisioning"
+      fi
+    else
+      warn "Qt provisioning script failed"
+    fi
+  fi
+else
+  log "Skipping Qt runtime provisioning"
 fi
 
 env_file=${GITHUB_ENV:-/tmp/setup_linux.env}
@@ -187,6 +251,13 @@ log "Exporting headless Qt defaults to ${env_file}"
   echo "QT_LOGGING_RULES=*.debug=false;qt.scenegraph.general=false"
   if [[ -z "${DISPLAY:-}" ]]; then
     echo "DISPLAY="
+  fi
+  echo "QT_VERSION=${qt_version}"
+  if [[ -n "${qt_plugins}" ]]; then
+    echo "QT_PLUGIN_PATH=${qt_plugins}"
+  fi
+  if [[ -n "${qt_qml}" ]]; then
+    echo "QML2_IMPORT_PATH=${qt_qml}"
   fi
 } >>"${env_file}"
 

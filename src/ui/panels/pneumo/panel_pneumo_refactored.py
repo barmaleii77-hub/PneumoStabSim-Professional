@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from collections.abc import Callable
 from collections.abc import Mapping
 
 from PySide6.QtCore import Qt, QTimer, Signal
