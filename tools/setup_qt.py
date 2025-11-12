@@ -38,9 +38,33 @@ def _ensure_aqt() -> Callable[[Sequence[str]], int | None]:
             "aqtinstall is required. Install it via 'uv pip install aqtinstall' "
             "inside the repository environment."
         )
-    from aqt.main import main as aqt_main
+    main_spec = importlib.util.find_spec("aqt.main")
+    if main_spec is not None:
+        from aqt.main import main as aqt_main  # type: ignore[import-not-found]
 
-    return aqt_main
+        return aqt_main
+
+    alt_spec = importlib.util.find_spec("aqt.__main__")
+    if alt_spec is None:
+        raise SystemExit(
+            "aqtinstall is present but does not expose a CLI entrypoint. Install "
+            "a release that ships either 'aqt.main' or 'aqt.__main__'."
+        )
+
+    from aqt.__main__ import main as aqt_entry  # type: ignore[import-not-found]
+
+    def _wrapper(arguments: Sequence[str]) -> int | None:
+        import sys
+
+        original_argv = sys.argv[:]  # type: ignore[attr-defined]
+        sys.argv = ["aqt", *arguments]
+        try:
+            result = aqt_entry()
+        finally:
+            sys.argv = original_argv
+        return result
+
+    return _wrapper
 
 
 def _detect_host(default_arch: str | None = None) -> tuple[str, str]:
@@ -309,9 +333,9 @@ def _build_aqt_arguments(
         arch,
         "--outputdir",
         str(output_dir),
-        "--archives",
-        str(archives_dir),
     ]
+    if not prune_archives:
+        args.extend(["--archives", str(archives_dir)])
     if prune_archives:
         args.append("--noarchives")
     if modules:

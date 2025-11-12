@@ -107,6 +107,8 @@ class GraphicsLogAnalyzer:
         self.events = []
         self.stats = {
             "total": 0,
+            "total_changes": 0,
+            "total_updates": 0,
             "by_category": defaultdict(int),
             "synced": 0,
             "failed": 0,
@@ -152,57 +154,47 @@ class GraphicsLogAnalyzer:
         self.unsynced_summary.clear()
 
         # Нас интересуют только события, представляющие реальные
-        # изменения параметров или их применение в QML. Заголовки
-        # сессии (session_start/session_end) не содержат категорий
-        # и искажали статистику, формируя записи вида
-        # ``unknown.unknown`` в отчётах.
-        relevant_events = []
+        # изменения параметров (parameter_change) и их применение в QML
+        # (parameter_update). Заголовки сессии (session_start/session_end)
+        # и другие служебные записи исключаются, чтобы не искажать
+        # статистику.
+        change_events: list[dict[str, Any]] = []
+        update_events: list[dict[str, Any]] = []
         for event in self.events:
-            event_type = event.get("event_type")
-            if event_type in {"parameter_change", "parameter_update"}:
-                relevant_events.append(event)
+            event_type = (event.get("event_type") or "").lower() or None
+            if event_type == "parameter_change":
+                change_events.append(event)
+                continue
+            if event_type == "parameter_update":
+                update_events.append(event)
                 continue
 
-            # Исторические логи могли не указывать тип события, но при этом
-            # содержат параметры/категории. Такие записи представляют реальные
-            # изменения и должны участвовать в расчётах синхронизации.
-            if event_type is None and (
-                "parameter_name" in event or "category" in event
-            ):
-                relevant_events.append(event)
+            # Логи старых версий могли не указывать тип события. В таких
+            # случаях ориентируемся на присутствие признаков применения
+            # (applied_to_qml/qml_state) либо пользовательского изменения.
+            if event_type is None:
+                if "applied_to_qml" in event or "qml_state" in event:
+                    update_events.append(event)
+                    continue
+                if "parameter_name" in event or "category" in event:
+                    change_events.append(event)
 
-        self.stats["total"] = len(relevant_events)
+        total_changes = len(change_events)
+        total_updates = len(update_events)
 
-        for event in relevant_events:
-            # Категории
+        # Для обратной совместимости оставляем ключ "total",
+        # но теперь он отражает количество пользовательских изменений.
+        self.stats["total"] = total_changes
+        self.stats["total_changes"] = total_changes
+        self.stats["total_updates"] = total_updates
+
+        for event in change_events:
             category = event.get("category", "unknown")
             self.stats["by_category"][category] += 1
 
-            # Параметры
             param = event.get("parameter_name", "unknown")
             self.stats["by_parameter"][param] += 1
 
-            # Синхронизация
-            applied = event.get("applied_to_qml", False)
-            qml_state = event.get("qml_state")
-
-            if applied:
-                self.stats["synced"] += 1
-            else:
-                qml_state_applied: bool | None = None
-                if isinstance(qml_state, dict):
-                    qml_state_applied = qml_state.get("applied")
-
-                status = "failed" if qml_state_applied is False else "pending"
-
-                if status == "failed":
-                    self.stats["failed"] += 1
-                else:
-                    self.stats["pending"] += 1
-
-                self._register_unsynced_event(event, category, param, status)
-
-            # Timeline
             timestamp = event.get("timestamp", "")
             if timestamp:
                 self.stats["timeline"].append(
@@ -215,11 +207,37 @@ class GraphicsLogAnalyzer:
                     }
                 )
 
+        for event in update_events:
+            category = event.get("category", "unknown")
+            param = event.get("parameter_name", "unknown")
+
+            applied = event.get("applied_to_qml", False)
+            qml_state = event.get("qml_state")
+
+            if applied and not event.get("error"):
+                self.stats["synced"] += 1
+                continue
+
+            qml_state_applied: bool | None = None
+            if isinstance(qml_state, dict):
+                qml_state_applied = qml_state.get("applied")
+
+            status = "failed" if qml_state_applied is False else "pending"
+
+            if status == "failed" or event.get("error"):
+                self.stats["failed"] += 1
+                status = "failed"
+            else:
+                self.stats["pending"] += 1
+
+            self._register_unsynced_event(event, category, param, status)
+
     def get_sync_rate(self) -> float:
         """Вычисляет процент синхронизации"""
-        if self.stats["total"] == 0:
+        total_changes = self.stats.get("total_changes", self.stats.get("total", 0))
+        if total_changes == 0:
             return 0.0
-        return (self.stats["synced"] / self.stats["total"]) * 100
+        return (self.stats["synced"] / total_changes) * 100
 
     def get_top_parameters(self, limit: int = 10) -> list[tuple[str, int]]:
         """Возвращает топ измененных параметров"""
@@ -718,10 +736,16 @@ class LogAnalyzer:
         sync_rate = analyzer.get_sync_rate()
 
         safe_print("\nСТАТИСТИКА:")
+        total_changes = stats.get("total_changes", stats["total"])
+        total_updates = stats.get("total_updates", 0)
         safe_print(
-            f"   Всего событий: {colored(str(stats['total']), Colors.GREEN, bold=True)}"
+            f"   Изменений: {colored(str(total_changes), Colors.GREEN, bold=True)}"
         )
-        synced_str = f"{stats['synced']}/{stats['total']}"
+        if total_updates:
+            safe_print(
+                f"   Апдейтов: {colored(str(total_updates), Colors.CYAN)}"
+            )
+        synced_str = f"{stats['synced']}/{total_changes}"
         safe_print(
             f"   Синхронизировано: {colored(synced_str, Colors.GREEN)} ({sync_rate:.1f}%)"
         )
@@ -747,7 +771,7 @@ class LogAnalyzer:
         for cat, count in sorted(
             stats["by_category"].items(), key=lambda x: x[1], reverse=True
         ):
-            percentage = (count / stats["total"]) * 100
+            percentage = (count / total_changes) * 100 if total_changes else 0.0
             safe_print(
                 f"   {cat:15} {colored(str(count), Colors.CYAN):>6} ({percentage:5.1f}%)"
             )
@@ -818,6 +842,9 @@ class LogAnalyzer:
             "generated_at": datetime.now(UTC).isoformat(),
             "source_log": str(analyzer.log_file),
             "sync_rate": analyzer.get_sync_rate(),
+            "total_changes": analyzer.stats.get("total_changes", analyzer.stats.get("total", 0)),
+            "total_updates": analyzer.stats.get("total_updates", 0),
+            "synced_updates": analyzer.stats.get("synced", 0),
             "unsynced_total": len(analyzer.unsynced_events),
             "unsynced_by_parameter": analyzer.get_unsynced_summary(),
             "samples": analyzer.get_unsynced_events(limit=10),

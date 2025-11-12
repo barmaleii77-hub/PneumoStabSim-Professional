@@ -160,11 +160,20 @@ Item {
                 model: metricsModel()
 
                 delegate: RowLayout {
+                    required property var modelData
+
                     spacing: 6
                     Layout.fillWidth: true
 
+                    readonly property string metricLabel: modelData && modelData.label !== undefined
+                        ? String(modelData.label)
+                        : ""
+                    readonly property string metricValue: modelData && modelData.value !== undefined && modelData.value !== null
+                        ? String(modelData.value)
+                        : "—"
+
                     Text {
-                        text: model.label + ":"
+                        text: metricLabel.length ? metricLabel + ":" : "—"
                         font.pixelSize: 13
                         color: "#8fa6d3"
                         horizontalAlignment: Text.AlignLeft
@@ -173,7 +182,7 @@ Item {
                     }
 
                     Text {
-                        text: model.value !== undefined && model.value !== null ? model.value : "—"
+                        text: metricValue
                         font.pixelSize: 13
                         color: "#e9f0ff"
                         horizontalAlignment: Text.AlignRight

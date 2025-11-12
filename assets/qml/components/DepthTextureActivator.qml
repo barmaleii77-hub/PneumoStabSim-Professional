@@ -9,6 +9,15 @@ QtObject {
     property bool _apiUnavailableLogged: false
     property var _propertyPresenceCache: new Map()
     property var _diagnosticDedup: ({})
+    // Guard rails for Qt 6.10+: deprecated toggles such as explicitDepthTextureEnabled
+    // no longer exist and must never be invoked. Keeping the list centralised allows
+    // runtime to skip them while leaving a breadcrumb for diagnostics.
+    readonly property var _legacyDepthProperties: [
+        "explicitDepthTextureEnabled",
+        "explicitVelocityTextureEnabled",
+        "requiresDepthTexture",
+        "requiresVelocityTexture"
+    ]
 
     function _clearPropertyCache() {
         if (_propertyPresenceCache && typeof _propertyPresenceCache.clear === "function")
@@ -260,6 +269,11 @@ QtObject {
     function _trySetProperty(target, propertyName, value) {
         if (!target || !propertyName)
             return false
+
+        if (_legacyDepthProperties.indexOf(propertyName) !== -1) {
+            _logDebugOnce("legacy property skipped", propertyName, "unsupported depth toggle")
+            return false
+        }
 
         if (!_hasProperty(target, propertyName))
             return false

@@ -35,6 +35,7 @@ def _make_worker() -> PhysicsWorker:
     worker = PhysicsWorker.__new__(PhysicsWorker)
     worker.logger = logging.getLogger("test.physics_worker")
     worker.error_occurred = _DummySignal()
+    worker.receiver_volume_changed = _DummySignal()  # type: ignore[attr-defined]
     worker.receiver_volume = 0.02
     worker.receiver_volume_mode = "MANUAL"
     worker._latest_tank_state = TankState(
@@ -83,7 +84,13 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     expected_pressure = receiver_state.p * ((receiver_state.V / new_volume) ** 1.4)
     expected_temperature = receiver_state.T * ((receiver_state.V / new_volume) ** 0.4)
 
-    worker.set_receiver_volume(new_volume, "geometric")
+    update = worker.set_receiver_volume(new_volume, "geometric")
+
+    assert isinstance(update, ReceiverVolumeUpdate)
+    assert update.volume == pytest.approx(new_volume)
+    assert update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+    assert update.pressure == pytest.approx(expected_pressure)
+    assert update.temperature == pytest.approx(expected_temperature)
 
     pneumo_tank = worker._test_pneumo_tank  # type: ignore[attr-defined]
 
@@ -127,6 +134,17 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert log_record.tank_mass_kg == pytest.approx(worker.gas_network.tank.m)
     assert log_record.tank_temperature_k == pytest.approx(worker.gas_network.tank.T)
     assert worker.error_occurred.emitted == []
+
+    signal_emissions = worker.receiver_volume_changed.emitted
+    assert signal_emissions, "Receiver volume changed signal must fire"
+    sig_volume, sig_mode, sig_update = signal_emissions[-1]
+    assert sig_volume == pytest.approx(new_volume)
+    assert sig_mode == "GEOMETRIC"
+    assert isinstance(sig_update, ReceiverVolumeUpdate)
+    assert sig_update.volume == pytest.approx(new_volume)
+    assert sig_update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+    assert sig_update.pressure == pytest.approx(expected_pressure)
+    assert sig_update.temperature == pytest.approx(expected_temperature)
 
 
 def test_receiver_state_set_volume_returns_updated_state() -> None:

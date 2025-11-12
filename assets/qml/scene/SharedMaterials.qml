@@ -45,7 +45,7 @@ QtObject {
     })
 
     readonly property var materialPropertyAliases: ({
-        base_color: ["baseColor"],
+        base_color: ["baseColor", "color"],
         specular: ["specular_amount", "specularAmount"],
         specular_amount: ["specular", "specularAmount"],
         specular_tint: ["specularTint"],
