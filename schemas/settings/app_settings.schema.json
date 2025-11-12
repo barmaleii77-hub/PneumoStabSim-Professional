@@ -691,23 +691,44 @@
         },
         "reflection_enabled": {
           "title": "Reflection Enabled",
-          "type": "boolean"
+          "type": "boolean",
+          "default": true
         },
         "reflection_padding_m": {
           "title": "Reflection Padding M",
-          "type": "number"
+          "type": "number",
+          "default": 0.15
         },
         "reflection_quality": {
           "title": "Reflection Quality",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "veryhigh",
+            "high",
+            "medium",
+            "low"
+          ],
+          "default": "veryhigh"
         },
         "reflection_refresh_mode": {
           "title": "Reflection Refresh Mode",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "everyframe",
+            "firstframe",
+            "never"
+          ],
+          "default": "everyframe"
         },
         "reflection_time_slicing": {
           "title": "Reflection Time Slicing",
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "individualfaces",
+            "allfacesatonce",
+            "notimeslicing"
+          ],
+          "default": "individualfaces"
         },
         "fog_enabled": {
           "title": "Fog Enabled",
@@ -856,6 +877,40 @@
         "ao_sample_rate"
       ],
       "title": "EnvironmentSettings",
+      "type": "object"
+    },
+    "ReflectionProbeSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "padding_m": {
+          "title": "Padding M",
+          "type": "number"
+        },
+        "quality": {
+          "title": "Quality",
+          "type": "string"
+        },
+        "refresh_mode": {
+          "title": "Refresh Mode",
+          "type": "string"
+        },
+        "time_slicing": {
+          "title": "Time Slicing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "padding_m",
+        "quality",
+        "refresh_mode",
+        "time_slicing"
+      ],
+      "title": "ReflectionProbeSettings",
       "type": "object"
     },
     "GeometryConstants": {
@@ -1275,6 +1330,9 @@
         "environment": {
           "$ref": "#/$defs/EnvironmentSettings"
         },
+        "reflection_probe": {
+          "$ref": "#/$defs/ReflectionProbeSettings"
+        },
         "quality": {
           "$ref": "#/$defs/QualitySettings"
         },
@@ -1297,6 +1355,7 @@
       "required": [
         "lighting",
         "environment",
+        "reflection_probe",
         "quality",
         "camera",
         "materials",
@@ -1617,8 +1676,15 @@
           "title": "Operational Imperatives",
           "type": "array"
         },
+        "defaults_seed": {
+          "title": "Defaults Seed",
+          "type": "string"
+        },
         "environment_slider_ranges": {
           "$ref": "#/$defs/EnvironmentSliderRanges"
+        },
+        "scene_defaults": {
+          "$ref": "#/$defs/SceneDefaultsMetadata"
         },
         "legacy": {
           "additionalProperties": {
@@ -2385,15 +2451,21 @@
         },
         "constant_fade": {
           "title": "Constant Fade",
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
         },
         "linear_fade": {
           "title": "Linear Fade",
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
         },
         "quadratic_fade": {
           "title": "Quadratic Fade",
-          "type": "number"
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 10.0
         },
         "cast_shadow": {
           "title": "Cast Shadow",
@@ -2573,6 +2645,9 @@
         "model_metalness": {
           "title": "Model Metalness",
           "type": "number"
+        },
+        "suspension": {
+          "$ref": "#/$defs/SceneSuspensionSettings"
         }
       },
       "required": [
@@ -2581,9 +2656,38 @@
         "default_clear_color",
         "model_base_color",
         "model_roughness",
-        "model_metalness"
+        "model_metalness",
+        "suspension"
       ],
       "title": "SceneSettings",
+      "type": "object"
+    },
+    "SceneSuspensionSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "rod_warning_threshold_m": {
+          "default": 0.001,
+          "title": "Rod Warning Threshold M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rod_warning_threshold_m"
+      ],
+      "title": "SceneSuspensionSettings",
+      "type": "object"
+    },
+    "SceneDefaultsMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "suspension": {
+          "$ref": "#/$defs/SceneSuspensionSettings"
+        }
+      },
+      "required": [
+        "suspension"
+      ],
+      "title": "SceneDefaultsMetadata",
       "type": "object"
     },
     "ShadowsSettings": {

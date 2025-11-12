@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "version": "4.9.8",
+    "version": "5.0.0",
     "schema_version": "0.2.1",
     "last_modified": "2025-11-06T03:20:46.958Z",
     "units_version": "si_v2",
@@ -11,7 +11,7 @@
     "last_migration": "0002_remove_geometry_mesh_extras",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 317,
+    "total_parameters": 322,
     "description": "Unified settings file - single source of truth",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
@@ -147,7 +147,13 @@
         "step": 1.0
       }
     },
-    "legacy": {}
+    "scene_defaults": {
+      "suspension": {
+        "rod_warning_threshold_m": 0.001
+      }
+    },
+    "legacy": {},
+    "defaults_seed": "config/baseline/app_settings.json"
   },
   "current": {
     "simulation": {
@@ -340,6 +346,13 @@
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
+      },
+      "reflection_probe": {
+        "enabled": false,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
       },
       "quality": {
         "preset": "ultra",
@@ -682,7 +695,10 @@
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
-        "model_metalness": 0.82
+        "model_metalness": 0.82,
+        "suspension": {
+          "rod_warning_threshold_m": 0.001
+        }
       },
       "environment_ranges": {
         "ibl_intensity": {
@@ -1586,6 +1602,13 @@
         "ao_dither": true,
         "ao_sample_rate": 4
       },
+      "reflection_probe": {
+        "enabled": true,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
+      },
       "quality": {
         "preset": "ultra",
         "shadows": {
@@ -1927,7 +1950,10 @@
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
-        "model_metalness": 0.82
+        "model_metalness": 0.82,
+        "suspension": {
+          "rod_warning_threshold_m": 0.001
+        }
       },
       "environment_ranges": {
         "ibl_intensity": {

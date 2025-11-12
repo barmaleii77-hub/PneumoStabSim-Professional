@@ -273,6 +273,12 @@ SCENE_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     ),
 )
 
+SCENE_SUSPENSION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
+    EnvironmentParameterDefinition(
+        "rod_warning_threshold_m", "float", min_value=0.0, max_value=0.05
+    ),
+)
+
 ANIMATION_PARAMETERS: tuple[EnvironmentParameterDefinition, ...] = (
     EnvironmentParameterDefinition("is_running", "bool"),
     EnvironmentParameterDefinition(
@@ -616,8 +622,24 @@ def validate_environment_settings(settings: dict[str, Any]) -> dict[str, Any]:
     return _validate_section(payload, ENVIRONMENT_PARAMETERS, "environment")
 
 
+def validate_scene_suspension_settings(settings: dict[str, Any]) -> dict[str, Any]:
+    return _validate_section(settings, SCENE_SUSPENSION_PARAMETERS, "scene.suspension")
+
+
 def validate_scene_settings(settings: dict[str, Any]) -> dict[str, Any]:
-    return _validate_section(settings, SCENE_PARAMETERS, "scene")
+    if not isinstance(settings, dict):
+        raise EnvironmentValidationError("scene settings must be a dict")
+
+    payload = dict(settings)
+    suspension_payload = payload.pop("suspension", None)
+
+    normalised = _validate_section(payload, SCENE_PARAMETERS, "scene")
+
+    if suspension_payload is None:
+        raise EnvironmentValidationError("Missing scene key: suspension")
+
+    normalised["suspension"] = validate_scene_suspension_settings(suspension_payload)
+    return normalised
 
 
 def validate_animation_settings(settings: dict[str, Any]) -> dict[str, Any]:
@@ -656,6 +678,7 @@ if not hasattr(builtins, "_build_payload"):
 
 for name, value in {
     "SCENE_PARAMETERS": SCENE_PARAMETERS,
+    "SCENE_SUSPENSION_PARAMETERS": SCENE_SUSPENSION_PARAMETERS,
     "ANIMATION_PARAMETERS": ANIMATION_PARAMETERS,
 }.items():
     if not hasattr(builtins, name):
@@ -672,9 +695,11 @@ __all__ = [
     "ENVIRONMENT_REQUIRED_KEYS",
     "ENVIRONMENT_CONTEXT_PROPERTIES",
     "SCENE_PARAMETERS",
+    "SCENE_SUSPENSION_PARAMETERS",
     "ANIMATION_PARAMETERS",
     "validate_environment_settings",
     "validate_environment_slider_ranges",
     "validate_scene_settings",
+    "validate_scene_suspension_settings",
     "validate_animation_settings",
 ]

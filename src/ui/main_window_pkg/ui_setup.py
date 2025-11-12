@@ -12,7 +12,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping
 
 from PySide6.QtCore import Qt, QSettings, QUrl, qVersion
 from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
@@ -48,6 +48,9 @@ QML_ABSOLUTE_ROOT = PROJECT_ROOT / QML_RELATIVE_ROOT
 SHADER_ROOT = PROJECT_ROOT / "assets" / "shaders"
 EFFECT_SHADER_DIR = SHADER_ROOT / "effects"
 EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR,)
+
+_SCENE_SUSPENSION_REQUIRED_KEYS: tuple[str, ...] = ("rod_warning_threshold_m",)
+_SCENE_SUSPENSION_DEFAULTS: dict[str, float] = {"rod_warning_threshold_m": 0.001}
 
 
 class UISetup:
@@ -214,13 +217,291 @@ class UISetup:
                 raise RuntimeError("Секция diagnostics повреждена")
             return _serialize("diagnostics", payload)
 
+        reflection_required_keys: tuple[str, ...] = (
+            "enabled",
+            "padding_m",
+            "quality",
+            "refresh_mode",
+            "time_slicing",
+        )
+
+        reflection_defaults: dict[str, Any] = {
+            "enabled": False,
+            "padding_m": 0.15,
+            "quality": "veryhigh",
+            "refresh_mode": "everyframe",
+            "time_slicing": "individualfaces",
+        }
+
+        def _coerce_bool(value: Any) -> bool | None:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return bool(value)
+            if isinstance(value, str):
+                lowered = value.strip().lower()
+                if lowered in {"1", "true", "yes", "on"}:
+                    return True
+                if lowered in {"0", "false", "no", "off"}:
+                    return False
+            return None
+
+        def _coerce_number(value: Any) -> float | None:
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                return float(value)
+            if isinstance(value, str):
+                try:
+                    return float(value.strip())
+                except ValueError:
+                    return None
+            return None
+
+        def _coerce_text(value: Any, *, lowercase: bool = False) -> str | None:
+            if value is None:
+                return None
+            if isinstance(value, str):
+                text = value.strip()
+            else:
+                text = str(value).strip()
+            if not text:
+                return None
+            return text.lower() if lowercase else text
+
+        def _map_environment_to_reflection(
+            payload: Mapping[str, Any] | None,
+        ) -> dict[str, Any]:
+            if not isinstance(payload, Mapping):
+                return {}
+            return {
+                "enabled": payload.get("reflection_enabled"),
+                "padding_m": payload.get("reflection_padding_m"),
+                "quality": payload.get("reflection_quality"),
+                "refresh_mode": payload.get("reflection_refresh_mode"),
+                "time_slicing": payload.get("reflection_time_slicing"),
+            }
+
+        def _sanitize_reflection_probe(
+            primary: Mapping[str, Any] | None,
+            fallbacks: Iterable[Mapping[str, Any] | None],
+        ) -> tuple[dict[str, Any], list[str]]:
+            result: dict[str, Any] = {}
+            missing: list[str] = []
+
+            def _seek_value(
+                key: str,
+                extractor: Callable[[Any], Any | None],
+                lowercase: bool = False,
+            ) -> tuple[Any, bool]:
+                primary_value = None
+                if isinstance(primary, Mapping) and key in primary:
+                    primary_value = extractor(primary[key])
+                if primary_value is not None:
+                    return (
+                        primary_value.lower()
+                        if lowercase and isinstance(primary_value, str)
+                        else primary_value,
+                        False,
+                    )
+
+                for source in fallbacks:
+                    if not isinstance(source, Mapping):
+                        continue
+                    candidate = source.get(key)
+                    if candidate is None:
+                        continue
+                    coerced = extractor(candidate)
+                    if coerced is not None:
+                        return (
+                            coerced.lower()
+                            if lowercase and isinstance(coerced, str)
+                            else coerced,
+                            True,
+                        )
+                return (None, True)
+
+            for key in reflection_required_keys:
+                if key == "enabled":
+                    value, used_fallback = _seek_value(key, _coerce_bool)
+                elif key == "padding_m":
+                    value, used_fallback = _seek_value(key, _coerce_number)
+                else:
+                    value, used_fallback = _seek_value(
+                        key,
+                        lambda raw: _coerce_text(raw, lowercase=True),
+                        lowercase=True,
+                    )
+
+                if value is None:
+                    value = reflection_defaults[key]
+                    used_fallback = True
+
+                if used_fallback:
+                    missing.append(key)
+
+                result[key] = value
+
+            result["padding"] = float(result["padding_m"])
+            return result, missing
+
+        def _read_reflection_probe(
+            environment_payload: Mapping[str, Any],
+        ) -> tuple[dict[str, Any], list[str]]:
+            try:
+                raw_payload = manager.get("graphics.reflection_probe", None) or {}
+            except Exception as exc:
+                UISetup.logger.warning(
+                    "    ⚠️ Ошибка чтения graphics.reflection_probe: %s", exc
+                )
+                raw_payload = {}
+
+            if not isinstance(raw_payload, Mapping):
+                UISetup.logger.warning(
+                    "    ⚠️ graphics.reflection_probe имеет неверный тип (%s); используется fallback.",
+                    type(raw_payload).__name__,
+                )
+                raw_payload = {}
+
+            fallback_sources: list[Mapping[str, Any]] = []
+            fallback_sources.append(_map_environment_to_reflection(environment_payload))
+
+            try:
+                snapshot_probe = (
+                    manager.get("defaults_snapshot.graphics.reflection_probe", {}) or {}
+                )
+            except Exception as exc:
+                UISetup.logger.debug(
+                    "    ⚠️ Не удалось прочитать defaults_snapshot.graphics.reflection_probe: %s",
+                    exc,
+                )
+                snapshot_probe = {}
+            if isinstance(snapshot_probe, Mapping):
+                fallback_sources.append(snapshot_probe)
+
+            try:
+                snapshot_env = (
+                    manager.get("defaults_snapshot.graphics.environment", {}) or {}
+                )
+            except Exception:
+                snapshot_env = {}
+            fallback_sources.append(_map_environment_to_reflection(snapshot_env))
+
+            sanitized, missing = _sanitize_reflection_probe(
+                raw_payload, fallback_sources
+            )
+            unique_missing = sorted(
+                {key for key in missing if key in reflection_required_keys}
+            )
+            return sanitized, unique_missing
+
+        def _ensure_scene_suspension(scene_payload: dict[str, Any]) -> dict[str, Any]:
+            if not isinstance(scene_payload, dict):
+                return {}
+
+            def _fallback_section(path: str) -> dict[str, Any]:
+                try:
+                    payload = manager.get(path, {}) or {}
+                except Exception as exc:  # pragma: no cover - defensive logging
+                    UISetup.logger.debug(
+                        "    ⚠️ Failed to read %s for scene defaults: %s", path, exc
+                    )
+                    return {}
+                return payload if isinstance(payload, dict) else {}
+
+            fallback_sources: list[tuple[str, dict[str, Any]]] = []
+            metadata_defaults = _fallback_section("metadata.scene_defaults")
+            suspension_defaults = metadata_defaults.get("suspension")
+            if isinstance(suspension_defaults, dict):
+                fallback_sources.append(("metadata", suspension_defaults))
+
+            snapshot_scene = _fallback_section("defaults_snapshot.graphics.scene")
+            snapshot_suspension = snapshot_scene.get("suspension")
+            if isinstance(snapshot_suspension, dict):
+                fallback_sources.append(("snapshot", snapshot_suspension))
+
+            raw_suspension = scene_payload.get("suspension")
+            section_present = raw_suspension is not None
+            normalised_suspension: dict[str, Any] = {}
+            if isinstance(raw_suspension, dict):
+                normalised_suspension.update(raw_suspension)
+            else:
+                if section_present:
+                    UISetup.logger.warning(
+                        "    ⚠️ Scene settings 'suspension' section has invalid type (%s); "
+                        "using defaults.",
+                        type(raw_suspension).__name__,
+                    )
+                else:
+                    UISetup.logger.warning(
+                        "    ⚠️ Scene settings missing 'suspension' section; applying defaults."
+                    )
+
+            missing_keys: list[str] = []
+            for key in _SCENE_SUSPENSION_REQUIRED_KEYS:
+                value = normalised_suspension.get(key)
+                if isinstance(value, (int, float)) and not isinstance(value, bool):
+                    normalised_suspension[key] = float(value)
+                    continue
+
+                fallback_source: str | None = None
+                fallback_value: float | None = None
+                for source_name, fallback in fallback_sources:
+                    candidate = fallback.get(key)
+                    if isinstance(candidate, (int, float)) and not isinstance(
+                        candidate, bool
+                    ):
+                        normalised_suspension[key] = float(candidate)
+                        fallback_source = source_name
+                        fallback_value = float(candidate)
+                        break
+
+                if fallback_source is not None:
+                    if fallback_source == "metadata":
+                        default_value = _SCENE_SUSPENSION_DEFAULTS.get(key)
+                        if default_value is None:
+                            missing_keys.append(key)
+                        else:
+                            default_float = float(default_value)
+                            if (
+                                fallback_value is None
+                                or abs(fallback_value - default_float) <= 1e-9
+                            ):
+                                missing_keys.append(key)
+                    else:
+                        missing_keys.append(key)
+                    continue
+
+                if key not in normalised_suspension:
+                    normalised_suspension[key] = float(
+                        _SCENE_SUSPENSION_DEFAULTS.get(key, 0.0)
+                    )
+                    missing_keys.append(key)
+
+            if missing_keys:
+                UISetup.logger.warning(
+                    "    ⚠️ Scene suspension settings missing keys: %s. Using defaults.",
+                    ", ".join(sorted(missing_keys)),
+                )
+
+            result = dict(scene_payload)
+            result["suspension"] = normalised_suspension
+            return result
+
         animation_payload = _read_section("animation")
-        scene_payload = _read_section("scene")
+        scene_payload = _ensure_scene_suspension(_read_section("scene"))
         materials_payload = _read_section("materials")
         environment_payload = _read_section("environment")
         effects_payload = _read_section("effects")
         quality_payload = _read_section("quality")
         lighting_payload = _read_section("lighting")
+        reflection_probe_payload, missing_reflection_keys = _read_reflection_probe(
+            environment_payload
+        )
+
+        if missing_reflection_keys:
+            UISetup.logger.warning(
+                "    ⚠️ Reflection probe settings missing keys: %s. Используются значения из fallback.",
+                ", ".join(missing_reflection_keys),
+            )
 
         modes_payload = manager.get_category("modes") or {}
         pneumatic_payload = manager.get_category("pneumatic") or {}
@@ -266,10 +547,12 @@ class UISetup:
                 "effects": effects_payload,
                 "quality": quality_payload,
                 "lighting": lighting_payload,
+                "reflection_probe": reflection_probe_payload,
                 "graphics": {
                     "scene": scene_payload,
                     "materials": materials_payload,
                     "environment": environment_payload,
+                    "reflection_probe": reflection_probe_payload,
                     "effects": effects_payload,
                     "quality": quality_payload,
                     "lighting": lighting_payload,
@@ -283,7 +566,15 @@ class UISetup:
             "materials": materials_payload,
             "geometry": _read_geometry(),
             "diagnostics": _read_diagnostics(),
-            "lighting": lighting_payload,
+            "reflection_probe": _serialize(
+                "graphics.reflection_probe", reflection_probe_payload
+            ),
+            "lighting": _serialize_mapping("graphics.lighting", lighting_payload),
+            "effects": _serialize_mapping("graphics.effects", effects_payload),
+            "quality": _serialize_mapping("graphics.quality", quality_payload),
+            "environment": _serialize_mapping(
+                "graphics.environment", environment_payload
+            ),
             "modes": _serialize_mapping("modes", modes_payload),
             "pneumatic": _serialize_mapping("pneumatic", pneumatic_payload),
             "simulation": _serialize_mapping("simulation", simulation_payload),
@@ -643,6 +934,9 @@ class UISetup:
                     "initialSharedMaterials", payload["materials"]
                 )
                 context.setContextProperty("materialsDefaults", payload["materials"])
+                context.setContextProperty(
+                    "initialReflectionProbeSettings", payload["reflection_probe"]
+                )
                 context.setContextProperty(
                     "initialGeometrySettings", payload["geometry"]
                 )

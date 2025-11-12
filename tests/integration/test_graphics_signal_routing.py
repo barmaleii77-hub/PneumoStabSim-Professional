@@ -95,6 +95,9 @@ def test_signal_router_dispatches_direct_updates(
             "ibl_source": "studio.hdr",
             "reflection_enabled": True,
             "reflection_quality": "ultra",
+            "reflection_refresh_mode": "never",
+            "reflection_time_slicing": "notimeslicing",
+            "reflection_padding_m": 0.42,
         },
     )
     SignalsRouter.handle_quality_changed(
@@ -152,4 +155,17 @@ def test_signal_router_dispatches_direct_updates(
         "quality",
         "camera",
         "effects",
+    }
+
+    three_d_payloads = [
+        payload for name, payload in qml_bridge_spy if name == "apply3DUpdates"
+    ]
+    assert three_d_payloads, "Expected apply3DUpdates to be invoked"
+    reflection_payload = three_d_payloads[0].get("reflectionProbe")
+    assert reflection_payload == {
+        "enabled": True,
+        "padding": pytest.approx(0.42),
+        "quality": "ultra",
+        "refreshMode": "never",
+        "timeSlicing": "notimeslicing",
     }

@@ -1,59 +1,170 @@
-<#
-.SYNOPSIS
-    PneumoStabSim Professional — Windows dependency bootstrap.
-.DESCRIPTION
-    Installs the packages required to execute Qt-based tests in headless mode.
-#>
 [CmdletBinding()]
 param(
-    [string]$Python = "python"
+    [switch]$SkipUvSync,
+    [switch]$SkipSystem,
+    [switch]$SkipQt,
+    [string]$QtVersion
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-function Write-Log {
+$platform = [System.Environment]::OSVersion.Platform
+Write-Host "[setup_windows] Detected platform: $platform ($([System.Environment]::OSVersion.VersionString))"
+if ($platform -ne [System.PlatformID]::Win32NT) {
+    throw "setup_windows.ps1 is only supported on Windows hosts"
+}
+
+if (-not $QtVersion) {
+    if ($env:QT_VERSION) {
+        $QtVersion = $env:QT_VERSION
+    } else {
+        $QtVersion = '6.10.0'
+    }
+}
+
+function Write-SetupLog {
     param([string]$Message)
-    Write-Host "[setup-windows] $Message"
+    Write-Host "[setup_windows] $Message"
 }
 
-Write-Log "Ensuring Chocolatey dependencies"
-if (Get-Command choco -ErrorAction SilentlyContinue) {
-    choco install -y --no-progress vcredist140 visualstudio2022buildtools qt6-sdk
-    if ($LASTEXITCODE -ne 0) {
-        Write-Log "Chocolatey dependencies already installed or install failed (exit code $LASTEXITCODE)"
+function Invoke-ChocoInstall {
+    param(
+        [string]$Package
+    )
+
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        Write-SetupLog "Chocolatey not available; skipping install of $Package"
+        return
     }
-    choco install -y --no-progress make
-    if ($LASTEXITCODE -ne 0) {
-        Write-Log "GNU Make already installed or install failed (exit code $LASTEXITCODE)"
+
+    try {
+        Write-SetupLog "Ensuring Chocolatey package $Package"
+        choco install $Package --no-progress -y | Out-Null
+    } catch {
+        Write-SetupLog "Failed to install $Package via Chocolatey: $_"
     }
 }
-else {
-    Write-Log "Chocolatey not available; skipping system package installation"
+
+function Ensure-PythonCommand {
+    $python = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $python) {
+        throw "Python must be installed before running setup_windows.ps1"
+    }
+    return $python.Source
 }
 
-Write-Log "Upgrading pip"
-& $Python -m pip install --upgrade pip
+$pythonPath = Ensure-PythonCommand()
+Write-SetupLog "Using Python from $pythonPath"
 
-Write-Log "Installing PySide6 runtime packages"
-& $Python -m pip install `
-    "PySide6>=6.10,<7" `
-    "PySide6-Essentials>=6.10,<7" `
-    "PySide6-Addons>=6.10,<7" `
-    "PySide6-QtQuick3D>=6.10,<7"
-
-Write-Log "Configuring Qt headless defaults"
-$env:QT_QPA_PLATFORM = $env:QT_QPA_PLATFORM -as [string]
-if (-not $env:QT_QPA_PLATFORM) {
-    $env:QT_QPA_PLATFORM = 'offscreen'
-}
-$env:QT_QUICK_BACKEND = $env:QT_QUICK_BACKEND -as [string]
-if (-not $env:QT_QUICK_BACKEND) {
-    $env:QT_QUICK_BACKEND = 'rhi'
-}
-$env:QSG_RHI_BACKEND = $env:QSG_RHI_BACKEND -as [string]
-if (-not $env:QSG_RHI_BACKEND) {
-    $env:QSG_RHI_BACKEND = 'd3d11'
+if (-not $SkipSystem) {
+    Invoke-ChocoInstall -Package 'directx'
+    Invoke-ChocoInstall -Package 'vcredist140'
+} else {
+    Write-SetupLog "Skipping Windows system package installation"
 }
 
-Write-Log "Setup complete. QT_QPA_PLATFORM=$($env:QT_QPA_PLATFORM)"
+if (-not $SkipUvSync) {
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        Write-SetupLog "Synchronising Python environment via uv"
+        uv sync --extra dev
+    } else {
+        Write-SetupLog "uv not found; using pip fallback"
+        & $pythonPath -m pip install --upgrade pip
+        & $pythonPath -m pip install -r requirements-dev.txt
+    }
+} else {
+    Write-SetupLog "Skipping uv sync (per flag)"
+}
+
+Write-SetupLog "Installing mandatory Qt/PySide6 wheels"
+if (Get-Command uv -ErrorAction SilentlyContinue) {
+    uv pip install --upgrade --no-cache-dir `
+        'PySide6>=6.10,<7' `
+        'PySide6-Addons>=6.10,<7' `
+        'PySide6-Essentials>=6.10,<7' `
+        'shiboken6>=6.10,<7' `
+        'PyOpenGL==3.1.10' `
+        'PyOpenGL-accelerate==3.1.10' `
+        'aqtinstall>=3.2.1,<3.3'
+} else {
+    & $pythonPath -m pip install --upgrade --no-cache-dir `
+        'PySide6>=6.10,<7' `
+        'PySide6-Addons>=6.10,<7' `
+        'PySide6-Essentials>=6.10,<7' `
+        'shiboken6>=6.10,<7' `
+        'PyOpenGL==3.1.10' `
+        'PyOpenGL-accelerate==3.1.10' `
+        'aqtinstall>=3.2.1,<3.3'
+}
+
+Write-SetupLog "Provisioning Qt runtime (version $QtVersion)"
+$qtBin = $null
+$qtPlugins = $null
+$qtQml = $null
+if (-not $SkipQt) {
+    if (-not (Test-Path 'tools/setup_qt.py')) {
+        Write-SetupLog "tools/setup_qt.py not found; skipping Qt provisioning"
+    } else {
+        try {
+            & $pythonPath tools/setup_qt.py --qt-version $QtVersion --prune-archives | Out-Null
+        } catch {
+            Write-SetupLog "Qt provisioning failed: $_"
+        }
+
+        $qtArch = 'win64_msvc2019_64'
+        $qtRoot = Join-Path (Join-Path (Get-Location) 'Qt') $QtVersion
+        $qtArchPath = Join-Path $qtRoot $qtArch
+        if (Test-Path $qtArchPath) {
+            $qtBin = Join-Path $qtArchPath 'bin'
+            $qtPlugins = Join-Path $qtArchPath 'plugins'
+            $qtQml = Join-Path $qtArchPath 'qml'
+            if ($env:GITHUB_PATH -and (Test-Path $qtBin)) {
+                Write-SetupLog "Registering Qt bin path with GITHUB_PATH"
+                Add-Content -Path $env:GITHUB_PATH -Value $qtBin
+            } elseif (Test-Path $qtBin) {
+                Write-SetupLog "Prepending Qt bin to current session PATH"
+                $env:PATH = "$qtBin;$($env:PATH)"
+            }
+        } else {
+            Write-SetupLog "Qt arch path $qtArchPath not found after provisioning"
+        }
+    }
+} else {
+    Write-SetupLog "Skipping Qt runtime provisioning per flag"
+}
+
+Write-SetupLog "Exporting headless Qt defaults"
+$envContent = @(
+    'QT_QPA_PLATFORM=offscreen',
+    'QT_QUICK_BACKEND=rhi',
+    'QSG_RHI_BACKEND=d3d11',
+    'QT_OPENGL=software',
+    'QT_LOGGING_RULES=*.debug=false;qt.scenegraph.general=false',
+    'PSS_HEADLESS=1',
+    "QT_VERSION=$QtVersion"
+)
+
+if ($qtPlugins) {
+    $envContent += "QT_PLUGIN_PATH=$qtPlugins"
+}
+
+if ($qtQml) {
+    $envContent += "QML2_IMPORT_PATH=$qtQml"
+}
+
+$envFile = $env:GITHUB_ENV
+if (-not [string]::IsNullOrWhiteSpace($envFile)) {
+    Write-SetupLog "Writing environment variables to $envFile"
+    foreach ($line in $envContent) {
+        Add-Content -Path $envFile -Value $line
+    }
+} else {
+    Write-SetupLog "Applying environment variables to current session"
+    foreach ($line in $envContent) {
+        $parts = $line.Split('=')
+        [System.Environment]::SetEnvironmentVariable($parts[0], $parts[1], 'Process')
+    }
+}
+
+Write-SetupLog "Windows environment bootstrap complete"

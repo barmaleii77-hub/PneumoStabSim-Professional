@@ -70,6 +70,11 @@ class StabilizerPanel(QWidget):
         self._spinbox.setValue(value)
         self._spinbox.blockSignals(False)
 
+    def get_parameters(self) -> dict[str, float]:
+        """Return a snapshot of the stabiliser coupling configuration."""
+
+        return {"diagonal_coupling_dia": float(self._spinbox.value())}
+
     @Slot(float)
     def _on_spin_changed(self, value: float) -> None:
         numeric = max(0.0, float(value))

@@ -1,12 +1,23 @@
-"""
-Receiver specification and state
-Handles volume changes with thermodynamic recalculation modes
-"""
+"""Receiver specification and state
+Handles volume changes with thermodynamic recalculation modes."""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NamedTuple
+
 from .enums import ReceiverVolumeMode
 from .types import ValidationResult
 from ..common.errors import ModelConfigError, ThermoError
+
+
+class ReceiverVolumeUpdate(NamedTuple):
+    """Summary of a receiver volume update."""
+
+    volume: float
+    pressure: float
+    temperature: float
+    mode: ReceiverVolumeMode
 
 
 @dataclass
@@ -111,6 +122,66 @@ class ReceiverState:
 
         else:
             raise ThermoError(f"Unknown receiver volume mode: {self.mode}")
+
+    def set_volume(
+        self,
+        new_volume: float,
+        mode: ReceiverVolumeMode | str | None = None,
+        *,
+        recompute: bool = True,
+    ) -> ReceiverVolumeUpdate:
+        """Set the receiver volume with optional mode switching.
+
+        Args:
+            new_volume: Target receiver volume in cubic metres.
+            mode: Optional new recalculation mode. Either ``ReceiverVolumeMode`` or
+                a case-insensitive string token.
+            recompute: When ``True`` the state is recalculated using the configured
+                thermodynamic mode. When ``False`` only the volume is updated.
+        Returns:
+            ReceiverVolumeUpdate: A tuple describing the resulting receiver
+                state after the update.
+        """
+
+        resolved_mode: ReceiverVolumeMode
+        if mode is None:
+            resolved_mode = self.mode
+        elif isinstance(mode, ReceiverVolumeMode):
+            resolved_mode = mode
+        else:
+            token = str(mode).strip().upper()
+            alias_map = {
+                "MANUAL": ReceiverVolumeMode.NO_RECALC,
+                "GEOMETRIC": ReceiverVolumeMode.ADIABATIC_RECALC,
+                ReceiverVolumeMode.NO_RECALC.name: ReceiverVolumeMode.NO_RECALC,
+                ReceiverVolumeMode.ADIABATIC_RECALC.name: ReceiverVolumeMode.ADIABATIC_RECALC,
+                ReceiverVolumeMode.NO_RECALC.value: ReceiverVolumeMode.NO_RECALC,
+                ReceiverVolumeMode.ADIABATIC_RECALC.value: ReceiverVolumeMode.ADIABATIC_RECALC,
+            }
+            try:
+                resolved_mode = alias_map[token]
+            except KeyError as exc:  # pragma: no cover - defensive guard
+                raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
+
+        self.mode = resolved_mode
+
+        if recompute:
+            self.apply_instant_volume_change(new_volume)
+        else:
+            if not (self.spec.V_min <= new_volume <= self.spec.V_max):
+                raise ModelConfigError(
+                    "Volume {0} outside valid range [{1}, {2}]".format(
+                        new_volume, self.spec.V_min, self.spec.V_max
+                    )
+                )
+            self.V = new_volume
+
+        return ReceiverVolumeUpdate(
+            volume=self.V,
+            pressure=self.p,
+            temperature=self.T,
+            mode=self.mode,
+        )
 
     def validate_invariants(self) -> ValidationResult:
         """Validate receiver state invariants"""

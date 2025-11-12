@@ -27,10 +27,12 @@ _env_schema = _load_environment_schema()
 ENVIRONMENT_CONTEXT_PROPERTIES = _env_schema.ENVIRONMENT_CONTEXT_PROPERTIES
 ENVIRONMENT_PARAMETERS = _env_schema.ENVIRONMENT_PARAMETERS
 ENVIRONMENT_REQUIRED_KEYS = _env_schema.ENVIRONMENT_REQUIRED_KEYS
+ENVIRONMENT_SLIDER_RANGE_DEFAULTS = _env_schema.ENVIRONMENT_SLIDER_RANGE_DEFAULTS
 EnvironmentValidationError = _env_schema.EnvironmentValidationError
 validate_environment_settings = _env_schema.validate_environment_settings
 validate_scene_settings = _env_schema.validate_scene_settings
 validate_animation_settings = _env_schema.validate_animation_settings
+validate_environment_slider_ranges = _env_schema.validate_environment_slider_ranges
 
 
 def _baseline_environment() -> dict:
@@ -269,8 +271,27 @@ def test_environment_validation_rejects_sample_rate_above_max():
 
 def test_scene_validation_accepts_valid_payload():
     payload = _build_payload(SCENE_PARAMETERS)
+    payload["suspension"] = {"rod_warning_threshold_m": 0.001}
+
     sanitized = validate_scene_settings(payload)
+
+    assert sanitized["suspension"]["rod_warning_threshold_m"] == pytest.approx(0.001)
+    sanitized.pop("suspension")
+    payload.pop("suspension")
     assert sanitized == payload
+
+
+def test_scene_validation_requires_suspension_section():
+    payload = _build_payload(SCENE_PARAMETERS)
+    with pytest.raises(EnvironmentValidationError):
+        validate_scene_settings(payload)
+
+
+def test_scene_validation_rejects_negative_threshold():
+    payload = _build_payload(SCENE_PARAMETERS)
+    payload["suspension"] = {"rod_warning_threshold_m": -0.5}
+    with pytest.raises(EnvironmentValidationError):
+        validate_scene_settings(payload)
 
 
 def test_animation_validation_accepts_valid_payload():
@@ -286,3 +307,48 @@ def test_animation_validation_rejects_out_of_range_value():
     payload["amplitude"] = 360.0
     with pytest.raises(EnvironmentValidationError):
         validate_animation_settings(payload)
+
+
+def test_environment_validation_aliases_background_key_to_skybox_enabled():
+    payload = _build_minimal_environment_payload()
+    payload.pop("skybox_enabled", None)
+    payload["iblBackgroundEnabled"] = True
+
+    sanitized = validate_environment_settings(payload)
+
+    assert sanitized["skybox_enabled"] is True
+
+
+def test_environment_validation_preserves_trailing_slash_after_normalization():
+    payload = _build_minimal_environment_payload()
+    payload["ibl_source"] = "textures\\\\probes\\\\"
+
+    sanitized = validate_environment_settings(payload)
+
+    assert sanitized["ibl_source"] == "textures/probes/"
+
+
+def test_environment_slider_range_validation_reports_missing_keys():
+    defaults = ENVIRONMENT_SLIDER_RANGE_DEFAULTS
+    fog_density = defaults["fog_density"]
+
+    ranges = {
+        "fog_density": {
+            "min": fog_density.minimum,
+            "max": fog_density.maximum,
+            "step": fog_density.step,
+        }
+    }
+
+    validated, missing = validate_environment_slider_ranges(
+        ranges,
+        required_keys=("fog_density", "fog_height_curve"),
+        raise_on_missing=False,
+    )
+
+    assert missing == ("fog_height_curve",)
+    assert validated["fog_density"].as_tuple() == (
+        fog_density.minimum,
+        fog_density.maximum,
+        fog_density.step,
+    )

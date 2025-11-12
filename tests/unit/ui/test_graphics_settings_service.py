@@ -60,7 +60,10 @@ def _make_baseline_payload() -> dict[str, object]:
             "adjustment_contrast": 0.0,
             "adjustment_saturation": 0.0,
         },
-        "scene": {"exposure": 1.2},
+        "scene": {
+            "exposure": 1.2,
+            "suspension": {"rod_warning_threshold_m": 0.001},
+        },
     }
     animation = {"is_running": False, "frequency": 1.0}
     return {
@@ -129,6 +132,27 @@ def test_load_current_hydrates_legacy_shape(
     assert "joint_rod" in state["materials"]
     assert state["animation"]["is_running"] is False
     assert state["animation"]["frequency"] == 1.0
+    suspension = state["scene"].get("suspension", {})
+    assert suspension
+    assert suspension["rod_warning_threshold_m"] == pytest.approx(0.001)
+
+
+def test_load_current_restores_scene_defaults_when_missing(
+    tmp_path: Path, baseline_file: Path
+) -> None:
+    payload = _make_legacy_payload(_make_materials())
+    payload["current"]["graphics"].pop("scene", None)
+
+    settings_path = tmp_path / "settings.json"
+    _write_json(settings_path, payload)
+
+    manager = SettingsManager(settings_file=settings_path)
+    service = GraphicsSettingsService(manager, baseline_path=baseline_file)
+
+    state = service.load_current()
+
+    expected_scene = _make_baseline_payload()["current"]["graphics"]["scene"]
+    assert state["scene"] == expected_scene
 
 
 def test_load_current_rejects_legacy_tail_alias(
@@ -196,6 +220,8 @@ def test_save_current_persists_normalised_copy(
     state["materials"]["tail_rod"]["base_color"] = "#ff0000"
     state["animation"]["is_running"] = True
     state["animation"]["frequency"] = 2.5
+    state["scene"]["suspension"]["rod_warning_threshold_m"] = 0.003
+    state["scene"]["exposure"] = 2.75
 
     service.save_current(state)
 
@@ -205,9 +231,38 @@ def test_save_current_persists_normalised_copy(
     assert saved["materials"]["tail_rod"]["base_color"] == "#ff0000"
     assert "tail" not in saved["materials"]
     assert "lighting" in saved
+    assert saved["scene"]["suspension"]["rod_warning_threshold_m"] == pytest.approx(
+        0.003
+    )
+    assert saved["scene"]["exposure"] == pytest.approx(2.75)
     assert "animation" not in saved
     assert animation["is_running"] is True
     assert animation["frequency"] == 2.5
+
+
+def test_scene_settings_roundtrip(tmp_path: Path, baseline_file: Path) -> None:
+    settings_path = tmp_path / "settings.json"
+    _write_json(settings_path, _make_legacy_payload(_make_materials()))
+
+    manager = SettingsManager(settings_file=settings_path)
+    service = GraphicsSettingsService(manager, baseline_path=baseline_file)
+
+    state = service.load_current()
+    state["scene"]["exposure"] = 1.95
+    state["scene"]["suspension"]["rod_warning_threshold_m"] = 0.0021
+
+    service.save_current(state)
+
+    reloaded_manager = SettingsManager(settings_file=settings_path)
+    reloaded_service = GraphicsSettingsService(
+        reloaded_manager, baseline_path=baseline_file
+    )
+    reloaded = reloaded_service.load_current()
+
+    assert reloaded["scene"]["exposure"] == pytest.approx(1.95)
+    assert reloaded["scene"]["suspension"]["rod_warning_threshold_m"] == pytest.approx(
+        0.0021
+    )
 
 
 def test_save_current_as_defaults_does_not_add_aliases(

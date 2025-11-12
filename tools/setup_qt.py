@@ -38,9 +38,33 @@ def _ensure_aqt() -> Callable[[Sequence[str]], int | None]:
             "aqtinstall is required. Install it via 'uv pip install aqtinstall' "
             "inside the repository environment."
         )
-    from aqt.main import main as aqt_main
+    main_spec = importlib.util.find_spec("aqt.main")
+    if main_spec is not None:
+        from aqt.main import main as aqt_main  # type: ignore[import-not-found]
 
-    return aqt_main
+        return aqt_main
+
+    alt_spec = importlib.util.find_spec("aqt.__main__")
+    if alt_spec is None:
+        raise SystemExit(
+            "aqtinstall is present but does not expose a CLI entrypoint. Install "
+            "a release that ships either 'aqt.main' or 'aqt.__main__'."
+        )
+
+    from aqt.__main__ import main as aqt_entry  # type: ignore[import-not-found]
+
+    def _wrapper(arguments: Sequence[str]) -> int | None:
+        import sys
+
+        original_argv = sys.argv[:]  # type: ignore[attr-defined]
+        sys.argv = ["aqt", *arguments]
+        try:
+            result = aqt_entry()
+        finally:
+            sys.argv = original_argv
+        return result
+
+    return _wrapper
 
 
 def _detect_host(default_arch: str | None = None) -> tuple[str, str]:
@@ -196,6 +220,72 @@ def _export_requirements_with_uv(project_root: Path) -> None:
             )
 
 
+def _import_pyside6() -> tuple[str, str]:
+    """Return the PySide6 and Qt versions currently importable."""
+
+    import PySide6  # type: ignore
+    from PySide6 import QtCore  # type: ignore
+
+    return PySide6.__version__, QtCore.qVersion()
+
+
+def _check_installation(
+    install_dir: Path,
+    qt_version: str,
+    archives_dir: Path,
+    checksum_manifest: Path | None,
+    importer: Callable[[], tuple[str, str]] = _import_pyside6,
+) -> int:
+    """Validate that the Qt SDK and Python bindings are ready for use."""
+
+    print(f"Verifying Qt installation at {install_dir}")
+    success = True
+
+    if not install_dir.exists():
+        print(
+            f"[!] Qt {qt_version} toolchain not found. Expected directory: {install_dir}"
+        )
+        success = False
+    else:
+        required = ("bin", "lib", "qml", "plugins")
+        missing = [part for part in required if not (install_dir / part).exists()]
+        if missing:
+            success = False
+            for part in missing:
+                print(f"[!] Missing required Qt subdirectory: {install_dir / part}")
+        else:
+            for part in required:
+                print(f"[✓] Found Qt component: {install_dir / part}")
+
+    try:
+        pyside_version, detected_qt_version = importer()
+    except Exception as exc:  # pragma: no cover - requires missing dependency
+        print(f"[!] Failed to import PySide6: {exc}")
+        success = False
+    else:
+        print(
+            f"[✓] PySide6 {pyside_version} is available (Qt runtime {detected_qt_version})"
+        )
+        if detected_qt_version != qt_version:
+            print(
+                "[!] Qt runtime version mismatch: expected {expected}, detected {detected}".format(
+                    expected=qt_version, detected=detected_qt_version
+                )
+            )
+            success = False
+
+    if checksum_manifest:
+        try:
+            _verify_archives(archives_dir, checksum_manifest)
+        except SystemExit as exc:
+            print(str(exc))
+            success = False
+        else:
+            print(f"[✓] Archive checksums verified using {checksum_manifest}")
+
+    return 0 if success else 1
+
+
 HOST_REPO_SEGMENTS: dict[str, str] = {
     "linux": "linux_x64",
     "windows": "windows_x86",
@@ -243,9 +333,9 @@ def _build_aqt_arguments(
         arch,
         "--outputdir",
         str(output_dir),
-        "--archives",
-        str(archives_dir),
     ]
+    if not prune_archives:
+        args.extend(["--archives", str(archives_dir)])
     if prune_archives:
         args.append("--noarchives")
     if modules:
@@ -265,7 +355,10 @@ def _default_install_root(output_dir: Path, version: str, arch: str) -> Path:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Provision Qt SDK using aqtinstall")
+    parser = argparse.ArgumentParser(
+        description="Provision Qt SDK using aqtinstall",
+        allow_abbrev=False,
+    )
     parser.add_argument("--qt-version", default=DEFAULT_QT_VERSION)
     parser.add_argument("--modules", nargs="*", default=list(DEFAULT_MODULES))
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
@@ -296,6 +389,11 @@ def main() -> None:
             "Useful for release automation."
         ),
     )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Verify that the Qt toolchain and PySide6 runtime are available.",
+    )
 
     args = parser.parse_args()
 
@@ -313,6 +411,14 @@ def main() -> None:
     archives_dir.mkdir(parents=True, exist_ok=True)
 
     install_dir = _default_install_root(output_dir, args.qt_version, arch)
+    if args.check:
+        status = _check_installation(
+            install_dir=install_dir,
+            qt_version=args.qt_version,
+            archives_dir=archives_dir,
+            checksum_manifest=args.checksum_manifest,
+        )
+        raise SystemExit(status)
     if install_dir.exists() and not args.force:
         print(
             f"Qt {args.qt_version} ({arch}) already present at {install_dir}. Use --force to reinstall."

@@ -52,6 +52,14 @@ class _StubCylinderGeom:
 @dataclass
 class _StubLeverGeom:
     L_lever: float
+    _attached_geom: _StubCylinderGeom | None = None
+
+    def attach_cylinder_geometry(self, geometry: _StubCylinderGeom) -> None:
+        if self._attached_geom is geometry:
+            return
+        if self._attached_geom is not None and self._attached_geom is not geometry:
+            raise RuntimeError("Stub lever already attached to a different geometry")
+        self._attached_geom = geometry
 
     def angle_to_displacement(self, angle: float) -> float:
         return self.L_lever * angle
@@ -131,28 +139,25 @@ def _make_line_pressure_getter(system, gas_network):
     return _getter
 
 
-@pytest.fixture()
-def step_state() -> PhysicsStepState:
-    cylinder_geom = _build_cylinder_geom()
-    lever_kwargs = dict(
+def _build_lever_geom() -> LeverGeom:
+    return LeverGeom(
         L_lever=0.75,
         rod_joint_frac=0.45,
         d_frame_to_lever_hinge=0.42,
     )
 
-    lever_geometries = {
-        wheel: LeverGeom(**lever_kwargs)
-        for wheel in (Wheel.LP, Wheel.PP, Wheel.LZ, Wheel.PZ)
-    }
 
-    lever_sample = next(iter(lever_geometries.values()))
-
+@pytest.fixture()
+def step_state() -> PhysicsStepState:
+    lever_geoms = {wheel: _build_lever_geom() for wheel in Wheel}
     cylinder_specs = {
-        Wheel.LP: CylinderSpec(cylinder_geom, True, lever_geometries[Wheel.LP]),
-        Wheel.PP: CylinderSpec(cylinder_geom, True, lever_geometries[Wheel.PP]),
-        Wheel.LZ: CylinderSpec(cylinder_geom, False, lever_geometries[Wheel.LZ]),
-        Wheel.PZ: CylinderSpec(cylinder_geom, False, lever_geometries[Wheel.PZ]),
+        Wheel.LP: CylinderSpec(_build_cylinder_geom(), True, lever_geoms[Wheel.LP]),
+        Wheel.PP: CylinderSpec(_build_cylinder_geom(), True, lever_geoms[Wheel.PP]),
+        Wheel.LZ: CylinderSpec(_build_cylinder_geom(), False, lever_geoms[Wheel.LZ]),
+        Wheel.PZ: CylinderSpec(_build_cylinder_geom(), False, lever_geoms[Wheel.PZ]),
     }
+
+    lever_sample = lever_geoms[Wheel.LP]
 
     system = create_standard_diagonal_system(
         cylinder_specs=cylinder_specs,
@@ -210,9 +215,7 @@ def step_state() -> PhysicsStepState:
             damper_coefficient=2_000.0,
             damper_threshold=50.0,
             spring_rest_position=0.0,
-            lever_inertia=50.0
-            * lever_sample.L_lever
-            * lever_sample.L_lever,
+            lever_inertia=50.0 * lever_sample.L_lever * lever_sample.L_lever,
             integrator_method="rk4",
         ),
     )

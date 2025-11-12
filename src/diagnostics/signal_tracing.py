@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -15,7 +13,6 @@ from collections.abc import Iterable, Iterator
 from .logger_factory import LoggerProtocol, get_logger
 
 logger: LoggerProtocol = get_logger("diagnostics.signals")
-_python_logger = logging.getLogger("diagnostics.signals")
 
 
 class SignalTracingError(RuntimeError):
@@ -154,18 +151,8 @@ class SignalTracer:
                 sinks_snapshot = tuple(self._sinks)
 
             payload = record.as_payload()
-            payload["event"] = "signal_trace_event"
 
-            self._log.info(
-                "signal_trace_event",
-                timestamp=payload["timestamp"],
-                sender=payload["sender"],
-                signal=payload["signal"],
-                args=payload["args"],
-            )
-            _python_logger.info(
-                json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-            )
+            self._log.info("signal_trace_event", **payload)
 
             for sink in sinks_snapshot:
                 try:

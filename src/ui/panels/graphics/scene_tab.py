@@ -105,6 +105,19 @@ class SceneTab(QWidget):
         )
         self._controls["model_metalness"] = metalness_slider
         grid.addWidget(metalness_slider, row, 0, 1, 2)
+        row += 1
+
+        suspension_slider = LabeledSlider(
+            "Порог предупреждения штока (м)", 0.0001, 0.02, 0.0001, decimals=4
+        )
+        suspension_slider.set_value(0.001)
+        suspension_slider.valueChanged.connect(
+            lambda value: self._on_control_changed(
+                "suspension.rod_warning_threshold_m", value
+            )
+        )
+        self._controls["suspension.rod_warning_threshold_m"] = suspension_slider
+        grid.addWidget(suspension_slider, row, 0, 1, 2)
 
         return group
 
@@ -133,6 +146,11 @@ class SceneTab(QWidget):
             .name(),
             "model_roughness": self._require_control("model_roughness").value(),
             "model_metalness": self._require_control("model_metalness").value(),
+            "suspension": {
+                "rod_warning_threshold_m": self._require_control(
+                    "suspension.rod_warning_threshold_m"
+                ).value()
+            },
         }
 
     def set_state(self, state: dict[str, Any]) -> None:
@@ -152,6 +170,9 @@ class SceneTab(QWidget):
             )
             self._require_control("model_metalness").set_value(
                 validated["model_metalness"]
+            )
+            self._require_control("suspension.rod_warning_threshold_m").set_value(
+                validated["suspension"]["rod_warning_threshold_m"]
             )
         finally:
             self._updating_ui = False

@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from datetime import date, datetime
 from types import ModuleType
 from typing import Any, Protocol, runtime_checkable
 from collections.abc import Iterable, Mapping
@@ -135,11 +136,44 @@ class _FallbackBoundLogger(LoggerProtocol):
         return payload
 
     @staticmethod
-    def _format(event: str, payload: dict[str, Any]) -> str:
-        if not payload:
-            return event
-        formatted = ", ".join(f"{key}={payload[key]!r}" for key in sorted(payload))
-        return f"{event} | {formatted}"
+    def _normalise_for_json(value: Any) -> Any:
+        if isinstance(value, (str, int, float, bool)) or value is None:
+            return value
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        if isinstance(value, Mapping):
+            return {
+                str(key): _FallbackBoundLogger._normalise_for_json(val)
+                for key, val in value.items()
+            }
+        if isinstance(value, (list, tuple, set, frozenset)):
+            return [_FallbackBoundLogger._normalise_for_json(item) for item in value]
+        return repr(value)
+
+    @classmethod
+    def _render_json(
+        cls, structured_payload: Mapping[str, Any]
+    ) -> tuple[str, dict[str, Any]]:
+        normalised = {
+            key: cls._normalise_for_json(value)
+            for key, value in structured_payload.items()
+        }
+        try:
+            rendered = json.dumps(normalised, ensure_ascii=False, sort_keys=True)
+        except (TypeError, ValueError):  # pragma: no cover - defensive path
+            fallback_payload = {
+                key: cls._normalise_for_json(repr(value))
+                for key, value in structured_payload.items()
+            }
+            rendered = json.dumps(fallback_payload, ensure_ascii=False, sort_keys=True)
+            normalised = fallback_payload
+        return rendered, normalised
+
+    @staticmethod
+    def _structured_payload(event: str, payload: dict[str, Any]) -> dict[str, Any]:
+        structured = dict(payload)
+        structured.setdefault("event", event)
+        return structured
 
     def _log(self, level: int, event: str, **kwargs: Any) -> None:
         payload_kwargs = dict(kwargs)
@@ -149,7 +183,17 @@ class _FallbackBoundLogger(LoggerProtocol):
                 log_kwargs[key] = payload_kwargs.pop(key)
 
         payload = self._with_context(**payload_kwargs)
-        message = self._format(event, payload)
+        structured_payload = self._structured_payload(event, payload)
+        message, json_payload = self._render_json(structured_payload)
+
+        existing_extra = log_kwargs.get("extra")
+        if isinstance(existing_extra, Mapping):
+            merged_extra = dict(existing_extra)
+            merged_extra.update(json_payload)
+        else:
+            merged_extra = dict(json_payload)
+        log_kwargs["extra"] = merged_extra
+
         self._logger.log(level, message, **log_kwargs)
 
     # -------------------------------------------------------------- api
@@ -179,7 +223,17 @@ class _FallbackBoundLogger(LoggerProtocol):
                 log_kwargs[key] = payload_kwargs.pop(key)
 
         payload = self._with_context(**payload_kwargs)
-        message = self._format(event, payload)
+        structured_payload = self._structured_payload(event, payload)
+        message, json_payload = self._render_json(structured_payload)
+
+        existing_extra = log_kwargs.get("extra")
+        if isinstance(existing_extra, Mapping):
+            merged_extra = dict(existing_extra)
+            merged_extra.update(json_payload)
+        else:
+            merged_extra = dict(json_payload)
+        log_kwargs["extra"] = merged_extra
+
         self._logger.exception(message, **log_kwargs)
 
     def setLevel(self, level: int) -> None:
@@ -200,12 +254,29 @@ if not HAS_STRUCTLOG:
 _FALLBACK_LOGGER_CACHE: dict[str, _FallbackBoundLogger] = {}
 _fallback_configured = False
 
+
+class _StructlogBridgeFilter(logging.Filter):
+    """Populate LogRecord attributes with structlog event payload."""
+
+    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover - shim
+        message = getattr(record, "msg", None)
+        if isinstance(message, dict):
+            for key, value in message.items():
+                if key.startswith("_"):
+                    continue
+                if key in record.__dict__:
+                    continue
+                try:
+                    setattr(record, key, value)
+                except Exception:
+                    continue
+        return True
+
+
 if HAS_STRUCTLOG:  # pragma: no cover - covered by integration when structlog present
     BoundLogger = _StructlogBoundLogger  # type: ignore[assignment]
-    _JSON_RENDERER = structlog.processors.JSONRenderer(ensure_ascii=False)
 else:  # pragma: no cover - exercised in kata env
     BoundLogger = _FallbackBoundLogger
-    _JSON_RENDERER = None
 
 
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -239,7 +310,29 @@ def _flatten_event_processor(
 ) -> dict[str, Any]:
     """Normalise nested JSON payloads before rendering."""
 
+    record = event_dict.get("_record")
+    if record is not None:
+        for key, value in event_dict.items():
+            if key.startswith("_"):
+                continue
+            try:
+                setattr(record, key, value)
+            except Exception:  # pragma: no cover - defensive best effort
+                continue
     return _flatten_event_payload(event_dict)
+
+
+def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
+    """Render structured events as JSON with UTF-8 friendly output."""
+
+    # ``ProcessorFormatter`` shares the event dictionary instance across
+    # processors. ``json.dumps`` mutates neither the mapping nor the values but
+    # copying keeps the renderer side-effect free and avoids surprises for
+    # downstream formatters in custom pipelines.
+    serialisable = dict(event_dict)
+    if "event" not in serialisable and name:
+        serialisable["event"] = name
+    return json.dumps(serialisable, ensure_ascii=False, default=str)
 
 
 def _shared_processors() -> list[Any]:
@@ -273,7 +366,10 @@ def _configure_fallback_logging(level: int) -> None:
 
 
 def _ensure_stdlib_bridge(
-    level: int, formatter: logging.Formatter | None = None
+    level: int,
+    formatter: logging.Formatter | None = None,
+    *,
+    json_renderer: Any | None = None,
 ) -> None:
     """Configure the logging bridge for structlog or provide a fallback."""
 
@@ -281,14 +377,16 @@ def _ensure_stdlib_bridge(
         _configure_fallback_logging(level)
         return
 
-    assert _JSON_RENDERER is not None
     handler = logging.StreamHandler()
+    handler.addFilter(_StructlogBridgeFilter())
     if formatter is None:
+        if json_renderer is None:
+            json_renderer = _json_renderer
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
                 _flatten_event_processor,
-                _JSON_RENDERER,
+                json_renderer,
             ],
             foreign_pre_chain=_shared_processors(),
         )
@@ -329,7 +427,7 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    assert _JSON_RENDERER is not None
+    json_renderer = _json_renderer
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
@@ -345,7 +443,7 @@ def configure_logging(
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,
             _flatten_event_processor,
-            _JSON_RENDERER,
+            json_renderer,
         ],
         foreign_pre_chain=_shared_processors(),
     )
@@ -357,7 +455,7 @@ def configure_logging(
         cache_logger_on_first_use=cache_logger_on_first_use,
     )
 
-    _ensure_stdlib_bridge(level, formatter)
+    _ensure_stdlib_bridge(level, formatter, json_renderer=json_renderer)
 
 
 @dataclass(slots=True)

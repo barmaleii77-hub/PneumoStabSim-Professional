@@ -940,17 +940,17 @@
     </message>
     <message>
         <location filename="../qml/effects/PostEffects.qml" line="1290"/>
-        <source>SSAO: depth and normal textures are not supported; disabling advanced SSAO</source>
+        <source>SSAO: depth and normal textures unavailable in this runtime; enabling compatibility SSAO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/effects/PostEffects.qml" line="1292"/>
-        <source>SSAO: depth texture buffer is not supported; disabling advanced SSAO</source>
+        <source>SSAO: depth texture unavailable in this runtime; enabling compatibility SSAO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../qml/effects/PostEffects.qml" line="1294"/>
-        <source>SSAO: normal texture buffer is not supported; disabling advanced SSAO</source>
+        <source>SSAO: normal texture unavailable in this runtime; enabling compatibility SSAO</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -14,6 +14,10 @@ and distils the non-negotiable steps every patch must follow.
       - Windows (or shells without `make`): `python -m tools.task_runner cross-platform-test`
       Skipped tests fail the run; acknowledge them only temporarily via `--allow-skips`
       or `PSS_ALLOW_SKIPPED_TESTS=1` and remove the override once dependencies are fixed.
+- [ ] When authoring new tests, ensure they execute on both Linux and Windows runners.
+      Avoid introducing `skip`/`xfail` markers; if a temporary opt-out is unavoidable,
+      coordinate with the renovation plan, set `CI_SKIP_REASON`, and remove the
+      exemption before landing the feature.
 
 ## Working with configuration
 

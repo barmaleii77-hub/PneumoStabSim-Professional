@@ -36,7 +36,9 @@ class Metadata(_StrictModel):
     description: str
     operational_imperatives: list[str]
     environment_slider_ranges: "EnvironmentSliderRanges"
+    scene_defaults: "SceneDefaultsMetadata | None" = None
     legacy: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    defaults_seed: str | None = None
 
 
 class SimulationSettings(_StrictModel):
@@ -223,6 +225,14 @@ class EnvironmentSettings(_StrictModel):
     ao_sample_rate: int
 
 
+class ReflectionProbeSettings(_StrictModel):
+    enabled: bool
+    padding_m: float
+    quality: str
+    refresh_mode: str
+    time_slicing: str
+
+
 class ShadowsSettings(_StrictModel):
     enabled: bool
     resolution: int
@@ -370,6 +380,14 @@ class EffectsSettings(_StrictModel):
     adjustment_saturation: float
 
 
+class SceneSuspensionSettings(_StrictModel):
+    rod_warning_threshold_m: float
+
+
+class SceneDefaultsMetadata(_StrictModel):
+    suspension: SceneSuspensionSettings
+
+
 class SceneSettings(_StrictModel):
     scale_factor: float
     exposure: float
@@ -377,11 +395,13 @@ class SceneSettings(_StrictModel):
     model_base_color: str
     model_roughness: float
     model_metalness: float
+    suspension: SceneSuspensionSettings
 
 
 class GraphicsSettings(_StrictModel):
     lighting: LightingSettings
     environment: EnvironmentSettings
+    reflection_probe: ReflectionProbeSettings
     quality: QualitySettings
     camera: CameraSettings
     materials: MaterialsSettings

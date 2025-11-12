@@ -176,7 +176,11 @@ check: uv-sync
 	$(MAKE) localization-check
 	$(MAKE) qt-env-check
 
-verify: check smoke integration
+verify: check smoke integration final-readiness
+
+.PHONY: final-readiness
+final-readiness:
+	$(PYTHON) final_readiness_test.py
 
 .PHONY: full_verify
 full_verify:

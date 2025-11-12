@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 
 pytest.importorskip(
@@ -12,6 +14,8 @@ pytest.importorskip(
 
 from src.ui.panels.panel_geometry import GeometryPanel
 from src.ui.qml_bridge import QMLBridge
+
+from ._slider_utils import get_slider_value, nudge_slider
 
 
 @pytest.mark.gui
@@ -43,11 +47,11 @@ def test_geometry_panel_queues_payload_matches_bridge_schema(
     qtbot.wait(400)
     captured.clear()
 
-    spinbox = panel.wheelbase_slider.value_spinbox
-    initial_value = spinbox.value()
-    spinbox.setFocus()
+    slider = panel.wheelbase_slider
+    initial_value = get_slider_value(slider)
+    slider.value_spinbox.setFocus()
     qtbot.wait(50)
-    spinbox.setValue(initial_value + delta)
+    updated_value = nudge_slider(slider, delta)
     qtbot.wait(300)
 
     assert captured, "GeometryPanel did not enqueue any payloads"
@@ -78,7 +82,8 @@ def test_geometry_panel_queues_payload_matches_bridge_schema(
     missing = required_keys.difference(payload)
     assert not missing, f"Geometry payload missing keys: {sorted(missing)}"
 
-    assert payload["frameLength"] == pytest.approx(spinbox.value())
+    assert not math.isclose(updated_value, initial_value, rel_tol=1e-9, abs_tol=1e-9)
+    assert payload["frameLength"] == pytest.approx(get_slider_value(slider))
     assert payload["rodDiameterFrontM"] == pytest.approx(payload["rodDiameterM"])
     assert payload["rod_diameter_front_mm"] == pytest.approx(
         payload["rodDiameterFrontM"] * 1000.0

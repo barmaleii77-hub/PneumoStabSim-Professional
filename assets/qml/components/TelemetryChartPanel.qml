@@ -1,7 +1,11 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
-import QtCharts 6.10
+// PySide 6.7 reports mismatched revision metadata for QtCharts' qmllint types.
+// See https://bugreports.qt.io/browse/PYSIDE-2268 — suppress the noisy warning.
+// qmllint disable import
+import QtCharts
+// qmllint enable import
 
 pragma ComponentBehavior: Bound
 
@@ -121,16 +125,19 @@ Item {
 
                     function syncToInterval(current) {
                         var bestIndex = 0
-                        for (var i = 0; i < model.count; ++i) {
-                            if (model.get(i).value === current) {
+                        var listModel = intervalCombo.model
+                        var modelCount = listModel ? listModel.count : 0
+                        for (var i = 0; i < modelCount; ++i) {
+                            var candidate = listModel.get(i)
+                            if (candidate && candidate.value === current) {
                                 bestIndex = i
                                 break
                             }
                         }
-                        currentIndex = bestIndex
+                        intervalCombo.currentIndex = bestIndex
                     }
 
-                    Component.onCompleted: syncToInterval(root.updateInterval)
+                    Component.onCompleted: intervalCombo.syncToInterval(root.updateInterval)
                 }
             }
 
@@ -270,12 +277,11 @@ Item {
                             required property string label
                             required property string unit
                             required property color metricColor
-                            width: {
-                                const view = ListView.view
-                                const fallbackParent = parent && parent.width !== undefined ? parent.width : 0
-                                const baseWidth = view && view.width !== undefined ? view.width : fallbackParent
-                                const numericWidth = Number(baseWidth)
-                                return isNaN(numericWidth) ? 0 : Math.round(numericWidth)
+                            implicitWidth: {
+                                const viewWidth = metricsView && metricsView.width !== undefined ? Number(metricsView.width) : NaN
+                                const fallbackWidth = parent && parent.width !== undefined ? Number(parent.width) : NaN
+                                const baseWidth = Number.isFinite(viewWidth) ? viewWidth : fallbackWidth
+                                return Number.isFinite(baseWidth) ? Math.round(baseWidth) : 0
                             }
                             text: label + " (" + unit + ")"
                             checked: root.selectedMetrics.indexOf(metricId) !== -1

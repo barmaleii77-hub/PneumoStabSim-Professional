@@ -1,8 +1,9 @@
+pragma ComponentBehavior: Bound
+
 import QtQml 6.10
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
-import QtQuick.Timeline 1.0
 import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10
 import "../camera"
@@ -198,6 +199,45 @@ signal animationToggled(bool running)
 
     function _valueFromSources(sources, keyNames) {
         return _valueFromSubsection(sources, [], keyNames)
+    }
+
+    function _valueFromGroupOrPrefixes(sources, groupName, keyNames) {
+        var groupedValue = _valueFromSubsection(sources, groupName, keyNames)
+        if (groupedValue !== undefined)
+            return groupedValue
+
+        var groupVariants = _normaliseKeyList(groupName)
+        var keyVariants = _normaliseKeyList(keyNames)
+        var combinedKeys = []
+
+        function appendKey(candidate) {
+            if (!candidate || !candidate.length)
+                return
+            if (combinedKeys.indexOf(candidate) === -1)
+                combinedKeys.push(candidate)
+        }
+
+        for (var gi = 0; gi < groupVariants.length; ++gi) {
+            var groupVariant = groupVariants[gi]
+            if (!groupVariant || !groupVariant.length)
+                continue
+            for (var ki = 0; ki < keyVariants.length; ++ki) {
+                var keyVariant = keyVariants[ki]
+                if (!keyVariant || !keyVariant.length)
+                    continue
+                appendKey(groupVariant + "_" + keyVariant)
+                appendKey(
+                    groupVariant +
+                        keyVariant.charAt(0).toUpperCase() +
+                        keyVariant.slice(1)
+                )
+            }
+        }
+
+        if (!combinedKeys.length)
+            return undefined
+
+        return _valueFromSources(sources, combinedKeys)
     }
 
     function _coerceNumber(value, fallback) {
@@ -502,6 +542,12 @@ signal animationToggled(bool running)
         _logBatchEvent("function_called", "applyEnvironmentUpdates")
         var normalized = _normaliseState(params)
         environmentState = _deepMerge(environmentState, normalized)
+        var reflectionToggle = _valueFromSources(
+            [normalized],
+            ["reflection_enabled", "reflectionEnabled"],
+        )
+        if (reflectionToggle !== undefined)
+            _applyReflectionProbeEnabledOverride(reflectionToggle)
         if (sceneEnvironment && typeof sceneEnvironment.applyEnvironmentPayload === "function") {
             try {
                 sceneEnvironment.applyEnvironmentPayload(normalized)
@@ -606,6 +652,18 @@ signal animationToggled(bool running)
         _storeLastUpdate("render", payload)
     }
 
+    function _applyReflectionProbeEnabledOverride(candidate) {
+        if (candidate === undefined || candidate === null)
+            return
+        var normalized = _coerceBool(candidate, reflectionProbeEnabledState)
+        var coerced = !!normalized
+        var needsUpdate = !reflectionProbeEnabledOverrideActive || reflectionProbeEnabledOverride !== coerced
+        if (needsUpdate)
+            reflectionProbeEnabledOverride = coerced
+        if (!reflectionProbeEnabledOverrideActive || needsUpdate)
+            reflectionProbeEnabledOverrideActive = true
+    }
+
     function applyThreeDUpdates(params) {
         _logBatchEvent("function_called", "applyThreeDUpdates")
         var normalized = _normaliseState(params)
@@ -640,6 +698,43 @@ signal animationToggled(bool running)
                 rigAnimation.applyPistonPositions(pistonNode, { immediate: !pythonAnimationActive })
             } catch (error) {
                 console.debug("[SimulationRoot] rigAnimation.applyPistonPositions (threeD) failed", error)
+            }
+        }
+        var reflectionNode = _resolveMapEntry(normalized, ["reflectionProbe", "reflection_probe", "reflection"])
+        if (_isPlainObject(reflectionNode)) {
+            if (reflectionNode.enabled !== undefined)
+                _applyReflectionProbeEnabledOverride(reflectionNode.enabled)
+            if (reflectionNode.padding !== undefined)
+                reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding)
+            if (reflectionNode.quality !== undefined) {
+                var qualityText = _coerceString(reflectionNode.quality, reflectionProbeQualitySetting)
+                reflectionProbeQualitySetting = qualityText.toLowerCase()
+            }
+            if (reflectionNode.refreshMode !== undefined || reflectionNode.refresh_mode !== undefined) {
+                var refreshCandidate = reflectionNode.refreshMode !== undefined ? reflectionNode.refreshMode : reflectionNode.refresh_mode
+                var refreshText = _coerceString(refreshCandidate, reflectionProbeRefreshModeSetting)
+                reflectionProbeRefreshModeSetting = refreshText.toLowerCase()
+            }
+            if (reflectionNode.timeSlicing !== undefined || reflectionNode.time_slicing !== undefined) {
+                var slicingCandidate = reflectionNode.timeSlicing !== undefined ? reflectionNode.timeSlicing : reflectionNode.time_slicing
+                var slicingText = _coerceString(slicingCandidate, reflectionProbeTimeSlicingSetting)
+                reflectionProbeTimeSlicingSetting = slicingText.toLowerCase()
+            }
+        }
+        var suspensionNode = _resolveMapEntry(normalized, ["suspension"])
+        if (_isPlainObject(suspensionNode)) {
+            var thresholdCandidate = _valueFromSources(
+                [suspensionNode],
+                ["rod_warning_threshold_m", "rodWarningThresholdM", "rodWarningThreshold"],
+            )
+            var thresholdNumeric = _coerceNumber(
+                thresholdCandidate,
+                suspensionRodWarningThresholdM,
+            )
+            if (isFinite(thresholdNumeric)) {
+                var clampedThreshold = Math.abs(thresholdNumeric)
+                if (clampedThreshold !== suspensionRodWarningThresholdM)
+                    suspensionRodWarningThresholdM = clampedThreshold
             }
         }
         _storeLastUpdate("threeD", normalized)
@@ -679,6 +774,8 @@ signal animationToggled(bool running)
     }
 
     onSceneDefaultsChanged: _refreshSceneDefaults()
+    onReflectionProbeDefaultsChanged: _refreshReflectionProbeDefaults()
+    onEnvironmentDefaultsMapChanged: _refreshReflectionProbeDefaults()
 
     onSceneBridgeChanged: {
         _applyBridgeSnapshot(sceneBridge)
@@ -998,11 +1095,11 @@ signal animationToggled(bool running)
             if (resolvedMessage === undefined || resolvedMessage === null || resolvedMessage === "")
                 resolvedMessage = qsTr("%1: compilation failed").arg(effectId)
 
-            registerShaderWarning(effectId, resolvedMessage)
+            root.registerShaderWarning(effectId, resolvedMessage)
         }
 
         function onEffectCompilationRecovered(effectId) {
-            clearShaderWarning(effectId)
+            root.clearShaderWarning(effectId)
         }
 
         function onEffectsBypassChanged(active) {
@@ -1036,13 +1133,11 @@ signal animationToggled(bool running)
         enabled: !!target
 
         function onGeometryChanged(payload) {
-            root.geometryState = _normaliseState(payload)
-            root.geometryStateReceived = !_isEmptyMap(root.geometryState)
+            root.applyGeometryUpdates(payload)
         }
 
         function onSimulationChanged(payload) {
-            root.simulationState = _normaliseState(payload)
-            root.simulationStateReceived = !_isEmptyMap(root.simulationState)
+            root.applySimulationUpdates(payload)
         }
 
         function onUpdatesDispatched(payload) {
@@ -1065,12 +1160,24 @@ signal animationToggled(bool running)
  property var sceneDefaults: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : null
  property var geometryDefaults: typeof initialGeometrySettings !== "undefined" && initialGeometrySettings ? initialGeometrySettings : emptyGeometryDefaults
  property var diagnosticsDefaults: typeof initialDiagnosticsSettings !== "undefined" ? initialDiagnosticsSettings : null
- property var sceneMaterialsDefaults: ({})
- property var sceneLightingDefaults: ({})
- property var sceneEnvironmentDefaults: ({})
- property var sceneQualityDefaults: ({})
- property var sceneRenderDefaults: ({})
- property var sceneEffectsDefaults: ({})
+    property var sceneMaterialsDefaults: ({})
+    property var sceneLightingDefaults: ({})
+    property var sceneEnvironmentDefaults: ({})
+    property var sceneQualityDefaults: ({})
+    property var sceneRenderDefaults: ({})
+    property var sceneEffectsDefaults: ({})
+    property var sceneSuspensionDefaults: ({})
+    property var reflectionProbeDefaults: typeof initialReflectionProbeSettings !== "undefined" ? initialReflectionProbeSettings : null
+    property var reflectionProbeDefaultsMap: ({})
+    property var reflectionProbeMissingKeys: []
+    property bool reflectionProbeDefaultsWarningIssued: false
+    readonly property var reflectionProbeFallbackDefaults: ({
+        "enabled": true,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
+    })
  property var lightingState: ({})
  property var materialsState: ({})
  property var environmentState: ({})
@@ -1085,7 +1192,8 @@ signal animationToggled(bool running)
  property string renderPolicyKey: "always"
  property var sceneRenderSettings: null
  property bool renderSettingsSupported: false
- property real sceneScaleFactor: 1.0
+    property real sceneScaleFactor: 1.0
+    property real suspensionRodWarningThresholdM: 0.001
  property bool feedbackReady: false
  property real animationTime: animationDefaults && animationDefaults.animation_time !== undefined ? Number(animationDefaults.animation_time) :0.0 // сек, накапливается Python-таймером
  property bool pythonAnimationActive: false
@@ -1122,8 +1230,51 @@ signal animationToggled(bool running)
         sceneQualityDefaults = _sceneDefaultsSection("quality")
         sceneRenderDefaults = _sceneDefaultsSection("render")
         sceneEffectsDefaults = _sceneDefaultsSection("effects")
+        sceneSuspensionDefaults = _sceneDefaultsSection("suspension")
         environmentDefaultsMap = environmentDefaultsMapFor(sceneDefaults)
+        _refreshReflectionProbeDefaults()
+        _syncSuspensionDefaults()
         _syncRenderSettingsState()
+    }
+
+    function _refreshReflectionProbeDefaults() {
+        var normalized = _normalizeReflectionProbePayload(reflectionProbeDefaults)
+        if (_isEmptyMap(normalized))
+            normalized = _normalizeReflectionProbePayload(
+                _resolveMapEntry(sceneDefaults, ["graphics", "reflection_probe"])
+            )
+        if (_isEmptyMap(normalized))
+            normalized = _normalizeReflectionProbePayload(
+                _resolveMapEntry(sceneDefaults, "reflection_probe")
+            )
+
+        var requiredKeys = [
+            "enabled",
+            "padding_m",
+            "quality",
+            "refresh_mode",
+            "time_slicing",
+        ]
+        var missing = []
+        for (var i = 0; i < requiredKeys.length; ++i) {
+            var key = requiredKeys[i]
+            if (normalized[key] === undefined)
+                missing.push(key)
+        }
+
+        if (missing.length) {
+            reflectionProbeDefaultsWarningIssued = true
+            reflectionProbeMissingKeys = missing.slice()
+            console.warn(
+                "[SimulationRoot] Reflection probe defaults missing keys:",
+                missing.join(", ")
+            )
+        } else {
+            reflectionProbeDefaultsWarningIssued = false
+            reflectionProbeMissingKeys = []
+        }
+
+        reflectionProbeDefaultsMap = normalized
     }
 
     function materialsSources() {
@@ -1140,6 +1291,26 @@ signal animationToggled(bool running)
 
     function environmentSources() {
         return [environmentState || ({}), sceneEnvironmentDefaults || ({})]
+    }
+
+    function _syncSuspensionDefaults() {
+        var sources = []
+        if (_isPlainObject(sceneSuspensionDefaults))
+            sources.push(sceneSuspensionDefaults)
+        if (!sources.length)
+            sources.push({})
+
+        var candidate = _valueFromSources(
+            sources,
+            ["rod_warning_threshold_m", "rodWarningThresholdM", "rodWarningThreshold"],
+        )
+        var numeric = _coerceNumber(candidate, suspensionRodWarningThresholdM)
+        if (!isFinite(numeric))
+            numeric = suspensionRodWarningThresholdM
+        if (numeric < 0)
+            numeric = Math.abs(numeric)
+        if (numeric !== suspensionRodWarningThresholdM)
+            suspensionRodWarningThresholdM = numeric
     }
 
     function geometrySources() {
@@ -1159,17 +1330,113 @@ signal animationToggled(bool running)
         return value === undefined ? fallback : _coerceBool(value, fallback)
     }
 
+    function _normalizeReflectionProbePayload(source) {
+        if (!_isPlainObject(source))
+            return ({})
+        var normalized = ({})
+        var enabledCandidate = _valueFromSources([source], ["enabled", "reflection_enabled", "reflectionEnabled"])
+        if (enabledCandidate !== undefined)
+            normalized.enabled = _coerceBool(enabledCandidate, true)
+        var paddingCandidate = _valueFromSources([source], ["padding_m", "padding"])
+        if (paddingCandidate !== undefined) {
+            var numericPadding = _coerceNumber(paddingCandidate, Number.NaN)
+            if (isFinite(numericPadding))
+                normalized.padding_m = numericPadding
+        }
+        var qualityCandidate = _valueFromSources([source], ["quality"])
+        if (qualityCandidate !== undefined) {
+            var qualityText = _coerceString(qualityCandidate, "")
+            if (qualityText.length)
+                normalized.quality = qualityText.toLowerCase()
+        }
+        var refreshCandidate = _valueFromSources([source], ["refresh_mode", "refreshMode"])
+        if (refreshCandidate !== undefined) {
+            var refreshText = _coerceString(refreshCandidate, "")
+            if (refreshText.length)
+                normalized.refresh_mode = refreshText.toLowerCase()
+        }
+        var slicingCandidate = _valueFromSources([source], ["time_slicing", "timeSlicing"])
+        if (slicingCandidate !== undefined) {
+            var slicingText = _coerceString(slicingCandidate, "")
+            if (slicingText.length)
+                normalized.time_slicing = slicingText.toLowerCase()
+        }
+        if (normalized.padding_m !== undefined)
+            normalized.padding = normalized.padding_m
+        return normalized
+    }
+
+    function _reflectionProbeSourceFromEnvironment(environmentMap) {
+        if (!_isPlainObject(environmentMap))
+            return ({})
+        var legacy = ({
+            enabled: _valueFromSources([environmentMap], ["reflection_enabled", "reflectionEnabled"]),
+            padding_m: _valueFromSources([environmentMap], ["reflection_padding_m", "reflectionPaddingM"]),
+            quality: _valueFromSources([environmentMap], ["reflection_quality", "reflectionQuality"]),
+            refresh_mode: _valueFromSources([environmentMap], ["reflection_refresh_mode", "reflectionRefreshMode"]),
+            time_slicing: _valueFromSources([environmentMap], ["reflection_time_slicing", "reflectionTimeSlicing"]),
+        })
+        return _normalizeReflectionProbePayload(legacy)
+    }
+
+    function reflectionProbeSources() {
+        var sources = []
+        var environmentLive = _normalizeReflectionProbePayload(environmentState)
+        if (!_isEmptyMap(environmentLive))
+            sources.push(environmentLive)
+        var environmentDefaultsNormalized = _normalizeReflectionProbePayload(sceneEnvironmentDefaults)
+        if (!_isEmptyMap(environmentDefaultsNormalized))
+            sources.push(environmentDefaultsNormalized)
+        var explicit = _normalizeReflectionProbePayload(reflectionProbeDefaultsMap)
+        if (!_isEmptyMap(explicit))
+            sources.push(explicit)
+        var sceneDirect = _normalizeReflectionProbePayload(_resolveMapEntry(sceneDefaults, "reflection_probe"))
+        if (!_isEmptyMap(sceneDirect))
+            sources.push(sceneDirect)
+        var sceneGraphics = _normalizeReflectionProbePayload(
+            _resolveMapEntry(sceneDefaults, ["graphics", "reflection_probe"])
+        )
+        if (!_isEmptyMap(sceneGraphics))
+            sources.push(sceneGraphics)
+        var legacyEnvironment = _reflectionProbeSourceFromEnvironment(environmentDefaultsMap)
+        if (!_isEmptyMap(legacyEnvironment))
+            sources.push(legacyEnvironment)
+        var fallback = _normalizeReflectionProbePayload(reflectionProbeFallbackDefaults)
+        if (!_isEmptyMap(fallback))
+            sources.push(fallback)
+        return sources
+    }
+
+    function reflectionProbeDefaultBool(keys, fallback) {
+        var value = _valueFromSources(reflectionProbeSources(), keys)
+        return value === undefined ? fallback : _coerceBool(value, fallback)
+    }
+
+    function reflectionProbeDefaultNumber(keys, fallback) {
+        return _coerceNumber(_valueFromSources(reflectionProbeSources(), keys), fallback)
+    }
+
+    function reflectionProbeDefaultString(keys, fallback) {
+        var value = _valueFromSources(reflectionProbeSources(), keys)
+        if (value === undefined || value === null)
+            return fallback
+        var text = String(value)
+        return text.length ? text : fallback
+    }
+
     function lightingNumber(group, keys, fallback) {
-        return _coerceNumber(_valueFromSubsection(lightingSources(), group, keys), fallback)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
+        return _coerceNumber(value, fallback)
     }
 
     function lightingBool(group, keys, fallback) {
-        var value = _valueFromSubsection(lightingSources(), group, keys)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
         return value === undefined ? fallback : _coerceBool(value, fallback)
     }
 
     function lightingColor(group, keys, fallback) {
-        return _coerceColor(_valueFromSubsection(lightingSources(), group, keys), fallback)
+        var value = _valueFromGroupOrPrefixes(lightingSources(), group, keys)
+        return _coerceColor(value, fallback)
     }
 
     function qualityShadowBool(keys, fallback) {
@@ -1261,9 +1528,69 @@ signal animationToggled(bool running)
 readonly property real defaultDofFocusDistanceM: effectsDefaultNumber(["dof_focus_distance"], 2.5)
 
 property var environmentDefaultsMap: ({})
+readonly property bool environmentReflectionEnabledDefault: environmentBool(
+    ["reflection_enabled", "reflectionEnabled"],
+    environmentDefaultBool(environmentDefaultsMap, ["reflection_enabled", "reflectionEnabled"], false)
+)
 readonly property var activeMaterialsDefaults: _deepMerge(sceneMaterialsDefaults, materialsState)
 readonly property var activeLightingDefaults: _deepMerge(sceneLightingDefaults, lightingState)
-property real reflectionProbePaddingM: environmentNumber(["reflection_probe_padding", "probePadding"], 0.15)
+property bool reflectionProbeEnabledDefault: reflectionProbeDefaultBool(
+    ["enabled", "reflection_enabled", "reflectionEnabled"],
+    environmentReflectionEnabledDefault
+)
+property bool reflectionProbeEnabledOverrideActive: false
+property bool reflectionProbeEnabledOverride: reflectionProbeEnabledDefault
+readonly property bool reflectionProbeEnabledState: reflectionProbeEnabledOverrideActive
+        ? reflectionProbeEnabledOverride
+        : reflectionProbeEnabledDefault
+
+onReflectionProbeEnabledDefaultChanged: {
+    if (!reflectionProbeEnabledOverrideActive)
+        reflectionProbeEnabledOverride = reflectionProbeEnabledDefault
+}
+property string reflectionProbeQualitySetting: (function() {
+    var fallback = environmentDefaultString(
+        environmentDefaultsMap,
+        ["reflection_quality", "reflectionQuality"],
+        "veryhigh"
+    )
+    var value = reflectionProbeDefaultString(
+        ["quality", "reflection_quality", "reflectionQuality"],
+        fallback
+    )
+    return value.toLowerCase()
+})()
+property string reflectionProbeRefreshModeSetting: (function() {
+    var fallback = environmentDefaultString(
+        environmentDefaultsMap,
+        ["reflection_refresh_mode", "reflectionRefreshMode"],
+        "everyframe"
+    )
+    var value = reflectionProbeDefaultString(
+        ["refresh_mode", "refreshMode", "reflection_refresh_mode", "reflectionRefreshMode"],
+        fallback
+    )
+    return value.toLowerCase()
+})()
+property string reflectionProbeTimeSlicingSetting: (function() {
+    var fallback = environmentDefaultString(
+        environmentDefaultsMap,
+        ["reflection_time_slicing", "reflectionTimeSlicing"],
+        "individualfaces"
+    )
+    var value = reflectionProbeDefaultString(
+        ["time_slicing", "timeSlicing", "reflection_time_slicing", "reflectionTimeSlicing"],
+        fallback
+    )
+    return value.toLowerCase()
+})()
+property real reflectionProbePaddingM: reflectionProbeDefaultNumber(
+    ["padding_m", "padding"],
+    environmentNumber(["reflection_padding_m", "reflection_probe_padding", "reflectionProbePadding"], 0.15)
+)
+readonly property int reflectionProbeQualityValue: reflectionProbeQualityFrom(reflectionProbeQualitySetting)
+readonly property int reflectionProbeRefreshModeValue: reflectionProbeRefreshModeFrom(reflectionProbeRefreshModeSetting)
+readonly property int reflectionProbeTimeSlicingValue: reflectionProbeTimeSlicingFrom(reflectionProbeTimeSlicingSetting)
 property color environmentBackgroundColorDefault: environmentDefaultString(environmentDefaultsMap, ["background_color", "backgroundColor"], "#1f242c")
 property string environmentBackgroundModeDefault: environmentDefaultString(environmentDefaultsMap, ["background_mode", "backgroundMode"], "skybox")
 property bool environmentSkyboxEnabledDefault: environmentDefaultBool(environmentDefaultsMap, ["skybox_enabled", "skyboxEnabled"], true)
@@ -1279,6 +1606,44 @@ property real environmentIblRotationYawDefault: environmentDefaultNumber(environ
 property real environmentIblRotationRollDefault: environmentDefaultNumber(environmentDefaultsMap, ["ibl_offset_y", "iblRotationRollDeg"], 0.0)
 property real environmentSkyboxBlurDefault: environmentDefaultNumber(environmentDefaultsMap, ["skybox_blur", "skyboxBlur"], 0.08)
 property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultString(environmentDefaultsMap, ["ibl_source", "hdr_source", "iblPrimary"], ""))
+
+    function parseReflectionProbeEnum(value, mapping, fallback) {
+        if (value === undefined || value === null)
+            return fallback
+        var original = String(value).trim().toLowerCase()
+        if (!original.length)
+            return fallback
+        if (Object.prototype.hasOwnProperty.call(mapping, original))
+            return mapping[original]
+        var normalized = original.replace(/[^a-z0-9]/g, "")
+        if (Object.prototype.hasOwnProperty.call(mapping, normalized))
+            return mapping[normalized]
+        return fallback
+    }
+
+    function reflectionProbeQualityFrom(value) {
+        return parseReflectionProbeEnum(value, {
+            low: ReflectionProbe.Low,
+            medium: ReflectionProbe.Medium,
+            high: ReflectionProbe.High,
+            veryhigh: ReflectionProbe.VeryHigh,
+            very_high: ReflectionProbe.VeryHigh,
+            ultra: ReflectionProbe.VeryHigh
+        }, ReflectionProbe.VeryHigh)
+    }
+
+    function reflectionProbeRefreshModeFrom(value) {
+        return parseReflectionProbeEnum(value, {
+            everyframe: ReflectionProbe.EveryFrame,
+            always: ReflectionProbe.EveryFrame,
+            firstframe: ReflectionProbe.FirstFrame,
+            first_frame: ReflectionProbe.FirstFrame,
+            first: ReflectionProbe.FirstFrame,
+            never: ReflectionProbe.FirstFrame,
+            disabled: ReflectionProbe.FirstFrame,
+            off: ReflectionProbe.FirstFrame
+        }, ReflectionProbe.EveryFrame)
+    }
 
     function reflectionProbeTimeSlicingFrom(value) {
         return parseReflectionProbeEnum(value, {
@@ -1317,6 +1682,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         value: postEffectsComponent
     }
 
+    // qmllint disable type property
     SceneEnvironmentController {
         id: sceneEnvironment
         objectName: "sceneEnvironment"
@@ -1342,6 +1708,8 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         materialsDefaults: root.activeMaterialsDefaults
     }
 
+    // qmllint enable type property
+
     View3D {
         id: sceneView
         objectName: "simulationView"
@@ -1357,6 +1725,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             eulerRotation: Qt.vector3d(rigAnimation.framePitchDeg, 0, rigAnimation.frameRollDeg)
         }
 
+        // qmllint disable type property
         Scene.SuspensionAssembly {
             id: suspensionAssembly
             worldRoot: worldRoot
@@ -1370,69 +1739,94 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
             sceneScaleFactor: root.sceneScaleFactor
             flowTelemetry: root.flowTelemetry
             receiverTelemetry: root.receiverTelemetry
-            reflectionProbeEnabled: true
-            reflectionProbePaddingM: sanitizeReflectionProbePadding(environmentNumber(["reflection_probe_padding", "probePadding"], reflectionProbePaddingM))
+            reflectionProbeEnabled: root.reflectionProbeEnabledState
+            reflectionProbePaddingM: sanitizeReflectionProbePadding(root.reflectionProbePaddingM)
+            reflectionProbeQualityValue: root.reflectionProbeQualityValue
+            reflectionProbeRefreshModeValue: root.reflectionProbeRefreshModeValue
+            reflectionProbeTimeSlicingValue: root.reflectionProbeTimeSlicingValue
+            rodWarningThreshold: root.suspensionRodWarningThresholdM
         }
+
+        // qmllint enable type property
 
         DirectionalLights {
             id: directionalLights
             worldRoot: worldRoot
             cameraRig: cameraController.rig
-            shadowsEnabled: qualityShadowBool(["enabled"], true)
-            shadowResolution: qualityShadowNumber(["resolution", "shadowResolution"], 4096)
-            shadowFilterSamples: qualityShadowNumber(["filterSamples", "filter", "samples"], 32)
-            shadowBias: qualityShadowNumber(["bias", "shadowBias"], 8.0)
-            shadowFactor: qualityShadowNumber(["factor", "darkness", "shadowFactor"], 80.0)
+            shadowsEnabled: root.qualityShadowBool(["enabled"], true)
+            shadowResolution: root.qualityShadowNumber(["resolution", "shadowResolution"], 4096)
+            shadowFilterSamples: root.qualityShadowNumber(["filterSamples", "filter", "samples"], 32)
+            shadowBias: root.qualityShadowNumber(["bias", "shadowBias"], 8.0)
+            shadowFactor: root.qualityShadowNumber(["factor", "darkness", "shadowFactor"], 80.0)
 
-            keyLightBrightness: lightingNumber("key", ["brightness", "intensity"], 1.0)
-            keyLightColor: lightingColor("key", "color", "#ffffff")
-            keyLightAngleX: lightingNumber("key", ["angle_x", "angleX"], 25.0)
-            keyLightAngleY: lightingNumber("key", ["angle_y", "angleY"], 23.5)
-            keyLightAngleZ: lightingNumber("key", ["angle_z", "angleZ"], 0.0)
-            keyLightCastsShadow: lightingBool("key", ["cast_shadow", "castsShadow"], true)
-            keyLightBindToCamera: lightingBool("key", ["bind_to_camera", "bindToCamera"], false)
-            keyLightPosX: lightingNumber("key", ["position_x", "pos_x", "x"], 0.0)
-            keyLightPosY: lightingNumber("key", ["position_y", "pos_y", "y"], 0.0)
-            keyLightPosZ: lightingNumber("key", ["position_z", "pos_z", "z"], 0.0)
+            keyLightBrightness: root.lightingNumber("key", ["brightness", "intensity"], 1.0)
+            keyLightColor: root.lightingColor("key", "color", "#ffffff")
+            keyLightAngleX: root.lightingNumber("key", ["angle_x", "angleX"], 25.0)
+            keyLightAngleY: root.lightingNumber("key", ["angle_y", "angleY"], 23.5)
+            keyLightAngleZ: root.lightingNumber("key", ["angle_z", "angleZ"], 0.0)
+            keyLightCastsShadow: root.lightingBool("key", ["cast_shadow", "castsShadow"], true)
+            keyLightBindToCamera: root.lightingBool("key", ["bind_to_camera", "bindToCamera"], false)
+            keyLightPosX: root.lightingNumber("key", ["position_x", "pos_x", "x"], 0.0)
+            keyLightPosY: root.lightingNumber("key", ["position_y", "pos_y", "y"], 0.0)
+            keyLightPosZ: root.lightingNumber("key", ["position_z", "pos_z", "z"], 0.0)
 
-            fillLightBrightness: lightingNumber("fill", ["brightness", "intensity"], 1.0)
-            fillLightColor: lightingColor("fill", "color", "#f1f4ff")
-            fillLightAngleX: lightingNumber("fill", ["angle_x", "angleX"], 0.0)
-            fillLightAngleY: lightingNumber("fill", ["angle_y", "angleY"], -45.0)
-            fillLightAngleZ: lightingNumber("fill", ["angle_z", "angleZ"], 0.0)
-            fillLightCastsShadow: lightingBool("fill", ["cast_shadow", "castsShadow"], false)
-            fillLightBindToCamera: lightingBool("fill", ["bind_to_camera", "bindToCamera"], false)
-            fillLightPosX: lightingNumber("fill", ["position_x", "pos_x", "x"], 0.0)
-            fillLightPosY: lightingNumber("fill", ["position_y", "pos_y", "y"], 0.0)
-            fillLightPosZ: lightingNumber("fill", ["position_z", "pos_z", "z"], 0.0)
+            fillLightBrightness: root.lightingNumber("fill", ["brightness", "intensity"], 1.0)
+            fillLightColor: root.lightingColor("fill", "color", "#f1f4ff")
+            fillLightAngleX: root.lightingNumber("fill", ["angle_x", "angleX"], 0.0)
+            fillLightAngleY: root.lightingNumber("fill", ["angle_y", "angleY"], -45.0)
+            fillLightAngleZ: root.lightingNumber("fill", ["angle_z", "angleZ"], 0.0)
+            fillLightCastsShadow: root.lightingBool("fill", ["cast_shadow", "castsShadow"], false)
+            fillLightBindToCamera: root.lightingBool("fill", ["bind_to_camera", "bindToCamera"], false)
+            fillLightPosX: root.lightingNumber("fill", ["position_x", "pos_x", "x"], 0.0)
+            fillLightPosY: root.lightingNumber("fill", ["position_y", "pos_y", "y"], 0.0)
+            fillLightPosZ: root.lightingNumber("fill", ["position_z", "pos_z", "z"], 0.0)
 
-            rimLightBrightness: lightingNumber("rim", ["brightness", "intensity"], 1.1)
-            rimLightColor: lightingColor("rim", "color", "#ffe1bd")
-            rimLightAngleX: lightingNumber("rim", ["angle_x", "angleX"], 30.0)
-            rimLightAngleY: lightingNumber("rim", ["angle_y", "angleY"], -135.0)
-            rimLightAngleZ: lightingNumber("rim", ["angle_z", "angleZ"], 0.0)
-            rimLightCastsShadow: lightingBool("rim", ["cast_shadow", "castsShadow"], false)
-            rimLightBindToCamera: lightingBool("rim", ["bind_to_camera", "bindToCamera"], false)
-            rimLightPosX: lightingNumber("rim", ["position_x", "pos_x", "x"], 0.0)
-            rimLightPosY: lightingNumber("rim", ["position_y", "pos_y", "y"], 0.0)
-            rimLightPosZ: lightingNumber("rim", ["position_z", "pos_z", "z"], 0.0)
+            rimLightBrightness: root.lightingNumber("rim", ["brightness", "intensity"], 1.1)
+            rimLightColor: root.lightingColor("rim", "color", "#ffe1bd")
+            rimLightAngleX: root.lightingNumber("rim", ["angle_x", "angleX"], 30.0)
+            rimLightAngleY: root.lightingNumber("rim", ["angle_y", "angleY"], -135.0)
+            rimLightAngleZ: root.lightingNumber("rim", ["angle_z", "angleZ"], 0.0)
+            rimLightCastsShadow: root.lightingBool("rim", ["cast_shadow", "castsShadow"], false)
+            rimLightBindToCamera: root.lightingBool("rim", ["bind_to_camera", "bindToCamera"], false)
+            rimLightPosX: root.lightingNumber("rim", ["position_x", "pos_x", "x"], 0.0)
+            rimLightPosY: root.lightingNumber("rim", ["position_y", "pos_y", "y"], 0.0)
+            rimLightPosZ: root.lightingNumber("rim", ["position_z", "pos_z", "z"], 0.0)
         }
 
         PointLights {
             id: pointLights
             worldRoot: worldRoot
             cameraRig: cameraController.rig
-            pointLightBrightness: lightingNumber("point", ["brightness", "intensity"], 50.0)
-            pointLightColor: lightingColor("point", "color", "#fff7e0")
-            pointLightX: lightingNumber("point", ["position_x", "pos_x", "x"], 0.0)
-            pointLightY: lightingNumber("point", ["position_y", "pos_y", "y"], 2.6)
-            pointLightZ: lightingNumber("point", ["position_z", "pos_z", "z"], 1.5)
-            pointLightRange: lightingNumber("point", "range", 3.6)
-            constantFade: lightingNumber("point", ["constant_fade", "constantFade"], 1.0)
-            linearFade: lightingNumber("point", ["linear_fade", "linearFade"], 0.01)
-            quadraticFade: lightingNumber("point", ["quadratic_fade", "quadraticFade"], 1.0)
-            pointLightCastsShadow: lightingBool("point", ["cast_shadow", "castsShadow"], false)
-            pointLightBindToCamera: lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
+            pointLightBrightness: root.lightingNumber("point", ["brightness", "intensity"], 50.0)
+            pointLightColor: root.lightingColor("point", "color", "#fff7e0")
+            pointLightX: root.lightingNumber("point", ["position_x", "pos_x", "x"], 0.0)
+            pointLightY: root.lightingNumber("point", ["position_y", "pos_y", "y"], 2.6)
+            pointLightZ: root.lightingNumber("point", ["position_z", "pos_z", "z"], 1.5)
+            pointLightRange: root.lightingNumber("point", "range", 3.6)
+            constantFade: root.lightingNumber("point", ["constant_fade", "constantFade"], 1.0)
+            linearFade: root.lightingNumber("point", ["linear_fade", "linearFade"], 0.01)
+            quadraticFade: root.lightingNumber("point", ["quadratic_fade", "quadraticFade"], 1.0)
+            pointLightCastsShadow: root.lightingBool("point", ["cast_shadow", "castsShadow"], false)
+            pointLightBindToCamera: root.lightingBool("point", ["bind_to_camera", "bindToCamera"], false)
+        }
+
+        SpotLights {
+            id: spotLights
+            worldRoot: worldRoot
+            cameraRig: cameraController.rig
+            spotLightBrightness: lightingNumber("spot", ["brightness", "intensity"], 0.0)
+            spotLightColor: lightingColor("spot", "color", "#ffffff")
+            spotLightX: lightingNumber("spot", ["position_x", "pos_x", "x"], 0.0)
+            spotLightY: lightingNumber("spot", ["position_y", "pos_y", "y"], 1.0)
+            spotLightZ: lightingNumber("spot", ["position_z", "pos_z", "z"], 2.0)
+            spotLightRange: lightingNumber("spot", ["range", "distance"], 2.0)
+            spotLightAngleX: lightingNumber("spot", ["angle_x", "angleX"], 0.0)
+            spotLightAngleY: lightingNumber("spot", ["angle_y", "angleY"], 0.0)
+            spotLightAngleZ: lightingNumber("spot", ["angle_z", "angleZ"], 0.0)
+            spotLightConeAngle: lightingNumber("spot", ["cone_angle", "outer_cone_angle", "coneAngle"], 30.0)
+            spotLightInnerConeAngle: lightingNumber("spot", ["inner_cone_angle", "innerConeAngle"], 15.0)
+            spotLightCastsShadow: lightingBool("spot", ["cast_shadow", "castsShadow"], false)
+            spotLightBindToCamera: lightingBool("spot", ["bind_to_camera", "bindToCamera"], false)
         }
     }
 
@@ -1448,7 +1842,7 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
         worldRoot: worldRoot
         view3d: sceneView
         sceneBridge: root.sceneBridge
-        taaMotionAdaptive: environmentBool(["taa_motion_adaptive", "taaMotionAdaptive"], false)
+        taaMotionAdaptive: root.environmentBool(["taa_motion_adaptive", "taaMotionAdaptive"], false)
         hudVisible: root.cameraHudEnabled
         hudSettings: root.cameraHudSettings
         sceneScaleFactor: root.sceneScaleFactor
@@ -1477,5 +1871,6 @@ property url environmentHdrSourceDefault: normalizeHdrSource(environmentDefaultS
     readonly property alias sceneSharedMaterials: sharedMaterials
     readonly property alias sceneDirectionalLights: directionalLights
     readonly property alias scenePointLights: pointLights
+    readonly property alias sceneSpotLights: spotLights
     readonly property alias sceneSuspensionAssembly: suspensionAssembly
 }

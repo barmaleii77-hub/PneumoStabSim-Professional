@@ -3,6 +3,12 @@ name: Branch Audit
 on:
   schedule:
     - cron: '0 4 * * 1'
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration'
   workflow_dispatch:
 
 permissions:

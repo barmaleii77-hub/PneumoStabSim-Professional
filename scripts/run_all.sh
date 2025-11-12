@@ -146,6 +146,9 @@ run_with_warnings_capture \
   "pytest" \
   /usr/local/bin/xvfb_wrapper.sh pytest -q -n auto --maxfail=1 --cov=src || true
 
+echo "== Final readiness =="
+/usr/local/bin/xvfb_wrapper.sh python final_readiness_test.py
+
 echo "== Smoke OpenGL =="
 /usr/local/bin/xvfb_wrapper.sh env QSG_RHI_BACKEND=opengl python app.py --test-mode || true
 

@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick 6.10
 
 ShaderEffect {
@@ -201,5 +203,5 @@ ShaderEffect {
         }
     }
 
-    onStatusChanged: handleStatus(status)
+    onStatusChanged: handleStatus(root.status)
 }

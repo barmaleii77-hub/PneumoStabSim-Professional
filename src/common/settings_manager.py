@@ -33,6 +33,7 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 from collections.abc import Iterable
 
+from src.core.settings_defaults import load_default_settings_payload
 from src.core.settings_manager import (
     ProfileSettingsManager as _CoreProfileSettingsManager,
 )
@@ -661,43 +662,51 @@ class SettingsManager:
 
     # ------------------------------------------------------------------- public
     def load(self) -> None:
-        if not self._settings_path.exists():
-            raise FileNotFoundError(
-                f"Settings file does not exist: {self._settings_path}"
-            )
-
-        raw_payload = self._settings_path.read_text(encoding="utf-8")
         payload: dict[str, Any]
-        try:
-            payload = json.loads(raw_payload)
-        except json.JSONDecodeError as exc:
-            logger.error(
-                "Failed to parse settings file %s: %s. Falling back to defaults.",
+        used_fallback = False
+
+        if not self._settings_path.exists():
+            logger.warning(
+                "Settings file does not exist: %s; hydrating defaults.",
                 self._settings_path,
-                exc,
-                exc_info=True,
             )
-            payload = {"metadata": {}, "current": {}, "defaults_snapshot": {}}
+            payload = load_default_settings_payload()
+            used_fallback = True
         else:
-            if not isinstance(payload, dict):
+            raw_payload = self._settings_path.read_text(encoding="utf-8")
+            try:
+                payload = json.loads(raw_payload)
+            except json.JSONDecodeError as exc:
                 logger.error(
-                    "Settings file %s does not contain a JSON object (found %s). "
-                    "Using empty defaults.",
+                    "Failed to parse settings file %s: %s. Falling back to defaults.",
                     self._settings_path,
-                    type(payload).__name__,
+                    exc,
+                    exc_info=True,
                 )
-                payload = {"metadata": {}, "current": {}, "defaults_snapshot": {}}
+                payload = load_default_settings_payload()
+                used_fallback = True
+            else:
+                if not isinstance(payload, dict):
+                    logger.error(
+                        "Settings file %s does not contain a JSON object (found %s). "
+                        "Using default payload.",
+                        self._settings_path,
+                        type(payload).__name__,
+                    )
+                    payload = load_default_settings_payload()
+                    used_fallback = True
 
         for key in ("current", "defaults_snapshot", "metadata"):
             if key not in payload:
                 logger.warning(
-                    "Settings file %s missing required section '%s'; falling back to defaults.",
-                    self._settings_path,
+                    "Settings payload missing required section '%s'; defaults will be empty.",
                     key,
                 )
                 payload[key] = {}
 
         self._assign_sections(payload)
+        if used_fallback:
+            self._dirty = True
 
     def save(self) -> None:
         if not isinstance(self._metadata, dict):
