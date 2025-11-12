@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick3D 1.15
+import QtQuick 6.10
+import QtQuick3D 6.10
 
 /*
- * WORKING SOLUTION: Using built-in Qt Quick 3D primitives
- * Based on working example from barmaleii77-hub directory
+ * WORKING SOLUTION: Using built-in Qt Quick 3D primitives (Qt 6.10)
+ * Обновлено: версии импортов, обращение к eulerRotation, материалы.
  */
 Item {
     id: root
@@ -28,8 +28,8 @@ Item {
         }
 
         DirectionalLight {
-            eulerRotation.x: -30
-            eulerRotation.y: -30
+            // Используем целиком вектор вместо обращения к компонентам
+            eulerRotation: Qt.vector3d(-30, -30, 0)
             brightness: 1.5
             color: "#ffffff"
         }
@@ -42,11 +42,13 @@ Item {
             position: Qt.vector3d(0, 0, 0)
             scale: Qt.vector3d(2, 2, 2)  // Scale up for visibility
 
-            materials: PrincipledMaterial {
-                baseColor: "#ff4444"
-                metalness: 0.0
-                roughness: 0.5
-            }
+            materials: [
+                PrincipledMaterial {
+                    baseColor: "#ff4444"
+                    metalness: 0.0
+                    roughness: 0.5
+                }
+            ]
 
             // Smooth rotation animation
             NumberAnimation {

@@ -418,7 +418,9 @@ class GeometryPanel(QWidget):
                 if changed_param is not None and prev_value is not None:
                     self.state_manager.set_parameter(changed_param, prev_value)
                     self._update_tab_widget(changed_param, prev_value)
-                self.logger.warning("Conflict auto-resolved without dialog: %s", message)
+                self.logger.warning(
+                    "Conflict auto-resolved without dialog: %s", message
+                )
                 return
 
             # Интерактивный путь — короткий вопрос (Да/Нет) для принятия первого варианта

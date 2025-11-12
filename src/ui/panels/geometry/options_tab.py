@@ -173,7 +173,9 @@ class OptionsTab(QWidget):
             warnings = self.state_manager.get_warnings()
             self._present_validation_results(errors, warnings)
 
-    def _present_validation_results(self, errors: list[str], warnings: list[str]) -> None:
+    def _present_validation_results(
+        self, errors: list[str], warnings: list[str]
+    ) -> None:
         if errors:
             message_critical(
                 self, "Ошибки геометрии", "Обнаружены ошибки:\n\n" + "\n".join(errors)
@@ -185,7 +187,9 @@ class OptionsTab(QWidget):
                 "Предупреждения:\n\n" + "\n".join(warnings),
             )
         else:
-            message_info(self, "Проверка геометрии", "Все параметры геометрии корректны.")
+            message_info(
+                self, "Проверка геометрии", "Все параметры геометрии корректны."
+            )
 
     def set_preset_index(self, index: int):
         if 0 <= index < self.preset_combo.count():

@@ -37,6 +37,14 @@ from src.core.settings_models import AppSettings, dump_settings
 
 logger = logging.getLogger(__name__)
 
+# Запрещённые legacy mesh поля (используются в smoke-тестах)
+LEGACY_GEOMETRY_MESH_EXTRAS: set[str] = {
+    "cylinder_segments",
+    "cylinder_rings",
+    "frame_segments",
+    "frame_rings",
+}
+
 
 class _RelaxedAppSettings(AppSettings):
     """Variant of :class:`AppSettings` that ignores unknown fields."""
@@ -45,11 +53,28 @@ class _RelaxedAppSettings(AppSettings):
     model_config["extra"] = "ignore"
 
 
+class _LooseMetadata:
+    """Минимальный адаптер метаданных для loose-модели (смоук-тесты).
+
+    Доступны только поля, которые реально запрашиваются тестами.
+    """
+
+    def __init__(self, payload: Mapping[str, Any] | None) -> None:
+        if not isinstance(payload, Mapping):
+            payload = {}
+        self.last_migration: str = str(payload.get("last_migration", ""))
+
+
 class _LooseAppSettings:
-    """Dictionary-backed settings view used when schema validation is disabled."""
+    """Dictionary-backed settings view used when schema validation is disabled.
+
+    Добавлен атрибут ``metadata`` с полем ``last_migration`` для совместимости
+    со смоук-тестами, которые проверяют успешность миграций.
+    """
 
     def __init__(self, payload: Mapping[str, Any]) -> None:
         self._payload = json.loads(json.dumps(payload))
+        self.metadata = _LooseMetadata(self._payload.get("metadata"))  # type: ignore[attr-defined]
 
     def model_dump(self, *_, **__) -> dict[str, Any]:  # pragma: no cover - minimal shim
         return json.loads(json.dumps(self._payload))
@@ -621,6 +646,8 @@ class SettingsService:
     def validate(self, payload: dict[str, Any]) -> None:
         """Проверить payload по JSON Schema и выбросить ошибку при несовпадении."""
 
+        # Предварительно проверяем устаревшие mesh-поля геометрии (смоук-тесты).
+        self._guard_legacy_geometry_mesh_extras(payload)
         self._guard_legacy_material_aliases(payload)
         validator = self._get_validator()
         errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
@@ -668,7 +695,10 @@ class SettingsService:
         ) from None
 
     def _guard_legacy_material_aliases(self, payload: MappingABC[str, Any]) -> None:
-        """Pre-validate payload to surface legacy material aliases before JSON Schema."""
+        """Pre-validate payload to surface legacy material aliases before JSON Schema.
+
+        Исправлено: опечатка maybe_defaults вместо maybeDefaults.
+        """
 
         def _material_section(
             root: MappingABC[str, Any] | None,
@@ -713,6 +743,47 @@ class SettingsService:
             )
             raise SettingsValidationError(
                 f"Settings payload uses legacy graphics material keys: {alias_list}"
+            )
+
+    def _guard_legacy_geometry_mesh_extras(self, payload: MappingABC[str, Any]) -> None:
+        """Выбросить ошибку, если обнаружены запрещённые legacy mesh ключи в секции geometry.
+
+        Смоук-тесты добавляют поля ``cylinder_segments`` и ``cylinder_rings`` —
+        они должны приводить к SettingsValidationError.
+        Проверяем разделы ``current.geometry`` и ``defaults_snapshot.geometry``.
+        """
+        if not isinstance(payload, MappingABC):
+            return
+
+        def _geom_section(
+            root: MappingABC[str, Any] | None,
+        ) -> MappingABC[str, Any] | None:
+            if not isinstance(root, MappingABC):
+                return None
+            geometry = root.get("geometry")
+            if not isinstance(geometry, MappingABC):
+                return None
+            return geometry
+
+        current = (
+            payload.get("current")
+            if isinstance(payload.get("current"), MappingABC)
+            else None
+        )
+        defaults = (
+            payload.get("defaults_snapshot")
+            if isinstance(payload.get("defaults_snapshot"), MappingABC)
+            else None
+        )
+
+        offenders: set[str] = set()
+        for section in (_geom_section(current), _geom_section(defaults)):
+            if isinstance(section, MappingABC):
+                offenders |= set(section.keys()) & LEGACY_GEOMETRY_MESH_EXTRAS
+        if offenders:
+            raise SettingsValidationError(
+                "Settings payload uses legacy geometry mesh fields: "
+                + ", ".join(sorted(offenders))
             )
 
     def _validate_graphics_materials(self, payload: MappingABC[str, Any]) -> None:

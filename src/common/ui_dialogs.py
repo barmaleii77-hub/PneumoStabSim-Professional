@@ -75,6 +75,7 @@ def message_info(parent: Any, title: str, text: str) -> None:
         return
     try:
         from PySide6.QtWidgets import QMessageBox  # type: ignore
+
         QMessageBox.information(parent, title, text)
     except Exception:  # pragma: no cover
         _logger.info("[UI][fallback] %s: %s", title, text, exc_info=True)
@@ -86,6 +87,7 @@ def message_warning(parent: Any, title: str, text: str) -> None:
         return
     try:
         from PySide6.QtWidgets import QMessageBox  # type: ignore
+
         QMessageBox.warning(parent, title, text)
     except Exception:  # pragma: no cover
         _logger.warning("[UI][fallback] %s: %s", title, text, exc_info=True)
@@ -97,12 +99,15 @@ def message_critical(parent: Any, title: str, text: str) -> None:
         return
     try:
         from PySide6.QtWidgets import QMessageBox  # type: ignore
+
         QMessageBox.critical(parent, title, text)
     except Exception:  # pragma: no cover
         _logger.error("[UI][fallback] %s: %s", title, text, exc_info=True)
 
 
-def message_question(parent: Any, title: str, text: str, *, default_yes: bool = False) -> bool:
+def message_question(
+    parent: Any, title: str, text: str, *, default_yes: bool = False
+) -> bool:
     """Показывает вопрос пользователю. Возвращает True для ответа "Да".
 
     Если диалоги подавлены или активирован принудительный немодальный режим,
@@ -124,10 +129,21 @@ def message_question(parent: Any, title: str, text: str, *, default_yes: bool = 
         return bool(default_yes)
     try:
         from PySide6.QtWidgets import QMessageBox  # type: ignore
+
         buttons = QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        default = QMessageBox.StandardButton.Yes if default_yes else QMessageBox.StandardButton.No
+        default = (
+            QMessageBox.StandardButton.Yes
+            if default_yes
+            else QMessageBox.StandardButton.No
+        )
         reply = QMessageBox.question(parent, title, text, buttons, default)
         return reply == QMessageBox.StandardButton.Yes
     except Exception:  # pragma: no cover
-        _logger.info("[UI][question-fallback] %s: %s -> %s", title, text, default_yes, exc_info=True)
+        _logger.info(
+            "[UI][question-fallback] %s: %s -> %s",
+            title,
+            text,
+            default_yes,
+            exc_info=True,
+        )
         return bool(default_yes)

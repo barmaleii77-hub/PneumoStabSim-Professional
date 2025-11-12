@@ -28,8 +28,12 @@ import structlog
 LOGGER = structlog.get_logger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+# Базовый «эталонный» HDR-файл. В некоторых окружениях его может не быть,
+# но допустимо наличие альтернатив (EXR / другие HDR). Поэтому ниже реализована
+# мягкая проверка с fallback.
+HDR_PRIMARY = REPO_ROOT / "assets" / "hdr" / "studio.hdr"
 HDR_ASSETS: tuple[Path, ...] = (
-    REPO_ROOT / "assets" / "hdr" / "studio.hdr",
+    HDR_PRIMARY,
     REPO_ROOT / "assets" / "hdr" / "README.md",
 )
 SETTINGS_FILE = REPO_ROOT / "config" / "baseline" / "app_settings.json"
@@ -157,10 +161,29 @@ def compute_backend_plan(target: str | None = None) -> BackendPlan:
 
 
 def _check_hdr_assets(files: Iterable[Path]) -> list[Path]:
+    """Return missing mandatory assets.
+
+    Допускаем отсутствие основного HDR-файла, если в каталоге присутствует
+    хотя бы один *.hdr или *.exr файл (т.е. есть валидные альтернативы).
+    """
     missing: list[Path] = []
     for candidate in files:
         if not candidate.exists():
             missing.append(candidate)
+
+    # Смягчённая логика: если отсутствует именно HDR_PRIMARY, но в папке есть другие HDR/EXR — не считаем критичной ошибкой.
+    if HDR_PRIMARY in missing:
+        hdr_dir = HDR_PRIMARY.parent
+        if hdr_dir.exists():
+            alternatives = list(hdr_dir.glob("*.hdr")) + list(hdr_dir.glob("*.exr"))
+            if alternatives:
+                LOGGER.info(
+                    "Primary HDR missing; acceptable alternatives detected",
+                    primary=str(HDR_PRIMARY),
+                    count=len(alternatives),
+                )
+                # Удаляем primary из списка критичных пропусков
+                missing = [m for m in missing if m != HDR_PRIMARY]
     return missing
 
 
@@ -218,7 +241,7 @@ def run_checks(target: str | None, fail_on_error: bool) -> int:
         for path in missing_assets:
             LOGGER.error("HDR asset missing", path=str(path))
     else:
-        LOGGER.info("All HDR assets located", count=len(HDR_ASSETS))
+        LOGGER.info("HDR assets OK (or acceptable alternatives detected)")
 
     issues: list[str] = []
     issues.extend(_check_dithering_control(QUALITY_TAB))

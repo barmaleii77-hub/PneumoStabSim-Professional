@@ -24,7 +24,6 @@ from tests.helpers import ensure_qt_runtime, require_qt_modules
 
 pytest_plugins: tuple[str, ...] = ()
 
-
 _ORIGINAL_IMPORTORSKIP = pytest.importorskip
 
 
@@ -275,19 +274,20 @@ def _integration_target_roots(config_root: Path) -> tuple[Path, ...]:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    # Suppress any modal UI dialogs during tests (non-blocking warnings only)
     os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
     _load_pytestqt_plugin(config)
     _register_headless_marker(config)
     _configure_session_headless(config)
-    # Standard markers (idempotent)
+    # Ensure critical markers always registered (including 'gui')
     for name, description in (
         ("unit", "Unit tests for individual components"),
         ("integration", "Integration tests"),
         ("smoke", "Lightweight smoke scenarios"),
         ("system", "End-to-end system tests"),
         ("ui", "Qt widgets, panel controllers, and state sync tests"),
+        ("gui", "Tests requiring GUI/QML"),  # добавлено явное объявление
+        ("qtbot", "Tests using pytest-qt QtBot fixture"),  # регистрация маркера для ошибок коллекции
     ):
         try:
             config.addinivalue_line("markers", f"{name}: {description}")

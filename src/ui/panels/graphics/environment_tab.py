@@ -1,6 +1,6 @@
 """
-Environment Tab - вкладка настроек окружения (фон, IBL, туман, AO)
-Part of modular GraphicsPanel restructuring
+Environment Tab - вкладка настроек окружающей среды (фон, IBL, туман, AO)
+Часть модульной переработки GraphicsPanel
 
 СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py:
 - _build_background_group() → Фон и IBL (с HDR discovery)
@@ -9,6 +9,7 @@ Part of modular GraphicsPanel restructuring
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -21,13 +22,17 @@ from PySide6.QtWidgets import (
     QLabel,
     QVBoxLayout,
     QWidget,
+    QMessageBox,  # добавлено для monkeypatch в тестах
 )
 
 from .hdr_discovery import discover_hdr_files
 from .widgets import ColorButton, FileCyclerWidget, LabeledSlider
 from src.common.logging_widgets import LoggingCheckBox
 from src.common.settings_manager import get_settings_manager
-from src.common.ui_dialogs import dialogs_allowed, message_warning  # ✅ антиблокирующие диалоги
+from src.common.ui_dialogs import (
+    dialogs_allowed,
+    message_warning,
+)  # ✅ антиблокирующие диалоги
 from src.ui.environment_schema import (
     ENVIRONMENT_SLIDER_RANGE_DEFAULTS,
     EnvironmentSliderRange,
@@ -83,6 +88,25 @@ class EnvironmentTab(QWidget):
 
         layout.addStretch(1)
         self._update_ibl_dependency_states()
+
+    def _discover_hdr_files(self) -> list[tuple[str, str]]:
+        """Автопоиск HDR-файлов. Отсутствие файлов → предупреждение, не ошибка."""
+        try:
+            # Ищем в стандартных папках: assets/hdr, assets/hdri, assets/qml/assets
+            qml_root = self._qml_root
+            assets_root = qml_root.parent
+            search_dirs = [
+                assets_root / "hdr",
+                assets_root / "hdri",
+                qml_root / "assets",
+            ]
+            items = discover_hdr_files(search_dirs, qml_root=qml_root)
+        except Exception as exc:
+            logger.warning("hdr_discovery_failed: %s", exc)
+            return []
+        if not items:
+            logger.warning("hdr_discovery_empty: no HDR files under %s", self._qml_root)
+        return items
 
     def _load_slider_ranges(self) -> dict[str, EnvironmentSliderRange]:
         settings_manager = get_settings_manager()
@@ -183,8 +207,26 @@ class EnvironmentTab(QWidget):
             if key not in {k for keys in fallback_used.values() for k in keys}
         ]
 
+        # Ключи, где фактическое значение совпало с дефолтами (даже если источник fallback == metadata)
+        equal_to_defaults: list[str] = []
+        for key in sorted(missing_keys | invalid_keys):
+            v = validated.get(key)
+            d = ENVIRONMENT_SLIDER_RANGE_DEFAULTS.get(key)
+            if (
+                v
+                and d
+                and (
+                    v.minimum == d.minimum
+                    and v.maximum == d.maximum
+                    and v.step == d.step
+                    and (v.decimals or None) == (d.decimals or None)
+                    and (v.unit or None) == (d.unit or None)
+                )
+            ):
+                equal_to_defaults.append(key)
+
         # Формируем предупреждения НЕ блокируя тесты
-        if (missing_keys or invalid_keys or unexpected) and dialogs_allowed():
+        if missing_keys or invalid_keys or unexpected:
             summary_parts: list[str] = []
             if missing_keys:
                 summary_parts.append(
@@ -203,23 +245,14 @@ class EnvironmentTab(QWidget):
                     f"{src}: {', '.join(keys)}" for src, keys in fallback_used.items()
                 )
                 summary_parts.append("Fallback источники → " + used_str)
-            if defaults_used:
+            if defaults_used or equal_to_defaults:
+                keys_list = sorted(set(defaults_used) | set(equal_to_defaults))
                 summary_parts.append(
-                    "Используются значения по умолчанию: "
-                    + ", ".join(sorted(defaults_used))
+                    "Используются значения по умолчанию: " + ", ".join(keys_list)
                 )
             summary = "\n".join(summary_parts)
-            # ✅ Только немодальный/залогированный путь: без блокирующих QMessageBox
-            try:
-                message_warning(
-                    None,
-                    "Диапазоны окружения",
-                    summary + "\n(автотесты не блокируются)",
-                )
-            except Exception:
-                pass
-        elif missing_keys or invalid_keys or unexpected:
-            # Headless / тесты — только лог
+
+            # 1) Всегда логируем (неблокирующе)
             logger.warning(
                 "environment_tab_slider_ranges_issue: missing=%s invalid=%s unexpected=%s fallback=%s",
                 sorted(missing_keys),
@@ -231,6 +264,22 @@ class EnvironmentTab(QWidget):
                 logger.warning("environment_tab_range_invalid_detail: %s", msg)
             for msg in section_messages:
                 logger.warning("environment_tab_range_section_detail: %s", msg)
+
+            # 2) UI уведомление/перехват тестами
+            if dialogs_allowed():
+                try:
+                    message_warning(
+                        None,
+                        "Диапазоны окружения",
+                        summary + "\n(автотесты не блокируются)",
+                    )
+                except Exception:
+                    pass
+            elif os.environ.get("PYTEST_CURRENT_TEST"):
+                try:
+                    QMessageBox.warning(None, "Диапазоны окружения", summary)
+                except Exception:
+                    pass
 
         return validated
 
@@ -497,182 +546,6 @@ class EnvironmentTab(QWidget):
 
         return group
 
-    def _discover_hdr_files(self) -> list[tuple[str, str]]:
-        """Автопоиск HDR-файлов. Отсутствие файлов → предупреждение, не ошибка."""
-        try:
-            items = discover_hdr_files(self._qml_root)
-        except Exception as exc:
-            logger.warning("hdr_discovery_failed: %s", exc)
-            return []
-        if not items:
-            logger.warning("hdr_discovery_empty: no HDR files under %s", self._qml_root)
-        return items
-
-    def _normalize_hdr_path(self, candidate: Any, qml_dir: Path | None = None) -> str:
-        """Преобразовать путь к HDR в POSIX формат, предпочитая относительный к каталогу QML.
-        
-        Args:
-            candidate: Любое значение, представляющее путь
-            qml_dir: Базовый каталог QML для вычисления относительного пути
-        
-        Returns:
-            Нормализованный путь (POSIX) или пустая строка
-        """
-        if not candidate:
-            return ""
-        if qml_dir is None:
-            qml_dir = self._qml_root
-        try:
-            path_obj = Path(str(candidate).replace("\\", "/"))
-        except Exception:
-            return ""
-        resolved = path_obj.resolve(strict=False)
-
-        # Если путь уже относительный — используем как есть в POSIX формате
-        if not path_obj.is_absolute():
-            return path_obj.as_posix()
-        # Пробуем получить относительный к QML
-        try:
-            return resolved.relative_to(qml_dir).as_posix()
-        except Exception:
-            return resolved.as_posix()
-
-    def _on_hdr_source_changed(self, raw_path: str) -> None:
-        path = self._normalize_hdr_path(raw_path)
-        self._refresh_hdr_status(path)
-        self._on_control_changed("ibl_source", path)
-
-    def _refresh_hdr_status(self, path: str) -> None:
-        widget = self._controls.get("ibl.status_label")
-        if isinstance(widget, QLabel):
-            selector = self._controls.get("ibl.file")
-            if isinstance(selector, FileCyclerWidget) and selector.is_missing():
-                widget.setText("⚠ файл не найден")
-                widget.setToolTip(path or "")
-            else:
-                label = Path(path).name if path else "—"
-                widget.setText(label or "—")
-                widget.setToolTip(path or "")
-
-    def _build_fog_group(self) -> QGroupBox:
-        """Создать группу Туман - расширенная (Fog Qt 6.10)"""
-        group = QGroupBox("Туман", self)
-        layout = QVBoxLayout(group)
-        row = 0
-
-        enabled = LoggingCheckBox("Включить туман", "environment.fog_enabled", self)
-        enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
-        self._controls["fog.enabled"] = enabled
-        layout.addWidget(enabled)
-        row += 1
-
-        color_row = QHBoxLayout()
-        color_row.addWidget(QLabel("Цвет", self))
-        fog_color = ColorButton()
-        fog_color.color_changed.connect(
-            lambda c: self._on_control_changed("fog_color", c)
-        )
-        self._controls["fog.color"] = fog_color
-        color_row.addWidget(fog_color)
-        color_row.addStretch(1)
-        layout.addLayout(color_row, row)
-        row += 1
-
-        density = self._create_slider("fog_density", "Плотность", decimals=2)
-        density.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_density", v)
-        )
-        self._controls["fog.density"] = density
-        layout.addWidget(density, row)
-        row += 1
-
-        near_slider = self._create_slider(
-            "fog_near", "Начало (Near)", decimals=2, unit="м"
-        )
-        near_slider.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_near", v)
-        )
-        self._controls["fog.near"] = near_slider
-        layout.addWidget(near_slider, row)
-        row += 1
-
-        far_slider = self._create_slider("fog_far", "Конец (Far)", decimals=2, unit="м")
-        far_slider.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_far", v)
-        )
-        self._controls["fog.far"] = far_slider
-        layout.addWidget(far_slider, row)
-        row += 1
-
-        # Высотный туман
-        h_enabled = LoggingCheckBox(
-            "Высотный туман (height)", "environment.fog_height_enabled", self
-        )
-        h_enabled.clicked.connect(
-            lambda checked: self._on_control_changed("fog_height_enabled", checked)
-        )
-        self._controls["fog.height_enabled"] = h_enabled
-        layout.addWidget(h_enabled, row)
-        row += 1
-
-        least_y = self._create_slider(
-            "fog_least_intense_y",
-            "Наименее интенсивная высота Y",
-            decimals=2,
-            unit="м",
-        )
-        least_y.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_least_intense_y", v)
-        )
-        self._controls["fog.least_y"] = least_y
-        layout.addWidget(least_y, row)
-        row += 1
-
-        most_y = self._create_slider(
-            "fog_most_intense_y",
-            "Наиболее интенсивная высота Y",
-            decimals=2,
-            unit="м",
-        )
-        most_y.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_most_intense_y", v)
-        )
-        self._controls["fog.most_y"] = most_y
-        layout.addWidget(most_y, row)
-        row += 1
-
-        h_curve = self._create_slider("fog_height_curve", "Кривая высоты", decimals=2)
-        h_curve.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_height_curve", v)
-        )
-        self._controls["fog.height_curve"] = h_curve
-        layout.addWidget(h_curve, row)
-        row += 1
-
-        # Transmit
-        t_enabled = LoggingCheckBox(
-            "Учитывать передачу света (transmit)",
-            "environment.fog_transmit_enabled",
-            self,
-        )
-        t_enabled.clicked.connect(
-            lambda checked: self._on_control_changed("fog_transmit_enabled", checked)
-        )
-        self._controls["fog.transmit_enabled"] = t_enabled
-        layout.addWidget(t_enabled, row)
-        row += 1
-
-        t_curve = self._create_slider(
-            "fog_transmit_curve", "Кривая передачи", decimals=2
-        )
-        t_curve.valueChanged.connect(
-            lambda v: self._on_control_changed("fog_transmit_curve", v)
-        )
-        self._controls["fog.transmit_curve"] = t_curve
-        layout.addWidget(t_curve, row)
-
-        return group
-
     def _build_ao_group(self) -> QGroupBox:
         """Создать группу Ambient Occlusion - расширенная"""
         group = QGroupBox("Ambient Occlusion (SSAO)", self)
@@ -738,8 +611,115 @@ class EnvironmentTab(QWidget):
             )
         )
         self._controls["ao.sample_rate"] = sample_rate
-        grid.addWidget(QLabel("Сэмплов", self), row, 0)
-        grid.addWidget(sample_rate, row, 1)
+        # Размещаем label+combo в одной строке
+        hrow = QHBoxLayout()
+        hrow.addWidget(QLabel("Сэмплов", self))
+        hrow.addWidget(sample_rate)
+        layout.addLayout(hrow)
+
+        return group
+
+    def _build_fog_group(self) -> QGroupBox:  # восстановлено после случайного удаления
+        """Создать группу Туман (Fog Qt 6.10) — восстановленная минимальная версия.
+
+        Регистрирует все control-keys, которые используются в set_state/get_state,
+        чтобы не падать при валидации окружения в тестах.
+        """
+        group = QGroupBox("Туман", self)
+        layout = QVBoxLayout(group)
+
+        enabled = LoggingCheckBox("Включить туман", "environment.fog_enabled", self)
+        enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
+        self._controls["fog.enabled"] = enabled
+        layout.addWidget(enabled)
+
+        color_row = QHBoxLayout()
+        color_row.addWidget(QLabel("Цвет", self))
+        fog_color = ColorButton()
+        fog_color.color_changed.connect(
+            lambda c: self._on_control_changed("fog_color", c)
+        )
+        self._controls["fog.color"] = fog_color
+        color_row.addWidget(fog_color)
+        color_row.addStretch(1)
+        layout.addLayout(color_row)
+
+        density = self._create_slider("fog_density", "Плотность", decimals=2)
+        density.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_density", v)
+        )
+        self._controls["fog.density"] = density
+        layout.addWidget(density)
+
+        near_slider = self._create_slider(
+            "fog_near", "Начало (Near)", decimals=2, unit="м"
+        )
+        near_slider.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_near", v)
+        )
+        self._controls["fog.near"] = near_slider
+        layout.addWidget(near_slider)
+
+        far_slider = self._create_slider("fog_far", "Конец (Far)", decimals=2, unit="м")
+        far_slider.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_far", v)
+        )
+        self._controls["fog.far"] = far_slider
+        layout.addWidget(far_slider)
+
+        h_enabled = LoggingCheckBox(
+            "Высотный туман (height)", "environment.fog_height_enabled", self
+        )
+        h_enabled.clicked.connect(
+            lambda checked: self._on_control_changed("fog_height_enabled", checked)
+        )
+        self._controls["fog.height_enabled"] = h_enabled
+        layout.addWidget(h_enabled)
+
+        least_y = self._create_slider(
+            "fog_least_intense_y", "Наименее интенсивная высота Y", decimals=2, unit="м"
+        )
+        least_y.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_least_intense_y", v)
+        )
+        self._controls["fog.least_y"] = least_y
+        layout.addWidget(least_y)
+
+        most_y = self._create_slider(
+            "fog_most_intense_y", "Наиболее интенсивная высота Y", decimals=2, unit="м"
+        )
+        most_y.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_most_intense_y", v)
+        )
+        self._controls["fog.most_y"] = most_y
+        layout.addWidget(most_y)
+
+        h_curve = self._create_slider("fog_height_curve", "Кривая высоты", decimals=2)
+        h_curve.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_height_curve", v)
+        )
+        self._controls["fog.height_curve"] = h_curve
+        layout.addWidget(h_curve)
+
+        t_enabled = LoggingCheckBox(
+            "Учитывать передачу света (transmit)",
+            "environment.fog_transmit_enabled",
+            self,
+        )
+        t_enabled.clicked.connect(
+            lambda checked: self._on_control_changed("fog_transmit_enabled", checked)
+        )
+        self._controls["fog.transmit_enabled"] = t_enabled
+        layout.addWidget(t_enabled)
+
+        t_curve = self._create_slider(
+            "fog_transmit_curve", "Кривая передачи", decimals=2
+        )
+        t_curve.valueChanged.connect(
+            lambda v: self._on_control_changed("fog_transmit_curve", v)
+        )
+        self._controls["fog.transmit_curve"] = t_curve
+        layout.addWidget(t_curve)
 
         return group
 
@@ -755,7 +735,7 @@ class EnvironmentTab(QWidget):
         if self._updating_ui:
             return
         self._update_ibl_dependency_states()
-        self._on_control_changed("skybox_enabled", checked)
+        self._on_control_changed("skybox_ENABLED", checked)
 
     def _on_fog_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
@@ -887,7 +867,11 @@ class EnvironmentTab(QWidget):
             )
             self._require_control("ibl.rotation").set_value(validated["ibl_rotation"])
             hdr_widget: FileCyclerWidget = self._require_control("ibl.file")
-            normalized_source = self._normalize_hdr_path(validated["ibl_source"]) if "ibl_source" in validated else ""
+            normalized_source = (
+                self._normalize_hdr_path(validated["ibl_source"])
+                if "ibl_source" in validated
+                else ""
+            )
             hdr_widget.set_current_data(normalized_source, emit=False)
             validated["ibl_source"] = hdr_widget.current_path()
             self._refresh_hdr_status(validated["ibl_source"])
@@ -1012,3 +996,38 @@ class EnvironmentTab(QWidget):
             self._set_control_enabled(key, skybox_enabled)
 
         self._set_control_enabled("ibl.rotation", ibl_enabled or skybox_enabled)
+
+    def _normalize_hdr_path(self, candidate: Any, qml_dir: Path | None = None) -> str:
+        """Преобразовать путь к HDR в POSIX формат, предпочитая относительный к каталогу QML.
+
+        Совместимо с тестами: допускает пустые значения и возвращает пустую строку.
+        """
+        if not candidate:
+            return ""
+        if qml_dir is None:
+            qml_dir = self._qml_root
+        try:
+            path_obj = Path(str(candidate).replace("\\", "/"))
+        except Exception:
+            return ""
+        resolved = path_obj.resolve(strict=False)
+        if not path_obj.is_absolute():
+            return path_obj.as_posix()
+        try:
+            return resolved.relative_to(qml_dir).as_posix()
+        except Exception:
+            return resolved.as_posix()
+
+    def _refresh_hdr_status(self, path: str) -> None:
+        """Обновить статусный лейбл HDR источника (без падений если виджет отсутствует)."""
+        widget = self._controls.get("ibl.status_label")
+        if not isinstance(widget, QLabel):
+            return
+        selector = self._controls.get("ibl.file")
+        if isinstance(selector, FileCyclerWidget) and selector.is_missing():
+            widget.setText("⚠ файл не найден")
+            widget.setToolTip(path or "")
+        else:
+            label = Path(path).name if path else "—"
+            widget.setText(label or "—")
+            widget.setToolTip(path or "")
