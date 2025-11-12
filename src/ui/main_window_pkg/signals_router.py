@@ -150,11 +150,11 @@ class SignalsRouter:
         if source_container is None:
             return SignalsRouter._apply_environment_aliases(params, env_payload)
 
-        raw_value = (
-            source_container.get(source_key)
-            if source_container is params and source_key is not None
-            else source_container.get(nested_source_key)  # type: ignore[arg-type]
-        )
+        # Извлекаем значение HDR источника по ключу, избегая сложной тернарной логики
+        if source_container is params and source_key is not None:
+            raw_value = source_container.get(source_key)
+        else:
+            raw_value = source_container.get(nested_source_key)
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
         allow_empty_selection = SignalsRouter._allow_empty_selection(
