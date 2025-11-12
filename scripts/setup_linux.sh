@@ -11,7 +11,7 @@ log() {
 if [[ "${EUID}" -ne 0 ]]; then
   if command -v sudo >/dev/null 2>&1; then
     log "Re-running with sudo to install system packages"
-    exec sudo --preserve-env=QT_QPA_PLATFORM "$0" "$@"
+    exec sudo --preserve-env "$0" "$@"
   else
     log "Root privileges required to install system packages"
     exit 1
