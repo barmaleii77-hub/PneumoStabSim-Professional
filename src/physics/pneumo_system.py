@@ -27,6 +27,9 @@ from src.pneumo.system import PneumaticSystem as StructuralPneumaticSystem
 LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
 
 
+LoggerLike = LoggerProtocol | logging.Logger | LoggerAdapter
+
+
 def _coerce_context_value(value: Any) -> Any:
     """Return a logging-friendly representation for contextual fields."""
 
