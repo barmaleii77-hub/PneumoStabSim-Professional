@@ -111,6 +111,12 @@ class PressuresTab(QWidget):
         relief_layout.addWidget(self.relief_safety_knob)
         layout.addWidget(relief_group)
 
+        self.hint_label = QLabel()
+        self.hint_label.setWordWrap(True)
+        self.hint_label.setStyleSheet("color: #c54632; font-size: 11px;")
+        self.hint_label.setVisible(False)
+        layout.addWidget(self.hint_label)
+
         layout.addStretch()
 
     def _load_from_state(self) -> None:
@@ -118,6 +124,7 @@ class PressuresTab(QWidget):
         idx = max(0, self.units_combo.findData(current_units))
         self.units_combo.setCurrentIndex(idx)
         self._apply_units_to_knobs(current_units)
+        self._update_hint_label()
 
     def update_from_state(self) -> None:
         self._load_from_state()
@@ -136,6 +143,7 @@ class PressuresTab(QWidget):
         self.relief_safety_knob.setValue(
             self.state_manager.get_relief_pressure("relief_safety_pressure")
         )
+        self._update_hint_label()
 
     def _connect_signals(self) -> None:
         self.units_combo.currentIndexChanged.connect(self._on_units_changed)
@@ -164,10 +172,12 @@ class PressuresTab(QWidget):
     def _on_pressure_drop_changed(self, name: str, value: float) -> None:
         self.state_manager.set_pressure_drop(name, value)
         self.parameter_changed.emit(name, self.state_manager.get_pressure_drop(name))
+        self._update_hint_label()
 
     def _on_relief_changed(self, name: str, value: float) -> None:
         self.state_manager.set_relief_pressure(name, value)
         self.parameter_changed.emit(name, self.state_manager.get_relief_pressure(name))
+        self._update_hint_label()
 
     def _apply_units_to_knobs(self, units: str) -> None:
         base_units = DEFAULT_PNEUMATIC["pressure_units"]
@@ -195,3 +205,25 @@ class PressuresTab(QWidget):
             self.relief_safety_knob,
         ):
             knob.setUnits(units)
+        self._update_hint_label()
+
+    def _update_hint_label(self) -> None:
+        keys = (
+            "cv_atmo_dp",
+            "cv_tank_dp",
+            "relief_min_pressure",
+            "relief_stiff_pressure",
+            "relief_safety_pressure",
+        )
+        hints: list[str] = []
+        for key in keys:
+            hint = self.state_manager.get_hint(key)
+            if hint:
+                hints.append(hint)
+        if hints:
+            message = "\n".join(dict.fromkeys(hints))
+            self.hint_label.setText(message)
+            self.hint_label.setVisible(True)
+        else:
+            self.hint_label.clear()
+            self.hint_label.setVisible(False)

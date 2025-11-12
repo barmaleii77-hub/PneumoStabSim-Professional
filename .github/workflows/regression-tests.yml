@@ -5,6 +5,8 @@ on:
     branches:
       - develop
       - main
+      - 'feature/*'
+      - 'feature/hdr-assets-migration'
     paths:
       - "src/**"
       - "tests/**"
@@ -12,6 +14,11 @@ on:
       - "config/schemas/**"
       - ".github/workflows/regression-tests.yml"
   pull_request:
+    branches:
+      - develop
+      - main
+      - 'feature/*'
+      - 'feature/hdr-assets-migration'
     paths:
       - "src/**"
       - "tests/**"
@@ -21,6 +28,14 @@ on:
 jobs:
   regression:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+      QT_QUICK_BACKEND: software
+      QSG_RHI_BACKEND: opengl
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      MESA_GL_VERSION_OVERRIDE: "4.1"
+      MESA_GLSL_VERSION_OVERRIDE: "410"
+      PSS_ENV_PRESET: trace
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
@@ -31,6 +46,18 @@ jobs:
       - name: Sync environment
         run: uv sync --frozen --extra dev
 
+      - name: Ensure PySide6 runtime packages
+        run: |
+          uv run python -m pip install --upgrade --no-cache-dir \
+            "PySide6==6.10.*" \
+            "PySide6-Addons==6.10.*" \
+            "PySide6-Essentials==6.10.*" \
+            "shiboken6==6.10.*" \
+            numpy \
+            pytest-qt \
+            "PyOpenGL==3.1.10" \
+            "PyOpenGL-accelerate==3.1.10"
+
       - name: Install headless Qt Quick dependencies
         run: |
           sudo add-apt-repository -y universe
@@ -39,9 +66,13 @@ jobs:
           # Packages are installed conditionally; unavailable entries are skipped.
           pkgs=(
             xvfb xauth mesa-utils mesa-utils-extra libosmesa6
-            libgl1-mesa-dri libglu1-mesa
+            libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev
+            libegl1 libegl1-mesa-dev libgles2-mesa-dev
             libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
-            libgl1-mesa-glx libegl1-mesa libgles2-mesa
+            libosmesa6-dev libgbm1 libdrm2
+            libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0
+            mesa-vulkan-drivers vulkan-tools
+            qt6-shader-baker
           )
 
           to_install=()
@@ -58,6 +89,9 @@ jobs:
           else
             echo "No packages available for installation"
           fi
+
+      - name: Run final readiness test
+        run: bash scripts/xvfb_wrapper.sh uv run python final_readiness_test.py
 
       - name: Run pytest suite
         run: bash scripts/xvfb_wrapper.sh uv run pytest --maxfail=1

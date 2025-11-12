@@ -59,3 +59,29 @@ def test_pneumo_panel_emits_simulation_payload(
 
     # ensure additional pneumatic metadata (e.g. pressure units) travels along
     assert "pressure_units" in payload
+
+
+@pytest.mark.gui
+def test_pneumo_panel_get_parameters_tracks_state(
+    qtbot: pytestqt.qtbot.QtBot,
+) -> None:
+    panel = PneumoPanel()
+    qtbot.addWidget(panel)
+
+    qtbot.wait(200)
+
+    knob = panel.receiver_tab.manual_volume_knob
+    spinbox = knob.spinbox
+    spinbox.setValue(spinbox.value() + spinbox.singleStep())
+    qtbot.wait(250)
+
+    snapshot = panel.get_parameters()
+    assert snapshot["receiver_volume"] == pytest.approx(
+        panel.state_manager.get_manual_volume()
+    )
+
+    snapshot["receiver_volume"] = -1.0
+    refreshed = panel.get_parameters()
+    assert refreshed["receiver_volume"] == pytest.approx(
+        panel.state_manager.get_manual_volume()
+    )

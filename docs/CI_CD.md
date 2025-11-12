@@ -4,10 +4,11 @@
 [![Nightly](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/nightly.yml/badge.svg)](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/nightly.yml)
 [![Release](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/release.yml/badge.svg)](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/release.yml)
 
-Актуальная экосистема GitHub Actions состоит из трёх взаимодополняющих конвейеров:
+Актуальная экосистема GitHub Actions состоит из четырёх взаимодополняющих конвейеров:
 
-- `ci.yml` — проверяет каждый push и pull request в ветки `main` и `develop`, гарантируя прохождение агрегированного `make check` на Linux и Windows.
-- `nightly.yml` — ночной прогон (cron `0 3 * * *`) с расширенной матрицей и сбором метрик качества.
+- `ci.yml` — проверяет каждый push и pull request в ветки `main`, `develop` и `feature/*`, гарантируя прохождение агрегированного `make check` на Linux и Windows.
+- `nightly.yml` — ночной прогон (cron `0 3 * * *`) и реагирование на push в `main`, `develop`, `feature/*` с расширенной матрицей и сбором метрик качества.
+- `branch-audit.yml` — аудит устаревших веток по расписанию (`0 4 * * 1`) и при push в `main`, `develop`, `feature/*`; открывает/обновляет issue для веток без активности.
 - `release.yml` — ручные и теговые сборки релизных артефактов (пакеты PyInstaller/CX-Freeze + wheel/SDist) с опциональным GPG-подписанием.
 
 ## Детализация workflow
@@ -35,7 +36,17 @@
 | Дополнительные прогоны | `make autonomous-check`, `make smoke`, `make integration`. |
 | Метрики | После `make check` автоматически формируются coverage/test-duration метрики и обновляется `reports/quality/dashboard.csv`, которые выгружаются артефактами nightly. |
 
-Nightly служит источником исторических данных качества и позволяет отслеживать динамику покрытия и времени выполнения тестов.
+Nightly служит источником исторических данных качества и позволяет отслеживать динамику покрытия и времени выполнения тестов. Дополнительно workflow запускается при push в ветки `main`, `develop`, `feature/*`, чтобы команды видели результаты расширенной проверки до ночного окна.
+
+### Branch Audit (`.github/workflows/branch-audit.yml`)
+
+| Шаг | Содержание |
+| --- | --- |
+| Контейнер | `ghcr.io/github/gh-cli:2.48.0` с установленным `python3`.
+| Аудит | Скрипт проходит по списку веток репозитория, исключая защищённые (`main`, `develop`, `gh-pages`, `feature/*` и ветку по умолчанию), и собирает ветки без коммитов старше порога `THRESHOLD_DAYS` (по умолчанию 30).
+| Отчёт | Результаты выводятся в `GITHUB_STEP_SUMMARY`, а также публикуется предупреждение для каждой устаревшей ветки. При необходимости создаётся/обновляется issue с ярлыком `branch-audit`.
+
+Workflow запускается по cron `0 4 * * 1` и на каждый push в `main`, `develop`, `feature/*`, что ускоряет обнаружение устаревших веток после активной разработки.
 
 ### Release (`.github/workflows/release.yml`)
 
@@ -71,3 +82,4 @@ Nightly служит источником исторических данных 
 
 - **2025-02-26** — добавлен security-анализ (`bandit`), автоматическая публикация coverage/test-duration метрик и расширенная сборка релизов (wheel/SDist). Обновлены статус-бейджи и описание пайплайнов.
 - **2025-10-22** — переход на обновлённый `ci.yml`, единое кэширование и SLA для красных сборок.
+- **2025-11-11** — `nightly.yml` и `branch-audit.yml` теперь реагируют на push в `feature/*` (и основные ветки), чтобы вся команда получала ранние сигналы о регрессиях.

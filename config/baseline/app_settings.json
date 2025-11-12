@@ -483,7 +483,139 @@
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
-        "model_metalness": 0.82
+        "model_metalness": 0.82,
+        "suspension": {
+          "rod_warning_threshold_m": 0.001
+        }
+      },
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
+        }
       }
     },
     "animation": {
@@ -1395,7 +1527,139 @@
         "default_clear_color": "#1b1f27",
         "model_base_color": "#9da3aa",
         "model_roughness": 0.42,
-        "model_metalness": 0.82
+        "model_metalness": 0.82,
+        "suspension": {
+          "rod_warning_threshold_m": 0.001
+        }
+      },
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
+        }
       }
     },
     "animation": {
@@ -1844,7 +2108,7 @@
     }
   },
   "metadata": {
-    "version": "4.9.8",
+    "version": "5.0.0",
     "schema_version": "0.2.1",
     "last_modified": "2025-11-01T12:00:00Z",
     "units_version": "si_v2",
@@ -1861,6 +2125,140 @@
       "Все графические параметры управляются пользователем через UI: один параметр — один контрол без скрытых зависимостей.",
       "Сервис настроек не должен изменять файл при первой загрузке; сохранение происходит только по явному запросу пользователя."
     ],
+    "environment_slider_ranges": {
+      "ibl_intensity": {
+        "min": 0.0,
+        "max": 8.0,
+        "step": 0.05
+      },
+      "skybox_brightness": {
+        "min": 0.0,
+        "max": 8.0,
+        "step": 0.05
+      },
+      "probe_horizon": {
+        "min": -1.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "skybox_blur": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "ibl_rotation": {
+        "min": -1080.0,
+        "max": 1080.0,
+        "step": 1.0
+      },
+      "ibl_offset_x": {
+        "min": -180.0,
+        "max": 180.0,
+        "step": 1.0
+      },
+      "ibl_offset_y": {
+        "min": -180.0,
+        "max": 180.0,
+        "step": 1.0
+      },
+      "reflection_padding_m": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_density": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "fog_depth_near": {
+        "min": 0.0,
+        "max": 200.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_near": {
+        "min": 0.0,
+        "max": 200.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_depth_far": {
+        "min": 0.0,
+        "max": 500.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_far": {
+        "min": 0.0,
+        "max": 500.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_least_intense_y": {
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_most_intense_y": {
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_height_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "fog_depth_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "fog_transmit_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "ao_strength": {
+        "min": 0.0,
+        "max": 100.0,
+        "step": 1.0
+      },
+      "ao_radius": {
+        "min": 0.001,
+        "max": 0.1,
+        "step": 0.001,
+        "decimals": 3,
+        "units": "м"
+      },
+      "ao_bias": {
+        "min": 0.0,
+        "max": 0.1,
+        "step": 0.001,
+        "decimals": 3
+      },
+      "ao_softness": {
+        "min": 0.0,
+        "max": 50.0,
+        "step": 1.0
+      }
+    },
+    "scene_defaults": {
+      "suspension": {
+        "rod_warning_threshold_m": 0.001
+      }
+    },
     "legacy": {}
   }
 }

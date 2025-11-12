@@ -94,3 +94,34 @@ def test_graphics_panel_lighting_payload_hits_queue(
     assert category in RealBridge.describe_routes()
     assert "key" in payload and "brightness" in payload["key"]
     assert payload["key"]["brightness"] == pytest.approx(brightness.value())
+
+
+@pytest.mark.gui
+def test_graphics_panel_get_parameters_tracks_state(
+    qtbot: pytestqt.qtbot.QtBot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(signals_router, "QMLBridge", _BridgeStub)
+    _BridgeStub.invoke_calls.clear()
+    _BridgeStub.queue_calls.clear()
+    _BridgeStub.logs.clear()
+    _BridgeStub.invoke_result = False
+
+    panel = GraphicsPanel()
+    qtbot.addWidget(panel)
+
+    qtbot.wait(200)
+
+    brightness = panel.lighting_tab.get_controls()["key.brightness"]
+    brightness._spin.setValue(brightness._spin.value() + brightness._spin.singleStep())
+    qtbot.wait(250)
+
+    snapshot = panel.get_parameters()
+    assert snapshot["lighting"]["key"]["brightness"] == pytest.approx(
+        brightness.value()
+    )
+
+    snapshot["lighting"]["key"]["brightness"] = -123.0
+    refreshed = panel.get_parameters()
+    assert refreshed["lighting"]["key"]["brightness"] == pytest.approx(
+        brightness.value()
+    )

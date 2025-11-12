@@ -32,6 +32,7 @@ graph TD
 
 - `startLightingState`, `startQualityState`, `startCameraState`, `startMaterialsState`, `startEffectsState` — стартовые слепки панелей. 【F:src/ui/main_window.py†L228-L251】
 - Набор параметров окружения согласно `ENVIRONMENT_CONTEXT_PROPERTIES`: `startBackgroundMode`, `startBackgroundColor`, `startSkyboxEnabled`, `startIblEnabled`, `startIblIntensity`, `startSkyboxBrightness`, `startProbeHorizon`, `startIblRotation`, `startIblSource`, `startIblFallback`, `startSkyboxBlur`, `startIblOffsetX`, `startIblOffsetY`, `startIblBindToCamera`, `startFogEnabled`, `startFogColor`, `startFogDensity`, `startFogNear`, `startFogFar`, `startFogHeightEnabled`, `startFogLeastY`, `startFogMostY`, `startFogHeightCurve`, `startFogTransmitEnabled`, `startFogTransmitCurve`, `startAoEnabled`, `startAoStrength`, `startAoRadius`, `startAoSoftness`, `startAoDither`, `startAoSampleRate`. 【F:src/ui/environment_schema.py†L298-L335】【F:src/ui/main_window.py†L201-L245】
+- Настройки сцены дополняются секцией `scene.suspension`. Параметр `rod_warning_threshold_m` передаётся в `SimulationRoot.qml` и далее в `SuspensionAssembly.qml`, определяя порог выдачи предупреждений о длине штока. 【F:src/ui/main_window_pkg/ui_setup.py†L216-L287】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L1085-L1109】【F:assets/qml/scene/SuspensionAssembly.qml†L62-L409】
 
 Изменения: расширяя или переименовывая эти свойства, синхронизируйте `ENVIRONMENT_CONTEXT_PROPERTIES`, unit-тесты (`tests/unit/test_environment_schema.py`) и документацию; убедитесь, что QML использует новые имена.
 

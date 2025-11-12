@@ -52,7 +52,7 @@ removed immediately._
 - Audit cache: `.cache/hdr_assets/` now contains validated copies for offline
   development; CI consumes the same cache path when available.
 
-## ✅ Path Unification (v4.9.8)
+## ✅ Path Unification (v5.0.0)
 
 **All HDR paths are now normalized to `file://` URLs through centralized processing.**
 
@@ -90,6 +90,30 @@ removed immediately._
 
 **See also**: `docs/HDR_PATHS_UNIFIED.md`, `docs/HDR_PATHS_QUICK_START.md`
 
+### Discovery paths and UI warnings
+
+`GraphicsPanel` индексирует HDR/EXR файлы из трёх каталогов по умолчанию:
+
+1. `assets/hdr/` — основной каталог репозитория
+2. `assets/hdri/` — внешние наборы, поставляемые art-командой
+3. `assets/qml/assets/` — ассеты, расположенные рядом с QML-сценами
+
+Виджет `FileCyclerWidget` формирует выпадающий список с уникальными именами и
+подсвечивает отсутствующие файлы красным индикатором. При смене значения статус
+`⚠ файл не найден` отображается рядом с селектором и передаётся в tooltip. Это
+поведение реализовано в `EnvironmentTab._discover_hdr_files()` и
+`EnvironmentTab._refresh_hdr_status()` и покрыто модульными тестами
+`tests/unit/ui/test_hdr_discovery.py` и
+`tests/unit/ui/test_main_window_hdr_paths.py`.
+
+Функция `normalizeHdrPath()` в слое Python (`src/ui/main_window_pkg/_hdr_paths.py`)
+выстраивает последовательность кандидатных путей (`assets/qml/`, `assets/hdr/`,
+`assets/`, корень проекта) и возвращает `file://` URL только при успешном
+нахождении файла. Если ни один кандидат не найден, в лог попадает предупреждение
+`normalizeHdrPath: HDR asset not found (input=…, candidates=…)`, а в UI
+очищается поле пути, что немедленно сигнализирует о проблеме с размещением
+ассета.
+
 ## Installation workflow
 
 1. Download the required HDR files from the sources listed above.
@@ -97,6 +121,32 @@ removed immediately._
 3. Reference in settings using relative paths: `../hdr/filename.hdr`
 4. Let `normalizeHdrPath()` handle the rest automatically
 5. Commit the updated inventory table whenever new lighting profiles are added.
+
+## HDR dynamic range calibration
+
+- Bloom controls expose the HDR headroom directly inside the Effects tab. Use
+  the `HDR Maximum (glowHDRMaximumValue)` slider to clamp peak energy between
+  `0.0` and `10.0` (step `0.1`) and the `HDR Scale (glowHDRScale)` slider to
+  rescale incoming radiance between `1.0` and `5.0` (step `0.1`). The Python
+  panel serialises these values as `bloom_hdr_max` and `bloom_hdr_scale`, while
+  `SceneEnvironmentController.qml` applies them to the Qt Quick 3D scene.
+- When QA captures regression screenshots, log `bloom.hdr_max` and
+  `bloom.hdr_scale` events from `logs/graphics/session_*.jsonl` alongside the
+  HDR filename. This ensures bloom behaviour can be reproduced even after the
+  dynamic range sliders are retuned.
+
+## Texture persistence & recovery
+
+- HDR selections are persisted via the graphics settings payload.
+  `SettingsManager` normalises `ibl_source` paths before committing them to
+  `config/app_settings.json`, so a valid relative path (`../hdr/*.hdr`) will be
+  restored on the next launch even if the project moves to a different
+  workspace.
+- The `EnvironmentTab` reads the stored value, checks it against the discovered
+  HDR catalogue, and updates the UI status label. Missing files trigger the
+  fallback workflow (`normalizeHdrPath` warning + FileCyclerWidget indicator)
+  without clearing the persisted path, allowing texture packages to be restored
+  later without losing user preferences.
 
 ## Verification tooling
 

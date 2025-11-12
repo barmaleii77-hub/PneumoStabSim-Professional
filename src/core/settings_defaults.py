@@ -11,15 +11,37 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from src.ui.environment_schema import ENVIRONMENT_SLIDER_RANGE_DEFAULTS
 
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 BASELINE_SETTINGS_PATH = PROJECT_ROOT / "config" / "baseline" / "app_settings.json"
 _DEFAULT_UNITS_VERSION = "si_v2"
+
+
+def _serialise_environment_range_defaults() -> dict[str, dict[str, Any]]:
+    defaults: dict[str, dict[str, Any]] = {}
+    for key, definition in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items():
+        entry: dict[str, Any] = {
+            "min": definition.minimum,
+            "max": definition.maximum,
+            "step": definition.step,
+        }
+        if definition.decimals is not None:
+            entry["decimals"] = definition.decimals
+        if definition.unit is not None:
+            entry["units"] = definition.unit
+        defaults[key] = entry
+    return defaults
+
+
+_ENVIRONMENT_RANGE_DEFAULTS = _serialise_environment_range_defaults()
 
 
 def _timestamp() -> str:
@@ -45,6 +67,50 @@ def _empty_payload(*, seed: str = "generated") -> dict[str, Any]:
         "current": {},
         "defaults_snapshot": {},
     }
+
+
+def _merge_environment_range(existing: Any, default: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(existing, MutableMapping):
+        return dict(default)
+
+    merged = {key: value for key, value in existing.items() if value is not None}
+    for field, value in default.items():
+        merged.setdefault(field, value)
+    return merged
+
+
+def _ensure_environment_defaults(payload: MutableMapping[str, Any]) -> None:
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, MutableMapping):
+        metadata = {}
+        payload["metadata"] = metadata
+
+    slider_ranges = metadata.get("environment_slider_ranges")
+    if not isinstance(slider_ranges, MutableMapping):
+        slider_ranges = {}
+        metadata["environment_slider_ranges"] = slider_ranges
+
+    for key, default in _ENVIRONMENT_RANGE_DEFAULTS.items():
+        slider_ranges[key] = _merge_environment_range(slider_ranges.get(key), default)
+
+    for section_name in ("current", "defaults_snapshot"):
+        section = payload.get(section_name)
+        if not isinstance(section, MutableMapping):
+            section = {}
+            payload[section_name] = section
+
+        graphics = section.get("graphics")
+        if not isinstance(graphics, MutableMapping):
+            graphics = {}
+            section["graphics"] = graphics
+
+        ranges = graphics.get("environment_ranges")
+        if not isinstance(ranges, MutableMapping):
+            ranges = {}
+            graphics["environment_ranges"] = ranges
+
+        for key, default in _ENVIRONMENT_RANGE_DEFAULTS.items():
+            ranges[key] = _merge_environment_range(ranges.get(key), default)
 
 
 def load_default_settings_payload() -> dict[str, Any]:
@@ -102,5 +168,6 @@ def load_default_settings_payload() -> dict[str, Any]:
         if not isinstance(container, dict):
             payload[section] = {}
 
-    return payload
+    _ensure_environment_defaults(payload)
 
+    return payload

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any
 from collections.abc import Iterable, Mapping
+from math import isclose
 
 import numpy as np
 
@@ -15,17 +14,26 @@ def _as_tuple(values: Iterable[float]) -> tuple[float, ...]:
     return tuple(float(value) for value in values)
 
 
+def _within_tolerance(actual: float, expected: float, tolerance: float) -> bool:
+    """Return True when *actual* is within *tolerance* of *expected*."""
+
+    return isclose(actual, expected, rel_tol=0.0, abs_tol=tolerance)
+
+
 def evaluate_physics_case(case: Any) -> dict[str, Any]:
     """Compute derived quantities for a physics test case."""
 
     scene = case.scene
-    attachment_points = {
-        name: tuple(_as_tuple(coords))[:2]
-        for name, coords in scene.attachment_points.items()
-    }
+    attachment_points: dict[str, tuple[float, float]] = {}
+    for name, coords in scene.attachment_points.items():
+        values = _as_tuple(coords)
+        attachment_points[str(name)] = (values[0], values[1])
     state_name = next(iter(scene.state_vectors))
     state = np.asarray(scene.state_vectors[state_name], dtype=float)
-    axis = scene.axis_directions
+    axis: dict[str, tuple[float, ...]] = {
+        str(name): _as_tuple(direction)
+        for name, direction in scene.axis_directions.items()
+    }
 
     kinematics: dict[str, dict[str, Any]] = {}
     for wheel in attachment_points:
@@ -35,12 +43,14 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
 
     pneumatic = scene.pneumatic
 
+    defaults = forces.get_default_suspension_params()
+
     cylinder_forces = {
         wheel: forces.compute_cylinder_force(
             payload["head"],
             payload["rod"],
-            forces.DEFAULT_SUSPENSION_PARAMS["A_head"],
-            forces.DEFAULT_SUSPENSION_PARAMS["A_rod"],
+            defaults["A_head"],
+            defaults["A_rod"],
         )
         for wheel, payload in pneumatic["pressures"].items()
     }
@@ -49,7 +59,7 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
         wheel: forces.compute_spring_force(
             payload["current"],
             payload["rest"],
-            forces.DEFAULT_SUSPENSION_PARAMS["k_spring"],
+            defaults["k_spring"],
         )
         for wheel, payload in pneumatic["springs"].items()
     }
@@ -57,8 +67,8 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
     damper_forces = {
         wheel: forces.compute_damper_force(
             kinematics[wheel]["axial_velocity"],
-            forces.DEFAULT_SUSPENSION_PARAMS["c_damper"],
-            forces.DEFAULT_SUSPENSION_PARAMS["F_damper_min"],
+            defaults["c_damper"],
+            defaults["F_damper_min"],
         )
         for wheel in pneumatic["dampers"].keys()
     }
@@ -78,7 +88,8 @@ def evaluate_physics_case(case: Any) -> dict[str, Any]:
     )
 
     vertical_forces = {
-        wheel: float(value) for wheel, value in zip(attachment_points, vertical_array)
+        wheel: float(value)
+        for wheel, value in zip(attachment_points, vertical_array, strict=True)
     }
 
     return {
@@ -104,6 +115,12 @@ class AssertionResult:
     passed: bool
 
 
+def _within_tolerance(actual: float, expected: float, tolerance: float) -> bool:
+    """Return ``True`` if *actual* is within *tolerance* of *expected*."""
+
+    return math.isclose(actual, expected, abs_tol=tolerance)
+
+
 def summarise_assertions(
     case: Any, evaluation: Mapping[str, Any]
 ) -> list[AssertionResult]:
@@ -113,42 +130,62 @@ def summarise_assertions(
     tau_x = evaluation["moments"]["tau_x"]
     tau_z = evaluation["moments"]["tau_z"]
 
+    scalar_extractors: Mapping[str, Callable[[Any], float]] = {
+        "axis-velocity": lambda data: float(
+            evaluation["kinematics"][data.target]["axial_velocity"]
+        ),
+        "cylinder-force": lambda data: float(
+            evaluation["cylinder_forces"][data.target]
+        ),
+        "spring-force": lambda data: float(evaluation["spring_forces"][data.target]),
+        "damper-force": lambda data: float(evaluation["damper_forces"][data.target]),
+    }
+
     for assertion in case.assertions:
         expected = assertion.expected
         tolerance = float(assertion.tolerance)
-        if assertion.kind == "axis-velocity":
-            actual = float(evaluation["kinematics"][assertion.target]["axial_velocity"])
-        elif assertion.kind == "cylinder-force":
-            actual = float(evaluation["cylinder_forces"][assertion.target])
-        elif assertion.kind == "spring-force":
-            actual = float(evaluation["spring_forces"][assertion.target])
-        elif assertion.kind == "damper-force":
-            actual = float(evaluation["damper_forces"][assertion.target])
-        elif assertion.kind == "vertical-force":
-            actual = evaluation["vertical_forces"]
-        elif assertion.kind == "moment":
-            actual = {"tau_x": tau_x, "tau_z": tau_z}
-        else:
-            actual = None
+        actual: Any
+        passed: bool
 
-        if assertion.kind in {
-            "axis-velocity",
-            "cylinder-force",
-            "spring-force",
-            "damper-force",
-        }:
-            passed = abs(actual - float(expected)) <= tolerance
-        elif assertion.kind == "vertical-force":
-            passed = all(
-                abs(actual[k] - float(v)) <= tolerance for k, v in expected.items()
+        if assertion.kind == "axis-velocity":
+            actual_value = float(
+                evaluation["kinematics"][assertion.target]["axial_velocity"]
             )
+            actual = actual_value
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
+        elif assertion.kind == "cylinder-force":
+            actual_value = float(evaluation["cylinder_forces"][assertion.target])
+            actual = actual_value
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
+        elif assertion.kind == "spring-force":
+            actual_value = float(evaluation["spring_forces"][assertion.target])
+            actual = actual_value
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
+        elif assertion.kind == "damper-force":
+            actual_value = float(evaluation["damper_forces"][assertion.target])
+            actual = actual_value
+            passed = _within_tolerance(actual_value, float(expected), tolerance)
+        elif assertion.kind == "vertical-force":
+            actual_map = {
+                wheel: float(force)
+                for wheel, force in evaluation["vertical_forces"].items()
+            }
+            actual = actual_map
+            expected_map = {k: float(v) for k, v in expected.items()}
+            passed = all(
+                abs(actual_map[k] - expected_map[k]) <= tolerance for k in expected_map
+            )
+            passed = all(differences)
         elif assertion.kind == "moment":
-            passed = (
-                abs(actual["tau_x"] - float(expected["tau_x"])) <= tolerance
-                and abs(actual["tau_z"] - float(expected["tau_z"])) <= tolerance
+            actual_map = {"tau_x": float(tau_x), "tau_z": float(tau_z)}
+            actual = actual_map
+            expected_map = {k: float(v) for k, v in expected.items()}
+            passed = all(
+                _within_tolerance(actual_map[key], expected_map[key], tolerance)
+                for key in expected_map
             )
         else:
-            passed = False
+            raise ValueError(f"Unsupported assertion kind: {assertion.kind}")
 
         results.append(
             AssertionResult(

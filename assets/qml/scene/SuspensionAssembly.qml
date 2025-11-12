@@ -67,6 +67,7 @@ Node {
     // ------------------------------------------------------------------
     property real sceneScaleFactor: 1.0
     property real rodWarningThreshold: 0.001
+    readonly property real effectiveRodWarningThreshold: Math.max(0.0, rodWarningThreshold)
 
     // ------------------------------------------------------------------
     // Flow telemetry (SceneBridge)
@@ -96,7 +97,7 @@ Node {
     // ------------------------------------------------------------------
     // Reflection probe configuration
     // ------------------------------------------------------------------
-    property bool reflectionProbeEnabled: true
+    required property bool reflectionProbeEnabled
     // Padding stored in metres; SimulationRoot provides SI values.
     property real reflectionProbePaddingM: 0.15
     property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
@@ -268,6 +269,32 @@ Node {
         quality: assembly.reflectionProbeQualityValue
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
+        property bool __enabledWarningIssued: false
+
+        function syncEnabledState() {
+            const desired = !!assembly.reflectionProbeEnabled
+            var applied = false
+            try {
+                if (mainReflectionProbe.setProperty !== undefined) {
+                    var result = mainReflectionProbe.setProperty("enabled", desired)
+                    if (result === undefined || result)
+                        applied = true
+                }
+            } catch (error) {
+                console.warn("[SuspensionAssembly] ReflectionProbe.setProperty('enabled') failed", error)
+            }
+            if (!applied && mainReflectionProbe.enabled !== undefined) {
+                mainReflectionProbe.enabled = desired
+                applied = true
+            }
+            if (!applied && !mainReflectionProbe.__enabledWarningIssued) {
+                console.warn("[SuspensionAssembly] ReflectionProbe.enabled property unavailable; relying on visibility toggle")
+                mainReflectionProbe.__enabledWarningIssued = true
+            }
+        }
+
+        Component.onCompleted: syncEnabledState()
+
         position: {
             const beam = Math.max(assembly.geometryValue("beamSize"), 0)
             const frameHeight = Math.max(assembly.geometryValue("frameHeight"), 0)
@@ -283,6 +310,13 @@ Node {
                         Math.max(1.0, assembly.toSceneLength(track + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameHeight + beam + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameLength + padding)))
+        }
+    }
+
+    Connections {
+        target: assembly
+        function onReflectionProbeEnabledChanged() {
+            mainReflectionProbe.syncEnabledState()
         }
     }
 
@@ -313,7 +347,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: flCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: flCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 
@@ -344,7 +378,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: frCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: frCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 
@@ -375,7 +409,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: rlCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: rlCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 
@@ -406,7 +440,7 @@ Node {
             materialsDefaults: assembly.materialsDefaults
             okColor: assembly.sharedMaterials.jointRodOkColor
             warningColor: assembly.sharedMaterials.jointRodErrorColor
-            warning: rrCorner.rodLengthError > assembly.rodWarningThreshold
+            warning: rrCorner.rodLengthError > assembly.effectiveRodWarningThreshold
         }
     }
 

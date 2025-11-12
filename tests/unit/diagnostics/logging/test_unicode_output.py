@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import structlog
 
@@ -19,6 +20,27 @@ def _extract_payload(raw: str) -> dict[str, object]:
     return json.loads(raw[start:])
 
 
+def _extract_structlog_output(caplog: Any, capsys: Any) -> tuple[str, dict[str, Any]]:
+    for record in caplog.records:
+        message = getattr(record, "message", None) or record.getMessage()
+        if isinstance(message, dict):
+            serialised = json.dumps(message, ensure_ascii=False)
+            return serialised, message
+        if isinstance(message, str) and message.strip():
+            try:
+                return message, _extract_payload(message)
+            except AssertionError:
+                continue
+    captured = capsys.readouterr()
+    for stream in (captured.err, captured.out):
+        if stream.strip():
+            try:
+                return stream, _extract_payload(stream)
+            except AssertionError:
+                continue
+    raise AssertionError("No structured log output captured")
+
+
 def test_unicode_roundtrip_in_console_logs(
     structlog_logger_config, capsys, caplog
 ) -> None:
@@ -31,18 +53,13 @@ def test_unicode_roundtrip_in_console_logs(
     logger = structlog_logger_config.build()
     logger.info("unicode-event", message="привет", emoji="✨", panel="графика")
 
-    if caplog.records:
-        raw_message = caplog.messages[0]
-    else:
-        captured = capsys.readouterr()
-        raw_message = (captured.err or captured.out).strip()
+    raw_message, payload = _extract_structlog_output(caplog, capsys)
 
-    assert raw_message, "expected log output"
     assert "привет" in raw_message
     assert "✨" in raw_message
     assert "графика" in raw_message
 
-    payload = _extract_payload(raw_message)
+    assert payload["event"] == "unicode-event"
     assert payload["message"] == "привет"
     assert payload["emoji"] == "✨"
     assert payload["panel"] == "графика"

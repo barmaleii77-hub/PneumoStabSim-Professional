@@ -65,6 +65,7 @@ def _scene_payload() -> dict[str, Any]:
         "model_base_color": "#123456",
         "model_roughness": 0.35,
         "model_metalness": 0.8,
+        "suspension": {"rod_warning_threshold_m": 0.0015},
     }
 
 

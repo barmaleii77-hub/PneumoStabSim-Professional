@@ -28,6 +28,12 @@ from PySide6.QtGui import QFont
 from ..widgets import RangeSlider
 from config.constants import get_geometry_presets, get_geometry_ui_ranges
 from src.common.settings_manager import get_settings_manager
+from src.ui.geometry_schema import (
+    GeometrySettings,
+    GeometryValidationError,
+    validate_geometry_settings,
+)
+from src.ui.panels.geometry.defaults import DEFAULT_GEOMETRY
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,28 @@ class GeometryPreset:
     key: str
     label: str
     values: dict[str, float]
+
+
+try:
+    _VALIDATED_FIELD_NAMES = frozenset(
+        validate_geometry_settings(DEFAULT_GEOMETRY).to_config_dict().keys()
+    )
+except GeometryValidationError:  # pragma: no cover - defensive guardrail
+    _VALIDATED_FIELD_NAMES = frozenset(DEFAULT_GEOMETRY.keys())
+
+
+def _build_geometry_settings(snapshot: Mapping[str, Any], logger) -> GeometrySettings:
+    """Validate the snapshot collected from the legacy widgets."""
+
+    try:
+        return validate_geometry_settings(snapshot)
+    except GeometryValidationError as exc:
+        logger.warning("Geometry settings validation failed, using fallback: %s", exc)
+        fallback_payload = {
+            key: snapshot.get(key, DEFAULT_GEOMETRY.get(key))
+            for key in _VALIDATED_FIELD_NAMES
+        }
+        return GeometrySettings(fallback_payload)
 
 
 class GeometryPanel(QWidget):
@@ -552,14 +580,7 @@ class GeometryPanel(QWidget):
         except Exception as e:
             self.logger.error(f"Save geometry as defaults failed: {e}")
 
-    def collect_state(self) -> dict:
-        state = self.parameters.copy()
-        state["active_preset"] = self._active_preset
-        return state
-
-    def get_parameters(self) -> dict[str, Any]:
-        """Return the current geometry configuration as reflected by the UI."""
-
+    def _collect_ui_snapshot(self) -> dict[str, Any]:
         snapshot: dict[str, Any] = dict(self.parameters)
         slider_map = {
             "wheelbase": self.wheelbase_slider,
@@ -582,6 +603,23 @@ class GeometryPanel(QWidget):
         snapshot["interference_check"] = bool(self.interference_check.isChecked())
         snapshot["link_rod_diameters"] = bool(self.link_rod_diameters.isChecked())
         snapshot["active_preset"] = self._active_preset
+        return snapshot
+
+    def collect_state(self) -> dict:
+        return self._collect_ui_snapshot()
+
+    def get_geometry_settings(self) -> GeometrySettings:
+        """Return the validated geometry snapshot for legacy panels."""
+
+        snapshot = self._collect_ui_snapshot()
+        return _build_geometry_settings(snapshot, self.logger)
+
+    def get_parameters(self) -> dict[str, Any]:
+        """Return the current geometry configuration as reflected by the UI."""
+
+        snapshot = self._collect_ui_snapshot()
+        settings = self.get_geometry_settings()
+        snapshot.update(settings.to_config_dict())
         return snapshot
 
     @Slot(str, float)

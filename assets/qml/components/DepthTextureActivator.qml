@@ -7,6 +7,58 @@ QtObject {
 
     property bool _missingViewLogged: false
     property bool _apiUnavailableLogged: false
+    property var _propertyPresenceCache: new Map()
+    property var _diagnosticDedup: ({})
+    // Guard rails for Qt 6.10+: deprecated toggles such as explicitDepthTextureEnabled
+    // no longer exist and must never be invoked. Keeping the list centralised allows
+    // runtime to skip them while leaving a breadcrumb for diagnostics.
+    readonly property var _legacyDepthProperties: [
+        "explicitDepthTextureEnabled",
+        "explicitVelocityTextureEnabled",
+        "requiresDepthTexture",
+        "requiresVelocityTexture"
+    ]
+
+    function _clearPropertyCache() {
+        if (_propertyPresenceCache && typeof _propertyPresenceCache.clear === "function")
+            _propertyPresenceCache.clear()
+    }
+
+    function _readCachedPresence(target, propertyName) {
+        if (!_propertyPresenceCache || !_propertyPresenceCache.has(target))
+            return undefined
+        var cacheEntry = _propertyPresenceCache.get(target)
+        if (!cacheEntry)
+            return undefined
+        if (Object.prototype.hasOwnProperty.call(cacheEntry, propertyName))
+            return cacheEntry[propertyName]
+        return undefined
+    }
+
+    function _cachePresenceResult(target, propertyName, available) {
+        if (!_propertyPresenceCache)
+            _propertyPresenceCache = new Map()
+        var cacheEntry = _propertyPresenceCache.get(target)
+        if (!cacheEntry) {
+            cacheEntry = {}
+            _propertyPresenceCache.set(target, cacheEntry)
+        }
+        cacheEntry[propertyName] = available
+        return available
+    }
+
+    function _logDebugOnce(kind, propertyName, error) {
+        var identifier = kind + "::" + (propertyName || "<unknown>") + "::" + String(error)
+        if (_diagnosticDedup && _diagnosticDedup[identifier])
+            return
+        if (!_diagnosticDedup)
+            _diagnosticDedup = {}
+        _diagnosticDedup[identifier] = true
+        if (propertyName)
+            console.debug("DepthTextureActivator:", kind, propertyName, error)
+        else
+            console.debug("DepthTextureActivator:", kind, error)
+    }
 
     function activate(view3d) {
         if (!view3d) {
@@ -16,6 +68,8 @@ QtObject {
             }
             return false
         }
+
+        _clearPropertyCache()
 
         console.log("🔍 DepthTextureActivator: Activating depth/velocity textures for View3D")
 
@@ -201,17 +255,25 @@ QtObject {
     function _hasProperty(target, propertyName) {
         if (!target || !propertyName)
             return false
+        var cached = _readCachedPresence(target, propertyName)
+        if (cached !== undefined)
+            return cached
         try {
-            return propertyName in target
+            return _cachePresenceResult(target, propertyName, propertyName in target)
         } catch (error) {
-            console.debug("DepthTextureActivator: property presence check failed", propertyName, error)
+            _logDebugOnce("property presence check failed", propertyName, error)
         }
-        return false
+        return _cachePresenceResult(target, propertyName, false)
     }
 
     function _trySetProperty(target, propertyName, value) {
         if (!target || !propertyName)
             return false
+
+        if (_legacyDepthProperties.indexOf(propertyName) !== -1) {
+            _logDebugOnce("legacy property skipped", propertyName, "unsupported depth toggle")
+            return false
+        }
 
         if (!_hasProperty(target, propertyName))
             return false
@@ -224,27 +286,29 @@ QtObject {
             if (target[propertyName] === value)
                 return true
         } catch (error) {
-            console.debug("DepthTextureActivator: failed to read", propertyName, error)
+            _logDebugOnce("failed to read", propertyName, error)
         }
 
         try {
             target[propertyName] = value
             if (target[propertyName] === value) {
                 logSuccess()
+                _cachePresenceResult(target, propertyName, true)
                 return true
             }
         } catch (error) {
-            console.debug("DepthTextureActivator: failed direct set", propertyName, "->", value, error)
+            _logDebugOnce("failed direct set" + " -> " + value, propertyName, error)
         }
 
         // qmllint disable missing-property
         try {
             if (typeof target.setProperty === "function" && target.setProperty(propertyName, value)) {
                 logSuccess()
+                _cachePresenceResult(target, propertyName, true)
                 return true
             }
         } catch (error) {
-            console.debug("DepthTextureActivator: setProperty fallback failed", propertyName, error)
+            _logDebugOnce("setProperty fallback failed", propertyName, error)
         }
         // qmllint enable missing-property
 
@@ -261,14 +325,14 @@ QtObject {
         try {
             return target[propertyName]
         } catch (error) {
-            console.debug("DepthTextureActivator: failed to read", propertyName, error)
+            _logDebugOnce("failed to read", propertyName, error)
         }
         // qmllint disable missing-property
         try {
             if (typeof target.property === "function")
                 return target.property(propertyName)
         } catch (error) {
-            console.debug("DepthTextureActivator: QObject property lookup failed", propertyName, error)
+            _logDebugOnce("QObject property lookup failed", propertyName, error)
         }
         // qmllint enable missing-property
         return undefined
@@ -278,7 +342,7 @@ QtObject {
         try {
             return readFn()
         } catch (error) {
-            console.debug("DepthTextureActivator: safe read failed", error)
+            _logDebugOnce("safe read failed", "", error)
             return null
         }
     }

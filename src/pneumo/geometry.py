@@ -67,9 +67,69 @@ class LeverGeom:
     _displacement_blend: float | None = field(default=None, init=False, repr=False)
     _min_effective_angle: float | None = field(default=None, init=False, repr=False)
     _min_angle_active: bool = field(default=False, init=False, repr=False)
+    _tail_point: tuple[float, float, float] | None = field(
+        default=None, init=False, repr=False
+    )
+    _neutral_joint_point: tuple[float, float, float] | None = field(
+        default=None, init=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         self._validate_parameters()
+
+    @property
+    def cylinder_geom(self) -> "CylinderGeom | None":
+        """Return the currently attached cylinder geometry if present."""
+
+        return self._cylinder_geom
+
+    @property
+    def neutral_length(self) -> float | None:
+        """Return the neutral rod length computed from the attached cylinder."""
+
+        return self._neutral_length
+
+    @property
+    def axis_unit(self) -> tuple[float, float, float] | None:
+        """Return unit vector of the cylinder axis in lever coordinates."""
+
+        return self._axis_unit
+
+    @property
+    def displacement_blend(self) -> float | None:
+        """Return blending coefficient between simple and axial displacement models."""
+
+        return self._displacement_blend
+
+    @property
+    def min_effective_angle(self) -> float | None:
+        """Return minimum effective angle used to model slack behaviour."""
+
+        return self._min_effective_angle
+
+    @property
+    def min_angle_active(self) -> bool:
+        """Return whether the minimum effective angle clamp is active."""
+
+        return self._min_angle_active
+
+    @min_angle_active.setter
+    def min_angle_active(self, value: bool) -> None:
+        """Enable or disable the minimum effective angle clamp."""
+
+        self._min_angle_active = bool(value)
+
+    @property
+    def tail_point(self) -> tuple[float, float, float] | None:
+        """Return the cached cylinder tail point in lever coordinates."""
+
+        return self._tail_point
+
+    @property
+    def neutral_joint_point(self) -> tuple[float, float, float] | None:
+        """Return the cached neutral joint location in lever coordinates."""
+
+        return self._neutral_joint_point
 
     def _validate_parameters(self) -> None:
         """Проверить параметры рычага."""
@@ -120,6 +180,9 @@ class LeverGeom:
         lever_arm = self.rod_joint_frac * self.L_lever
         tail_point = (0.0, geometry.Y_tail, geometry.Z_axle)
         neutral_joint = (0.0, lever_arm, geometry.Z_axle)
+
+        self._tail_point = tail_point
+        self._neutral_joint_point = neutral_joint
 
         axis_vec = (
             neutral_joint[0] - tail_point[0],

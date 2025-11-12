@@ -4,6 +4,7 @@ Graphics panel - lighting configuration tab
 """
 
 import copy
+import math
 from collections.abc import Mapping
 from typing import Any
 
@@ -26,12 +27,29 @@ from src.common.settings_manager import get_settings_manager
 from src.common.logging_widgets import LoggingCheckBox
 
 
+_POINT_ATTENUATION_MIN = 0.0
+_POINT_ATTENUATION_MAX = 10.0
+_POINT_ATTENUATION_STEP = 0.01
+
 # Значения соответствуют движковым настройкам в assets/qml/lighting/PointLights.qml
-_POINT_ATTENUATION_DEFAULTS: dict[str, float] = {
+_POINT_ATTENUATION_DEFAULTS: dict[str, float | None] = {
     "constant_fade": 1.0,
-    "linear_fade": 0.01,
+    "linear_fade": None,
     "quadratic_fade": 1.0,
 }
+
+
+def _quantize_attenuation(value: float) -> float:
+    """Clamp attenuation to slider bounds and quantise to slider steps."""
+
+    if not math.isfinite(value):
+        value = _POINT_ATTENUATION_MIN
+
+    clamped = max(_POINT_ATTENUATION_MIN, min(_POINT_ATTENUATION_MAX, value))
+    steps = round((clamped - _POINT_ATTENUATION_MIN) / _POINT_ATTENUATION_STEP)
+    quantised = _POINT_ATTENUATION_MIN + steps * _POINT_ATTENUATION_STEP
+    # Round to a stable number of decimals to avoid floating point noise
+    return round(quantised, 6)
 
 
 class LightingTab(QWidget):
@@ -48,7 +66,12 @@ class LightingTab(QWidget):
         # ✅ НОВОЕ: State из SettingsManager
         settings_manager = get_settings_manager()
         graphics_settings = settings_manager.get_category("graphics")
-        self._state = copy.deepcopy(graphics_settings.get("lighting", {}))
+        lighting_settings = graphics_settings.get("lighting", {})
+        if isinstance(lighting_settings, Mapping):
+            self._defaults: dict[str, Any] = copy.deepcopy(lighting_settings)
+        else:
+            self._defaults = {}
+        self._state = copy.deepcopy(self._defaults)
 
         self._setup_ui()
         # Применяем состояние сразу, чтобы слайдеры отображали корректные
@@ -415,7 +438,13 @@ class LightingTab(QWidget):
         grid.addWidget(range_slider, row, 0, 1, 2)
         row += 1
 
-        cfade = LabeledSlider("Constant Fade", 0.0, 10.0, 0.01, decimals=2)
+        cfade = LabeledSlider(
+            "Constant Fade",
+            _POINT_ATTENUATION_MIN,
+            _POINT_ATTENUATION_MAX,
+            _POINT_ATTENUATION_STEP,
+            decimals=2,
+        )
         cfade.valueChanged.connect(
             lambda v: self._update_lighting("point", "constant_fade", v)
         )
@@ -423,7 +452,13 @@ class LightingTab(QWidget):
         grid.addWidget(cfade, row, 0, 1, 2)
         row += 1
 
-        lfade = LabeledSlider("Linear Fade", 0.0, 10.0, 0.01, decimals=2)
+        lfade = LabeledSlider(
+            "Linear Fade",
+            _POINT_ATTENUATION_MIN,
+            _POINT_ATTENUATION_MAX,
+            _POINT_ATTENUATION_STEP,
+            decimals=2,
+        )
         lfade.valueChanged.connect(
             lambda v: self._update_lighting("point", "linear_fade", v)
         )
@@ -431,7 +466,13 @@ class LightingTab(QWidget):
         grid.addWidget(lfade, row, 0, 1, 2)
         row += 1
 
-        qfade = LabeledSlider("Quadratic Fade", 0.0, 10.0, 0.01, decimals=2)
+        qfade = LabeledSlider(
+            "Quadratic Fade",
+            _POINT_ATTENUATION_MIN,
+            _POINT_ATTENUATION_MAX,
+            _POINT_ATTENUATION_STEP,
+            decimals=2,
+        )
         qfade.valueChanged.connect(
             lambda v: self._update_lighting("point", "quadratic_fade", v)
         )
@@ -768,13 +809,15 @@ class LightingTab(QWidget):
         if not isinstance(point, Mapping):
             point = {}
         point_with_defaults: dict[str, float] = {}
+        linear_default = self._compute_point_linear_default(point)
         for key, default in _POINT_ATTENUATION_DEFAULTS.items():
-            raw_value = point.get(key) if isinstance(point, Mapping) else None
-            try:
-                numeric = float(raw_value)
-            except (TypeError, ValueError):
-                numeric = default
-            point_with_defaults[key] = numeric
+            effective_default = (
+                linear_default if key == "linear_fade" else float(default or 0.0)
+            )
+            point_with_defaults[key] = self._coerce_attenuation_value(
+                point.get(key) if isinstance(point, Mapping) else None,
+                effective_default,
+            )
 
         if point_with_defaults:
             existing_point = dict(point) if isinstance(point, Mapping) else {}
@@ -782,6 +825,57 @@ class LightingTab(QWidget):
             merged["point"] = existing_point
 
         return merged
+
+    def _coerce_attenuation_value(self, raw_value: Any, default: float) -> float:
+        """Coerce UI-bound attenuation values to sane numeric defaults."""
+
+        numeric = default
+        if raw_value is not None:
+            try:
+                numeric = float(raw_value)
+            except (TypeError, ValueError):
+                numeric = default
+
+        if numeric <= 0.0:
+            numeric = default if default > 0.0 else _POINT_ATTENUATION_MIN
+
+        return _quantize_attenuation(numeric)
+
+    def _compute_point_linear_default(
+        self, point_state: Mapping[str, Any] | None
+    ) -> float:
+        """Calculate the engine's linear attenuation fallback based on range."""
+
+        range_value = self._resolve_point_range(point_state)
+        if range_value is None or range_value <= 0.0:
+            return _quantize_attenuation(_POINT_ATTENUATION_MIN)
+
+        return _quantize_attenuation(2.0 / range_value)
+
+    def _resolve_point_range(
+        self, point_state: Mapping[str, Any] | None
+    ) -> float | None:
+        """Return a positive range value from *point_state* or defaults."""
+
+        candidates: list[Any] = []
+        if isinstance(point_state, Mapping):
+            candidates.append(point_state.get("range"))
+
+        defaults_point = (
+            self._defaults.get("point") if isinstance(self._defaults, Mapping) else None
+        )
+        if isinstance(defaults_point, Mapping):
+            candidates.append(defaults_point.get("range"))
+
+        for candidate in candidates:
+            try:
+                numeric = float(candidate)
+            except (TypeError, ValueError):
+                continue
+            if numeric > 0.0:
+                return numeric
+
+        return None
 
     def set_state(self, state: Mapping[str, Any] | None) -> None:
         merged_state = self._merge_with_defaults(state)

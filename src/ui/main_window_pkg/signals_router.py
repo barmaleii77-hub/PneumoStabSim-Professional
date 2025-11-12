@@ -15,6 +15,7 @@ import sys
 from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 from collections.abc import Mapping
+from functools import partial
 
 from importlib import import_module, util
 
@@ -47,6 +48,11 @@ from ..panels.modes.defaults import (
 )
 from ..qml_bridge import register_qml_signals
 from .qml_bridge import QMLBridge
+from .validation import (
+    clamp_parameter_value,
+    normalise_mode_value,
+    sanitize_physics_payload,
+)
 
 
 def _make_preset_id(name: str, index: int) -> str:
@@ -99,6 +105,7 @@ class SignalsRouter:
         "hdr_source",
         "hdrSource",
     )
+    _HDR_ALIAS_OUTPUT = ("iblSource",)
     _DEBOUNCE_DELAYS_MS = {
         "environment": 150,
         "effects": 150,
@@ -119,22 +126,51 @@ class SignalsRouter:
         canonical representation.
         """
 
+        canonical_key = "ibl_source"
+        legacy_key = "iblSource"
+
         source_key: str | None = None
+        source_container: Mapping[str, Any] | None = None
         for candidate in SignalsRouter._HDR_SOURCE_KEYS:
             if candidate in params:
                 source_key = candidate
+                source_container = params
                 break
 
         if source_key is None:
+            nested_params_value = SignalsRouter._update_nested_ibl_source(params)
+            nested_payload_value = SignalsRouter._update_nested_ibl_source(env_payload)
+            canonical_nested = next(
+                (
+                    value
+                    for value in (
+                        nested_params_value,
+                        nested_payload_value,
+                    )
+                    if value not in (None, "")
+                ),
+                None,
+            )
+            if canonical_nested is not None:
+                params["ibl_source"] = canonical_nested
+                SignalsRouter._propagate_hdr_aliases(params, canonical_nested)
+                env_payload["ibl_source"] = canonical_nested
+                SignalsRouter._propagate_hdr_aliases(env_payload, canonical_nested)
             return SignalsRouter._apply_environment_aliases(params, env_payload)
 
-        raw_value = params.get(source_key)
+        # Извлекаем значение HDR источника по ключу, избегая сложной тернарной логики
+        if source_container is params and source_key is not None:
+            raw_value = source_container.get(source_key)
+        else:
+            raw_value = source_container.get(nested_source_key)
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
         allow_empty_selection = SignalsRouter._allow_empty_selection(
             raw_value, stripped_value
         )
         normalised_value = stripped_value
+
+        alias_values = SignalsRouter._collect_hdr_alias_values(params, env_payload)
 
         if not allow_empty_selection:
             if hasattr(window, "normalizeHdrPath"):
@@ -153,6 +189,26 @@ class SignalsRouter:
         else:
             normalised_value = ""
 
+        SignalsRouter._update_nested_ibl_source(params, normalised_value)
+        SignalsRouter._update_nested_ibl_source(env_payload, normalised_value)
+
+        conflicts = [
+            (alias, value)
+            for alias, value in alias_values.items()
+            if alias != source_key
+            and value is not None
+            and value != ""
+            and value != normalised_value
+        ]
+        if conflicts:
+            conflict_text = ", ".join(f"{alias}={value!r}" for alias, value in conflicts)
+            logger = getattr(window, "logger", SignalsRouter.logger)
+            logger.warning(
+                "Environment HDR aliases mismatch; canonical value %r will be used (%s)",
+                normalised_value,
+                conflict_text,
+            )
+
         filtered_params = {
             key: value
             for key, value in params.items()
@@ -161,6 +217,7 @@ class SignalsRouter:
         params.clear()
         params.update(filtered_params)
         params["ibl_source"] = normalised_value
+        SignalsRouter._propagate_hdr_aliases(params, normalised_value)
 
         updated_payload = {
             key: value
@@ -168,7 +225,53 @@ class SignalsRouter:
             if key not in SignalsRouter._HDR_SOURCE_KEYS
         }
         updated_payload["ibl_source"] = normalised_value
+        SignalsRouter._propagate_hdr_aliases(updated_payload, normalised_value)
         return SignalsRouter._apply_environment_aliases(params, updated_payload)
+
+    @staticmethod
+    def _collect_hdr_alias_values(
+        *sources: Mapping[str, Any]
+    ) -> dict[str, str | None]:
+        alias_values: dict[str, str | None] = {}
+        for source in sources:
+            if not isinstance(source, Mapping):
+                continue
+            for key in SignalsRouter._HDR_SOURCE_KEYS:
+                if key in source and key not in alias_values:
+                    value = source.get(key)
+                    if value is None:
+                        alias_values[key] = None
+                    else:
+                        alias_values[key] = str(value).strip()
+        return alias_values
+
+    @staticmethod
+    def _propagate_hdr_aliases(target: dict[str, Any], canonical_value: str) -> None:
+        for alias in SignalsRouter._HDR_ALIAS_OUTPUT:
+            target[alias] = canonical_value
+
+    @staticmethod
+    def _update_nested_ibl_source(
+        container: dict[str, Any], canonical_value: str | None = None
+    ) -> str | None:
+        nested = container.get("ibl")
+        if not isinstance(nested, Mapping):
+            return canonical_value
+        resolved = dict(nested)
+        if canonical_value is not None:
+            resolved["source"] = canonical_value
+        else:
+            existing = resolved.get("source")
+            if existing is None:
+                canonical_value = None
+            elif isinstance(existing, str):
+                canonical_value = existing.strip()
+                resolved["source"] = canonical_value
+            else:
+                canonical_value = str(existing).strip()
+                resolved["source"] = canonical_value
+        container["ibl"] = resolved
+        return canonical_value
 
     @staticmethod
     def _apply_environment_aliases(
@@ -722,9 +825,7 @@ class SignalsRouter:
         # Geometry panel
         if window.geometry_panel:
             window.geometry_panel.parameter_changed.connect(
-                lambda name, val: SignalsRouter.logger.debug(
-                    f"🔧 GeometryPanel: {name}={val}"
-                )
+                window._on_geometry_parameter_logged
             )
             window.geometry_panel.geometry_changed.connect(
                 window._on_geometry_changed_qml
@@ -733,33 +834,21 @@ class SignalsRouter:
 
         # Pneumo panel
         if window.pneumo_panel:
-            window.pneumo_panel.mode_changed.connect(
-                lambda mode_type, new_mode: SignalsRouter.logger.debug(
-                    f"🔧 Mode changed: {mode_type} -> {new_mode}"
-                )
-            )
+            window.pneumo_panel.mode_changed.connect(window._on_pneumo_mode_logged)
             window.pneumo_panel.parameter_changed.connect(
-                lambda name, value: SignalsRouter.logger.debug(
-                    f"🔧 Pneumo param: {name} = {value}"
-                )
+                window._on_pneumo_parameter_logged
             )
             window.pneumo_panel.receiver_volume_changed.connect(
-                lambda volume, mode: SignalsRouter.handle_receiver_volume_changed(
-                    window, volume, mode
-                )
+                window._on_pneumo_receiver_volume_changed
             )
             SignalsRouter.logger.info("✅ PneumoPanel signals connected")
 
         # Modes panel
         if window.modes_panel:
             window.modes_panel.simulation_control.connect(window._on_sim_control)
-            window.modes_panel.mode_changed.connect(
-                lambda mode_type, new_mode: SignalsRouter.logger.debug(
-                    f"🔧 Mode changed: {mode_type} -> {new_mode}"
-                )
-            )
+            window.modes_panel.mode_changed.connect(window._on_modes_mode_logged)
             window.modes_panel.parameter_changed.connect(
-                lambda n, v: SignalsRouter.logger.debug(f"🔧 Param: {n} = {v}")
+                window._on_modes_parameter_logged
             )
             window.modes_panel.animation_changed.connect(window._on_animation_changed)
             SignalsRouter.logger.info("✅ ModesPanel signals connected")
@@ -924,16 +1013,27 @@ class SignalsRouter:
             SignalsRouter._record_dispatched_payload(window, "environment", env_payload)
 
         reflection_updates = {}
+        reflection_settings_updates = {}
         if params.get("reflection_enabled") is not None:
             reflection_updates["enabled"] = bool(params["reflection_enabled"])
+            reflection_settings_updates["enabled"] = bool(params["reflection_enabled"])
         if params.get("reflection_padding_m") is not None:
             reflection_updates["padding"] = float(params["reflection_padding_m"])
+            reflection_settings_updates["padding_m"] = float(
+                params["reflection_padding_m"]
+            )
         if params.get("reflection_quality"):
-            reflection_updates["quality"] = str(params["reflection_quality"])
+            var_quality = str(params["reflection_quality"])
+            reflection_updates["quality"] = var_quality
+            reflection_settings_updates["quality"] = var_quality.lower()
         if params.get("reflection_refresh_mode"):
-            reflection_updates["refreshMode"] = str(params["reflection_refresh_mode"])
+            var_refresh = str(params["reflection_refresh_mode"])
+            reflection_updates["refreshMode"] = var_refresh
+            reflection_settings_updates["refresh_mode"] = var_refresh.lower()
         if params.get("reflection_time_slicing"):
-            reflection_updates["timeSlicing"] = str(params["reflection_time_slicing"])
+            var_slicing = str(params["reflection_time_slicing"])
+            reflection_updates["timeSlicing"] = var_slicing
+            reflection_settings_updates["time_slicing"] = var_slicing.lower()
 
         if reflection_updates:
             three_d_payload = {"reflectionProbe": reflection_updates}
@@ -1152,9 +1252,8 @@ class SignalsRouter:
             value = params.get(source_key)
             if value is None:
                 return
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
+            numeric = clamp_parameter_value(settings_key, value)
+            if numeric is None:
                 return
             settings_payload[settings_key] = numeric
             qml_payload[qml_key] = numeric
@@ -1326,8 +1425,11 @@ class SignalsRouter:
         if not mode_key:
             return
 
-        value = (new_mode or "").strip()
+        value = normalise_mode_value(mode_key, new_mode)
         if not value:
+            SignalsRouter.logger.debug(
+                "Ignored unsupported mode value: type=%s value=%s", mode_type, new_mode
+            )
             return
 
         modes_updates = {mode_key: value}
@@ -1352,26 +1454,7 @@ class SignalsRouter:
         if not isinstance(payload, Mapping):
             return
 
-        physics_updates: dict[str, Any] = {}
-        for key, default_value in DEFAULT_PHYSICS_OPTIONS.items():
-            if key not in payload:
-                continue
-
-            raw_value = payload[key]
-            if isinstance(default_value, bool):
-                physics_updates[key] = bool(raw_value)
-                continue
-
-            if isinstance(raw_value, bool):
-                numeric_value = float(default_value)
-            else:
-                try:
-                    numeric_value = float(raw_value)
-                except (TypeError, ValueError):
-                    numeric_value = float(default_value)
-
-            physics_updates[key] = numeric_value
-
+        physics_updates = sanitize_physics_payload(payload)
         if not physics_updates:
             return
 
@@ -1891,8 +1974,10 @@ class SignalsRouter:
             timer.setSingleShot(True)
             try:
                 timer.timeout.connect(
-                    lambda cat=category: SignalsRouter._flush_debounced_update(
-                        window, cat
+                    partial(
+                        SignalsRouter._flush_debounced_update,
+                        window,
+                        category,
                     )
                 )
             except Exception:
