@@ -1,4 +1,4 @@
-<#!
+<#
 .SYNOPSIS
     PneumoStabSim Professional — Windows dependency bootstrap.
 .DESCRIPTION
