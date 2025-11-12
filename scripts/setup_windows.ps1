@@ -19,8 +19,14 @@ function Write-Log {
 
 Write-Log "Ensuring Chocolatey dependencies"
 if (Get-Command choco -ErrorAction SilentlyContinue) {
-    choco install -y --no-progress vcredist140 visualstudio2022buildtools qt6-sdk || Write-Log "Chocolatey dependencies already installed"
-    choco install -y --no-progress make || Write-Log "GNU Make already installed"
+    choco install -y --no-progress vcredist140 visualstudio2022buildtools qt6-sdk
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "Chocolatey dependencies already installed or install failed (exit code $LASTEXITCODE)"
+    }
+    choco install -y --no-progress make
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "GNU Make already installed or install failed (exit code $LASTEXITCODE)"
+    }
 }
 else {
     Write-Log "Chocolatey not available; skipping system package installation"
