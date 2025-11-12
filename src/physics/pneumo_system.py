@@ -46,6 +46,9 @@ def _log_with_context(
 ) -> None:
     """Emit a structured log entry compatible with stdlib and structlog loggers."""
 
+    if logger is None:
+        return
+
     log_method: Any = getattr(logger, level, None)
     if log_method is None:
         return
@@ -187,7 +190,7 @@ class PneumaticSystem:
             _log_with_context(logger, level, message, fields)
 
         if line is None:
-            self._log_endpoint_issue(
+            _log_with_context(
                 logger,
                 "warning",
                 "Missing pneumatic line mapping for endpoint; using tank pressure.",
