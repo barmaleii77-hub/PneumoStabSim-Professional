@@ -86,7 +86,7 @@ def _make_hashable_context(
     normalized_items = [
         (key, _normalize_for_cache(value)) for key, value in context.items()
     ]
-    return tuple(sorted(normalized_items))
+    return tuple(sorted(normalized_items, key=lambda item: str(item[0])))
 
 
 class ContextualFilter(logging.Filter):
