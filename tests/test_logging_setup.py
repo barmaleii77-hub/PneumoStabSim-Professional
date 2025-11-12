@@ -55,7 +55,7 @@ def test_category_logger_accepts_unhashable_context(tmp_path: Path) -> None:
         cached_logger = logging_setup.get_category_logger("UI", duplicate_context)
 
         assert cached_logger is logger
-        assert len(logging_setup._logger_registry) == 1
+        assert logging_setup.get_logger_registry_size() == 1
     finally:
         logging_setup._cleanup_logging(app_name)
         logging.getLogger(app_name).handlers.clear()
