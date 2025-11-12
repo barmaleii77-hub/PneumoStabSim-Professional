@@ -31,7 +31,7 @@ def _normalize_for_cache(value: Any) -> Hashable:
         normalized = [
             (key, _normalize_for_cache(val)) for key, val in value.items()
         ]
-        return tuple(sorted(normalized, key=lambda item: item[0]))
+        return tuple(sorted(normalized, key=lambda item: (item[0], type(item[0]).__name__)))
     if isinstance(value, list | tuple):
         return tuple(_normalize_for_cache(item) for item in value)
     if isinstance(value, set | frozenset):
