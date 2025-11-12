@@ -47,6 +47,9 @@ jobs:
             requirements*.txt
             pyproject.toml
 
+      - name: Provision Windows Qt runtime
+        run: pwsh ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe"
+
       - name: Set up uv
         # Pin to astral-sh/setup-uv v3 from the official astral-sh repository.
         # Release notes: https://github.com/astral-sh/setup-uv/releases/tag/v3
