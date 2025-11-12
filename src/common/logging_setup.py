@@ -12,8 +12,8 @@ import sys
 import os
 import platform
 from pathlib import Path
-from typing import Any, Hashable, cast
-from collections.abc import Mapping
+from typing import Any
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 import traceback
 
@@ -104,6 +104,34 @@ class ContextualFilter(logging.Filter):
         return True
 
 
+def _make_hashable(value: Any) -> Any:
+    """Convert arbitrary values into a hashable representation.
+
+    Logging contexts may include nested containers (lists, dicts, sets) or
+    other objects that are not inherently hashable. To safely cache loggers
+    using these contexts, we recursively normalise values into tuples while
+    preserving ordering semantics for sequences and deterministic ordering for
+    mappings/sets. Objects that remain unhashable fall back to their
+    ``repr`` representation.
+    """
+
+    try:
+        hash(value)
+    except TypeError:
+        if isinstance(value, Mapping):
+            return tuple(
+                sorted((key, _make_hashable(val)) for key, val in value.items())
+            )
+        if isinstance(value, (set, frozenset)):
+            return tuple(sorted(_make_hashable(item) for item in value))
+        if isinstance(value, Sequence) and not isinstance(
+            value, (str, bytes, bytearray)
+        ):
+            return tuple(_make_hashable(item) for item in value)
+        return repr(value)
+    return value
+
+
 def _build_environment_context(app_name: str) -> dict[str, str]:
     """Собирает ключевые сведения об окружении для включения в логи."""
 
@@ -153,7 +181,7 @@ def init_logging(
 ) -> logging.Logger:
     """Initialize application logging with non-blocking queue handler
 
-    УЛУЧШЕНИЯ v4.9.5:
+    УЛУЧШЕНИЯ v4.9.9:
     - Ротация логов (max_bytes, backup_count)
     - Опциональный вывод в консоль
     - Цветной вывод для консоли
@@ -357,7 +385,7 @@ def get_category_logger(
 ) -> logging.Logger:
     """Get logger for specific category with optional context
 
-    УЛУЧШЕНИЯ v4.9.5:
+    УЛУЧШЕНИЯ v4.9.9:
     - Кэширование логгеров
     - Контекстные фильтры
     - Автоматическое именование
@@ -386,8 +414,16 @@ def get_category_logger(
     global _logger_registry
 
     # Кэшируем логгеры
-    base_key = _make_hashable_context(_base_context)
-    context_key = _make_hashable_context(context)
+    base_key = tuple(
+        (key, _make_hashable(val)) for key, val in sorted(_base_context.items())
+    )
+    context_key: tuple[Any, ...]
+    if context:
+        context_key = tuple(
+            (key, _make_hashable(val)) for key, val in sorted(context.items())
+        )
+    else:
+        context_key = ()
     cache_key = (category, base_key, context_key)
     if cache_key in _logger_registry:
         return _logger_registry[cache_key]

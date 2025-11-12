@@ -47,14 +47,16 @@ jobs:
 
       - name: Bootstrap Linux environment
         if: runner.os == 'Linux'
-        run: bash ./scripts/setup_linux.sh
+        env:
+          QT_VERSION: ${{ env.QT_VERSION }}
+        run: bash ./scripts/setup_linux.sh --qt-version ${{ env.QT_VERSION }}
 
       - name: Bootstrap Windows environment
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-          ./scripts/setup_windows.ps1
+          ./scripts/setup_windows.ps1 -QtVersion $env:QT_VERSION
 
       - name: Discover available Qt versions
         run: |

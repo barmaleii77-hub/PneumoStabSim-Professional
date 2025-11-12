@@ -52,6 +52,11 @@ Item {
     property var pressureMarkers: []
     property var flowTelemetry: ({})
     property bool masterIsolationValveOpen: false
+    property var linePressureMap: ({})
+    property var lineValveStateMap: ({})
+    property var lineIntensityMap: ({})
+    property var pressureGradientStops: []
+    property bool _hasTelemetryGradient: false
     readonly property var _simTypeOptions: [
         { value: "KINEMATICS", label: qsTr("Кинематика") },
         { value: "DYNAMICS", label: qsTr("Динамика") }
@@ -197,6 +202,8 @@ Item {
         _flowState = {}
     }
 
+    onPressureMarkersChanged: _updatePressureGradientScale()
+
     function _updatePressureBindings() {
         var candidatePressures = []
 
@@ -250,6 +257,33 @@ Item {
             { value: atmosphere, color: Qt.rgba(0.42, 0.72, 0.96, 0.95), label: qsTr("Атм") },
             { value: reservoirPressure, color: Qt.rgba(0.99, 0.83, 0.43, 0.95), label: qsTr("Рез") }
         ]
+        _updatePressureGradientScale()
+    }
+
+    function _updatePressureGradientScale() {
+        if (_hasTelemetryGradient)
+            return
+        var list = Array.isArray(pressureMarkers) && pressureMarkers.length ? pressureMarkers : []
+        var stops = []
+        for (var i = 0; i < list.length; ++i) {
+            var entry = list[i] || {}
+            var value = Number(entry.value)
+            if (!Number.isFinite(value))
+                continue
+            stops.push({
+                value: value,
+                color: entry.color !== undefined ? entry.color : Qt.rgba(0.28, 0.5, 0.82, 0.65),
+                label: entry.label !== undefined ? entry.label : ""
+            })
+        }
+        if (stops.length < 2) {
+            stops = [
+                { value: minPressure, color: Qt.rgba(0.22, 0.45, 0.78, 0.65), label: qsTr("Мин") },
+                { value: pressure, color: Qt.rgba(0.99, 0.83, 0.43, 0.9), label: qsTr("Тек") },
+                { value: maxPressure, color: Qt.rgba(0.88, 0.42, 0.34, 0.75), label: qsTr("Макс") }
+            ]
+        }
+        pressureGradientStops = stops
     }
 
     function _parameterRange(name) {
@@ -479,6 +513,7 @@ Item {
         var payload = flowTelemetry || {}
         if (!_isPlainObject(payload))
             return
+        _hasTelemetryGradient = false
         _flowState = payload
         _applyFlowTelemetryState(payload)
         var linesNode = payload.lines || payload.Lines || {}
@@ -489,6 +524,14 @@ Item {
         var maxIntensity = Number(payload.maxLineIntensity)
         if (!Number.isFinite(maxIntensity) || maxIntensity <= 0)
             maxIntensity = 0.0
+        var pressureMap = {}
+        var intensityMap = {}
+        var valveStateMap = {}
+        var linePressuresNode = _isPlainObject(payload.linePressures) ? payload.linePressures : {}
+        var receiverNode = payload.receiver
+        if (!_isPlainObject(receiverNode) && _isPlainObject(payload.flowNetwork))
+            receiverNode = payload.flowNetwork.receiver
+        var receiverPressures = _isPlainObject(receiverNode) ? receiverNode.pressures : {}
         for (var i = 0; i < lineKeys.length; ++i) {
             var key = lineKeys[i]
             var entry = linesNode[key] || {}
@@ -509,11 +552,29 @@ Item {
             var label = String(key || "line").toUpperCase()
             if (!direction.length)
                 direction = netNumeric >= 0 ? "intake" : "exhaust"
+            var rawPressure = Number(_lookupMapValue(linePressuresNode, key))
+            if (!Number.isFinite(rawPressure))
+                rawPressure = Number(_lookupMapValue(receiverPressures, key))
+            if (!Number.isFinite(rawPressure))
+                rawPressure = Number(reservoirPressure)
+            if (!Number.isFinite(rawPressure))
+                rawPressure = 0.0
+            var pressureRatio = hasValidRange ? Math.max(0.0, Math.min(1.0, _normalize(rawPressure))) : 0.0
+            var animationSpeed = entry.animationSpeed !== undefined ? Number(entry.animationSpeed) : Number(entry.speedHint)
+            if (!Number.isFinite(animationSpeed))
+                animationSpeed = normalized
+            if (animationSpeed < 0.0)
+                animationSpeed = 0.0
+            else if (animationSpeed > 1.0)
+                animationSpeed = 1.0
             flowArrowsModel.append({
                 label: label,
                 direction: direction,
                 flow: netNumeric,
-                intensity: normalized
+                intensity: normalized,
+                animationSpeed: animationSpeed,
+                pressure: rawPressure,
+                pressureRatio: pressureRatio
             })
             var valves = entry.valves || {}
             var flowAtmo = Number(flows.fromAtmosphere || flows.from_atmosphere || 0.0)
@@ -522,6 +583,12 @@ Item {
             var flowTank = Number(flows.toTank || flows.to_tank || 0.0)
             if (!Number.isFinite(flowTank))
                 flowTank = 0.0
+            pressureMap[label] = rawPressure
+            intensityMap[label] = normalized
+            valveStateMap[label] = {
+                atmosphereOpen: !!valves.atmosphereOpen,
+                tankOpen: !!valves.tankOpen
+            }
             _appendValveEntry(lineValveModel, {
                 label: label + " • " + qsTr("Атмосфера"),
                 open: !!valves.atmosphereOpen,
@@ -556,6 +623,9 @@ Item {
             })
         }
         masterIsolationValveOpen = !!payload.masterIsolationOpen
+        linePressureMap = pressureMap
+        lineIntensityMap = intensityMap
+        lineValveStateMap = valveStateMap
     }
 
     function _applyFlowTelemetryState(payload) {
@@ -576,6 +646,26 @@ Item {
                 minPressure = minP
                 maxPressure = maxP
             }
+            var thresholds = receiver.thresholds || receiver.pressureThresholds || receiver.gradientStops
+            if (Array.isArray(thresholds) && thresholds.length) {
+                var resolvedStops = []
+                for (var j = 0; j < thresholds.length; ++j) {
+                    var thresholdEntry = thresholds[j] || {}
+                    var thresholdValue = thresholdEntry.value !== undefined ? thresholdEntry.value : thresholdEntry.position || thresholdEntry.level
+                    var numericValue = Number(thresholdValue)
+                    if (!Number.isFinite(numericValue))
+                        continue
+                    resolvedStops.push({
+                        value: numericValue,
+                        color: thresholdEntry.color !== undefined ? thresholdEntry.color : Qt.rgba(0.25 + 0.12 * j, 0.55, 0.92, 0.7),
+                        label: thresholdEntry.label !== undefined ? thresholdEntry.label : String(thresholdEntry.name || (qsTr("Порог") + " " + (j + 1)))
+                    })
+                }
+                if (resolvedStops.length >= 2) {
+                    _hasTelemetryGradient = true
+                    pressureGradientStops = resolvedStops
+                }
+            }
         }
         var tank = payload.tank
         if (_isPlainObject(tank)) {
@@ -595,6 +685,27 @@ Item {
 
     function _isPlainObject(value) {
         return value && typeof value === "object" && !Array.isArray(value)
+    }
+
+    function _lookupMapValue(map, key) {
+        if (!_isPlainObject(map))
+            return undefined
+        var variants = []
+        var base = String(key || "")
+        if (base.length)
+            variants.push(base)
+        var lower = base.toLowerCase()
+        if (lower.length && variants.indexOf(lower) === -1)
+            variants.push(lower)
+        var upper = base.toUpperCase()
+        if (upper.length && variants.indexOf(upper) === -1)
+            variants.push(upper)
+        for (var i = 0; i < variants.length; ++i) {
+            var candidate = variants[i]
+            if (Object.prototype.hasOwnProperty.call(map, candidate))
+                return map[candidate]
+        }
+        return undefined
     }
 
     function _cloneObject(value) {
@@ -860,6 +971,7 @@ Item {
 
             PressureScale {
                 id: scale
+                objectName: "pressureScale"
                 Layout.preferredWidth: 120
                 Layout.fillHeight: true
                 minPressure: root.minPressure
@@ -870,10 +982,12 @@ Item {
                 pressure: root.pressure
                 tickCount: 6
                 markers: root.pressureMarkers
+                gradientStops: root.pressureGradientStops
             }
 
             Reservoir {
                 id: reservoirView
+                objectName: "reservoirView"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 minPressure: root.minPressure
@@ -883,6 +997,9 @@ Item {
                 atmosphericPressure: root.atmosphericPressure
                 pressure: root.reservoirPressure
                 markers: root.pressureMarkers
+                linePressures: root.linePressureMap
+                lineValveStates: root.lineValveStateMap
+                lineIntensities: root.lineIntensityMap
             }
 
             ColumnLayout {
@@ -927,6 +1044,10 @@ Item {
                                     direction: modelData.direction
                                     flowValue: modelData.flow
                                     intensity: modelData.intensity
+                                    animationSpeed: modelData.animationSpeed
+                                    linePressure: modelData.pressure
+                                    referencePressure: root.reservoirPressure
+                                    pressureRatio: modelData.pressureRatio
                                 }
                             }
 

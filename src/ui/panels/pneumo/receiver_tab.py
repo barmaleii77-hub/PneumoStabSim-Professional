@@ -107,6 +107,12 @@ class ReceiverTab(QWidget):
         self.calculated_volume_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         group_layout.addWidget(self.calculated_volume_label)
 
+        self.volume_hint_label = QLabel()
+        self.volume_hint_label.setWordWrap(True)
+        self.volume_hint_label.setStyleSheet("color: #c54632; font-size: 11px;")
+        self.volume_hint_label.setVisible(False)
+        group_layout.addWidget(self.volume_hint_label)
+
         layout.addWidget(group)
         layout.addStretch()
 
@@ -119,6 +125,7 @@ class ReceiverTab(QWidget):
         self.receiver_length_knob.setValue(self.state_manager.get_receiver_length())
         self._apply_mode_visibility(mode)
         self._update_calculated_volume()
+        self._update_volume_hint()
 
     def update_from_state(self) -> None:
         self._load_from_state()
@@ -150,6 +157,7 @@ class ReceiverTab(QWidget):
         self.parameter_changed.emit("receiver_volume", volume)
         self.receiver_volume_changed.emit(volume, mode)
         self._update_calculated_volume()
+        self._update_volume_hint()
 
     def _on_manual_volume_changed(self, value: float) -> None:
         self.state_manager.set_manual_volume(value)
@@ -157,6 +165,7 @@ class ReceiverTab(QWidget):
         if self.state_manager.get_volume_mode() == "MANUAL":
             self.parameter_changed.emit("receiver_volume", actual)
             self.receiver_volume_changed.emit(actual, "MANUAL")
+        self._update_volume_hint()
 
     def _on_geometry_changed(self, _value: float) -> None:
         diameter = self.receiver_diameter_knob.value()
@@ -171,6 +180,7 @@ class ReceiverTab(QWidget):
         self.parameter_changed.emit("receiver_diameter", diameter_value)
         self.parameter_changed.emit("receiver_length", length_value)
         self._update_calculated_volume()
+        self._update_volume_hint()
 
     def _update_calculated_volume(self) -> None:
         volume = self.state_manager.calculate_geometric_volume(
@@ -178,3 +188,17 @@ class ReceiverTab(QWidget):
             self.state_manager.get_receiver_length(),
         )
         self.calculated_volume_label.setText(f"Расчётный объём: {volume:.3f} м³")
+
+    def _update_volume_hint(self) -> None:
+        hints: list[str] = []
+        for key in ("receiver_volume", "receiver_volume_limits"):
+            hint = self.state_manager.get_hint(key)
+            if hint:
+                hints.append(hint)
+        if hints:
+            combined = "\n".join(dict.fromkeys(hints))
+            self.volume_hint_label.setText(combined)
+            self.volume_hint_label.setVisible(True)
+        else:
+            self.volume_hint_label.clear()
+            self.volume_hint_label.setVisible(False)

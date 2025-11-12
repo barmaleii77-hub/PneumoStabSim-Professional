@@ -22,6 +22,8 @@ Item {
     /** Optional explicit list of markers: { value, color, label }. */
     property var markers: []
     property bool showLegend: true
+    /** Optional gradient definition: { value, color, label }. */
+    property var gradientStops: []
 
     readonly property real effectiveMinimum: _minValue(_rangeCandidates(), 0.0)
     readonly property real effectiveMaximum: _maxValue(_rangeCandidates(), 1.0)
@@ -29,6 +31,7 @@ Item {
     readonly property real normalizedPressure: hasValidRange ? _normalize(pressure) : 0.0
     readonly property real normalizedAtmosphere: hasValidRange ? _normalize(atmosphericPressure) : 0.0
     readonly property var effectiveMarkers: _normaliseMarkers()
+    readonly property var effectiveGradientStops: _normaliseGradientStops()
 
     function _rangeCandidates() {
         var values = []
@@ -116,6 +119,15 @@ Item {
         ]
     }
 
+    function _defaultGradientStops() {
+        return [
+            { value: effectiveMinimum, color: Qt.rgba(0.16, 0.3, 0.56, 0.65), label: qsTr("Мин") },
+            { value: atmosphericPressure, color: Qt.rgba(0.24, 0.58, 0.92, 0.75), label: qsTr("Атм") },
+            { value: pressure, color: Qt.rgba(0.99, 0.83, 0.43, 0.9), label: qsTr("Тек") },
+            { value: effectiveMaximum, color: Qt.rgba(0.88, 0.42, 0.34, 0.75), label: qsTr("Макс") }
+        ]
+    }
+
     function _normaliseMarkers() {
         var list = Array.isArray(markers) && markers.length ? markers : _defaultMarkers()
         var normalized = []
@@ -133,12 +145,74 @@ Item {
         return normalized
     }
 
+    function _normaliseGradientStops() {
+        var list = Array.isArray(gradientStops) && gradientStops.length ? gradientStops : _defaultGradientStops()
+        var normalized = []
+        for (var i = 0; i < list.length; ++i) {
+            var entry = list[i] || {}
+            var value = Number(entry.value)
+            if (!Number.isFinite(value))
+                continue
+            var position = hasValidRange ? _normalize(value) : 0.0
+            if (!Number.isFinite(position))
+                position = 0.0
+            if (position < 0.0)
+                position = 0.0
+            else if (position > 1.0)
+                position = 1.0
+            normalized.push({
+                position: position,
+                color: entry.color !== undefined ? entry.color : Qt.rgba(0.28, 0.5, 0.82, 0.65),
+                label: entry.label !== undefined ? entry.label : ""
+            })
+        }
+        normalized.sort(function(a, b) { return a.position - b.position })
+        return normalized
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: 12
         color: Qt.rgba(0.07, 0.09, 0.13, 0.88)
         border.width: 1
         border.color: Qt.rgba(0.2, 0.27, 0.35, 0.9)
+    }
+
+    Canvas {
+        id: gradientCanvas
+        anchors.fill: parent
+        anchors.margins: 12
+        antialiasing: true
+        onPaint: {
+            var ctx = getContext("2d")
+            var w = width
+            var h = height
+            ctx.reset()
+            ctx.clearRect(0, 0, w, h)
+
+            var stops = root.effectiveGradientStops
+            if (!stops || stops.length < 2)
+                return
+
+            var gradient = ctx.createLinearGradient(0, h, 0, 0)
+            for (var i = 0; i < stops.length; ++i) {
+                var entry = stops[i]
+                var position = entry.position
+                if (!Number.isFinite(position))
+                    continue
+                var color = entry.color
+                if (!color)
+                    color = Qt.rgba(0.3, 0.5, 0.82, 0.55)
+                gradient.addColorStop(Math.max(0, Math.min(1, position)), color)
+            }
+
+            ctx.fillStyle = gradient
+            ctx.globalAlpha = 0.35
+            ctx.fillRect(0, 0, w, h)
+            ctx.globalAlpha = 1.0
+        }
+
+        Component.onCompleted: requestPaint()
     }
 
     Rectangle {
@@ -157,6 +231,34 @@ Item {
             NumberAnimation {
                 duration: 180
                 easing.type: Easing.OutCubic
+            }
+        }
+    }
+
+    Item {
+        id: gradientLabels
+        anchors.fill: parent
+        anchors.margins: 12
+        visible: root.showLegend
+
+        Repeater {
+            model: root.effectiveGradientStops
+            delegate: Item {
+                required property var modelData
+
+                width: parent.width
+                height: parent.height
+
+                Label {
+                    text: modelData.label || ""
+                    visible: text.length > 0
+                    font.pixelSize: 9
+                    color: "#d4dcef"
+                    anchors.left: parent.left
+                    anchors.leftMargin: 2
+                    y: Math.round((parent.height - height) * (1.0 - modelData.position)) - height / 2
+                    elide: Text.ElideRight
+                }
             }
         }
     }
@@ -277,15 +379,16 @@ Item {
 
     Connections {
         target: root
-        function onPressureChanged() { scaleCanvas.requestPaint() }
-        function onAtmosphericPressureChanged() { scaleCanvas.requestPaint() }
-        function onMinPressureChanged() { scaleCanvas.requestPaint() }
-        function onMaxPressureChanged() { scaleCanvas.requestPaint() }
-        function onUserMinPressureChanged() { scaleCanvas.requestPaint() }
-        function onUserMaxPressureChanged() { scaleCanvas.requestPaint() }
+        function onPressureChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onAtmosphericPressureChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onMinPressureChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onMaxPressureChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onUserMinPressureChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onUserMaxPressureChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
         function onTickCountChanged() { scaleCanvas.requestPaint() }
-        function onMarkersChanged() { scaleCanvas.requestPaint() }
-        function onWidthChanged() { scaleCanvas.requestPaint() }
-        function onHeightChanged() { scaleCanvas.requestPaint() }
+        function onMarkersChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onGradientStopsChanged() { gradientCanvas.requestPaint() }
+        function onWidthChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
+        function onHeightChanged() { scaleCanvas.requestPaint(); gradientCanvas.requestPaint() }
     }
 }
