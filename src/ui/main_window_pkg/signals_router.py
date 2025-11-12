@@ -105,6 +105,7 @@ class SignalsRouter:
         "hdr_source",
         "hdrSource",
     )
+    _HDR_ALIAS_OUTPUT = ("iblSource",)
     _DEBOUNCE_DELAYS_MS = {
         "environment": 150,
         "effects": 150,
@@ -136,31 +137,40 @@ class SignalsRouter:
                 source_container = params
                 break
 
-        nested_source_key: str | None = None
-        if source_container is None:
-            ibl_section = params.get("ibl")
-            if isinstance(ibl_section, Mapping):
-                if "source" in ibl_section:
-                    nested_source_key = "source"
-                    source_container = ibl_section
-                elif legacy_key in ibl_section:
-                    nested_source_key = legacy_key
-                    source_container = ibl_section
-
-        if source_container is None:
+        if source_key is None:
+            nested_params_value = SignalsRouter._update_nested_ibl_source(params)
+            nested_payload_value = SignalsRouter._update_nested_ibl_source(env_payload)
+            canonical_nested = next(
+                (
+                    value
+                    for value in (
+                        nested_params_value,
+                        nested_payload_value,
+                    )
+                    if value not in (None, "")
+                ),
+                None,
+            )
+            if canonical_nested is not None:
+                params["ibl_source"] = canonical_nested
+                SignalsRouter._propagate_hdr_aliases(params, canonical_nested)
+                env_payload["ibl_source"] = canonical_nested
+                SignalsRouter._propagate_hdr_aliases(env_payload, canonical_nested)
             return SignalsRouter._apply_environment_aliases(params, env_payload)
 
-        raw_value = (
-            source_container.get(source_key)
-            if source_container is params and source_key is not None
-            else source_container.get(nested_source_key)  # type: ignore[arg-type]
-        )
+        # Извлекаем значение HDR источника по ключу, избегая сложной тернарной логики
+        if source_container is params and source_key is not None:
+            raw_value = source_container.get(source_key)
+        else:
+            raw_value = source_container.get(nested_source_key)
         text_value = "" if raw_value is None else str(raw_value)
         stripped_value = text_value.strip()
         allow_empty_selection = SignalsRouter._allow_empty_selection(
             raw_value, stripped_value
         )
         normalised_value = stripped_value
+
+        alias_values = SignalsRouter._collect_hdr_alias_values(params, env_payload)
 
         if not allow_empty_selection:
             if hasattr(window, "normalizeHdrPath"):
@@ -179,6 +189,26 @@ class SignalsRouter:
         else:
             normalised_value = ""
 
+        SignalsRouter._update_nested_ibl_source(params, normalised_value)
+        SignalsRouter._update_nested_ibl_source(env_payload, normalised_value)
+
+        conflicts = [
+            (alias, value)
+            for alias, value in alias_values.items()
+            if alias != source_key
+            and value is not None
+            and value != ""
+            and value != normalised_value
+        ]
+        if conflicts:
+            conflict_text = ", ".join(f"{alias}={value!r}" for alias, value in conflicts)
+            logger = getattr(window, "logger", SignalsRouter.logger)
+            logger.warning(
+                "Environment HDR aliases mismatch; canonical value %r will be used (%s)",
+                normalised_value,
+                conflict_text,
+            )
+
         filtered_params = {
             key: value
             for key, value in params.items()
@@ -186,38 +216,62 @@ class SignalsRouter:
         }
         params.clear()
         params.update(filtered_params)
-        params[canonical_key] = normalised_value
+        params["ibl_source"] = normalised_value
+        SignalsRouter._propagate_hdr_aliases(params, normalised_value)
 
         updated_payload = {
             key: value
             for key, value in env_payload.items()
             if key not in SignalsRouter._HDR_SOURCE_KEYS
         }
-        updated_payload[canonical_key] = normalised_value
+        updated_payload["ibl_source"] = normalised_value
+        SignalsRouter._propagate_hdr_aliases(updated_payload, normalised_value)
+        return SignalsRouter._apply_environment_aliases(params, updated_payload)
 
-        updated_payload = SignalsRouter._apply_environment_aliases(
-            params, updated_payload
-        )
+    @staticmethod
+    def _collect_hdr_alias_values(
+        *sources: Mapping[str, Any]
+    ) -> dict[str, str | None]:
+        alias_values: dict[str, str | None] = {}
+        for source in sources:
+            if not isinstance(source, Mapping):
+                continue
+            for key in SignalsRouter._HDR_SOURCE_KEYS:
+                if key in source and key not in alias_values:
+                    value = source.get(key)
+                    if value is None:
+                        alias_values[key] = None
+                    else:
+                        alias_values[key] = str(value).strip()
+        return alias_values
 
-        mirrored_value = normalised_value
-        payload_with_mirror = dict(updated_payload)
-        payload_with_mirror[legacy_key] = mirrored_value
+    @staticmethod
+    def _propagate_hdr_aliases(target: dict[str, Any], canonical_value: str) -> None:
+        for alias in SignalsRouter._HDR_ALIAS_OUTPUT:
+            target[alias] = canonical_value
 
-        ibl_section = payload_with_mirror.get("ibl")
-        if isinstance(ibl_section, Mapping):
-            expanded = dict(ibl_section)
-            expanded["source"] = mirrored_value
-            expanded[legacy_key] = mirrored_value
-            payload_with_mirror["ibl"] = expanded
-
-        params.pop(legacy_key, None)
-        if isinstance(params.get("ibl"), Mapping):
-            ibl_params = dict(params["ibl"])
-            ibl_params["source"] = mirrored_value
-            ibl_params.pop(legacy_key, None)
-            params["ibl"] = ibl_params
-
-        return payload_with_mirror
+    @staticmethod
+    def _update_nested_ibl_source(
+        container: dict[str, Any], canonical_value: str | None = None
+    ) -> str | None:
+        nested = container.get("ibl")
+        if not isinstance(nested, Mapping):
+            return canonical_value
+        resolved = dict(nested)
+        if canonical_value is not None:
+            resolved["source"] = canonical_value
+        else:
+            existing = resolved.get("source")
+            if existing is None:
+                canonical_value = None
+            elif isinstance(existing, str):
+                canonical_value = existing.strip()
+                resolved["source"] = canonical_value
+            else:
+                canonical_value = str(existing).strip()
+                resolved["source"] = canonical_value
+        container["ibl"] = resolved
+        return canonical_value
 
     @staticmethod
     def _apply_environment_aliases(
@@ -995,11 +1049,6 @@ class SignalsRouter:
                 SignalsRouter._record_dispatched_payload(
                     window, "threeD", three_d_payload
                 )
-
-        if reflection_settings_updates:
-            window._apply_settings_update(
-                "graphics.reflection_probe", reflection_settings_updates
-            )
 
         window._apply_settings_update("graphics.environment", params)
 
