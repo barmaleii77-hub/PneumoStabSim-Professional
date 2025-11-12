@@ -172,7 +172,9 @@ class SettingsService:
                 "error_count": len(errors),
                 "errors": errors,
             }
-            errors_path.write_text(json.dumps(errors_json, ensure_ascii=False, indent=2), encoding="utf-8")
+            errors_path.write_text(
+                json.dumps(errors_json, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
             # Выделяем extra‑поля из структуры ошибок
             try:
                 extra_paths: list[list[str]] = []
@@ -189,7 +191,9 @@ class SettingsService:
                 pass
             # Снимок payload (для удобной ручной сверки)
             payload_path = LOG_DIR / "payload_snapshot.json"
-            payload_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            payload_path.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
             # Попытка собрать relaxed‑модель для сравнения и записи
             try:
                 relaxed = _RelaxedAppSettings.model_validate(payload)

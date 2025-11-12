@@ -115,14 +115,18 @@ def test_depth_texture_activator_avoids_removed_qt_properties(
     )
 
     guard_start = depth_texture_source.index(guard_comment)
-    guard_end = depth_texture_source.index("]", depth_texture_source.index(guard_anchor)) + 1
+    guard_end = (
+        depth_texture_source.index("]", depth_texture_source.index(guard_anchor)) + 1
+    )
     guard_block = depth_texture_source[guard_start:guard_end]
 
     for token in forbidden_tokens:
         assert token in guard_block, (
             f"Legacy property {token} must remain documented in the guard list"
         )
-        sanitized = depth_texture_source[:guard_start] + depth_texture_source[guard_end:]
+        sanitized = (
+            depth_texture_source[:guard_start] + depth_texture_source[guard_end:]
+        )
         assert token not in sanitized, (
             f"Legacy property {token} must not appear outside the guard block"
         )

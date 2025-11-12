@@ -8,33 +8,30 @@ Part of modular GraphicsPanel restructuring
 - _build_ao_group() → Ambient Occlusion (SSAO) расширенный
 """
 
-import inspect
 import logging
-import os
-
-from PySide6.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QGroupBox,
-    QLabel,
-    QComboBox,
-    QHBoxLayout,
-    QGridLayout,
-    QMessageBox,
-    QApplication,
-)
-from PySide6.QtCore import Signal, Qt
 from pathlib import Path
 from typing import Any
 
-from .widgets import ColorButton, LabeledSlider, FileCyclerWidget
+from PySide6.QtCore import Signal, Qt
+from PySide6.QtWidgets import (
+    QComboBox,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QVBoxLayout,
+    QWidget,
+)
+
 from .hdr_discovery import discover_hdr_files
+from .widgets import ColorButton, FileCyclerWidget, LabeledSlider
 from src.common.logging_widgets import LoggingCheckBox
 from src.common.settings_manager import get_settings_manager
+from src.common.ui_dialogs import dialogs_allowed, message_warning  # ✅ антиблокирующие диалоги
 from src.ui.environment_schema import (
+    ENVIRONMENT_SLIDER_RANGE_DEFAULTS,
     EnvironmentSliderRange,
     EnvironmentValidationError,
-    ENVIRONMENT_SLIDER_RANGE_DEFAULTS,
     validate_environment_settings,
     validate_environment_slider_ranges,
 )
@@ -172,38 +169,70 @@ class EnvironmentTab(QWidget):
         for key in sorted(missing_keys | invalid_keys):
             for source_name, payload in fallback_sources:
                 parsed = _try_parse_range(source_name, payload, key)
-                if parsed is None:
-                    continue
-                validated[key] = parsed
-                fallback_used.setdefault(source_name, []).append(key)
-                missing_keys.discard(key)
-                invalid_keys.discard(key)
-                break
+                if parsed is not None:
+                    validated[key] = parsed
+                    fallback_used.setdefault(source_name, []).append(key)
+                    break
+            else:
+                # Значение будет взято из дефолтов
+                validated[key] = ENVIRONMENT_SLIDER_RANGE_DEFAULTS[key]
 
-        final_ranges = {
-            key: validated.get(key, default)
-            for key, default in ENVIRONMENT_SLIDER_RANGE_DEFAULTS.items()
-        }
+        defaults_used = [
+            key
+            for key in sorted(missing_keys | invalid_keys)
+            if key not in {k for keys in fallback_used.values() for k in keys}
+        ]
 
-        notifications: list[str] = []
-        notifications.extend(section_messages)
-        for source_name, keys in fallback_used.items():
-            notifications.append(
-                "Используются значения по умолчанию: диапазоны "
-                + ", ".join(sorted(set(keys)))
-                + f" загружены из {source_name}."
+        # Формируем предупреждения НЕ блокируя тесты
+        if (missing_keys or invalid_keys or unexpected) and dialogs_allowed():
+            summary_parts: list[str] = []
+            if missing_keys:
+                summary_parts.append(
+                    "Отсутствуют диапазоны: " + ", ".join(sorted(missing_keys))
+                )
+            if invalid_keys:
+                summary_parts.append(
+                    "Неверные диапазоны: " + ", ".join(sorted(invalid_keys))
+                )
+            if unexpected:
+                summary_parts.append(
+                    "Неизвестные ключи: " + ", ".join(sorted(unexpected))
+                )
+            if fallback_used:
+                used_str = "; ".join(
+                    f"{src}: {', '.join(keys)}" for src, keys in fallback_used.items()
+                )
+                summary_parts.append("Fallback источники → " + used_str)
+            if defaults_used:
+                summary_parts.append(
+                    "Используются значения по умолчанию: "
+                    + ", ".join(sorted(defaults_used))
+                )
+            summary = "\n".join(summary_parts)
+            # ✅ Только немодальный/залогированный путь: без блокирующих QMessageBox
+            try:
+                message_warning(
+                    None,
+                    "Диапазоны окружения",
+                    summary + "\n(автотесты не блокируются)",
+                )
+            except Exception:
+                pass
+        elif missing_keys or invalid_keys or unexpected:
+            # Headless / тесты — только лог
+            logger.warning(
+                "environment_tab_slider_ranges_issue: missing=%s invalid=%s unexpected=%s fallback=%s",
+                sorted(missing_keys),
+                sorted(invalid_keys),
+                sorted(unexpected),
+                {k: sorted(v) for k, v in fallback_used.items()},
             )
-        if missing_keys:
-            notifications.append(
-                "Используются значения по умолчанию для диапазонов: "
-                + ", ".join(sorted(missing_keys))
-            )
-        for msg in invalid_messages:
-            notifications.append(f"Диапазон {msg}. Использованы безопасные значения.")
+            for msg in invalid_messages:
+                logger.warning("environment_tab_range_invalid_detail: %s", msg)
+            for msg in section_messages:
+                logger.warning("environment_tab_range_section_detail: %s", msg)
 
-        self._notify_range_warning(notifications)
-
-        return final_ranges
+        return validated
 
     def _create_slider(
         self,
@@ -228,32 +257,6 @@ class EnvironmentTab(QWidget):
             decimals=slider_decimals,
             unit=slider_unit,
         )
-
-    def _notify_range_warning(self, messages: list[str]) -> None:
-        unique_messages = [msg for msg in messages if msg]
-        if not unique_messages:
-            return
-
-        text = "\n".join(dict.fromkeys(unique_messages))
-        logger.warning("Environment slider range fallback: %s", text)
-
-        app = QApplication.instance()
-        platform_hint = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
-        is_headless = platform_hint in {"offscreen", "minimal", "headless"}
-        if app is not None:
-            is_headless = is_headless or bool(getattr(app, "is_headless", False))
-
-        warning_handler = getattr(QMessageBox, "warning", None)
-        if not callable(warning_handler):
-            return
-
-        if (is_headless or app is None) and inspect.isbuiltin(warning_handler):
-            return
-
-        try:
-            warning_handler(self, "Диапазоны окружения", text)
-        except Exception:  # pragma: no cover - UI fallback
-            logger.exception("Failed to show environment slider warning dialog")
 
     def _build_background_group(self) -> QGroupBox:
         """Создать группу Фон и IBL - расширенная"""
@@ -418,7 +421,7 @@ class EnvironmentTab(QWidget):
     def _build_reflection_group(self) -> QGroupBox:
         """Создать группу настроек локальной Reflection Probe"""
 
-        group = QGroupBox("Reflection Probe", self)
+        group = QGroupBox("Отражения", self)
         grid = QGridLayout(group)
         grid.setContentsMargins(8, 8, 8, 8)
         grid.setHorizontalSpacing(12)
@@ -495,31 +498,47 @@ class EnvironmentTab(QWidget):
         return group
 
     def _discover_hdr_files(self) -> list[tuple[str, str]]:
-        """Discover HDR assets relative to the project root."""
-
-        project_root = Path(__file__).resolve().parents[4]
-        search_dirs = [
-            project_root / "assets" / "hdr",
-            project_root / "assets" / "hdri",
-            project_root / "assets" / "qml" / "assets",
-        ]
-        return discover_hdr_files(search_dirs, qml_root=self._qml_root)
-
-    def _normalize_ibl_path(self, value: Any) -> str:
-        """Нормализовать путь для IBL (привести к POSIX и убрать None)."""
-        if value is None:
-            return ""
+        """Автопоиск HDR-файлов. Отсутствие файлов → предупреждение, не ошибка."""
         try:
-            text = str(value)
+            items = discover_hdr_files(self._qml_root)
+        except Exception as exc:
+            logger.warning("hdr_discovery_failed: %s", exc)
+            return []
+        if not items:
+            logger.warning("hdr_discovery_empty: no HDR files under %s", self._qml_root)
+        return items
+
+    def _normalize_hdr_path(self, candidate: Any, qml_dir: Path | None = None) -> str:
+        """Преобразовать путь к HDR в POSIX формат, предпочитая относительный к каталогу QML.
+        
+        Args:
+            candidate: Любое значение, представляющее путь
+            qml_dir: Базовый каталог QML для вычисления относительного пути
+        
+        Returns:
+            Нормализованный путь (POSIX) или пустая строка
+        """
+        if not candidate:
+            return ""
+        if qml_dir is None:
+            qml_dir = self._qml_root
+        try:
+            path_obj = Path(str(candidate).replace("\\", "/"))
         except Exception:
             return ""
-        text = text.strip()
-        if not text:
-            return ""
-        return text.replace("\\", "/")
+        resolved = path_obj.resolve(strict=False)
+
+        # Если путь уже относительный — используем как есть в POSIX формате
+        if not path_obj.is_absolute():
+            return path_obj.as_posix()
+        # Пробуем получить относительный к QML
+        try:
+            return resolved.relative_to(qml_dir).as_posix()
+        except Exception:
+            return resolved.as_posix()
 
     def _on_hdr_source_changed(self, raw_path: str) -> None:
-        path = self._normalize_ibl_path(raw_path)
+        path = self._normalize_hdr_path(raw_path)
         self._refresh_hdr_status(path)
         self._on_control_changed("ibl_source", path)
 
@@ -538,16 +557,13 @@ class EnvironmentTab(QWidget):
     def _build_fog_group(self) -> QGroupBox:
         """Создать группу Туман - расширенная (Fog Qt 6.10)"""
         group = QGroupBox("Туман", self)
-        grid = QGridLayout(group)
-        grid.setContentsMargins(8, 8, 8, 8)
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(8)
+        layout = QVBoxLayout(group)
         row = 0
 
         enabled = LoggingCheckBox("Включить туман", "environment.fog_enabled", self)
         enabled.clicked.connect(lambda checked: self._on_fog_enabled_clicked(checked))
         self._controls["fog.enabled"] = enabled
-        grid.addWidget(enabled, row, 0, 1, 2)
+        layout.addWidget(enabled)
         row += 1
 
         color_row = QHBoxLayout()
@@ -559,7 +575,7 @@ class EnvironmentTab(QWidget):
         self._controls["fog.color"] = fog_color
         color_row.addWidget(fog_color)
         color_row.addStretch(1)
-        grid.addLayout(color_row, row, 0, 1, 2)
+        layout.addLayout(color_row, row)
         row += 1
 
         density = self._create_slider("fog_density", "Плотность", decimals=2)
@@ -567,7 +583,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_density", v)
         )
         self._controls["fog.density"] = density
-        grid.addWidget(density, row, 0, 1, 2)
+        layout.addWidget(density, row)
         row += 1
 
         near_slider = self._create_slider(
@@ -577,7 +593,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_near", v)
         )
         self._controls["fog.near"] = near_slider
-        grid.addWidget(near_slider, row, 0, 1, 2)
+        layout.addWidget(near_slider, row)
         row += 1
 
         far_slider = self._create_slider("fog_far", "Конец (Far)", decimals=2, unit="м")
@@ -585,7 +601,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_far", v)
         )
         self._controls["fog.far"] = far_slider
-        grid.addWidget(far_slider, row, 0, 1, 2)
+        layout.addWidget(far_slider, row)
         row += 1
 
         # Высотный туман
@@ -596,7 +612,7 @@ class EnvironmentTab(QWidget):
             lambda checked: self._on_control_changed("fog_height_enabled", checked)
         )
         self._controls["fog.height_enabled"] = h_enabled
-        grid.addWidget(h_enabled, row, 0, 1, 2)
+        layout.addWidget(h_enabled, row)
         row += 1
 
         least_y = self._create_slider(
@@ -609,7 +625,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_least_intense_y", v)
         )
         self._controls["fog.least_y"] = least_y
-        grid.addWidget(least_y, row, 0, 1, 2)
+        layout.addWidget(least_y, row)
         row += 1
 
         most_y = self._create_slider(
@@ -622,7 +638,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_most_intense_y", v)
         )
         self._controls["fog.most_y"] = most_y
-        grid.addWidget(most_y, row, 0, 1, 2)
+        layout.addWidget(most_y, row)
         row += 1
 
         h_curve = self._create_slider("fog_height_curve", "Кривая высоты", decimals=2)
@@ -630,7 +646,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_height_curve", v)
         )
         self._controls["fog.height_curve"] = h_curve
-        grid.addWidget(h_curve, row, 0, 1, 2)
+        layout.addWidget(h_curve, row)
         row += 1
 
         # Transmit
@@ -643,7 +659,7 @@ class EnvironmentTab(QWidget):
             lambda checked: self._on_control_changed("fog_transmit_enabled", checked)
         )
         self._controls["fog.transmit_enabled"] = t_enabled
-        grid.addWidget(t_enabled, row, 0, 1, 2)
+        layout.addWidget(t_enabled, row)
         row += 1
 
         t_curve = self._create_slider(
@@ -653,17 +669,14 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("fog_transmit_curve", v)
         )
         self._controls["fog.transmit_curve"] = t_curve
-        grid.addWidget(t_curve, row, 0, 1, 2)
+        layout.addWidget(t_curve, row)
 
         return group
 
     def _build_ao_group(self) -> QGroupBox:
         """Создать группу Ambient Occlusion - расширенная"""
         group = QGroupBox("Ambient Occlusion (SSAO)", self)
-        grid = QGridLayout(group)
-        grid.setContentsMargins(8, 8, 8, 8)
-        grid.setHorizontalSpacing(12)
-        grid.setVerticalSpacing(8)
+        layout = QVBoxLayout(group)
         row = 0
 
         enabled = LoggingCheckBox("Включить SSAO", "environment.ao_enabled", self)
@@ -671,7 +684,7 @@ class EnvironmentTab(QWidget):
             lambda checked: self._on_control_changed("ao_enabled", checked)
         )
         self._controls["ao.enabled"] = enabled
-        grid.addWidget(enabled, row, 0, 1, 2)
+        layout.addWidget(enabled, row)
         row += 1
 
         strength = self._create_slider(
@@ -681,20 +694,20 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("ao_strength", v)
         )
         self._controls["ao.strength"] = strength
-        grid.addWidget(strength, row, 0, 1, 2)
+        layout.addWidget(strength, row)
         row += 1
 
         radius = self._create_slider("ao_radius", "Радиус", decimals=3, unit="м")
         radius.set_value(0.008)
         radius.valueChanged.connect(lambda v: self._on_control_changed("ao_radius", v))
         self._controls["ao.radius"] = radius
-        grid.addWidget(radius, row, 0, 1, 2)
+        layout.addWidget(radius, row)
         row += 1
 
         bias = self._create_slider("ao_bias", "Смещение", decimals=3)
         bias.valueChanged.connect(lambda v: self._on_control_changed("ao_bias", v))
         self._controls["ao.bias"] = bias
-        grid.addWidget(bias, row, 0, 1, 2)
+        layout.addWidget(bias, row)
         row += 1
 
         softness = self._create_slider("ao_softness", "Мягкость", decimals=0)
@@ -702,7 +715,7 @@ class EnvironmentTab(QWidget):
             lambda v: self._on_control_changed("ao_softness", v)
         )
         self._controls["ao.softness"] = softness
-        grid.addWidget(softness, row, 0, 1, 2)
+        layout.addWidget(softness, row)
         row += 1
 
         dither = LoggingCheckBox("Dither для AO", "environment.ao_dither", self)
@@ -710,7 +723,7 @@ class EnvironmentTab(QWidget):
             lambda checked: self._on_control_changed("ao_dither", checked)
         )
         self._controls["ao.dither"] = dither
-        grid.addWidget(dither, row, 0, 1, 2)
+        layout.addWidget(dither, row)
         row += 1
 
         sample_rate = QComboBox(self)
@@ -730,7 +743,7 @@ class EnvironmentTab(QWidget):
 
         return group
 
-    # ========== ОБРАБОТЧИКИ ЧЕКБОКСОВ ==========(
+    # ========== ОБРАБОТЧИКИ ЧЕКБОКСОВ ===========(
 
     def _on_ibl_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
@@ -780,7 +793,7 @@ class EnvironmentTab(QWidget):
             "skybox_brightness": self._require_control("ibl.skybox_brightness").value(),
             "probe_horizon": self._require_control("ibl.probe_horizon").value(),
             "ibl_rotation": self._require_control("ibl.rotation").value(),
-            "ibl_source": self._normalize_ibl_path(
+            "ibl_source": self._normalize_hdr_path(
                 self._require_control("ibl.file").current_path()
             ),
             "skybox_blur": self._require_control("skybox.blur").value(),
@@ -874,7 +887,8 @@ class EnvironmentTab(QWidget):
             )
             self._require_control("ibl.rotation").set_value(validated["ibl_rotation"])
             hdr_widget: FileCyclerWidget = self._require_control("ibl.file")
-            hdr_widget.set_current_data(validated["ibl_source"], emit=False)
+            normalized_source = self._normalize_hdr_path(validated["ibl_source"]) if "ibl_source" in validated else ""
+            hdr_widget.set_current_data(normalized_source, emit=False)
             validated["ibl_source"] = hdr_widget.current_path()
             self._refresh_hdr_status(validated["ibl_source"])
             self._require_control("skybox.blur").set_value(validated["skybox_blur"])

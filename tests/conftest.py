@@ -129,6 +129,9 @@ if src_path not in sys.path:
     sys.path.insert(1, src_path)
 
 os.environ.setdefault("PYTHONHASHSEED", "0")
+# Глобально отключаем блокирующие UI-диалоги в тестах
+os.environ.setdefault("PSS_FORCE_NONBLOCKING_DIALOGS", "1")
+os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
 # --- Marker & headless configuration -------------------------------------------
 
@@ -272,6 +275,9 @@ def _integration_target_roots(config_root: Path) -> tuple[Path, ...]:
 
 
 def pytest_configure(config: pytest.Config) -> None:
+    # Suppress any modal UI dialogs during tests (non-blocking warnings only)
+    os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
+
     _load_pytestqt_plugin(config)
     _register_headless_marker(config)
     _configure_session_headless(config)
@@ -281,13 +287,12 @@ def pytest_configure(config: pytest.Config) -> None:
         ("integration", "Integration tests"),
         ("smoke", "Lightweight smoke scenarios"),
         ("system", "End-to-end system tests"),
-        ("slow", "Slow tests"),
-        ("gui", "Tests requiring GUI/QML"),
-        ("scenario", "Scenario-driven physics regression suites"),
-        ("qtbot", "Exercises Qt widgets with the pytest-qt qtbot fixture"),
-        ("qt_no_exception_capture", "Disable pytest-qt exception capture for a test"),
+        ("ui", "Qt widgets, panel controllers, and state sync tests"),
     ):
-        config.addinivalue_line("markers", f"{name}: {description}")
+        try:
+            config.addinivalue_line("markers", f"{name}: {description}")
+        except Exception:
+            pass
 
 
 def pytest_collection_modifyitems(

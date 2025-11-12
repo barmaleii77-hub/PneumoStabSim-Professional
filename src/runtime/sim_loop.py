@@ -846,7 +846,9 @@ class PhysicsWorker(QObject):
         self.logger.info(f"Master isolation: {'OPEN' if open else 'CLOSED'}")
 
     @Slot(float, str, result=object)
-    def set_receiver_volume(self, volume: float, mode: str) -> ReceiverVolumeUpdate | None:
+    def set_receiver_volume(
+        self, volume: float, mode: str
+    ) -> ReceiverVolumeUpdate | None:
         """Set receiver volume and recalculation mode
 
         Args:
@@ -1004,7 +1006,9 @@ class PhysicsWorker(QObject):
             if latest_state is not None:
                 if fallback_pressure is None and hasattr(latest_state, "pressure"):
                     fallback_pressure = float(getattr(latest_state, "pressure"))
-                if fallback_temperature is None and hasattr(latest_state, "temperature"):
+                if fallback_temperature is None and hasattr(
+                    latest_state, "temperature"
+                ):
                     fallback_temperature = float(getattr(latest_state, "temperature"))
 
             receiver_state = getattr(self.pneumatic_system, "receiver", None)

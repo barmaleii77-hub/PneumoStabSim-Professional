@@ -25,6 +25,7 @@ from src.ui.geometry_schema import (
     GeometryValidationError,
     validate_geometry_settings,
 )
+from src.common.ui_dialogs import dialogs_allowed, message_question
 
 
 try:
@@ -402,58 +403,50 @@ class GeometryPanel(QWidget):
     def _resolve_conflict(self, conflict_info: dict):
         """Resolve parameter conflict
 
-        Args:
-            conflict_info: Conflict information dictionary
+        В интерактивном режиме Asking the user; in headless/tests or
+        when dialogs are suppressed - reverting to the previous value without blocking.
         """
-        from PySide6.QtWidgets import QMessageBox
-
         self._resolving_conflict = True
-
         try:
-            # Create message box
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle("Конфликт параметров")
-            msg_box.setText(conflict_info["message"])
-            msg_box.setInformativeText("Как вы хотите разрешить этот конфликт?")
+            changed_param = conflict_info.get("changed_param")
+            prev_value = conflict_info.get("previous_value")
+            options = list(conflict_info.get("options", ()))
+            message = str(conflict_info.get("message", "Конфликт параметров"))
 
-            # Add resolution option buttons
-            buttons = []
-            for option_text, param_name, suggested_value in conflict_info["options"]:
-                button = msg_box.addButton(
-                    option_text, QMessageBox.ButtonRole.ActionRole
-                )
-                buttons.append((button, param_name, suggested_value))
-
-            # Add cancel button
-            cancel_button = msg_box.addButton(
-                "Отмена", QMessageBox.ButtonRole.RejectRole
-            )
-
-            # Show dialog
-            msg_box.exec()
-            clicked_button = msg_box.clickedButton()
-
-            if clicked_button == cancel_button:
-                # Revert to previous value
-                changed_param = conflict_info.get("changed_param")
-                prev_value = conflict_info.get("previous_value")
-
-                if changed_param and prev_value is not None:
+            if not dialogs_allowed():
+                # Без модального окна: безопасный откат к предыдущему значению
+                if changed_param is not None and prev_value is not None:
                     self.state_manager.set_parameter(changed_param, prev_value)
                     self._update_tab_widget(changed_param, prev_value)
+                self.logger.warning("Conflict auto-resolved without dialog: %s", message)
+                return
+
+            # Интерактивный путь — короткий вопрос (Да/Нет) для принятия первого варианта
+            if options:
+                first_text, param_name, suggested_value = options[0]
+                proceed = message_question(
+                    self,
+                    "Конфликт параметров",
+                    f"{message}\n\nПрименить вариант: {first_text}?",
+                    default_yes=False,
+                )
+                if proceed:
+                    self.state_manager.set_parameter(param_name, suggested_value)
+                    self._update_tab_widget(param_name, suggested_value)
+                else:
+                    if changed_param is not None and prev_value is not None:
+                        self.state_manager.set_parameter(changed_param, prev_value)
+                        self._update_tab_widget(changed_param, prev_value)
             else:
-                # Apply selected resolution
-                for button, param_name, suggested_value in buttons:
-                    if clicked_button == button:
-                        self.state_manager.set_parameter(param_name, suggested_value)
-                        self._update_tab_widget(param_name, suggested_value)
-                        break
+                # Нет вариантов — просто откатываемся
+                if changed_param is not None and prev_value is not None:
+                    self.state_manager.set_parameter(changed_param, prev_value)
+                    self._update_tab_widget(changed_param, prev_value)
 
-                # Emit updates
-                self.geometry_updated.emit(self.state_manager.get_all_parameters())
-                geometry_3d = self.state_manager.get_3d_geometry_update()
-                self.geometry_changed.emit(geometry_3d)
-
+            # Emit updates
+            self.geometry_updated.emit(self.state_manager.get_all_parameters())
+            geometry_3d = self.state_manager.get_3d_geometry_update()
+            self.geometry_changed.emit(geometry_3d)
         finally:
             self._resolving_conflict = False
 
@@ -486,18 +479,15 @@ class GeometryPanel(QWidget):
 
     def _collect_state_snapshot(self) -> dict[str, Any]:
         """Return a shallow copy of the current panel state."""
-
         return dict(self.state_manager.get_all_parameters())
 
     def get_geometry_settings(self) -> GeometrySettings:
         """Return the validated geometry configuration for the current state."""
-
         snapshot = self._collect_state_snapshot()
         return _build_geometry_settings(snapshot, self.logger)
 
     def get_parameters(self) -> dict[str, Any]:
         """Return a snapshot of the current geometry parameters as a mapping."""
-
         snapshot = self._collect_state_snapshot()
         settings = self.get_geometry_settings()
         snapshot.update(settings.to_config_dict())
@@ -510,16 +500,11 @@ class GeometryPanel(QWidget):
             params: Dictionary of parameter values
         """
         self._resolving_conflict = True
-
         try:
-            # Update state
             self.state_manager.update_parameters(params)
-
-            # Update all tabs
             self.frame_tab.update_from_state()
             self.suspension_tab.update_from_state()
             self.cylinder_tab.update_from_state()
-
         finally:
             self._resolving_conflict = False
 

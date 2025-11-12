@@ -91,7 +91,9 @@ class _SkipDetector(ast.NodeVisitor):
             if _OVERRIDE_TOKEN in line_text:
                 return
         joined = ".".join(marker)
-        snippet = self.lines[lineno - 1].strip() if 1 <= lineno <= len(self.lines) else ""
+        snippet = (
+            self.lines[lineno - 1].strip() if 1 <= lineno <= len(self.lines) else ""
+        )
         self.violations.append(
             SkipViolation(
                 path=self.module,

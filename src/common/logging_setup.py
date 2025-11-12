@@ -43,10 +43,10 @@ def _normalize_for_cache(value: Any) -> Hashable:
         Хэшируемое представление, пригодное для использования в качестве ключа dict.
     """
     if isinstance(value, Mapping):
-        normalized = [
-            (key, _normalize_for_cache(val)) for key, val in value.items()
-        ]
-        return tuple(sorted(normalized, key=lambda item: (item[0], type(item[0]).__name__)))
+        normalized = [(key, _normalize_for_cache(val)) for key, val in value.items()]
+        return tuple(
+            sorted(normalized, key=lambda item: (item[0], type(item[0]).__name__))
+        )
     if isinstance(value, (list, tuple)):  # исправлено
         return tuple(_normalize_for_cache(item) for item in value)
     if isinstance(value, (set, frozenset)):  # исправлено

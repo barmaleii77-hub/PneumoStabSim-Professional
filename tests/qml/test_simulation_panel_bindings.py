@@ -32,7 +32,9 @@ def _load_simulation_panel():
     assert root is not None
 
     panel = root.findChild(QObject, "simulationPanel")
-    assert panel is not None, "Expected SimulationPanel with objectName 'simulationPanel'"
+    assert panel is not None, (
+        "Expected SimulationPanel with objectName 'simulationPanel'"
+    )
 
     return engine, component, root, panel
 
@@ -89,8 +91,12 @@ def test_simulation_panel_flow_mappings(qapp) -> None:
         first_entry = flow_model_obj.get(0)
         assert first_entry["label"] == "A1"
         assert pytest.approx(first_entry["pressure"], rel=1e-6) == 110_000.0
-        assert pytest.approx(first_entry["pressureRatio"], rel=1e-6) == pytest.approx(0.625, rel=1e-6)
-        assert pytest.approx(first_entry["animationSpeed"], rel=1e-6) == pytest.approx(0.65, rel=1e-6)
+        assert pytest.approx(first_entry["pressureRatio"], rel=1e-6) == pytest.approx(
+            0.625, rel=1e-6
+        )
+        assert pytest.approx(first_entry["animationSpeed"], rel=1e-6) == pytest.approx(
+            0.65, rel=1e-6
+        )
 
         reservoir = panel.findChild(QObject, "reservoirView")
         assert reservoir is not None

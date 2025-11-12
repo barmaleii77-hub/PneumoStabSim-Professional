@@ -329,7 +329,9 @@ def test_validate_shaders_reports_deprecated_entry_point(tmp_path: Path) -> None
     qsb_cmd = _make_qsb_stub(tmp_path)
 
     _write_shader(
-        shader_root, "effects/bloom.frag", "#version 450 core\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid qt_customMain() {}\n",
     )
     _write_shader(
         shader_root,
@@ -342,7 +344,9 @@ def test_validate_shaders_reports_deprecated_entry_point(tmp_path: Path) -> None
         "#version 300 es\nvoid qt_customMain() {}\n",
     )
     _write_shader(
-        shader_root, "effects/bloom_es.frag", "#version 300 es\nvoid qt_customMain() {}\n"
+        shader_root,
+        "effects/bloom_es.frag",
+        "#version 300 es\nvoid qt_customMain() {}\n",
     )
 
     result = validate_shaders.validate_shaders(

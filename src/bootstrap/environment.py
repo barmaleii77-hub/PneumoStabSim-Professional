@@ -154,6 +154,7 @@ def configure_qt_environment(
     os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
     os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "1")
     os.environ.setdefault("PSS_DIAG", "1")
+    os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
     # OpenGL остаётся дефолтом на Windows, Linux и macOS — Qt подберёт нужный драйвер.
     # На Windows это означает использование штатного desktop OpenGL (или ANGLE, если

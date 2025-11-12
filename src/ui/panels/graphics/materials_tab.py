@@ -110,30 +110,48 @@ class MaterialsTab(QWidget):
         r += 1
 
         # Opacity
-        r = self._add_slider_control(grid, r, "Непрозрачность", "opacity", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(
+            grid, r, "Непрозрачность", "opacity", 0.0, 1.0, 0.01
+        )
 
         # Metalness / Roughness
-        r = self._add_slider_control(grid, r, "Металличность", "metalness", 0.0, 1.0, 0.01)
-        r = self._add_slider_control(grid, r, "Шероховатость", "roughness", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(
+            grid, r, "Металличность", "metalness", 0.0, 1.0, 0.01
+        )
+        r = self._add_slider_control(
+            grid, r, "Шероховатость", "roughness", 0.0, 1.0, 0.01
+        )
 
         # Clearcoat
         r = self._add_slider_control(grid, r, "Clearcoat", "clearcoat", 0.0, 1.0, 0.01)
-        r = self._add_slider_control(grid, r, "Clearcoat Roughness", "clearcoat_roughness", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(
+            grid, r, "Clearcoat Roughness", "clearcoat_roughness", 0.0, 1.0, 0.01
+        )
 
         # Thickness
-        r = self._add_slider_control(grid, r, "Толщина (thickness)", "thickness", 0.0, 500.0, 1.0, decimals=0)
+        r = self._add_slider_control(
+            grid, r, "Толщина (thickness)", "thickness", 0.0, 500.0, 1.0, decimals=0
+        )
 
         # Attenuation
-        r = self._add_slider_control(grid, r, "Attenuation Distance", "attenuation_distance", 0.0, 100000.0, 10.0)
+        r = self._add_slider_control(
+            grid, r, "Attenuation Distance", "attenuation_distance", 0.0, 100000.0, 10.0
+        )
         r = self._add_color_control(grid, r, "Attenuation Color", "attenuation_color")
 
         # Emissive
         r = self._add_color_control(grid, r, "Излучающий цвет", "emissive_color")
-        r = self._add_slider_control(grid, r, "Яркость излучения", "emissive_intensity", 0.0, 50.0, 0.1)
+        r = self._add_slider_control(
+            grid, r, "Яркость излучения", "emissive_intensity", 0.0, 50.0, 0.1
+        )
 
         # Normal / Occlusion
-        r = self._add_slider_control(grid, r, "Normal Strength", "normal_strength", 0.0, 2.0, 0.01)
-        r = self._add_slider_control(grid, r, "Occlusion Amount", "occlusion_amount", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(
+            grid, r, "Normal Strength", "normal_strength", 0.0, 2.0, 0.01
+        )
+        r = self._add_slider_control(
+            grid, r, "Occlusion Amount", "occlusion_amount", 0.0, 1.0, 0.01
+        )
 
         # Alpha Mode + cutoff
         alpha_row = QHBoxLayout()
@@ -150,12 +168,16 @@ class MaterialsTab(QWidget):
         alpha_row.addStretch(1)
         grid.addLayout(alpha_row, r, 0, 1, 2)
         r += 1
-        r = self._add_slider_control(grid, r, "Alpha Cutoff (Mask)", "alpha_cutoff", 0.0, 1.0, 0.01)
+        r = self._add_slider_control(
+            grid, r, "Alpha Cutoff (Mask)", "alpha_cutoff", 0.0, 1.0, 0.01
+        )
 
         layout.addWidget(group)
         layout.addStretch(1)
 
-    def _add_color_control(self, grid: QGridLayout, row: int, title: str, key: str) -> int:
+    def _add_color_control(
+        self, grid: QGridLayout, row: int, title: str, key: str
+    ) -> int:
         container = QWidget(self)
         hbox = QHBoxLayout(container)
         hbox.setContentsMargins(0, 0, 0, 0)
@@ -169,7 +191,18 @@ class MaterialsTab(QWidget):
         grid.addWidget(container, row, 0, 1, 2)
         return row + 1
 
-    def _add_slider_control(self, grid: QGridLayout, row: int, title: str, key: str, minimum: float, maximum: float, step: float, *, decimals: int = 2) -> int:
+    def _add_slider_control(
+        self,
+        grid: QGridLayout,
+        row: int,
+        title: str,
+        key: str,
+        minimum: float,
+        maximum: float,
+        step: float,
+        *,
+        decimals: int = 2,
+    ) -> int:
         slider = LabeledSlider(title, minimum, maximum, step, decimals=decimals)
         slider.valueChanged.connect(lambda v: self._on_control_changed(key, v))
         self._controls[key] = slider
@@ -244,7 +277,9 @@ class MaterialsTab(QWidget):
             norm["base_color"] = norm["color"]
         norm.pop("color", None)
         if "texture_path" in norm:
-            norm["texture_path"] = self._normalize_texture_path(norm.get("texture_path"))
+            norm["texture_path"] = self._normalize_texture_path(
+                norm.get("texture_path")
+            )
         for ckey in ("base_color", "attenuation_color", "emissive_color"):
             if ckey in norm:
                 norm[ckey] = self._coerce_color(norm.get(ckey), default="#ffffff")
@@ -264,6 +299,7 @@ class MaterialsTab(QWidget):
             except Exception:
                 pass
         try:
+
             def set_if(k: str):
                 if k in st and k in self._controls:
                     ctrl = self._controls[k]
@@ -278,6 +314,7 @@ class MaterialsTab(QWidget):
                         idx = ctrl.findData(v)
                         if idx >= 0:
                             ctrl.setCurrentIndex(idx)
+
             for k in (
                 "base_color",
                 "texture_path",
@@ -351,7 +388,9 @@ class MaterialsTab(QWidget):
     def get_current_material_state(self) -> dict[str, Any]:
         return {
             "base_color": self._controls["base_color"].color().name(),
-            "texture_path": self._normalize_texture_path(self._controls["texture_path"].current_path()),
+            "texture_path": self._normalize_texture_path(
+                self._controls["texture_path"].current_path()
+            ),
             "metalness": self._controls["metalness"].value(),
             "roughness": self._controls["roughness"].value(),
             "opacity": self._controls["opacity"].value(),
@@ -404,7 +443,11 @@ class MaterialsTab(QWidget):
                     materials_cfg = None
             # Fallback: прямой доступ к полному dot-пути (используется в тестовом stub)
             if materials_cfg is None:
-                direct = sm.get("current.graphics.materials", {}) if hasattr(sm, "get") else {}
+                direct = (
+                    sm.get("current.graphics.materials", {})
+                    if hasattr(sm, "get")
+                    else {}
+                )
                 if isinstance(direct, dict):
                     materials_cfg = direct
             if isinstance(materials_cfg, dict):
@@ -448,7 +491,9 @@ class MaterialsTab(QWidget):
         if saved:
             tw.set_current_data(saved, emit=False)
 
-    def set_state(self, payload: dict[str, dict[str, Any]]) -> None:  # pragma: no cover - тестовая функция
+    def set_state(
+        self, payload: dict[str, dict[str, Any]]
+    ) -> None:  # pragma: no cover - тестовая функция
         """Загрузить внешнее состояние материалов, очищая кэш и применяя для текущего ключа."""
         if not isinstance(payload, dict):
             return
@@ -463,5 +508,7 @@ class MaterialsTab(QWidget):
         if cur and cur in self._materials_state:
             self._apply_controls_from_state(self._materials_state[cur])
 
-    def get_all_state(self) -> dict[str, dict[str, Any]]:  # pragma: no cover - тестовая функция
+    def get_all_state(
+        self,
+    ) -> dict[str, dict[str, Any]]:  # pragma: no cover - тестовая функция
         return {k: v.copy() for k, v in self._materials_state.items()}

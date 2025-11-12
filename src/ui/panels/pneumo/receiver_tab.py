@@ -133,9 +133,7 @@ class ReceiverTab(QWidget):
             self.receiver_diameter_knob.setValue(
                 self.state_manager.get_receiver_diameter()
             )
-            self.receiver_length_knob.setValue(
-                self.state_manager.get_receiver_length()
-            )
+            self.receiver_length_knob.setValue(self.state_manager.get_receiver_length())
         finally:
             self.receiver_diameter_knob.blockSignals(False)
             self.receiver_length_knob.blockSignals(False)

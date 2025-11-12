@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Iterable, Sequence
 from urllib.parse import unquote, urlparse
+import os
 
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor
@@ -515,6 +516,8 @@ class FileCyclerWidget(QWidget):
             return
         pending = list(self._pending_dialog_paths)
         self._pending_dialog_paths.clear()
+        if not self._dialog_allowed():
+            return
         for path in pending:
             if path in self._dialogued_missing_paths:
                 continue
@@ -614,16 +617,54 @@ class FileCyclerWidget(QWidget):
             self._index = (self._index + 1) % len(self._items)
         self._update_ui(emit=True)
 
+    def _dialog_allowed(self) -> bool:
+        """Вернуть True, если показ модальных предупреждений допустим.
+
+        Критерии:
+        - Есть QApplication.instance()
+        - Не включён режим подавления (PSS_SUPPRESS_UI_DIALOGS)
+        - Не pytest/CI (PYTEST_CURRENT_TEST/CI)
+        - Платформа не headless/offscreen/minimal
+        - Приложение не пометило себя как headless (app.is_headless)
+        """
+        from PySide6.QtWidgets import QApplication as _QApp
+
+        if os.environ.get("PSS_SUPPRESS_UI_DIALOGS", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }:
+            return False
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            return False
+        if os.environ.get("CI", "").strip().lower() in {"1", "true", "yes"}:
+            return False
+        app = _QApp.instance()
+        if app is None:
+            return False
+        platform_hint = os.environ.get("QT_QPA_PLATFORM", "").strip().lower()
+        if platform_hint in {"offscreen", "minimal", "headless"}:
+            return False
+        if bool(getattr(app, "is_headless", False)):
+            return False
+        return True
+
     def _handle_missing_path(self, path: str) -> None:
         if path not in self._logged_missing_paths:
             self._logger.warning("Файл не найден: %s", path)
             self._logged_missing_paths.add(path)
 
-        # Показываем предупреждение один раз, независимо от видимости
+        # Показываем предупреждение один раз и только если разрешено окружением.
         if path in self._dialogued_missing_paths:
             return
-        self._show_warning_dialog(path)
-        self._dialogued_missing_paths.add(path)
+        if self._dialog_allowed():
+            self._show_warning_dialog(path)
+            self._dialogued_missing_paths.add(path)
+        else:
+            # Откладываем до момента, когда виджет станет видимым и среда позволит показывать диалоги
+            if path not in self._pending_dialog_paths:
+                self._pending_dialog_paths.append(path)
 
     def _show_warning_dialog(self, path: str) -> None:
         try:
