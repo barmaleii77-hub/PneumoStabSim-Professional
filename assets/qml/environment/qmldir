@@ -2,3 +2,4 @@ module environment
 
 RealismEnvironment 1.0 RealismEnvironment.qml
 ReflectionProbeVolume 1.0 ReflectionProbeVolume.qml
+ProbeCompat 1.0 ProbeCompat.qml

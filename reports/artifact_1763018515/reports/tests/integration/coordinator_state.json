@@ -1,0 +1,38 @@
+{
+  "active_preset": "precision_mode",
+  "pneumatic": {
+    "atmo_temp": 20.0,
+    "cv_atmo_dia": 0.003,
+    "cv_atmo_dp": 1000.0,
+    "cv_tank_dia": 0.003,
+    "cv_tank_dp": 1000.0,
+    "diagonal_coupling_dia": 0.001,
+    "leak_coefficient": 5e-08,
+    "leak_reference_area": 0.0002,
+    "master_isolation_open": 1.0,
+    "polytropic_exchange_area": 0.12,
+    "polytropic_heat_transfer_coeff": 45.0,
+    "pressure_units": "\u041f\u0430",
+    "receiver_diameter": 0.2,
+    "receiver_length": 0.5,
+    "receiver_volume": 0.018,
+    "receiver_volume_limits": {
+      "max_m3": 1.0,
+      "min_m3": 0.001
+    },
+    "relief_min_pressure": 250000.0,
+    "relief_safety_pressure": 5000000.0,
+    "relief_stiff_pressure": 1500000.0,
+    "thermo_mode": "ADIABATIC",
+    "throttle_min_dia": 0.001,
+    "throttle_stiff_dia": 0.0015,
+    "volume_mode": "GEOMETRIC"
+  },
+  "simulation": {
+    "max_frame_time": 0.04,
+    "max_steps_per_frame": 12.0,
+    "physics_dt": 0.0005,
+    "render_vsync_hz": 60.0,
+    "sim_type": "DYNAMICS"
+  }
+}

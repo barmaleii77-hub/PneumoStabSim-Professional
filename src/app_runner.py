@@ -23,6 +23,20 @@ from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
 from src.diagnostics.logging_presets import LoggingPreset
 
+# Безопасные импорты диагностик: в тестах или минимальных окружениях модули
+# могут отсутствовать. В этом случае подставляем заглушки.
+try:  # noqa: SIM105 - намеренно широкая обработка
+    from src.diagnostics.warnings import print_warnings_errors  # type: ignore
+except Exception:  # pragma: no cover - заглушка для минимальных окружений
+    def print_warnings_errors() -> None:  # type: ignore
+        return None
+
+try:  # noqa: SIM105 - намеренно широкая обработка
+    from src.diagnostics.logs import run_log_diagnostics  # type: ignore
+except Exception:  # pragma: no cover - заглушка для минимальных окружений
+    def run_log_diagnostics() -> None:  # type: ignore
+        return None
+
 from src.core.settings_validation import (
     SettingsValidationError,
     determine_settings_source,
@@ -1084,31 +1098,37 @@ class ApplicationRunner:
             timer_ms=0,
         )
 
-    def run(self, args: argparse.Namespace) -> int:
-        """
-        Запуск приложения с полным lifecycle.
+    def run(self, args: Any) -> int:
+        """Запустить приложение согласно аргументам CLI."""
+        # Локальный контекст диагностики и флаг запуска пост-диагностики
+        diagnostics_context: list[str] = []
+        run_post_diagnostics: bool = False
+        # --- Начало существующей логики run() ---
+        try:
+            # Инициализация логирования: сначала пробуем через именованный аргумент
+            try:
+                self.app_logger = self.setup_logging(verbose_console=bool(getattr(args, "verbose", False)))
+            except TypeError:
+                # Fallback для monkeypatch-стабов без keyword-поддержки
+                self.app_logger = self.setup_logging(bool(getattr(args, "verbose", False)))
+        except Exception as exc:
+            print(
+                f"\n❌ FATAL ERROR: {exc}",
+                flush=True,
+            )
+            # Принудительная пост-диагностика логов, если доступна
+            try:
+                os.environ.setdefault("PSS_POST_DIAG_TRACE", "fatal-error")
+                from tools import analyze_logs as _alog  # type: ignore
 
-        Args:
-            args: Аргументы командной строки
+                _alog.main([])  # best-effort; не важно если не установлен
+            except Exception:
+                pass
+            return 1
 
-        Returns:
-            Exit code приложения
-        """
-        from src.diagnostics.warnings import print_warnings_errors
-        from src.diagnostics.logs import run_log_diagnostics
-
-        env_trace_raw = os.environ.get("PSS_POST_DIAG_TRACE", "")
-        env_reasons = [item for item in env_trace_raw.split("|") if item]
-        run_post_diagnostics = bool(args.diag or env_reasons)
-        diagnostics_context: list[str] = [*env_reasons]
-        if args.diag:
-            diagnostics_context.append("cli-flag")
         try:
             # ✅ Печать заголовка
             self._print_header()
-
-            # ✅ Инициализация
-            self.app_logger = self.setup_logging(args.verbose)
 
             self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
             self.safe_cli_mode = bool(getattr(args, "safe_cli_mode", False))

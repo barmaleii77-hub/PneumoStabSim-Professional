@@ -347,6 +347,7 @@ def _run_command(
     log_name: str | None,
     append: bool = False,
     header: str | None = None,
+    env: MutableMapping[str, str] | None = None,
 ) -> None:
     printable = shlex.join(command)
     print(f"[ci_tasks] $ {printable}")
@@ -372,6 +373,7 @@ def _run_command(
             text=True,
             encoding="utf-8",
             errors="replace",
+            env=(dict(os.environ) | dict(env)) if env is not None else None,
         )
     except FileNotFoundError as exc:  # pragma: no cover - defensive
         raise TaskError(f"Executable not found for command: {command[0]}") from exc
@@ -473,7 +475,8 @@ def _run_pytest_suites(
     PYTEST_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
 
     manual_targets = _split_env_list(os.environ.get("PYTEST_TARGETS"))
-    runner = [sys.executable, "-m"]
+
+    # Always clean coverage data up front when coverage is enabled
     coverage_log_name = "coverage.log"
     if use_coverage:
         _run_command(
@@ -481,13 +484,23 @@ def _run_pytest_suites(
             task_name="coverage:erase",
             log_name=coverage_log_name,
         )
-        runner.extend(["coverage", "run", "--parallel-mode", "-m", "pytest"])
-    else:
-        runner.append("pytest")
 
     if manual_targets:
         existing = _ensure_targets_exist(manual_targets)
         junit_path = PYTEST_REPORT_ROOT / "manual.xml"
+        # Use coverage for manual suite if requested
+        if use_coverage:
+            runner = [
+                sys.executable,
+                "-m",
+                "coverage",
+                "run",
+                "--parallel-mode",
+                "-m",
+                "pytest",
+            ]
+        else:
+            runner = [sys.executable, "-m", "pytest"]
         command = [
             *runner,
             *common_flags,
@@ -514,6 +527,22 @@ def _run_pytest_suites(
 
         existing_targets = _ensure_targets_exist(targets)
 
+        # IMPORTANT: run UI suite without coverage on Windows due to crashes in coverage+Qt
+        # Keep coverage for other suites to preserve metrics.
+        use_cov_for_suite = bool(use_coverage and name != "ui")
+        if use_cov_for_suite:
+            runner = [
+                sys.executable,
+                "-m",
+                "coverage",
+                "run",
+                "--parallel-mode",
+                "-m",
+                "pytest",
+            ]
+        else:
+            runner = [sys.executable, "-m", "pytest"]
+
         command = [*runner, *common_flags]
         if suite.marker:
             command.extend(["-m", suite.marker])
@@ -525,11 +554,17 @@ def _run_pytest_suites(
         command.extend(existing_targets)
 
         header = f"## Suite: {name}\n"
+        # Headless overrides for UI suite to avoid driver issues
+        env_override = None
+        if name == "ui":
+            env_override = dict(os.environ)
+            apply_headless_defaults(env_override)
         _run_command(
             command,
             task_name=f"pytest:{name}",
             log_name=f"pytest_{name}.log",
             header=header,
+            env=env_override,
         )
 
 
@@ -1243,7 +1278,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     RECORDER.start(args.command)
     exit_code = 0
-    unexpected_error: BaseException | None = None
+    unexpected_error: BaseError | None = None
     try:
         _ensure_no_merge_conflicts()
         task()

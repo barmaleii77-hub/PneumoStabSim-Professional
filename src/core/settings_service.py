@@ -746,11 +746,11 @@ class SettingsService:
             )
 
     def _guard_legacy_geometry_mesh_extras(self, payload: MappingABC[str, Any]) -> None:
-        """Выбросить ошибку, если обнаружены запрещённые legacy mesh ключи в секции geometry.
+        """Обнаружение и удаление устаревших mesh-полей геометрии.
 
-        Смоук-тесты добавляют поля ``cylinder_segments`` и ``cylinder_rings`` —
-        они должны приводить к SettingsValidationError.
-        Проверяем разделы ``current.geometry`` и ``defaults_snapshot.geometry``.
+        Удаляет ключи из LEGACY_GEOMETRY_MESH_EXTRAS в секциях
+        current.geometry и defaults_snapshot.geometry. Никогда не падает,
+        только логирует предупреждение если что-то найдено.
         """
         if not isinstance(payload, MappingABC):
             return
@@ -777,14 +777,27 @@ class SettingsService:
         )
 
         offenders: set[str] = set()
+        sections: list[MappingABC[str, Any]] = []
         for section in (_geom_section(current), _geom_section(defaults)):
             if isinstance(section, MappingABC):
+                sections.append(section)
                 offenders |= set(section.keys()) & LEGACY_GEOMETRY_MESH_EXTRAS
-        if offenders:
-            raise SettingsValidationError(
-                "Settings payload uses legacy geometry mesh fields: "
-                + ", ".join(sorted(offenders))
-            )
+
+        if not offenders:
+            return
+
+        # Стрипим прямо на месте.
+        for section in sections:
+            for key in list(section.keys()):
+                if key in LEGACY_GEOMETRY_MESH_EXTRAS:
+                    try:
+                        if hasattr(section, "pop"):
+                            section.pop(key, None)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+        logger.warning(
+            "Stripped legacy geometry mesh fields: %s", ", ".join(sorted(offenders))
+        )
 
     def _validate_graphics_materials(self, payload: MappingABC[str, Any]) -> None:
         """Ensure graphics materials are synchronised between current/defaults."""

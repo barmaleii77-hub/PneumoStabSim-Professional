@@ -10,6 +10,7 @@ HEADLESS_FLAG = "PSS_HEADLESS"
 _HEADLESS_TRUTHY = {"1", "true", "yes", "on"}
 HEADLESS_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
+    # Базовое значение; на Windows переопределяется на RHI ниже
     "QT_QUICK_BACKEND": "software",
     "QT_QUICK_CONTROLS_STYLE": "Basic",
 }
@@ -27,14 +28,26 @@ def headless_requested(env: Mapping[str, str] | None = None) -> bool:
 
 
 def apply_headless_defaults(env: MutableMapping[str, str] | None = None) -> None:
-    """Apply the standard Qt headless environment overrides."""
+    """Apply the standard Qt headless environment overrides.
+
+    На Windows используем RHI + D3D11 вместо программного backend'а, т.к.
+    software-путь Qt Quick 3D нестабилен и часто падает при offscreen.
+    На Linux/macOS сохраняем программный backend.
+    """
 
     environment = env if env is not None else os.environ
     environment[HEADLESS_FLAG] = "1"
-    for key, value in HEADLESS_DEFAULTS.items():
-        environment[key] = value
-    # Ensure GPU backends do not override software fallbacks in headless mode.
-    environment.pop("QSG_RHI_BACKEND", None)
+    environment["QT_QPA_PLATFORM"] = "offscreen"
+
+    if sys.platform.startswith("win"):
+        environment["QT_QUICK_BACKEND"] = "rhi"
+        environment["QSG_RHI_BACKEND"] = "d3d11"
+    else:
+        environment["QT_QUICK_BACKEND"] = "software"
+        # В headless без GPU оставляем выбор Qt, гарантируя отсутствие d3d/metal
+        environment.pop("QSG_RHI_BACKEND", None)
+
+    environment.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 
 def _preferred_backend(platform_name: str | None = None) -> str:

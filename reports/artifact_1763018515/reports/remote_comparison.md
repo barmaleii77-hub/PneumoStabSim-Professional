@@ -1,0 +1,629 @@
+# Отчёт сравнения удалённых веток с текущим состоянием
+
+Текущая ветка: `merge/best-of` @ `02ac2cdd`
+
+## origin @ ad6bed72 (Tue Oct 14 20:32:40 2025 +0500)
+
+- Отличий: A:38, M:14
+
+  - M .env
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/event_logger.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/tasks.json
+  - A assets/hdr/README.md
+  - A assets/hdr/studio.hdr
+  - A assets/hdr/studio.hdr.placeholder
+  - A assets/qml/assets/DSC_9975.NEF
+  - A assets/qml/assets/HDR.hdr
+  - A assets/qml/assets/README.md
+  - A assets/qml/assets/abandoned_factory_canteen_01_2k.hdr
+  - A assets/qml/assets/abandoned_greenhouse_2k.hdr
+  - A assets/qml/assets/abandoned_hall_01_2k.hdr
+  - A assets/qml/assets/abandoned_hopper_terminal_04_2k.hdr
+  - A assets/qml/assets/adams_place_bridge_2k.hdr
+  - A assets/qml/assets/aerodynamics_workshop_2k.hdr
+  - A assets/qml/assets/aircraft_workshop_01_2k.hdr
+  - A assets/qml/assets/approaching_storm_2k.hdr
+  - A assets/qml/assets/auto_service_2k.hdr
+  - A assets/qml/assets/ballawley_park_2k (1).hdr
+  - A assets/qml/assets/ballawley_park_2k.hdr
+  - A assets/qml/assets/charolettenbrunn_park_2k.hdr
+  - A assets/qml/assets/circus_maximus_2_2k.hdr
+  - A assets/qml/assets/dancing_hall_2k.hdr
+  - A assets/qml/assets/empty_warehouse_01_2k.hdr
+  - A assets/qml/assets/flower_road_2k.hdr
+  - A assets/qml/assets/goegap_road_2k.hdr
+  - A assets/qml/assets/hochsal_field_2k.hdr
+  - A assets/qml/assets/machine_shop_02_2k.hdr
+  - A assets/qml/assets/metro_vijzelgracht_2k.hdr
+  - A assets/qml/assets/old_depot_2k.hdr
+  - A assets/qml/assets/piazza_martin_lutero_2k.hdr
+  - A assets/qml/assets/rural_asphalt_road_2k.hdr
+  - A assets/qml/assets/squash_court_2k.hdr
+  - A assets/qml/assets/studio_small_09_2k.hdr
+  - ... (сокращено)
+
+
+## origin/codex/analyze-latest-commit-for-graphics-improvements @ bea96d29 (Sun Oct 12 19:32:35 2025 +0500)
+
+- Отличий: A:126, D:1, M:15
+
+  - M .env
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/components/qmldir
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A DITHERING_SUPPORT.md
+  - A EMBEDDED_LOG_DIAGNOSTICS_FINAL.md
+  - A EVENT_LOGGER_FIX_SUMMARY.md
+  - A EVENT_LOGGER_INTEGRATION_MISSING.md
+  - A EVENT_LOGGER_MINIMAL_INTEGRATION_DONE.md
+  - A EVENT_LOGGING_IMPLEMENTATION_REPORT.md
+  - A EVENT_LOGGING_README.md
+  - A EXTENDED_SCENE_ENVIRONMENT_GUIDE.md
+  - A FINAL_FIX_APPLIED.md
+  - A FINAL_SOLUTION_QT610_COMPATIBILITY.md
+  - A FINAL_SOLUTION_QT693_COMPATIBILITY.md
+  - A FIXED_QT_VERSION_IMPORT.md
+  - A FIX_SKYBOXBLURAMOUNT_v4.9.1.md
+  - A FOG_PROPERTY_FIX_NEEDED.md
+  - A FULL_UI_EVENT_LOGGING_GUIDE.md
+  - A GITHUB_COPILOT_CONFIGURATION.md
+  - A GIT_COMMIT_INSTRUCTIONS.md
+  - A GIT_COMMIT_SUMMARY_v4.9.1.md
+  - A GRAPHICS_ACK_SIGNAL_IMPLEMENTATION.md
+  - A GRAPHICS_LOGGING_CHEATSHEET.md
+  - ... (сокращено)
+
+
+## origin/copilot/add-ibl-control-features @ a58e37a0 (Sun Oct 12 21:04:33 2025 +0000)
+
+- Отличий: A:110, D:4, M:14
+
+  - M .env
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A EMBEDDED_LOG_DIAGNOSTICS_FINAL.md
+  - A EVENT_LOGGER_FIX_SUMMARY.md
+  - A EVENT_LOGGER_INTEGRATION_MISSING.md
+  - A EVENT_LOGGER_MINIMAL_INTEGRATION_DONE.md
+  - A EVENT_LOGGING_IMPLEMENTATION_REPORT.md
+  - A EVENT_LOGGING_README.md
+  - A FINAL_FIX_APPLIED.md
+  - A FIX_SKYBOXBLURAMOUNT_v4.9.1.md
+  - A FULL_UI_EVENT_LOGGING_GUIDE.md
+  - A GITHUB_COPILOT_CONFIGURATION.md
+  - A GIT_COMMIT_INSTRUCTIONS.md
+  - A GIT_COMMIT_SUMMARY_v4.9.1.md
+  - A GRAPHICS_ACK_SIGNAL_IMPLEMENTATION.md
+  - A GRAPHICS_LOGGING_CHEATSHEET.md
+  - A GRAPHICS_LOGGING_SUMMARY.md
+  - A GRAPHICS_PANEL_EVENT_FIX.md
+  - A GRAPHICS_PANEL_QML_SYNC_FIX.md
+  - A GRAPHICS_SYNC_FIX_REPORT.md
+  - A IBL_LOGGING_CHEATSHEET.md
+  - A IBL_LOGGING_IMPLEMENTATION_REPORT.md
+  - A LOGGING_QUICKSTART.md
+  - ... (сокращено)
+
+
+## origin/copilot/clone-repo-to-local-machine @ 6a755436 (Sun Oct 12 19:28:10 2025 +0500)
+
+- Отличий: A:126, D:1, M:15
+
+  - M .env
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/components/qmldir
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A DITHERING_SUPPORT.md
+  - A EMBEDDED_LOG_DIAGNOSTICS_FINAL.md
+  - A EVENT_LOGGER_FIX_SUMMARY.md
+  - A EVENT_LOGGER_INTEGRATION_MISSING.md
+  - A EVENT_LOGGER_MINIMAL_INTEGRATION_DONE.md
+  - A EVENT_LOGGING_IMPLEMENTATION_REPORT.md
+  - A EVENT_LOGGING_README.md
+  - A EXTENDED_SCENE_ENVIRONMENT_GUIDE.md
+  - A FINAL_FIX_APPLIED.md
+  - A FINAL_SOLUTION_QT610_COMPATIBILITY.md
+  - A FINAL_SOLUTION_QT693_COMPATIBILITY.md
+  - A FIXED_QT_VERSION_IMPORT.md
+  - A FIX_SKYBOXBLURAMOUNT_v4.9.1.md
+  - A FOG_PROPERTY_FIX_NEEDED.md
+  - A FULL_UI_EVENT_LOGGING_GUIDE.md
+  - A GITHUB_COPILOT_CONFIGURATION.md
+  - A GIT_COMMIT_INSTRUCTIONS.md
+  - A GIT_COMMIT_SUMMARY_v4.9.1.md
+  - A GRAPHICS_ACK_SIGNAL_IMPLEMENTATION.md
+  - A GRAPHICS_LOGGING_CHEATSHEET.md
+  - ... (сокращено)
+
+
+## origin/feature/hdr-assets-migration @ 1a71282c (Wed Oct 15 09:49:43 2025 +0500)
+
+- Отличий: A:36, D:1, M:18
+
+  - M .env
+  - M .gitattributes
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/hdr/README.md
+  - M assets/hdr/studio.hdr.placeholder
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/event_logger.py
+  - M src/common/log_analyzer.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/tasks.json
+  - A assets/hdr/studio.hdr
+  - A assets/qml/assets/DSC_9975.NEF
+  - A assets/qml/assets/HDR.hdr
+  - A assets/qml/assets/README.md
+  - A assets/qml/assets/abandoned_factory_canteen_01_2k.hdr
+  - A assets/qml/assets/abandoned_greenhouse_2k.hdr
+  - A assets/qml/assets/abandoned_hall_01_2k.hdr
+  - A assets/qml/assets/abandoned_hopper_terminal_04_2k.hdr
+  - A assets/qml/assets/adams_place_bridge_2k.hdr
+  - A assets/qml/assets/aerodynamics_workshop_2k.hdr
+  - A assets/qml/assets/aircraft_workshop_01_2k.hdr
+  - A assets/qml/assets/approaching_storm_2k.hdr
+  - A assets/qml/assets/auto_service_2k.hdr
+  - A assets/qml/assets/ballawley_park_2k (1).hdr
+  - A assets/qml/assets/ballawley_park_2k.hdr
+  - A assets/qml/assets/charolettenbrunn_park_2k.hdr
+  - A assets/qml/assets/circus_maximus_2_2k.hdr
+  - A assets/qml/assets/dancing_hall_2k.hdr
+  - A assets/qml/assets/empty_warehouse_01_2k.hdr
+  - A assets/qml/assets/flower_road_2k.hdr
+  - A assets/qml/assets/goegap_road_2k.hdr
+  - A assets/qml/assets/hochsal_field_2k.hdr
+  - A assets/qml/assets/machine_shop_02_2k.hdr
+  - A assets/qml/assets/metro_vijzelgracht_2k.hdr
+  - A assets/qml/assets/old_depot_2k.hdr
+  - A assets/qml/assets/piazza_martin_lutero_2k.hdr
+  - A assets/qml/assets/rural_asphalt_road_2k.hdr
+  - ... (сокращено)
+
+
+## origin/feature/ibl-rotation-and-cylinder-geometry @ cda11b4a (Sun Oct 12 22:54:23 2025 +0500)
+
+- Отличий: A:110, M:14
+
+  - M .env
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A EMBEDDED_LOG_DIAGNOSTICS_FINAL.md
+  - A EVENT_LOGGER_FIX_SUMMARY.md
+  - A EVENT_LOGGER_INTEGRATION_MISSING.md
+  - A EVENT_LOGGER_MINIMAL_INTEGRATION_DONE.md
+  - A EVENT_LOGGING_IMPLEMENTATION_REPORT.md
+  - A EVENT_LOGGING_README.md
+  - A FINAL_FIX_APPLIED.md
+  - A FIX_SKYBOXBLURAMOUNT_v4.9.1.md
+  - A FULL_UI_EVENT_LOGGING_GUIDE.md
+  - A GITHUB_COPILOT_CONFIGURATION.md
+  - A GIT_COMMIT_INSTRUCTIONS.md
+  - A GIT_COMMIT_SUMMARY_v4.9.1.md
+  - A GRAPHICS_ACK_SIGNAL_IMPLEMENTATION.md
+  - A GRAPHICS_LOGGING_CHEATSHEET.md
+  - A GRAPHICS_LOGGING_SUMMARY.md
+  - A GRAPHICS_PANEL_EVENT_FIX.md
+  - A GRAPHICS_PANEL_QML_SYNC_FIX.md
+  - A GRAPHICS_SYNC_FIX_REPORT.md
+  - A IBL_LOGGING_CHEATSHEET.md
+  - A IBL_LOGGING_IMPLEMENTATION_REPORT.md
+  - A LOGGING_QUICKSTART.md
+  - ... (сокращено)
+
+
+## origin/latest-main @ 092bd2ab (Fri Oct 10 14:34:59 2025 +0300)
+
+- Отличий: A:238, D:1, M:23, R086:1
+
+  - M .env
+  - M .gitignore
+  - M COMMIT_PUSH_SUCCESS_REPORT.md
+  - M PneumoStabSim-Professional.pyproj
+  - M README.md
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/UFrameScene.qml
+  - M assets/qml/components/CorrectedSuspensionCorner.qml
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/components/Materials.qml
+  - M assets/qml/components/qmldir
+  - M assets/qml/main.qml
+  - M assets/qml/main_backup.qml
+  - M assets/qml/main_old_3d_attempt.qml
+  - M assets/qml/main_working_builtin.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A 1.json
+  - A ALL_PARAMETERS_FIXED_FINAL_REPORT.md
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A APP_CHECK_SUMMARY.md
+  - A APP_HEALTH_CHECK_REPORT.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A BACKGROUND_FIRST_CLICK_FIX_v4.7.md
+  - A BACKGROUND_FIX_HOWTO.md
+  - A BACKGROUND_ROTATION_FIX_REPORT.md
+  - A BACKUP_CONFIG.md
+  - A CODE_QUALITY_AUDIT_FINAL.md
+  - A COMMIT_SUCCESS_SUMMARY.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A CRITICAL_ERROR_FIXED_REPORT.md
+  - A CRITICAL_FIXES_SUCCESS_REPORT.md
+  - ... (сокращено)
+
+
+## origin/main @ ad6bed72 (Tue Oct 14 20:32:40 2025 +0500)
+
+- Отличий: A:38, M:14
+
+  - M .env
+  - M .gitignore
+  - M PneumoStabSim-Professional.pyproj
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/event_logger.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/tasks.json
+  - A assets/hdr/README.md
+  - A assets/hdr/studio.hdr
+  - A assets/hdr/studio.hdr.placeholder
+  - A assets/qml/assets/DSC_9975.NEF
+  - A assets/qml/assets/HDR.hdr
+  - A assets/qml/assets/README.md
+  - A assets/qml/assets/abandoned_factory_canteen_01_2k.hdr
+  - A assets/qml/assets/abandoned_greenhouse_2k.hdr
+  - A assets/qml/assets/abandoned_hall_01_2k.hdr
+  - A assets/qml/assets/abandoned_hopper_terminal_04_2k.hdr
+  - A assets/qml/assets/adams_place_bridge_2k.hdr
+  - A assets/qml/assets/aerodynamics_workshop_2k.hdr
+  - A assets/qml/assets/aircraft_workshop_01_2k.hdr
+  - A assets/qml/assets/approaching_storm_2k.hdr
+  - A assets/qml/assets/auto_service_2k.hdr
+  - A assets/qml/assets/ballawley_park_2k (1).hdr
+  - A assets/qml/assets/ballawley_park_2k.hdr
+  - A assets/qml/assets/charolettenbrunn_park_2k.hdr
+  - A assets/qml/assets/circus_maximus_2_2k.hdr
+  - A assets/qml/assets/dancing_hall_2k.hdr
+  - A assets/qml/assets/empty_warehouse_01_2k.hdr
+  - A assets/qml/assets/flower_road_2k.hdr
+  - A assets/qml/assets/goegap_road_2k.hdr
+  - A assets/qml/assets/hochsal_field_2k.hdr
+  - A assets/qml/assets/machine_shop_02_2k.hdr
+  - A assets/qml/assets/metro_vijzelgracht_2k.hdr
+  - A assets/qml/assets/old_depot_2k.hdr
+  - A assets/qml/assets/piazza_martin_lutero_2k.hdr
+  - A assets/qml/assets/rural_asphalt_road_2k.hdr
+  - A assets/qml/assets/squash_court_2k.hdr
+  - A assets/qml/assets/studio_small_09_2k.hdr
+  - ... (сокращено)
+
+
+## origin/main-3b8da9a @ 6abe30d6 (Thu Oct 9 15:33:20 2025 +0300)
+
+- Отличий: A:293, M:46, R066:1
+
+  - M .env
+  - M .gitignore
+  - M README.md
+  - M activate_venv.bat
+  - M app.py
+  - M archive/temp_tests/test_all_imports.py
+  - M assets/qml/UFrameScene.qml
+  - M assets/qml/components/CorrectedSuspensionCorner.qml
+  - M assets/qml/components/Materials.qml
+  - M assets/qml/components/qmldir
+  - M assets/qml/main.qml
+  - M assets/qml/main_backup.qml
+  - M assets/qml/main_old_3d_attempt.qml
+  - M assets/qml/main_working_builtin.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M run.bat
+  - M src/app/config_defaults.py
+  - M src/app/smoke_gas_final.py
+  - M src/app/smoke_gas_simple.py
+  - M src/app/smoke_test.py
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/pneumo/cylinder.py
+  - M src/pneumo/flow.py
+  - M src/pneumo/gas_state.py
+  - M src/pneumo/geometry.py
+  - M src/pneumo/network.py
+  - M src/pneumo/system.py
+  - M src/pneumo/thermo.py
+  - M src/pneumo/valves.py
+  - M src/runtime/sim_loop.py
+  - M src/ui/__init__.py
+  - M src/ui/charts.py
+  - M src/ui/hud.py
+  - M src/ui/main_window.py
+  - M src/ui/main_window_backup.py
+  - M src/ui/panels/__init__.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - M src/ui/panels_accordion.py
+  - M src/ui/qml_host.py
+  - M src/ui/widgets/__init__.py
+  - M tests/graphics/final_graphics_report.json
+  - M tests/test_odes_basic.py
+  - M tests/test_runtime_basic.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - ... (сокращено)
+
+
+## origin/merge-latest-remote @ 66c157b8 (Fri Oct 10 17:44:44 2025 +0500)
+
+- Отличий: A:238, D:1, M:23, R086:1
+
+  - M .env
+  - M .gitignore
+  - M COMMIT_PUSH_SUCCESS_REPORT.md
+  - M PneumoStabSim-Professional.pyproj
+  - M README.md
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/UFrameScene.qml
+  - M assets/qml/components/CorrectedSuspensionCorner.qml
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/components/Materials.qml
+  - M assets/qml/components/qmldir
+  - M assets/qml/main.qml
+  - M assets/qml/main_backup.qml
+  - M assets/qml/main_old_3d_attempt.qml
+  - M assets/qml/main_working_builtin.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A 1.json
+  - A ALL_PARAMETERS_FIXED_FINAL_REPORT.md
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A APP_CHECK_SUMMARY.md
+  - A APP_HEALTH_CHECK_REPORT.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A BACKGROUND_FIRST_CLICK_FIX_v4.7.md
+  - A BACKGROUND_FIX_HOWTO.md
+  - A BACKGROUND_ROTATION_FIX_REPORT.md
+  - A BACKUP_CONFIG.md
+  - A CODE_QUALITY_AUDIT_FINAL.md
+  - A COMMIT_SUCCESS_SUMMARY.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A CRITICAL_ERROR_FIXED_REPORT.md
+  - A CRITICAL_FIXES_SUCCESS_REPORT.md
+  - ... (сокращено)
+
+
+## origin/qml-method-fixes @ db3e34c6 (Sun Oct 12 18:17:26 2025 +0500)
+
+- Отличий: A:233, D:4, M:17
+
+  - M .env
+  - M .gitignore
+  - M COMMIT_PUSH_SUCCESS_REPORT.md
+  - M PneumoStabSim-Professional.pyproj
+  - M README.md
+  - M activate_venv.bat
+  - M app.py
+  - M assets/qml/components/IblProbeLoader.qml
+  - M assets/qml/components/qmldir
+  - M assets/qml/main.qml
+  - M pyproject.toml
+  - M requirements.txt
+  - M src/common/__init__.py
+  - M src/common/logging_setup.py
+  - M src/ui/main_window.py
+  - M src/ui/panels/panel_geometry.py
+  - M src/ui/panels/panel_graphics.py
+  - A .github/copilot-instructions.md
+  - A .vs/launch.vs.json
+  - A .vscode/copilot.json
+  - A .vscode/extensions.json
+  - A .vscode/launch.json
+  - A .vscode/profile.ps1
+  - A .vscode/settings.json
+  - A .vscode/tasks.json
+  - A 1.json
+  - A ALL_PARAMETERS_FIXED_FINAL_REPORT.md
+  - A ANALYZE_LOGS_README.md
+  - A ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md
+  - A AUTO_LOG_DIAGNOSTICS_FINAL.md
+  - A BACKGROUND_FIRST_CLICK_FIX_v4.7.md
+  - A BACKGROUND_FIX_HOWTO.md
+  - A BACKGROUND_ROTATION_FIX_REPORT.md
+  - A BACKUP_CONFIG.md
+  - A CODE_QUALITY_AUDIT_FINAL.md
+  - A COMMIT_SUCCESS_SUMMARY.md
+  - A COMPLETE_FIX_TESTING.md
+  - A COMPLETE_V4.9_INTEGRATION_SUMMARY.md
+  - A COMPREHENSIVE_EVENT_LOGGING_FINAL.md
+  - A COPILOT-FINAL-REPORT.md
+  - A CRITICAL_FIXES_SUCCESS_REPORT.md
+  - A CRITICAL_FIX_COMPLETE_REPORT.md
+  - A CYLINDER_PARAMS_DIAGNOSTIC_REPORT.md
+  - A CYLINDER_PARAMS_SOLUTION_FINAL.md
+  - A DEBUG_INTEGRATION_REPORT.md
+  - A DEVELOPER_GUIDE.md
+  - A DITHERING_SUPPORT.md
+  - A EMBEDDED_LOG_DIAGNOSTICS_FINAL.md
+  - A ENHANCED_DEBUG_IMPLEMENTATION_REPORT.md
+  - A EVENT_LOGGER_FIX_SUMMARY.md
+  - ... (сокращено)

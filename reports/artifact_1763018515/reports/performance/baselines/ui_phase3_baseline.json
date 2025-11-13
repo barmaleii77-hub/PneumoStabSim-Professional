@@ -1,0 +1,39 @@
+{
+  "scenario": "phase3",
+  "description": "Reference envelope for the phase 3 UI render path under Qt Quick profiler instrumentation.",
+  "metrics": {
+    "avg_cpu_percent": {
+      "max": 80.0
+    },
+    "avg_memory_mb": {
+      "max": 2048.0
+    },
+    "avg_memory_percent": {
+      "max": 85.0
+    },
+    "avg_fps": {
+      "reference": 60.0,
+      "tolerance_percent": 40.0,
+      "min": 30.0
+    },
+    "avg_frame_time_ms": {
+      "reference": 16.7,
+      "tolerance_percent": 50.0,
+      "max": 28.0
+    },
+    "avg_cpu_time_total": {
+      "max": 5.0,
+      "optional": true
+    },
+    "avg_gpu_utilization_percent": {
+      "reference": 55.0,
+      "tolerance_percent": 60.0,
+      "max": 95.0,
+      "optional": true
+    },
+    "avg_gpu_memory_used_mb": {
+      "max": 6144.0,
+      "optional": true
+    }
+  }
+}

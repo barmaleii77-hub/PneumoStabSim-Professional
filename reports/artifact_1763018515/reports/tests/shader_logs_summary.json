@@ -1,0 +1,153 @@
+[
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\bloom.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 0,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [],
+    "isFallbackLog": false
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\bloom_fallback.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 0,
+        "message": "filename indicates fallback shader"
+      }
+    ],
+    "isFallbackLog": true
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\dof.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 0,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [],
+    "isFallbackLog": false
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\dof_fallback.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 0,
+        "message": "filename indicates fallback shader"
+      }
+    ],
+    "isFallbackLog": true
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\fog.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 0,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [],
+    "isFallbackLog": false
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\fog_fallback.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 0,
+        "message": "filename indicates fallback shader"
+      }
+    ],
+    "isFallbackLog": true
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\motion_blur.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 0,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [],
+    "isFallbackLog": false
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\motion_blur_fallback.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 0,
+        "message": "filename indicates fallback shader"
+      }
+    ],
+    "isFallbackLog": true
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\ssao.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 0,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [],
+    "isFallbackLog": false
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\ssao_fallback.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 0,
+        "message": "filename indicates fallback shader"
+      }
+    ],
+    "isFallbackLog": true
+  },
+  {
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\fallback_placeholder.log",
+    "generated_at": "2025-11-13T06:23:31Z",
+    "error_count": 0,
+    "warning_count": 0,
+    "fallback_count": 1,
+    "errors": [],
+    "warnings": [],
+    "fallbackEvents": [
+      {
+        "line": 1,
+        "message": "fallback shader placeholder"
+      }
+    ],
+    "isFallbackLog": true
+  }
+]

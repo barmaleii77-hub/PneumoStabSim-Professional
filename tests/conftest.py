@@ -95,6 +95,63 @@ def _install_qtbot_compat_shims() -> None:
     QtBot.addCleanup = addCleanup  # type: ignore[attr-defined]
 
 
+# --- Fallback qtbot fixture (если плагин pytest-qt недоступен) ------------------
+# Добавляем минимальный адаптор, чтобы тесты не падали при отсутствии плагина.
+# Реализованы методы wait, waitUntil, addWidget, addCleanup для совместимости.
+try:
+    import importlib.util as _imp_util
+
+    _spec = _imp_util.find_spec("pytestqt.plugin")
+except Exception:
+    _spec = None
+
+if _spec is None:
+
+    @pytest.fixture
+    def qtbot(qapp):  # noqa: D401
+        """Упрощённый QtBot fallback без полного функционала pytest-qt.
+
+        Предназначен для базовых ожиданий и регистрации виджетов.
+        """
+        from PySide6.QtTest import QTest
+        import time
+
+        class _FallbackQtBot:  # минимальный адаптер
+            def __init__(self):
+                self._cleanups: list[Callable[[], Any]] = []
+
+            def addWidget(self, widget):  # совместимость с тестами
+                # В реальном QtBot происходит трекинг; нам достаточно ссылки
+                setattr(self, "_last_widget", widget)
+
+            def wait(self, ms: int) -> None:
+                QTest.qWait(ms)
+
+            def waitUntil(
+                self, func: Callable[[], bool], timeout: int = 1000, interval: int = 25
+            ) -> None:
+                deadline = time.time() + timeout / 1000.0
+                while time.time() < deadline:
+                    try:
+                        if func():
+                            return
+                    except Exception:
+                        pass
+                    QTest.qWait(interval)
+                raise AssertionError("waitUntil timeout")
+
+            def addCleanup(self, func: Callable[[], Any]) -> None:
+                self._cleanups.append(func)
+
+        bot = _FallbackQtBot()
+        yield bot
+        for c in bot._cleanups:
+            try:
+                c()
+            except Exception:
+                pass
+
+
 # --- MonkeyPatch compatibility wrapper ------------------------------------------
 
 
@@ -287,12 +344,35 @@ def pytest_configure(config: pytest.Config) -> None:
         ("system", "End-to-end system tests"),
         ("ui", "Qt widgets, panel controllers, and state sync tests"),
         ("gui", "Tests requiring GUI/QML"),  # добавлено явное объявление
-        ("qtbot", "Tests using pytest-qt QtBot fixture"),  # регистрация маркера для ошибок коллекции
+        (
+            "qtbot",
+            "Tests using pytest-qt QtBot fixture",
+        ),  # регистрация маркера для ошибок коллекции
+        ("scenario", "Scenario-based end-to-end checks for pneumatic coupling"),
     ):
         try:
             config.addinivalue_line("markers", f"{name}: {description}")
         except Exception:
             pass
+
+    # Автосоздание локальной директории basetemp (--basetemp=.tmp/pytest)
+    try:
+        base_temp_dir = getattr(config.option, "basetemp", None)
+        if base_temp_dir:
+            Path(str(base_temp_dir)).mkdir(parents=True, exist_ok=True)
+            os.environ.setdefault("PSS_PYTEST_BASETEMP", str(Path(str(base_temp_dir)).resolve()))
+    except Exception:
+        # Тихо игнорируем ошибки — pytest сам упадёт при невозможности записи
+        pass
+
+    # Pre-import real physics helpers to prevent test stubs from shadowing them
+    # across the entire session (tests/physics/test_runtime_pneumo_system.py installs
+    # a minimal 'src.physics.forces' stub if the module isn't loaded yet).
+    try:
+        importlib.import_module("src.physics.forces")
+    except Exception:
+        # If import fails here, individual tests will surface proper diagnostics.
+        pass
 
 
 def pytest_collection_modifyitems(

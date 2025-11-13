@@ -1,7 +1,7 @@
 [
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\bloom.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\bloom.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 0,
@@ -11,8 +11,8 @@
     "isFallbackLog": false
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\bloom_fallback.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\bloom_fallback.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,
@@ -27,8 +27,8 @@
     "isFallbackLog": true
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\dof.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\dof.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 0,
@@ -38,8 +38,8 @@
     "isFallbackLog": false
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\dof_fallback.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\dof_fallback.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,
@@ -54,8 +54,8 @@
     "isFallbackLog": true
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\fog.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\fog.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 0,
@@ -65,8 +65,8 @@
     "isFallbackLog": false
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\fog_fallback.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\fog_fallback.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,
@@ -81,8 +81,8 @@
     "isFallbackLog": true
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\motion_blur.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\motion_blur.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 0,
@@ -92,8 +92,8 @@
     "isFallbackLog": false
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\motion_blur_fallback.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\motion_blur_fallback.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,
@@ -108,8 +108,8 @@
     "isFallbackLog": true
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\ssao.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\ssao.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 0,
@@ -119,8 +119,8 @@
     "isFallbackLog": false
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\ssao_fallback.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\effects\\ssao_fallback.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,
@@ -135,8 +135,8 @@
     "isFallbackLog": true
   },
   {
-    "source": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\fallback_placeholder.log",
-    "generated_at": "2025-11-12T20:52:36Z",
+    "source": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\reports\\shaders\\fallback_placeholder.log",
+    "generated_at": "2025-11-13T10:50:25Z",
     "error_count": 0,
     "warning_count": 0,
     "fallback_count": 1,

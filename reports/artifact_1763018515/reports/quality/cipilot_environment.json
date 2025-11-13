@@ -1,0 +1,22 @@
+{
+  "uv_sync_performed": false,
+  "probe_mode": "python",
+  "shell_format": "posix",
+  "env": {
+    "QT_QPA_PLATFORM": "offscreen",
+    "QT_QUICK_BACKEND": "rhi",
+    "QT_QUICK_CONTROLS_STYLE": "Basic",
+    "QT_PLUGIN_PATH": "C:/Users/CADuser/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/plugins",
+    "QML2_IMPORT_PATH": "C:/Users/CADuser/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/qml",
+    "QT_TRANSLATIONS_PATH": "C:/Users/CADuser/AppData/Local/Programs/Python/Python313/Lib/site-packages/PySide6/translations",
+    "QT_LOGGING_RULES": "js.debug=true;qt.qml.debug=true",
+    "DEBUG_ENABLED": "true",
+    "DEVELOPMENT_MODE": "true",
+    "PSS_ENV_PRESET": "trace",
+    "QSG_RHI_BACKEND": "d3d11"
+  },
+  "metadata": {
+    "qt_version": "6.10.0",
+    "pyside6_version": "6.10.0"
+  }
+}

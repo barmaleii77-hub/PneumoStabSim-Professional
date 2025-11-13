@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-11-13T06:23:40.793949+00:00",
+  "coverage": {
+    "percent": "16.40",
+    "lines_covered": "5357",
+    "lines_total": "32663"
+  },
+  "tests": {
+    "total_duration_seconds": "26.696",
+    "total_cases": "186",
+    "integration_duration_seconds": "1.782",
+    "integration_cases": "28",
+    "ui_duration_seconds": "20.832",
+    "ui_cases": "149",
+    "unit_duration_seconds": "4.082",
+    "unit_cases": "9"
+  }
+}

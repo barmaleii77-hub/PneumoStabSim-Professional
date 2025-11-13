@@ -5,15 +5,9 @@ import "../components"
 // qmllint disable import
 import "../geometry"
 import "../PneumoStabSim/scene" as PneumoScene
+import "../environment" as Env
 import "."
 
-/*
- * SuspensionAssembly - encapsulates the full pneumatic suspension rig
- * including the structural frame, four suspension corners and the
- * reflection probe used for physically based rendering. Geometry
- * calculations are centralised in the embedded `kinematics` helper to
- * keep SimulationRoot.qml free from repetitive trigonometry.
- */
 Node {
     id: assembly
 
@@ -261,22 +255,13 @@ Node {
         frameMaterial: assembly.sharedMaterials.frameMaterial
     }
 
-    ReflectionProbe {
+    Env.ProbeCompat {
         id: mainReflectionProbe
-        // В Qt 6.10 свойство enabled доступно — используем прямое биндинг
         enabled: assembly.reflectionProbeEnabled
-        visible: assembly.reflectionProbeEnabled
         parallaxCorrection: true
         quality: assembly.reflectionProbeQualityValue
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
-
-        Component.onCompleted: {
-            // Жёсткая проверка: в 6.10 отсутствие enabled — ошибка окружения
-            if (mainReflectionProbe.enabled === undefined) {
-                console.error("[SuspensionAssembly] ERROR: ReflectionProbe.enabled отсутствует (ожидалось в Qt 6.10). Фаллбек недопустим.")
-            }
-        }
         position: {
             const beam = Math.max(assembly.geometryValue("beamSize"), 0)
             const frameHeight = Math.max(assembly.geometryValue("frameHeight"), 0)
@@ -293,6 +278,11 @@ Node {
                         Math.max(1.0, assembly.toSceneLength(frameHeight + beam + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameLength + padding)))
         }
+    }
+
+    Connections {
+        target: assembly
+        function onReflectionProbeEnabledChanged() { mainReflectionProbe.enabled = assembly.reflectionProbeEnabled }
     }
 
     SuspensionCorner {

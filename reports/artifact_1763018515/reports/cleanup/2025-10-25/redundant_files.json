@@ -1,0 +1,1873 @@
+[
+  {
+    "path": "ALL_PARAMETERS_FIXED_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8898,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ANGLE_NORMALIZATION_BUG_FIX_v4.9.4.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11179,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "APP_CHECK_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4314,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "APP_HEALTH_CHECK_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9927,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "AUDIT_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10796,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "AUTO_LOG_DIAGNOSTICS_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 13684,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "BACKGROUND_FIRST_CLICK_FIX_v4.7.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9326,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "BACKGROUND_FIX_HOWTO.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4308,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "BACKGROUND_ROTATION_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12934,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "BLOOM_TONEMAP_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 15257,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "BLOOM_VIGNETTE_TONEMAP_FIX_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11033,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CAMERA_FIX_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4914,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CLEARCOAT_ROUGHNESS_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4917,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CODE_QUALITY_AUDIT_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7528,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMMIT_MESSAGE.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 3260,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMMIT_MESSAGE_CAMERA_OVERLAY_FIX.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 1943,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMMIT_MESSAGE_FINAL_REFACTORING.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4685,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMMIT_PUSH_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9703,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMMIT_SUCCESS_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6047,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMPLETE_FIX_TESTING.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9580,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMPLETE_V4.9_INTEGRATION_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8401,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMPLETION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10863,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMPREHENSIVE_EVENT_LOGGING_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12802,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COMPREHENSIVE_FIXES_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11746,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CONFIG_FIXES_APPLIED.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7818,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "COPILOT-FINAL-REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5649,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CRITICAL_ERROR_FIXED_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7798,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CRITICAL_FIXES_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10509,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CRITICAL_FIXES_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9321,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CRITICAL_FIX_COMPLETE_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11465,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CYLINDER_PARAMS_DIAGNOSTIC_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10626,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "CYLINDER_PARAMS_SOLUTION_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11583,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "DEBUG_INTEGRATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 18483,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "DEVELOPER_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10950,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EFFECTS_PANEL_FIXES.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10885,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EFFECTS_PANEL_FIXES_APPLIED.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11072,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EMBEDDED_LOG_DIAGNOSTICS_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14092,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ENHANCED_DEBUG_IMPLEMENTATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 13506,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ENVIRONMENT_STATUS.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5224,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EVENT_LOGGER_FIX_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5957,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EVENT_LOGGING_IMPLEMENTATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7458,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EXTENDEDSCENEENVIRONMENT_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14287,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EXTENDED_SCENE_ENVIRONMENT_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6371,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EXTENDED_SCENE_ENVIRONMENT_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12335,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "EXTENSIONS_QUICK_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 2400,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_APPLICATION_WORKING_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9430,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_AUDIT_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14364,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_CHANGES_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4584,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_CLEANUP_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9514,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_FIX_APPLIED.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4245,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_GIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8627,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_OPTIMIZATION_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9660,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_PARAMETER_MAPPING_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10072,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_PROJECT_STATUS.md",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9907,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_QML_FIXES_COMPLETE_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9801,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_REPORT_EFFECTS_PANEL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8918,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_SOLUTION_QT610_COMPATIBILITY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 3661,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FINAL_SOLUTION_QT693_COMPATIBILITY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 8996,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FIXED_QT_VERSION_IMPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 2337,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FIX_ENCODING.ps1",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 4262,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FIX_POWERSHELL_ENCODING.ps1",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 8335,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FIX_SKYBOXBLURAMOUNT_v4.9.1.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7593,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FIX_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5065,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FOG_PROPERTY_FIX_NEEDED.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 1608,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FULL_GRAPHICS_DIAGNOSTICS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11382,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "FULL_UI_EVENT_LOGGING_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10322,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GEOMETRYPANEL_PHASE3_VISUAL_REPORT.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 19106,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GITHUB_SYNC_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7974,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GIT_COMMIT_SUMMARY_v4.9.1.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8045,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GIT_PUSH_STATUS_VISUAL.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8217,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GIT_PUSH_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5032,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GIT_PUSH_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5185,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICSPANEL_COMPLETION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10922,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICSPANEL_FINAL_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11015,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICSPANEL_FIX_COMPLETE_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7935,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICSPANEL_VISUAL_REPORT.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 15654,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_FIXES_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9597,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_INTEGRATION_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9282,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_INTEGRATION_COMPLETE_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12497,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_LOGGING_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14320,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_ADAPTIVE_SCROLLBAR_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10165,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 16641,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_EVENT_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7138,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_IMPLEMENTATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11846,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_QML_SYNC_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10527,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_SIZE_FIXED_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5534,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_PANEL_UPGRADE_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8848,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_RESTORATION_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9861,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "GRAPHICS_SYNC_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12348,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "HDR_FILES_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5779,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "IBL_LOGGING_IMPLEMENTATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9567,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "IMPLEMENTATION_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8444,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "LAUNCH_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 2941,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "LOGGING_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 3441,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "LOG_ANALYSIS_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10472,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "LOG_ANALYSIS_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8160,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "MAIN_OPTIMIZED_DEFAULT_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5607,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "MANUAL_TESTING_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9023,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "MATERIALS_FIX_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5439,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "MATERIALS_SAVING_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9572,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "MATERIALS_TEST_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8338,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "MIGRATION_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 2746,
+    "modified_at": "2025-10-25T06:58:07+00:00"
+  },
+  {
+    "path": "MODULAR_STRATEGY_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11756,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "OPTIMIZATION_COMPLETE_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7755,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "OPTIMIZATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9954,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "OPTIMIZED_VERSION_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10175,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PANELS_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 13013,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PARAMETER_MAPPING_FIX_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9996,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PARAMETER_NAMES_MISMATCH_FIXED_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9443,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PARAMETER_SYNC_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 3701,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PATH_SETUP_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9260,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHASE3_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6704,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHASE3_COMPLETION_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 8603,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHASE3_FINAL_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 8116,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHASE3_INTEGRATION_TEST_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7674,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHASE4_COMPLETION_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 7639,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHASE4_FINAL_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 5199,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PHOTOREALISTIC_ANIMATED_SCHEMA_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 16537,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PROJECT_AUDIT_FULL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'audit' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 16236,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PROJECT_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14561,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PROJECT_STATUS.md",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6043,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PROJECT_SUCCESS_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9891,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PYPROJ_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9821,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "PYTHON_QML_INTEGRATION_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7887,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_CUSTOM_EFFECTS_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8146,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_FIXES_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7033,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_LOADING_ERROR_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6246,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_MOIRE_JITTER_EFFECTS_FIXED_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7813,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_OPTIMIZATION_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 3202,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PERFORMANCE_COMPARISON_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 16710,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE1_INTEGRATION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10587,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE1_INTEGRATION_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 7939,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE1_INTEGRATION_VISUAL.txt",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 40367,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE1_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8210,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE1_VISUAL_STATUS.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 22369,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE2_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9350,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE2_INTEGRATION_SUMMARY.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 7439,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_PHASE2_INTEGRATION_VISUAL.txt",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 9126,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_REFACTORING_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7623,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_REFACTORING_COMPLETE_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12771,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_REFACTORING_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12100,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_REFACTORING_STATUS.md",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 8261,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_REFACTORING_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9867,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QML_SIGNAL_CORRECTNESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7848,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICKTEST_GRAPHICS_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 3546,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICK_ACTION_CHECKLIST.md",
+    "reasons": [
+      "Название содержит ключевое слово 'checklist' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 2800,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICK_FIX_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 2894,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICK_FIX_SUMMARY_v4.8.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 3550,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICK_FIX_SUMMARY_v4.9.4.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 3531,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICK_GUIDE_RU.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6185,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "QUICK_START_FIXED.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6157,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "README_CAMERA_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 1555,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_COMPLETE_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10628,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_QUICKSTART_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7516,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14537,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_STATUS_VISUAL.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 18254,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_SUMMARY_PHASES_1_2.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 12747,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_SUMMARY_PHASES_1_2_3.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 13790,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_VISUAL_FINAL.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12633,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REFACTORING_VISUAL_STATUS_v2.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 17364,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "REPOSITORY_ANALYSIS_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12680,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ROD_LENGTH_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7302,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SAVE_COMPLETION_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5272,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SESSION_FINAL_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10267,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SETUP_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 14886,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SETUP_SUMMARY.md",
+    "reasons": [
+      "Название содержит ключевое слово 'summary' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10696,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SKYBOX_FIX_v4.9.4_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 7251,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SKYBOX_ROTATION_FIX_COMPLETE_v4.9.2.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6131,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SOLUTION_EXTENDEDSCENEENVIRONMENT_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 9185,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "START_PHASE2.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 8976,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "START_PHASE4.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 10115,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SYNTAX_ERROR_FIXED_SUCCESS_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4268,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "SYNTAX_ERROR_FIX_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 1259,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TERMINAL_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 13020,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TERMINAL_CLEANUP_FINAL.md",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12285,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TERMINAL_OPTIMIZATION_FINAL_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12329,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TESTING_REPORT_PHASE1_2.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 10511,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TESTING_SKYBOX_FIX_v4.9.4.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 4526,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TESTING_STATUS_VISUAL.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 20107,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TONEMAP_SHADOWS_FINAL_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12339,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TONEMAP_SHADOWS_FIX.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 10496,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "TONEMAP_SHADOWS_FIX_v3.md",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт",
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 15346,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "VISUALIZATION_AUDIT_REPORT.md",
+    "reasons": [
+      "Название содержит ключевое слово 'report' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 16586,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "VISUAL_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 11095,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "VSCODE_EXTENSIONS_GUIDE.md",
+    "reasons": [
+      "Название содержит ключевое слово 'guide' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 5322,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "VSCODE_SETUP_STATUS.md",
+    "reasons": [
+      "Название содержит ключевое слово 'status' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 6049,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "app_fixed_qtquick3d.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 1767,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "cleanup_old_components.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 5203,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "cleanup_old_qml_blocks.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 6192,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "commit_message.txt",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 3323,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "final_test.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'final' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 12022,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_all_issues.bat",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 10156,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_camera_controller_overlay.txt",
+    "reasons": [
+      "Название содержит ключевое слово 'fix' — вероятный служебный отчёт"
+    ],
+    "size_bytes": 2715,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_camera_overlay.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 6879,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_camera_z_order.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 1664,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_critical_imports.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 15849,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_first_click_and_lighting.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 13465,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_fog_antialiasing.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 14240,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_graphics_panel_checkboxes.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 9074,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_graphics_panel_sync.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 8507,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_labeled_slider_calls.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 16054,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_materials_colors.ps1",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 933,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_missing_handlers.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 10355,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_qml_duplication_moire.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 10710,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_qml_properties.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 795,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_qtquick3d_path_issue.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 9465,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_qtquick3d_plugin_critical.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 10112,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_remaining_checkboxes.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 8454,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_tabs_imports.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 0,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fix_terminal.bat",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 2169,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "fixes_summary.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 1905,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "graphics_panel_fixes.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 1695,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "launch_qtquick3d_fixed.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 2787,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "quick_fix.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 521,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "quick_fix_plugin.py",
+    "reasons": [
+      "Сценарий расположен в корне и выглядит как временный фикс"
+    ],
+    "size_bytes": 5973,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "АУДИТ_СИСТЕМЫ_ГРАФИКИ_2025.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 24403,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "БЫСТРЫЙ_СТАРТ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 4160,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ГАЙД_ПРОВЕРКА_ЭФФЕКТОВ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 2906,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ИСПРАВЛЕНИЯ_ДУБЛИРОВАНИЯ_СОБЫТИЙ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 9435,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ИТОГОВАЯ_СВОДКА_QML_PYTHON.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 8577,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "КРАТКАЯ_СВОДКА_QML_PYTHON.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 7715,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "КРИТИЧЕСКОЕ_ИСПРАВЛЕНИЕ_ФОНА_ОТЧЕТ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 6656,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ОТЧЁТ_РАБОТА_ЭФФЕКТОВ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 10902,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ОТЧЕТ_ТЕСТИРОВАНИЯ_ГРАФИКИ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 8024,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ПОЛНЫЙ_АУДИТ_ПРОЕКТА_2025.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 24809,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ПРОЕКТ_СИНХРОНИЗАЦИИ_ЗАВЕРШЕН_ОТЧЕТ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 16904,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "РЕЗЮМЕ_ИСПРАВЛЕНИЙ_v4.7.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 6941,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "РЕЗЮМЕ_ПРОЕКТА.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 11127,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "РЕШЕНИЕ_ПОЛНАЯ_СОВМЕСТИМОСТЬ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 7979,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "СВОДНАЯ_ТАБЛИЦА_ФАЙЛОВ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 13843,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "ЧЕКЛИСТ_ТЕСТИРОВАНИЯ.md",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 11025,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  },
+  {
+    "path": "параметры графики.txt",
+    "reasons": [
+      "Найдено несколько документов с похожим названием — возможно, их стоит объединить"
+    ],
+    "size_bytes": 91538,
+    "modified_at": "2025-10-25T05:48:40+00:00"
+  }
+]

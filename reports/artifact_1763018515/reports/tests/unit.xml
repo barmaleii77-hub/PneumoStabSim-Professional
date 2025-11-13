@@ -1,0 +1,1322 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="9" failures="0" skipped="0" tests="9" time="4.082" timestamp="2025-11-13T09:23:32.295164+03:00" hostname="CADPC-01"><testcase classname="" name="tests.unit.physics.test_assemble_forces" time="0.000"><error message="collection failure">tests\unit\physics\test_assemble_forces.py:8: in &lt;module&gt;
+    from src.physics.odes import (
+        Path       = &lt;class 'pathlib._local.Path'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\__pycache__\\test_assemble_forces.cpython-313.pyc'
+        __doc__    = None
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_assemble_forces.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'tests.unit.physics.test_assemble_forces'
+        __package__ = 'tests.unit.physics'
+        __spec__   = ModuleSpec(name='tests.unit.physics.test_assemble_forces', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook ob...s\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_assemble_forces.py')
+        json       = &lt;module 'json' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\json\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7ADE39B0&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7ADE39B0&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+        forces     = &lt;module 'src.physics.forces' from 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\forces.py'&gt;
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7ADE3B30&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7ADE3B30&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7ADF3740&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7ADF1EE0&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7ADF3920&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7ADF1A80&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7ADF37E0&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7ADF3880&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AE3F380&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.physics.test_integrator" time="0.000"><error message="collection failure">tests\unit\physics\test_integrator.py:12: in &lt;module&gt;
+    from physics.integrator import (
+        Path       = &lt;class 'pathlib._local.Path'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\__pycache__\\test_integrator.cpython-313.pyc'
+        __doc__    = 'Unit tests for the physics integrator configuration helpers.'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_integrator.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'tests.unit.physics.test_integrator'
+        __package__ = 'tests.unit.physics'
+        __spec__   = ModuleSpec(name='tests.unit.physics.test_integrator', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook object ...\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_integrator.py')
+        annotations = _Feature((3, 7, 0, 'beta', 1), None, 16777216)
+        constants_module = &lt;module 'config.constants' from 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\constants.py'&gt;
+        json       = &lt;module 'json' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\json\\__init__.py'&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1CAD0&gt;
+        __name__   = 'physics'
+        __package__ = 'physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1CAD0&gt;, origin='...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+        forces     = &lt;module 'physics.forces' from 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\forces.py'&gt;
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1CBF0&gt;
+        __name__   = 'physics.odes'
+        __package__ = 'physics'
+        __spec__   = ModuleSpec(name='physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1CBF0&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7AEEEE80&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7AEEDDA0&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7AEEF060&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7AEEDB20&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7AEEEF20&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7AEEEFC0&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7AEEE980&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AEEF240&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.physics.test_physics_loop" time="0.000"><error message="collection failure">tests\unit\physics\test_physics_loop.py:11: in &lt;module&gt;
+    from src.physics.integrator import (
+        PA_ATM     = 101325.0
+        T_AMBIENT  = 293.15
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\__pycache__\\test_physics_loop.cpython-313.pyc'
+        __doc__    = 'Integration tests for the lightweight PhysicsLoop helper.'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_physics_loop.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'tests.unit.physics.test_physics_loop'
+        __package__ = 'tests.unit.physics'
+        __spec__   = ModuleSpec(name='tests.unit.physics.test_physics_loop', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook objec...sers\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_physics_loop.py')
+        annotations = _Feature((3, 7, 0, 'beta', 1), None, 16777216)
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1E990&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1E990&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1F0B0&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AE1F0B0&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7AEF0680&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7AEF05E0&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7AEF0860&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7AEF0540&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7AEF0720&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7AEF07C0&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AEF0A40&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.physics.test_static_equilibrium" time="0.000"><error message="collection failure">tests\unit\physics\test_static_equilibrium.py:5: in &lt;module&gt;
+    from src.physics.odes import RigidBody3DOF, f_rhs
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\__pycache__\\test_static_equilibrium.cpython-313.pyc'
+        __doc__    = None
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_static_equilibrium.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'tests.unit.physics.test_static_equilibrium'
+        __package__ = 'tests.unit.physics'
+        __spec__   = ModuleSpec(name='tests.unit.physics.test_static_equilibrium', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook...CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\physics\\test_static_equilibrium.py')
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AED95B0&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AED95B0&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AED9250&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AED9250&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7AEF18A0&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7AEF1800&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7AEF1A80&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7AEF1760&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7AEF1940&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7AEF19E0&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AEF1C60&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.runtime.test_error_propagation" time="0.000"><error message="collection failure">tests\unit\runtime\test_error_propagation.py:11: in &lt;module&gt;
+    from src.runtime.sim_loop import PhysicsWorker, SimulationManager
+        Mock       = &lt;class 'unittest.mock.Mock'&gt;
+        QCoreApplication = &lt;class 'PySide6.QtCore.QCoreApplication'&gt;
+        SimpleNamespace = &lt;class 'types.SimpleNamespace'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\__pycache__\\test_error_propagation.cpython-313.pyc'
+        __doc__    = None
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\test_error_propagation.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'test_error_propagation'
+        __package__ = ''
+        __spec__   = ModuleSpec(name='test_error_propagation', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025...\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\test_error_propagation.py')
+        annotations = _Feature((3, 7, 0, 'beta', 1), None, 16777216)
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\runtime\__init__.py:24: in &lt;module&gt;
+    from .sim_loop import PhysicsWorker, SimulationManager
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nRuntime simulation management\nProvides thread-safe simulation loop, state management, and synchronization\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00AB10&gt;
+        __name__   = 'src.runtime'
+        __package__ = 'src.runtime'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime']
+        __spec__   = ModuleSpec(name='src.runtime', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00AB10&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime'])
+        create_state_queue = &lt;function create_state_queue at 0x0000025C7A302200&gt;
+src\runtime\sim_loop.py:35: in &lt;module&gt;
+    from src.physics.odes import RigidBody3DOF, create_initial_conditions
+        Any        = typing.Any
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        QCoreApplication = &lt;class 'PySide6.QtCore.QCoreApplication'&gt;
+        QObject    = &lt;class 'PySide6.QtCore.QObject'&gt;
+        QThread    = &lt;class 'PySide6.QtCore.QThread'&gt;
+        QTimer     = &lt;class 'PySide6.QtCore.QTimer'&gt;
+        Qt         = &lt;class 'PySide6.QtCore.Qt'&gt;
+        Signal     = &lt;class 'PySide6.QtCore.Signal'&gt;
+        Slot       = &lt;class 'PySide6.QtCore.Slot'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        StateSnapshotBuffer = &lt;class 'src.runtime.sync.StateSnapshotBuffer'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\sim_loop.cpython-313.pyc'
+        __doc__    = '\nPhysics simulation loop with fixed timestep\nRuns in dedicated QThread with QTimer for precise timing\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00ABD0&gt;
+        __name__   = 'src.runtime.sim_loop'
+        __package__ = 'src.runtime'
+        __spec__   = ModuleSpec(name='src.runtime.sim_loop', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00ABD0&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py')
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        replace    = &lt;function replace at 0x0000025C58878220&gt;
+        sys        = &lt;module 'sys' (built-in)&gt;
+        time       = &lt;module 'time' (built-in)&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00B470&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00B470&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00BD70&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00BD70&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7AFECB80&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7AFECAE0&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7AFECD60&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7AFECA40&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7AFECC20&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7AFECCC0&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AFECF40&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.runtime.test_physics_steps" time="0.000"><error message="collection failure">tests\unit\runtime\test_physics_steps.py:11: in &lt;module&gt;
+    from src.physics.integrator import create_default_rigid_body
+        PA_ATM     = 101325.0
+        T_AMBIENT  = 293.15
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\__pycache__\\test_physics_steps.cpython-313.pyc'
+        __doc__    = None
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\test_physics_steps.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'test_physics_steps'
+        __package__ = ''
+        __spec__   = ModuleSpec(name='test_physics_steps', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59D...ers\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\test_physics_steps.py')
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+        replace    = &lt;function replace at 0x0000025C58878220&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AFF3F50&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AFF3F50&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AFF38F0&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AFF38F0&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7AFEEB60&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7AFEEAC0&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7AFEED40&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7AFEEA20&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7AFEEC00&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7AFEECA0&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AFEEF20&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.runtime.test_receiver_volume_updates" time="0.000"><error message="collection failure">tests\unit\runtime\test_receiver_volume_updates.py:8: in &lt;module&gt;
+    from src.runtime.sim_loop import PhysicsWorker
+        SimpleNamespace = &lt;class 'types.SimpleNamespace'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\__pycache__\\test_receiver_volume_updates.cpython-313.pyc'
+        __doc__    = None
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\test_receiver_volume_updates.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'test_receiver_volume_updates'
+        __package__ = ''
+        __spec__   = ModuleSpec(name='test_receiver_volume_updates', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0...er\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\runtime\\test_receiver_volume_updates.py')
+        annotations = _Feature((3, 7, 0, 'beta', 1), None, 16777216)
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\runtime\__init__.py:24: in &lt;module&gt;
+    from .sim_loop import PhysicsWorker, SimulationManager
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nRuntime simulation management\nProvides thread-safe simulation loop, state management, and synchronization\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AEDBD70&gt;
+        __name__   = 'src.runtime'
+        __package__ = 'src.runtime'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime']
+        __spec__   = ModuleSpec(name='src.runtime', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7AEDBD70&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime'])
+        create_state_queue = &lt;function create_state_queue at 0x0000025C7A302200&gt;
+src\runtime\sim_loop.py:35: in &lt;module&gt;
+    from src.physics.odes import RigidBody3DOF, create_initial_conditions
+        Any        = typing.Any
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        QCoreApplication = &lt;class 'PySide6.QtCore.QCoreApplication'&gt;
+        QObject    = &lt;class 'PySide6.QtCore.QObject'&gt;
+        QThread    = &lt;class 'PySide6.QtCore.QThread'&gt;
+        QTimer     = &lt;class 'PySide6.QtCore.QTimer'&gt;
+        Qt         = &lt;class 'PySide6.QtCore.Qt'&gt;
+        Signal     = &lt;class 'PySide6.QtCore.Signal'&gt;
+        Slot       = &lt;class 'PySide6.QtCore.Slot'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        StateSnapshotBuffer = &lt;class 'src.runtime.sync.StateSnapshotBuffer'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\sim_loop.cpython-313.pyc'
+        __doc__    = '\nPhysics simulation loop with fixed timestep\nRuns in dedicated QThread with QTimer for precise timing\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7ADA9970&gt;
+        __name__   = 'src.runtime.sim_loop'
+        __package__ = 'src.runtime'
+        __spec__   = ModuleSpec(name='src.runtime.sim_loop', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7ADA9970&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py')
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        replace    = &lt;function replace at 0x0000025C58878220&gt;
+        sys        = &lt;module 'sys' (built-in)&gt;
+        time       = &lt;module 'time' (built-in)&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B196E10&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B196E10&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00B350&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B00B350&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7AFEC680&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7AFEC720&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7AFEEE80&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7AFEC400&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7AFEC9A0&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7AFECF40&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7AFEEFC0&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.ui.test_main_window_batch_updates" time="0.000"><error message="collection failure">tests\unit\ui\test_main_window_batch_updates.py:10: in &lt;module&gt;
+    from src.ui.main_window_legacy import MainWindow
+        Any        = typing.Any
+        Mock       = &lt;class 'unittest.mock.Mock'&gt;
+        SimpleNamespace = &lt;class 'types.SimpleNamespace'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\ui\\__pycache__\\test_main_window_batch_updates.cpython-313.pyc'
+        __doc__    = 'Tests for ``MainWindow._push_batched_updates`` fallback behaviour.'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\ui\\test_main_window_batch_updates.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'tests.unit.ui.test_main_window_batch_updates'
+        __package__ = 'tests.unit.ui'
+        __spec__   = ModuleSpec(name='tests.unit.ui.test_main_window_batch_updates', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHo...Duser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\ui\\test_main_window_batch_updates.py')
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\ui\main_window_legacy.py:37: in &lt;module&gt;
+    from ..runtime import SimulationManager, StateSnapshot
+        Any        = typing.Any
+        ChartWidget = &lt;class 'src.ui.charts.ChartWidget'&gt;
+        GeometryPanel = &lt;class 'src.ui.panels.panel_geometry.GeometryPanel'&gt;
+        GraphicsPanel = &lt;class 'src.ui.panels.graphics.panel_graphics.GraphicsPanel'&gt;
+        ModesPanel = &lt;class 'src.ui.panels.__getattr__.&lt;locals&gt;._ModesPanelPlaceholder'&gt;
+        Path       = &lt;class 'pathlib._local.Path'&gt;
+        PneumoPanel = &lt;class 'src.ui.panels.pneumo.panel_pneumo_refactored.PneumoPanel'&gt;
+        QAction    = &lt;class 'PySide6.QtGui.QAction'&gt;
+        QByteArray = &lt;class 'PySide6.QtCore.QByteArray'&gt;
+        QKeySequence = &lt;class 'PySide6.QtGui.QKeySequence'&gt;
+        QLabel     = &lt;class 'PySide6.QtWidgets.QLabel'&gt;
+        QMainWindow = &lt;class 'PySide6.QtWidgets.QMainWindow'&gt;
+        QQuickWidget = &lt;class 'PySide6.QtQuickWidgets.QQuickWidget'&gt;
+        QScrollArea = &lt;class 'PySide6.QtWidgets.QScrollArea'&gt;
+        QSplitter  = &lt;class 'PySide6.QtWidgets.QSplitter'&gt;
+        QStatusBar = &lt;class 'PySide6.QtWidgets.QStatusBar'&gt;
+        QTabWidget = &lt;class 'PySide6.QtWidgets.QTabWidget'&gt;
+        QTimer     = &lt;class 'PySide6.QtCore.QTimer'&gt;
+        QUrl       = &lt;class 'PySide6.QtCore.QUrl'&gt;
+        QWidget    = &lt;class 'PySide6.QtWidgets.QWidget'&gt;
+        Qt         = &lt;class 'PySide6.QtCore.Qt'&gt;
+        RoadPanel  = &lt;class 'src.ui.panels.panel_road.RoadPanel'&gt;
+        Slot       = &lt;class 'PySide6.QtCore.Slot'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\ui\\__pycache__\\main_window_legacy.cpython-313.pyc'
+        __doc__    = 'Main window for PneumoStabSim application\nQt Quick3D rendering with QQuickWidget (no createWindowContainer)\nРУССКИЙ ИНТЕРФЕЙС (Russian UI).'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\ui\\main_window_legacy.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B616750&gt;
+        __name__   = 'src.ui.main_window_legacy'
+        __package__ = 'src.ui'
+        __spec__   = ModuleSpec(name='src.ui.main_window_legacy', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7...rigin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\ui\\main_window_legacy.py')
+        json       = &lt;module 'json' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\json\\__init__.py'&gt;
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        time       = &lt;module 'time' (built-in)&gt;
+src\runtime\__init__.py:24: in &lt;module&gt;
+    from .sim_loop import PhysicsWorker, SimulationManager
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nRuntime simulation management\nProvides thread-safe simulation loop, state management, and synchronization\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B8D24B0&gt;
+        __name__   = 'src.runtime'
+        __package__ = 'src.runtime'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime']
+        __spec__   = ModuleSpec(name='src.runtime', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B8D24B0&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime'])
+        create_state_queue = &lt;function create_state_queue at 0x0000025C7A302200&gt;
+src\runtime\sim_loop.py:35: in &lt;module&gt;
+    from src.physics.odes import RigidBody3DOF, create_initial_conditions
+        Any        = typing.Any
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        QCoreApplication = &lt;class 'PySide6.QtCore.QCoreApplication'&gt;
+        QObject    = &lt;class 'PySide6.QtCore.QObject'&gt;
+        QThread    = &lt;class 'PySide6.QtCore.QThread'&gt;
+        QTimer     = &lt;class 'PySide6.QtCore.QTimer'&gt;
+        Qt         = &lt;class 'PySide6.QtCore.Qt'&gt;
+        Signal     = &lt;class 'PySide6.QtCore.Signal'&gt;
+        Slot       = &lt;class 'PySide6.QtCore.Slot'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        StateSnapshotBuffer = &lt;class 'src.runtime.sync.StateSnapshotBuffer'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\sim_loop.cpython-313.pyc'
+        __doc__    = '\nPhysics simulation loop with fixed timestep\nRuns in dedicated QThread with QTimer for precise timing\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B9117F0&gt;
+        __name__   = 'src.runtime.sim_loop'
+        __package__ = 'src.runtime'
+        __spec__   = ModuleSpec(name='src.runtime.sim_loop', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B9117F0&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py')
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        replace    = &lt;function replace at 0x0000025C58878220&gt;
+        sys        = &lt;module 'sys' (built-in)&gt;
+        time       = &lt;module 'time' (built-in)&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B912870&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B912870&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B913350&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7B913350&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7BA020C0&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7BA02020&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7BA022A0&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7BA01F80&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7BA02160&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7BA02200&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7BA02480&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase><testcase classname="" name="tests.unit.ui.test_receiver_geometry" time="0.000"><error message="collection failure">tests\unit\ui\test_receiver_geometry.py:11: in &lt;module&gt;
+    from src.runtime.sim_loop import PhysicsWorker
+        Any        = typing.Any
+        SimpleNamespace = &lt;class 'types.SimpleNamespace'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\ui\\__pycache__\\test_receiver_geometry.cpython-313.pyc'
+        __doc__    = None
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\ui\\test_receiver_geometry.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x0000025C59DF6660&gt;
+        __name__   = 'tests.unit.ui.test_receiver_geometry'
+        __package__ = 'tests.unit.ui'
+        __spec__   = ModuleSpec(name='tests.unit.ui.test_receiver_geometry', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook objec...sers\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\tests\\unit\\ui\\test_receiver_geometry.py')
+        annotations = _Feature((3, 7, 0, 'beta', 1), None, 16777216)
+        copy       = &lt;module 'copy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\copy.py'&gt;
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        pytest     = &lt;module 'pytest' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\pytest\\__init__.py'&gt;
+src\runtime\__init__.py:24: in &lt;module&gt;
+    from .sim_loop import PhysicsWorker, SimulationManager
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nRuntime simulation management\nProvides thread-safe simulation loop, state management, and synchronization\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC11F0&gt;
+        __name__   = 'src.runtime'
+        __package__ = 'src.runtime'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime']
+        __spec__   = ModuleSpec(name='src.runtime', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC11F0&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime'])
+        create_state_queue = &lt;function create_state_queue at 0x0000025C7A302200&gt;
+src\runtime\sim_loop.py:35: in &lt;module&gt;
+    from src.physics.odes import RigidBody3DOF, create_initial_conditions
+        Any        = typing.Any
+        FrameState = &lt;class 'src.runtime.state.FrameState'&gt;
+        LatestOnlyQueue = &lt;class 'src.runtime.sync.LatestOnlyQueue'&gt;
+        LineState  = &lt;class 'src.runtime.state.LineState'&gt;
+        PerformanceMetrics = &lt;class 'src.runtime.sync.PerformanceMetrics'&gt;
+        QCoreApplication = &lt;class 'PySide6.QtCore.QCoreApplication'&gt;
+        QObject    = &lt;class 'PySide6.QtCore.QObject'&gt;
+        QThread    = &lt;class 'PySide6.QtCore.QThread'&gt;
+        QTimer     = &lt;class 'PySide6.QtCore.QTimer'&gt;
+        Qt         = &lt;class 'PySide6.QtCore.Qt'&gt;
+        Signal     = &lt;class 'PySide6.QtCore.Signal'&gt;
+        Slot       = &lt;class 'PySide6.QtCore.Slot'&gt;
+        StateBus   = &lt;class 'src.runtime.state.StateBus'&gt;
+        StateSnapshot = &lt;class 'src.runtime.state.StateSnapshot'&gt;
+        StateSnapshotBuffer = &lt;class 'src.runtime.sync.StateSnapshotBuffer'&gt;
+        SystemAggregates = &lt;class 'src.runtime.state.SystemAggregates'&gt;
+        TankState  = &lt;class 'src.runtime.state.TankState'&gt;
+        ThreadSafeCounter = &lt;class 'src.runtime.sync.ThreadSafeCounter'&gt;
+        TimingAccumulator = &lt;class 'src.runtime.sync.TimingAccumulator'&gt;
+        WheelState = &lt;class 'src.runtime.state.WheelState'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\__pycache__\\sim_loop.cpython-313.pyc'
+        __doc__    = '\nPhysics simulation loop with fixed timestep\nRuns in dedicated QThread with QTimer for precise timing\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC12B0&gt;
+        __name__   = 'src.runtime.sim_loop'
+        __package__ = 'src.runtime'
+        __spec__   = ModuleSpec(name='src.runtime.sim_loop', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC12B0&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\runtime\\sim_loop.py')
+        logging    = &lt;module 'logging' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\logging\\__init__.py'&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        replace    = &lt;function replace at 0x0000025C58878220&gt;
+        sys        = &lt;module 'sys' (built-in)&gt;
+        time       = &lt;module 'time' (built-in)&gt;
+src\physics\__init__.py:5: in &lt;module&gt;
+    from .odes import RigidBody3DOF, f_rhs, create_initial_conditions, validate_state
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\__init__.cpython-313.pyc'
+        __doc__    = '\nPhysics module for 3-DOF vehicle dynamics\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__init__.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC1C10&gt;
+        __name__   = 'src.physics'
+        __package__ = 'src.physics'
+        __path__   = ['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics']
+        __spec__   = ModuleSpec(name='src.physics', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC1C10&gt;, orig...dule_search_locations=['C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics'])
+src\physics\odes.py:158: in &lt;module&gt;
+    _refresh_cached_defaults()
+        Any        = typing.Any
+        Mapping    = &lt;class 'collections.abc.Mapping'&gt;
+        Port       = &lt;enum 'Port'&gt;
+        SettingsValidationError = &lt;class 'src.core.settings_validation.SettingsValidationError'&gt;
+        Wheel      = &lt;enum 'Wheel'&gt;
+        _RIGID_BODY_DEFAULTS = {}
+        _SUSPENSION_SETTINGS = {}
+        _VERTICAL_AXIS = array([0., 1., 0.])
+        _WHEEL_ORDER = ['LP', 'PP', 'LZ', 'PZ']
+        __annotations__ = {'_RIGID_BODY_DEFAULTS': dict[str, typing.Any], '_SUSPENSION_SETTINGS': dict[str, float], '_VERTICAL_AXIS': &lt;class 'numpy.ndarray'&gt;}
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\__pycache__\\odes.cpython-313.pyc'
+        __doc__    = '\n3-DOF rigid body dynamics for vehicle frame\nHandles heave (Y), roll (phi_z), and pitch (theta_x) motion with suspension forces\n'
+        __file__   = 'C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC2630&gt;
+        __name__   = 'src.physics.odes'
+        __package__ = 'src.physics'
+        __spec__   = ModuleSpec(name='src.physics.odes', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x0000025C7BEC2630&gt;, origin='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\src\\physics\\odes.py')
+        _load_attachment_points = &lt;function _load_attachment_points at 0x0000025C7BEA6700&gt;
+        _load_vertical_axis = &lt;function _load_vertical_axis at 0x0000025C7BEA6660&gt;
+        _refresh_cached_defaults = &lt;function _refresh_cached_defaults at 0x0000025C7BEA68E0&gt;
+        _require_float = &lt;function _require_float at 0x0000025C7BEA65C0&gt;
+        _rigid_body_defaults = &lt;function _rigid_body_defaults at 0x0000025C7BEA67A0&gt;
+        _suspension_defaults = &lt;function _suspension_defaults at 0x0000025C7BEA6840&gt;
+        compute_cylinder_force = &lt;function compute_cylinder_force at 0x0000025C7ADF3240&gt;
+        dataclass  = &lt;function dataclass at 0x0000025C5885BC40&gt;
+        field      = &lt;function field at 0x0000025C588599E0&gt;
+        get_current_section = &lt;function get_current_section at 0x0000025C7A7D20C0&gt;
+        get_physics_reference_axes = &lt;function get_physics_reference_axes at 0x0000025C7A7D1E40&gt;
+        get_physics_rigid_body_constants = &lt;function get_physics_rigid_body_constants at 0x0000025C7A7D1F80&gt;
+        get_physics_suspension_constants = &lt;function get_physics_suspension_constants at 0x0000025C7A7D1DA0&gt;
+        math       = &lt;module 'math' (built-in)&gt;
+        np         = &lt;module 'numpy' from 'C:\\Users\\CADuser\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\numpy\\__init__.py'&gt;
+        refresh_settings_cache = &lt;function refresh_cache at 0x0000025C7A7D1760&gt;
+src\physics\odes.py:153: in _refresh_cached_defaults
+    _VERTICAL_AXIS = _load_vertical_axis()
+                     ^^^^^^^^^^^^^^^^^^^^^
+src\physics\odes.py:42: in _load_vertical_axis
+    axes = get_physics_reference_axes()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+config\constants.py:211: in get_physics_reference_axes
+    physics = get_physics_constants(custom_path=custom_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:192: in get_physics_constants
+    return _get_constants_section("physics", custom_path=custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+config\constants.py:94: in _get_constants_section
+    constants = _get_constants_root(root_key, custom_path=custom_path)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+        section    = 'physics'
+config\constants.py:77: in _get_constants_root
+    data = _load_settings(custom_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        custom_path = None
+        root_key   = 'current'
+config\constants.py:28: in _load_settings
+    return dump_settings(service.load())
+                         ^^^^^^^^^^^^^^
+        custom_path = None
+        service    = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:424: in load
+    payload_dict = self._read_file()
+                   ^^^^^^^^^^^^^^^^^
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        use_cache  = True
+src\core\settings_service.py:182: in _read_file
+    self.validate(payload)
+        path       = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/config/app_settings.json')
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+        stream     = &lt;_io.TextIOWrapper name='C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\config\\app_settings.json' mode='r' encoding='utf-8'&gt;
+src\core\settings_service.py:650: in validate
+    self._guard_legacy_geometry_mesh_extras(payload)
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;
+src\core\settings_service.py:784: in _guard_legacy_geometry_mesh_extras
+    raise SettingsValidationError(
+E   src.core.settings_service.SettingsValidationError: Settings payload uses legacy geometry mesh fields: cylinder_rings, cylinder_segments
+        _geom_section = &lt;function SettingsService._guard_legacy_geometry_mesh_extras.&lt;locals&gt;._geom_section at 0x0000025C7BEA6AC0&gt;
+        current    = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...ctive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.5, ...}, ...}
+        defaults   = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'constants': {'ge...tive_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}, ...}
+        offenders  = {'cylinder_rings', 'cylinder_segments'}
+        payload    = {'current': {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'cons...o_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', ...}}
+        section    = {'active_preset': 'standard_truck', 'cyl_diam_m': 0.11, 'cylinder_body_length_m': 0.46, 'cylinder_length': 0.46, ...}
+        self       = &lt;src.core.settings_service.SettingsService object at 0x0000025C7ABEEA50&gt;</error></testcase></testsuite></testsuites>

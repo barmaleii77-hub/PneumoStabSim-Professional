@@ -1,0 +1,102 @@
+{
+  "analyzed_files": [
+    "reports\\tests\\integration\\body_roll_metrics.json",
+    "reports\\tests\\integration\\coordinator_state.json",
+    "reports\\tests\\integration\\cycle_iso_vs_adiabatic_metrics.json",
+    "reports\\tests\\integration\\cycle_isothermal_metrics.json",
+    "reports\\tests\\integration\\road_metrics_highway_100kmh.json",
+    "reports\\tests\\integration\\road_metrics_offroad_moderate.json",
+    "reports\\tests\\integration\\road_metrics_test_sine.json",
+    "reports\\tests\\integration\\road_metrics_urban_50kmh.json",
+    "reports\\tests\\shader_logs_summary.json",
+    "reports\\quality\\autonomous_check_status.json",
+    "reports\\quality\\cipilot_environment.json",
+    "reports\\quality\\coverage.json",
+    "reports\\quality\\latest_metrics.json",
+    "reports\\quality\\launch_traces\\2025-11-09_windows-normal.json",
+    "reports\\quality\\launch_traces\\2025-11-09_windows-trace.json",
+    "reports\\quality\\launch_traces\\2026-03-05_windows-gpu.json",
+    "reports\\quality\\launch_traces\\2026-03-05_windows-headless.json",
+    "reports\\quality\\launch_traces\\launch_trace_status.json",
+    "reports\\quality\\shader_fallbacks.json",
+    "reports\\quality\\verify_status.json",
+    "reports\\performance\\baselines\\ui_phase3_baseline.json",
+    "reports\\performance\\ui_phase3_profile.json",
+    "reports\\performance\\ui_phase3_summary.json",
+    "logs\\graphics\\analysis_latest.json"
+  ],
+  "issues": {
+    "errors": [],
+    "warnings": [],
+    "constraint_violations": [
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.__init__: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 1, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 1, 'excluded_lines': 0}, 'missing_lines': [62], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.validate_track_invariant: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 2, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 2, 'excluded_lines': 0}, 'missing_lines': [82, 83], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.enforce_track_invariant: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 7, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 7, 'excluded_lines': 0}, 'missing_lines': [103, 106, 108, 111, 113, 116, 118], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.validate_max_vertical_travel: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 1, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 1, 'excluded_lines': 0}, 'missing_lines': [134], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.validate_rod_attach_fraction: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 1, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 1, 'excluded_lines': 0}, 'missing_lines': [138], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.validate_residual_volume: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 4, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 4, 'excluded_lines': 0}, 'missing_lines': [160, 161, 162, 164], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator.validate_geometry_params: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 14, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 14, 'excluded_lines': 0}, 'missing_lines': [180, 183, 184, 189, 190, 195, 198, 203, 204, 209, 210, 216, 217, 221], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintMode: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 0, 'percent_covered': 100.0, 'percent_covered_display': '100', 'missing_lines': 0, 'excluded_lines': 0}, 'missing_lines': [], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > classes"
+      },
+      {
+        "category": "constraint",
+        "message": "ConstraintValidator: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 30, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 30, 'excluded_lines': 0}, 'missing_lines': [62, 82, 83, 103, 106, 108, 111, 113, 116, 118, 134, 138, 160, 161, 162, 164, 180, 183, 184, 189, 190, 195, 198, 203, 204, 209, 210, 216, 217, 221], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\mechanics\\constraints.py > classes"
+      },
+      {
+        "category": "constraint",
+        "message": "_load_validation_limits: {'executed_lines': [97, 98, 99, 100, 101, 106, 107], 'summary': {'covered_lines': 7, 'num_statements': 8, 'percent_covered': 87.5, 'percent_covered_display': '88', 'missing_lines': 1, 'excluded_lines': 0}, 'missing_lines': [102], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\physics\\forces.py > functions"
+      },
+      {
+        "category": "constraint",
+        "message": "PressuresTab._apply_units_to_knobs._convert_limits: {'executed_lines': [], 'summary': {'covered_lines': 0, 'num_statements': 4, 'percent_covered': 0.0, 'percent_covered_display': '0', 'missing_lines': 4, 'excluded_lines': 0}, 'missing_lines': [176, 177, 178, 179], 'excluded_lines': []}",
+        "artifact": "reports\\quality\\coverage.json",
+        "context": "files > src\\ui\\panels\\pneumo\\pressures_tab.py > functions"
+      }
+    ],
+    "performance_regressions": []
+  },
+  "parse_errors": []
+}
