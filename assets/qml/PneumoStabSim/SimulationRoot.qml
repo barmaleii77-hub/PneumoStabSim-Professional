@@ -223,7 +223,6 @@ Item {
             geometryState = _deepMerge(geometryState, normalized)
             geometryStateReceived = true
         }
-        geometryIndicator.refresh()
         _storeLastUpdate("geometry", normalized)
     }
     function applySimulationUpdates(params) {
@@ -232,7 +231,6 @@ Item {
         if (!_isEmptyMap(normalized)) { simulationState = _deepMerge(simulationState, normalized); simulationStateReceived = true }
         if (normalized.animation) applyAnimationUpdates(normalized.animation)
         if (normalized.threeD) applyThreeDUpdates(normalized.threeD)
-        simulationIndicator.refresh()
         _storeLastUpdate("simulation", normalized)
     }
     function applyAnimationUpdates(params) {
@@ -403,6 +401,35 @@ Item {
         target: root.postEffects
         enabled: !!target
         ignoreUnknownSignals: true
+
+        function onEffectsBypassChanged() {
+            if (!root.postEffects) return
+            try {
+                var bypass = !!root.postEffects.effectsBypass
+                var reason = root.postEffects.effectsBypassReason || ""
+                root.postProcessingBypassed = bypass
+                root.postProcessingBypassReason = reason
+
+                if (bypass) {
+                    console.warn("[SimulationRoot] Post-processing bypassed:", reason)
+                    // Cache current effects and clear View3D.effects
+                    if (root.sceneView && Array.isArray(root.sceneView.effects)) {
+                        root.postProcessingEffectBackup = root.sceneView.effects.slice()
+                        root.sceneView.effects = []
+                    }
+                } else {
+                    console.log("[SimulationRoot] Post-processing bypass cleared")
+                    // Restore effects from backup
+                    if (root.sceneView && root.postProcessingEffectBackup.length > 0) {
+                        root.sceneView.effects = root.postProcessingEffectBackup
+                        root.postProcessingEffectBackup = []
+                    }
+                }
+            } catch (e) {
+                console.error("[SimulationRoot] effectsBypassChanged handler failed:", e)
+            }
+        }
+
         function onEffectCompilationError(effectId, fallbackActive, errorLog) {
             try {
                 if (root.sceneBridge && typeof root.sceneBridge.registerShaderWarning === "function")
@@ -463,7 +490,6 @@ Item {
         try { simulationState = _normaliseState(target.simulation) } catch(e) { simulationState = ({}) }
         geometryStateReceived = !_isEmptyMap(geometryState)
         simulationStateReceived = !_isEmptyMap(simulationState)
-        geometryIndicator.refresh(); simulationIndicator.refresh()
     }
 
     // Environment & Reflection infrastructure (для тестов)

@@ -14,6 +14,61 @@ QtObject {
     property var initialSharedMaterials: null
     property var materialsDefaults: root.initialSharedMaterials
 
+    // --- TEXTURE LOADERS (using AssetsLoader for fallback support) ---
+    property AssetsLoader frameBaseColorTexture: AssetsLoader {
+        assetName: "frame"
+        primarySource: resolveTextureSource(matValue("frame", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader leverBaseColorTexture: AssetsLoader {
+        assetName: "lever"
+        primarySource: resolveTextureSource(matValue("lever", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader tailRodBaseColorTexture: AssetsLoader {
+        assetName: "tail_rod"
+        primarySource: resolveTextureSource(matValue("tail_rod", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader cylinderBaseColorTexture: AssetsLoader {
+        assetName: "cylinder"
+        primarySource: resolveTextureSource(matValue("cylinder", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader pistonBodyBaseColorTexture: AssetsLoader {
+        assetName: "piston_body"
+        primarySource: resolveTextureSource(matValue("piston_body", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader pistonRodBaseColorTexture: AssetsLoader {
+        assetName: "piston_rod"
+        primarySource: resolveTextureSource(matValue("piston_rod", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader jointTailBaseColorTexture: AssetsLoader {
+        assetName: "joint_tail"
+        primarySource: resolveTextureSource(matValue("joint_tail", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader jointArmBaseColorTexture: AssetsLoader {
+        assetName: "joint_arm"
+        primarySource: resolveTextureSource(matValue("joint_arm", "texture_path", ""))
+        loggingEnabled: true
+    }
+
+    property AssetsLoader jointRodBaseColorTexture: AssetsLoader {
+        assetName: "joint_rod"
+        primarySource: resolveTextureSource(matValue("joint_rod", "texture_path", ""))
+        loggingEnabled: true
+    }
+
     // --- СЫРЬЕВЫЕ СВОЙСТВА (МИНИМАЛЬНЫЕ ПОДДЕРЖИВАЕМЫЕ PRINCIPLEDMATERIAL Qt 6.10) ---
     // FRAME
     property color frameBaseColor: "#ffffff"

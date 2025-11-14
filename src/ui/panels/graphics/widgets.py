@@ -545,6 +545,11 @@ class FileCyclerWidget(QWidget):
             path = ""
             self._label.setText(self._placeholder)
 
+        # Invalidate path cache for current path to catch filesystem changes
+        if path:
+            self._invalidate_path_cache_for(path)
+
+        # Always check filesystem existence (removed is_known_item shortcut)
         missing = bool(path) and self._is_path_missing(path)
         if not missing and path:
             self._clear_missing_tracking(path)
@@ -656,7 +661,7 @@ class FileCyclerWidget(QWidget):
             self._logged_missing_paths.add(path)
 
         # Показываем предупреждение один раз и только если разрешено окружением.
-        if path in self._dialogied_missing_paths if hasattr(self, "_dialogied_missing_paths") else False:
+        if path in self._dialogued_missing_paths:
             return
 
         # Специальный режим для автотестов: даже если диалоги подавлены, вызовем
@@ -698,12 +703,13 @@ class FileCyclerWidget(QWidget):
     def _is_path_missing(self, path: str) -> bool:
         """Вернуть True если путь считается отсутствующим.
 
-        Логика: для любого текущего пути (из списка items или пользовательского)
-        считаем его отсутствующим, если ни один из кандидатов на файловой системе
-        не существует. Результат кэшируется до явной инвалидации.
+        Логика: проверяем существование на файловой системе независимо от того,
+        принадлежит ли путь известным элементам (self._items).
+        Результат кэшируется до явной инвалидации.
         """
         if not path:
             return False
+        # Removed is_known_item shortcut - always check filesystem
         cached = self._path_exists_cache.get(path)
         if cached is True:
             return False
