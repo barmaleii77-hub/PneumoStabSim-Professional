@@ -65,7 +65,6 @@ Item {
     property bool environmentFxaaEnabled: false
     property bool environmentSpecularAaEnabled: true
     property bool environmentDitheringEnabled: true
-    property string environmentOitMode: "weighted"
 
     property bool environmentTonemapEnabled: false
     property string environmentTonemapMode: "filmic"
@@ -164,12 +163,11 @@ Item {
         fxaaEnabled: root.environmentFxaaEnabled
         specularAAEnabled: root.environmentSpecularAaEnabled
         ditheringEnabled: root.environmentDitheringEnabled
-        oitMode: root.environmentOitMode
 
         tonemapActive: root.environmentTonemapEnabled
         tonemapModeName: root.environmentTonemapMode
-        tonemapExposure: root.environmentTonemapExposure
-        tonemapWhitePoint: root.environmentTonemapWhitePoint
+        tonemapExposureValue: root.environmentTonemapExposure
+        tonemapWhitePointValue: root.environmentTonemapWhitePoint
 
         ssaoEnabled: root.ssaoEnabled
         ssaoRadius: root.ssaoRadius
