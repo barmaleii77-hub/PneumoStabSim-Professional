@@ -138,6 +138,7 @@ Item {
         objectName: "environmentDefaults"
 
         sceneScaleFactor: root.environmentSceneScaleFactor
+        qtRuntimeVersionData: "6.10.0"
 
         backgroundColor: root.environmentBackgroundColor
         backgroundModeKey: root.environmentBackgroundMode
@@ -463,9 +464,18 @@ Item {
     Component.onCompleted: {
         for (var i = 0; i < _proxyMethodNames.length; ++i) {
             var methodName = _proxyMethodNames[i]
-            if (typeof root[methodName] !== "function") {
-                root[methodName] = _createProxyMethod(methodName)
+            // Skip if method already defined explicitly (like applyAnimationSettings)
+            try {
+                if (root.hasOwnProperty(methodName)) {
+                    continue
+                }
+            } catch (error) {
+                // Fallback for environments without hasOwnProperty
+                if (typeof root[methodName] !== "undefined") {
+                    continue
+                }
             }
+            root[methodName] = _createProxyMethod(methodName)
         }
         _flushSimulationPanelCalls()
 
@@ -583,21 +593,36 @@ Item {
         anchors.margins: 16
         z: 9050
         visible: true
-        modesMetadata: (typeof modesMetadata !== "undefined" ? modesMetadata : {})
-        initialModes: (typeof initialModesSettings !== "undefined" ? initialModesSettings : {})
-        initialAnimation: (typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : {})
-        initialPneumatic: (typeof initialPneumaticSettings !== "undefined" ? initialPneumaticSettings : {})
-        initialSimulation: (typeof initialSimulationSettings !== "undefined" ? initialSimulationSettings : {})
-        initialCylinder: (typeof initialCylinderSettings !== "undefined" ? initialCylinderSettings : {})
+        property var _modesMetadataValue: ({})
+        modesMetadata: _modesMetadataValue
+        property var _initialModesValue: ({})
+        initialModes: _initialModesValue
+        property var _initialAnimationValue: ({})
+        initialAnimation: _initialAnimationValue
+        property var _initialPneumaticValue: ({})
+        initialPneumatic: _initialPneumaticValue
+        property var _initialSimulationValue: ({})
+        initialSimulation: _initialSimulationValue
+        property var _initialCylinderValue: ({})
+        initialCylinder: _initialCylinderValue
 
-        onSimulationControlRequested: root.simulationControlRequested(command)
-        onModesPresetSelected: root.modesPresetSelected(presetId)
-        onModesModeChanged: root.modesModeChanged(modeType, newMode)
-        onModesPhysicsChanged: root.modesPhysicsChanged(payload)
-        onModesAnimationChanged: root.modesAnimationChanged(payload)
-        onPneumaticSettingsChanged: root.pneumaticSettingsChanged(payload)
-        onSimulationSettingsChanged: root.simulationSettingsChanged(payload)
-        onCylinderSettingsChanged: root.cylinderSettingsChanged(payload)
+        Component.onCompleted: {
+            if (typeof modesMetadata !== "undefined") _modesMetadataValue = modesMetadata
+            if (typeof initialModesSettings !== "undefined") _initialModesValue = initialModesSettings
+            if (typeof initialAnimationSettings !== "undefined") _initialAnimationValue = initialAnimationSettings
+            if (typeof initialPneumaticSettings !== "undefined") _initialPneumaticValue = initialPneumaticSettings
+            if (typeof initialSimulationSettings !== "undefined") _initialSimulationValue = initialSimulationSettings
+            if (typeof initialCylinderSettings !== "undefined") _initialCylinderValue = initialCylinderSettings
+        }
+
+        onSimulationControlRequested: function(command) { root.simulationControlRequested(command) }
+        onModesPresetSelected: function(presetId) { root.modesPresetSelected(presetId) }
+        onModesModeChanged: function(modeType, newMode) { root.modesModeChanged(modeType, newMode) }
+        onModesPhysicsChanged: function(payload) { root.modesPhysicsChanged(payload) }
+        onModesAnimationChanged: function(payload) { root.modesAnimationChanged(payload) }
+        onPneumaticSettingsChanged: function(payload) { root.pneumaticSettingsChanged(payload) }
+        onSimulationSettingsChanged: function(payload) { root.simulationSettingsChanged(payload) }
+        onCylinderSettingsChanged: function(payload) { root.cylinderSettingsChanged(payload) }
     }
 
     Training.TrainingPanel {
