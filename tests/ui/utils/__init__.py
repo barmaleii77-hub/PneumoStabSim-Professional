@@ -9,6 +9,7 @@ from .screenshot import (
     load_main_scene,
     push_updates,
     wait_for_property,
+    log_window_metrics,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "load_main_scene",
     "push_updates",
     "wait_for_property",
+    "log_window_metrics",
 ]

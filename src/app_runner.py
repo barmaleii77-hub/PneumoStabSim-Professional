@@ -7,7 +7,10 @@
 
 from __future__ import annotations
 
-import argparse
+from typing import Any  # moved earlier to avoid reordering impacts
+
+# ...existing code...
+
 import asyncio
 import json
 import logging
@@ -17,26 +20,11 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
 from src.infrastructure.logging import ErrorHookManager, install_error_hooks
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
 from src.diagnostics.logging_presets import LoggingPreset
-
-# Безопасные импорты диагностик: в тестах или минимальных окружениях модули
-# могут отсутствовать. В этом случае подставляем заглушки.
-try:  # noqa: SIM105 - намеренно широкая обработка
-    from src.diagnostics.warnings import print_warnings_errors  # type: ignore
-except Exception:  # pragma: no cover - заглушка для минимальных окружений
-    def print_warnings_errors() -> None:  # type: ignore
-        return None
-
-try:  # noqa: SIM105 - намеренно широкая обработка
-    from src.diagnostics.logs import run_log_diagnostics  # type: ignore
-except Exception:  # pragma: no cover - заглушка для минимальных окружений
-    def run_log_diagnostics() -> None:  # type: ignore
-        return None
-
 from src.core.settings_validation import (
     SettingsValidationError,
     determine_settings_source,
@@ -44,6 +32,22 @@ from src.core.settings_validation import (
 )
 from src.core.settings_models import AppSettings, dump_settings
 from src.ui.qml_registration import register_qml_types
+
+# Безопасные импорты диагностик: в тестах или минимальных окружениях модули
+# могут отсутствовать. В этом случае подставляем заглушки.
+try:  # noqa: SIM105 - намеренно широкая обработка
+    from src.diagnostics.warnings import print_warnings_errors  # type: ignore
+except Exception:  # pragma: no cover - заглушка для минимальных окружениях
+
+    def print_warnings_errors() -> None:  # type: ignore
+        return None
+
+
+# Удалён ранний импорт run_log_diagnostics, чтобы тесты могли мокаать
+# src.diagnostics.logs.run_log_diagnostics и перехватывать вызов.
+# Динамический импорт выполняется в методе _run_post_diagnostics().
+
+# ...existing code...
 
 if TYPE_CHECKING:
 
@@ -1098,19 +1102,50 @@ class ApplicationRunner:
             timer_ms=0,
         )
 
+    def _run_post_diagnostics(self) -> None:
+        """Выполнить пост-диагностику логов, импортируя реализацию динамически.
+
+        Динамический импорт позволяет тестам мокаать
+        ``src.diagnostics.logs.run_log_diagnostics`` и отслеживать вызов.
+        """
+        try:
+            from src.diagnostics.logs import run_log_diagnostics as _run  # type: ignore
+        except Exception:
+            return
+        try:
+            _run()
+        except Exception:
+            # Никогда не падаем из-за диагностики
+            if self.app_logger:
+                self.app_logger.warning("Post-diagnostics failed", exc_info=True)
+
     def run(self, args: Any) -> int:
         """Запустить приложение согласно аргументам CLI."""
         # Локальный контекст диагностики и флаг запуска пост-диагностики
         diagnostics_context: list[str] = []
         run_post_diagnostics: bool = False
+        # Принудительный запуск диагностики по флагу/окружению
+        env_trace = (os.environ.get("PSS_POST_DIAG_TRACE", "") or "").strip().lower()
+        force_post_diag: bool = bool(getattr(args, "diag", False)) or env_trace in {
+            "auto",
+            "always",
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         # --- Начало существующей логики run() ---
         try:
             # Инициализация логирования: сначала пробуем через именованный аргумент
             try:
-                self.app_logger = self.setup_logging(verbose_console=bool(getattr(args, "verbose", False)))
+                self.app_logger = self.setup_logging(
+                    verbose_console=bool(getattr(args, "verbose", False))
+                )
             except TypeError:
                 # Fallback для monkeypatch-стабов без keyword-поддержки
-                self.app_logger = self.setup_logging(bool(getattr(args, "verbose", False)))
+                self.app_logger = self.setup_logging(
+                    bool(getattr(args, "verbose", False))
+                )
         except Exception as exc:
             print(
                 f"\n❌ FATAL ERROR: {exc}",
@@ -1264,7 +1299,7 @@ class ApplicationRunner:
         finally:
             try:
                 diagnostics_context.append("exit")
-                if run_post_diagnostics:
+                if run_post_diagnostics or force_post_diag:
                     printable_reasons = [
                         reason for reason in diagnostics_context if reason != "exit"
                     ]
@@ -1273,13 +1308,10 @@ class ApplicationRunner:
                         for entry in printable_reasons:
                             print(f"   • {entry}")
                     print("\n🔁 Запуск обязательной пост-диагностики логов...\n")
-                    run_log_diagnostics()
-                elif args.diag:
-                    # diag flag requested but no diagnostics executed (should not happen)
-                    self._log_with_fallback(
-                        "warning",
-                        "WARNING: пост-диагностика не выполнена из-за внутреннего ограничения",
-                    )
+                    self._run_post_diagnostics()
+                else:
+                    # Ничего не делаем — диагностика не запрошена
+                    pass
             except Exception as diag_exc:
                 self._log_with_fallback(
                     "warning",

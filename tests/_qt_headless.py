@@ -10,9 +10,9 @@ HEADLESS_FLAG = "PSS_HEADLESS"
 _TRUTHY = {"1", "true", "yes", "on"}
 HEADLESS_DEFAULTS: dict[str, str] = {
     "QT_QPA_PLATFORM": "offscreen",
-    # Значения по умолчанию для Linux/macOS; на Windows переопределяются в apply_headless_defaults
     "QT_QUICK_BACKEND": "software",
     "QT_QUICK_CONTROLS_STYLE": "Basic",
+    # HiDPI не отключаем глобально; масштаб управляется точечно в тестах
 }
 
 
@@ -30,9 +30,8 @@ def headless_requested(env: MutableMapping[str, str] | None = None) -> bool:
 def apply_headless_defaults(env: MutableMapping[str, str] | None = None) -> None:
     """Ensure Qt headless defaults are set in ``env``.
 
-    На Windows Qt Quick 3D в софтверном режиме («software») падает чаще, чем в RHI/D3D11,
-    поэтому в headless-тестах принудительно используем D3D11. Для Linux/macOS сохраняем
-    программный рендер.
+    На Windows Qt Quick 3D может не создавать D3D11 swapchain в CI/виртуальных окружениях,
+    поэтому для headless‑режима используем RHI+OpenGL. Для Linux/macOS сохраняем программный рендер.
     """
 
     environment = env if env is not None else os.environ
@@ -40,15 +39,12 @@ def apply_headless_defaults(env: MutableMapping[str, str] | None = None) -> None
     environment["QT_QPA_PLATFORM"] = "offscreen"
 
     if sys.platform.startswith("win"):
-        # Headless Windows: RHI + D3D11
         environment["QT_QUICK_BACKEND"] = "rhi"
-        environment["QSG_RHI_BACKEND"] = "d3d11"
+        environment["QSG_RHI_BACKEND"] = "d3d11"  # предпочтительный backend для Windows GPU
     else:
-        # Linux/macOS: программный backend
         environment["QT_QUICK_BACKEND"] = "software"
         environment.pop("QSG_RHI_BACKEND", None)
-
-    environment.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+    # Не форсируем DPI конфигурацию здесь
 
 
 __all__ = [

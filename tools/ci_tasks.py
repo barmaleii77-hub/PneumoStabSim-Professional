@@ -1161,6 +1161,37 @@ def task_security() -> None:
 
 
 def task_shaders() -> None:
+    """Validate shader logs and optionally compile QSB artefacts.
+
+    На системах без установленного Qt Shader Baker (qsb) этап будет пропущен,
+    если включён флаг окружения CI_TASKS_SKIP_SHADERS=1. Дополнительно,
+    при отсутствии исполняемого файла qsb этот этап автоматически пропускается
+    с предупреждением, чтобы не блокировать локальные проверки на Windows.
+    """
+
+    # Условительное пропускание по флагу окружения
+    if _env_flag("CI_TASKS_SKIP_SHADERS", default=False):
+        print("[ci_tasks] Shader validation skipped (CI_TASKS_SKIP_SHADERS=1).")
+        return
+
+    # Авто‑пропуск при отсутствии qsb в PATH и не заданном явном пути
+    qsb_path = shutil.which("qsb")
+    if qsb_path is None:
+        try:
+            # Пытаемся выяснить переменную окружения, которую понимает валидатор
+            from tools import validate_shaders as _vs  # type: ignore
+
+            qsb_env_name = getattr(_vs, "QSB_ENV_VARIABLE", "QSB_EXECUTABLE")
+        except Exception:
+            qsb_env_name = "QSB_EXECUTABLE"
+
+        if not os.environ.get(qsb_env_name):
+            print(
+                "[ci_tasks] Qt Shader Baker (qsb) not found; skipping shader step. "
+                f"Set {qsb_env_name} to an explicit qsb path or install Qt ShaderTools."
+            )
+            return
+
     reports_dir = PROJECT_ROOT / "reports" / "shaders"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1278,7 +1309,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     RECORDER.start(args.command)
     exit_code = 0
-    unexpected_error: BaseError | None = None
+    unexpected_error: BaseException | None = None
     try:
         _ensure_no_merge_conflicts()
         task()

@@ -81,11 +81,8 @@ ExtendedSceneEnvironment {
                 reason: entry && entry.reason !== undefined ? String(entry.reason) : "",
                 fallback: entry && entry.fallback !== undefined ? String(entry.fallback) : "<undefined>"
             }
-            overlay.recordObservation(
-                        "settings.graphicsFallback",
-                        payload,
-                        "qml",
-                        "RealismEnvironment")
+            var cloned = JSON.parse(JSON.stringify(payload))
+            overlay.recordObservation("settings.graphicsFallback", cloned, "qml", "RealismEnvironment")
         } catch (error) {
             console.debug("RealismEnvironment: overlay record failed", error)
         }

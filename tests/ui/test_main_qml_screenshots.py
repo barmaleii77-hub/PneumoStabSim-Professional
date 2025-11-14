@@ -17,6 +17,7 @@ from tests.ui.utils import (
     load_main_scene,
     push_updates,
     wait_for_property,
+    log_window_metrics,
 )
 
 BASELINE_DIR = Path("tests/ui/baselines")
@@ -31,6 +32,7 @@ def test_main_scene_matches_default_baseline(qapp, integration_reports_dir) -> N
 
     with load_main_scene(qapp, width=640, height=360) as scene:
         ensure_simulation_panel_ready(scene, qapp)
+        log_window_metrics(scene.view)
         image = capture_window_image(scene.view, qapp)
         output_dir = integration_reports_dir / "ui_screenshots"
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -51,7 +53,7 @@ def test_main_scene_animation_running_baseline(qapp, integration_reports_dir) ->
 
     with load_main_scene(qapp, width=640, height=360) as scene:
         panel = ensure_simulation_panel_ready(scene, qapp)
-
+        log_window_metrics(scene.view)
         push_updates(
             scene.root,
             {

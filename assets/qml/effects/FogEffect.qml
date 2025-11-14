@@ -958,9 +958,6 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
                 console.debug("FogEffect: shader log handler unavailable for fog.vert")
         }
-        // qmllint disable unqualified
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert")
-        // qmllint enable unqualified
     }
 
     Shader {
@@ -989,9 +986,6 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog.frag")
         }
-        // qmllint disable unqualified
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag")
-        // qmllint enable unqualified
     }
 
     Shader {
@@ -1004,9 +998,6 @@ Effect {
             if (!fogEffect.attachShaderLogHandler(fogFallbackShader, "fog_fallback.frag"))
                 console.debug("FogEffect: shader log handler unavailable for fog_fallback.frag")
         }
-        // qmllint disable unqualified
-        onStatusChanged: fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag")
-        // qmllint enable unqualified
     }
 
     // Compatible signal hookups (Qt versions lacking Shader.statusChanged)

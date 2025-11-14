@@ -30,8 +30,24 @@ class DiagnosticsRecorder(QObject):
 
     @Slot(str, "QVariant", str, str)
     def recordObservation(
-        self, name: str, entry: dict[str, Any], source: str, origin: str
+        self, name: str, entry: dict[str, Any] | Any, source: str, origin: str
     ) -> None:
+        # Приведение QJSValue -> dict при необходимости (PySide может отдавать QJSValue)
+        try:
+            from PySide6.QtQml import QJSValue  # type: ignore
+        except Exception:
+            QJSValue = None  # type: ignore
+        if QJSValue is not None and isinstance(entry, QJSValue):  # type: ignore[arg-type]
+            try:
+                variant = entry.toVariant()  # type: ignore[attr-defined]
+                if isinstance(variant, dict):
+                    entry = variant
+            except Exception:
+                # Fallback: пустой dict чтобы тест выявил отсутствие ключей
+                entry = {}
+        if not isinstance(entry, dict):
+            # Гарантируем что тесты могут индексировать
+            entry = {"_raw": entry}
         self.records.append((name, entry, source, origin))
 
 

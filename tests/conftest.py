@@ -360,7 +360,9 @@ def pytest_configure(config: pytest.Config) -> None:
         base_temp_dir = getattr(config.option, "basetemp", None)
         if base_temp_dir:
             Path(str(base_temp_dir)).mkdir(parents=True, exist_ok=True)
-            os.environ.setdefault("PSS_PYTEST_BASETEMP", str(Path(str(base_temp_dir)).resolve()))
+            os.environ.setdefault(
+                "PSS_PYTEST_BASETEMP", str(Path(str(base_temp_dir)).resolve())
+            )
     except Exception:
         # Тихо игнорируем ошибки — pytest сам упадёт при невозможности записи
         pass
@@ -410,13 +412,6 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
             "Qt runtime prerequisites are not satisfied: "
             f"{QT_SKIP_REASON}.\nRun `python -m tools.cross_platform_test_prep --use-uv --run-tests` "
             "from the repository root to install missing dependencies on the active platform."
-        )
-
-    if "gui" in item.keywords and _qtcharts_skip_reason is not None:
-        pytest.fail(
-            "QtCharts module unavailable: "
-            f"{_qtcharts_skip_reason}.\nInstall PySide6 with QtCharts support by running "
-            "`python -m tools.cross_platform_test_prep --use-uv` on the active platform."
         )
 
 

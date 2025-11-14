@@ -343,7 +343,7 @@ Item {
 
         if (typeof window !== "undefined" && window && typeof window.clearShaderWarning === "function") {
             try {
-                window.clearShaderWarning(effectId)
+                window.clearShaderWarning(effectId, message)
             } catch (error) {
                 console.debug("[main.qml] window.clearShaderWarning failed", error)
             }
@@ -367,6 +367,7 @@ Item {
     // dynamic property installation errors when the scene loader initialises.
     readonly property var _proxyMethodNames: [
         "updateGeometry",
+        "applyGeometryUpdates",
         "applyAnimationUpdates",
         "updateAnimation",
         "applyLightingUpdates",
@@ -469,6 +470,20 @@ Item {
             }
         }
         _flushSimulationPanelCalls()
+
+        // Подхватываем начальные графические обновления из Python (env → SceneBridge)
+        try {
+            if (root.hasSceneBridge && typeof pythonSceneBridge !== "undefined") {
+                var initBatch = pythonSceneBridge.initialGraphicsUpdates
+                if (initBatch && typeof initBatch === "object" && Object.keys(initBatch).length) {
+                    if (!_deliverBatchedUpdates(initBatch)) {
+                        _enqueueBatchedPayload(initBatch)
+                    }
+                }
+            }
+        } catch (e) {
+            console.debug("[main.qml] Initial graphics updates apply failed", e)
+        }
     }
 
     Loader {

@@ -100,11 +100,11 @@ class GraphicsPanel(QWidget):
         self.lighting_tab: LightingTab | None = None
         self.environment_tab: EnvironmentTab | None = None
         self.quality_tab: QualityTab | None = None
-        self.camera_tab: CameraTab | None = None
         self.scene_tab: SceneTab | None = None
+        self.animation_tab: AnimationTab | None = None
+        self.camera_tab: CameraTab | None = None
         self.materials_tab: MaterialsTab | None = None
         self.effects_tab: EffectsTab | None = None
-        self.animation_tab: AnimationTab | None = None
 
         # Построение UI и загрузка состояния
         self._create_ui()
@@ -330,7 +330,8 @@ class GraphicsPanel(QWidget):
             )
         )
         toggle.blockSignals(True)
-        toggle.setChecked(True)
+        # Убираем скрытый дефолт: состояние будет синхронизировано из настроек после загрузки
+        toggle.setChecked(toggle.isChecked())
         toggle.blockSignals(False)
         toggle.toggled.connect(self._on_color_adjustments_toggled)
         self._color_adjustments_toggle = toggle

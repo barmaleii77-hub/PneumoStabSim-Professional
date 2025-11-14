@@ -175,6 +175,13 @@ class SettingsService:
                 exc,
             )
             payload = load_default_settings_payload()
+
+        # Apply structural migrations before any normalisation/validation
+        try:
+            self._apply_migrations(payload)
+        except Exception as mig_exc:  # pragma: no cover - migration best-effort
+            logger.warning("settings_migration_failed: %s", mig_exc)
+
         self._normalise_fog_depth_aliases(payload)
         self._normalise_hdr_paths(payload)
 
@@ -264,6 +271,131 @@ class SettingsService:
                     (LOG_DIR / "typed_model_errors.json").as_posix(),
                 )
                 return _LooseAppSettings(payload)  # type: ignore[return-value]
+
+    # ------------------------------ MIGRATIONS ------------------------------
+    def _apply_migrations(self, payload: MutableMapping[str, Any]) -> None:
+        """Выполнить миграции структуры и устранить дубли.
+
+        1) graphics.reflection_probe.* → graphics.environment.reflection_*
+        2) geometry.lever_length_m → geometry.lever_length (и удалить *_m)
+        3) pneumatic.diagonal_coupling_dia: выровнять defaults_snapshot по current
+        4) Синхронизация metadata.environment_slider_ranges с graphics.environment_ranges
+        """
+
+        if not isinstance(payload, MutableMapping):
+            return
+
+        def _ensure_dict(root: MutableMapping[str, Any], key: str) -> MutableMapping[str, Any]:
+            node = root.get(key)
+            if not isinstance(node, MutableMapping):
+                node = {}
+                root[key] = node
+            return node
+
+        def _migrate_reflection(section: MutableMapping[str, Any]) -> None:
+            graphics = section.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+            env = _ensure_dict(graphics, "environment")
+            probe = graphics.get("reflection_probe")
+            if not isinstance(probe, MutableMapping):
+                return
+            # Map fields
+            key_map = {
+                "enabled": "reflection_enabled",
+                "padding_m": "reflection_padding_m",
+                "quality": "reflection_quality",
+                "refresh_mode": "reflection_refresh_mode",
+                "time_slicing": "reflection_time_slicing",
+            }
+            changed = False
+            for src_key, dst_key in key_map.items():
+                if dst_key not in env and src_key in probe:
+                    env[dst_key] = deepcopy(probe[src_key])
+                    changed = True
+            # Remove legacy section if everything mapped
+            try:
+                if changed:
+                    graphics.pop("reflection_probe", None)
+            except Exception:
+                pass
+
+        def _migrate_geometry_lengths(section: MutableMapping[str, Any]) -> None:
+            geometry = section.get("geometry")
+            if not isinstance(geometry, MutableMapping):
+                return
+            if "lever_length" not in geometry and "lever_length_m" in geometry:
+                geometry["lever_length"] = float(geometry.get("lever_length_m"))
+            elif (
+                "lever_length" in geometry
+                and "lever_length_m" in geometry
+                and geometry["lever_length"] != geometry["lever_length_m"]
+            ):
+                # Предпочитаем lever_length как канонический
+                geometry["lever_length"] = float(geometry["lever_length_m"])
+            geometry.pop("lever_length_m", None)
+
+        def _sync_diagonal_coupling(curr: MutableMapping[str, Any], defs: MutableMapping[str, Any]) -> None:
+            pneu_c = curr.get("pneumatic")
+            pneu_d = defs.get("pneumatic")
+            if not isinstance(pneu_c, MutableMapping) and not isinstance(pneu_d, MutableMapping):
+                return
+            current_value = None
+            if isinstance(pneu_c, MutableMapping):
+                current_value = pneu_c.get("diagonal_coupling_dia", None)
+            if current_value is None and isinstance(pneu_d, MutableMapping):
+                current_value = pneu_d.get("diagonal_coupling_dia", None)
+            if current_value is None:
+                return
+            if isinstance(pneu_d, MutableMapping):
+                pneu_d["diagonal_coupling_dia"] = current_value
+
+        def _sync_slider_ranges(meta: MutableMapping[str, Any], section: MutableMapping[str, Any]) -> None:
+            # metadata.environment_slider_ranges ⟵ graphics.environment_ranges (current)
+            ranges_src = None
+            graphics = section.get("graphics")
+            if isinstance(graphics, MutableMapping):
+                ranges_src = graphics.get("environment_ranges")
+            if not isinstance(ranges_src, MutableMapping):
+                return
+            slider_meta = meta.get("environment_slider_ranges")
+            if not isinstance(slider_meta, MutableMapping):
+                slider_meta = {}
+                meta["environment_slider_ranges"] = slider_meta
+            for key, rng in ranges_src.items():
+                if not isinstance(rng, MutableMapping):
+                    continue
+                # только добавляем недостающие поля; не перетираем существующие
+                entry = slider_meta.get(key)
+                if not isinstance(entry, MutableMapping):
+                    slider_meta[key] = {
+                        k: v
+                        for k, v in rng.items()
+                        if v is not None and k in {"min", "max", "step", "decimals", "units"}
+                    }
+                else:
+                    for fld in ("min", "max", "step", "decimals", "units"):
+                        if fld not in entry and fld in rng and rng[fld] is not None:
+                            entry[fld] = rng[fld]
+
+        # Sections: current / defaults_snapshot
+        current = _ensure_dict(payload, "current")
+        defaults = _ensure_dict(payload, "defaults_snapshot")
+        metadata = _ensure_dict(payload, "metadata")
+
+        # 1) Reflection probe unification
+        _migrate_reflection(current)
+        _migrate_reflection(defaults)
+
+        # 2) Geometry lever length unification
+        _migrate_geometry_lengths(current)
+        _migrate_geometry_lengths(defaults)
+
+        # 3) Diagonal coupling consistency between current and defaults
+        _sync_diagonal_coupling(current, defaults)
+
+        # 4) Slider ranges metadata sync (non-destructive)
+        _sync_slider_ranges(metadata, current)
 
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None

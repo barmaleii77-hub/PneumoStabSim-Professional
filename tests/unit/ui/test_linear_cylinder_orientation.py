@@ -26,12 +26,14 @@ def _load_instance(start: QVector3D, end: QVector3D):
     component = QQmlComponent(engine, QUrl.fromLocalFile(str(qml_path)))
     if component.isError():  # pragma: no cover - diagnostic
         raise RuntimeError(component.errorString())
-    instance = component.createWithInitialProperties({
-        "startPoint": start,
-        "endPoint": end,
-        "segments": 8,
-        "rings": 1,
-    })
+    instance = component.createWithInitialProperties(
+        {
+            "startPoint": start,
+            "endPoint": end,
+            "segments": 8,
+            "rings": 1,
+        }
+    )
     assert instance is not None
     return engine, component, instance
 
@@ -43,12 +45,14 @@ def _rotation_matches(instance, expected_dir: QVector3D) -> bool:
     # Rotate local +Y (0,1,0) and compare направление
     local_y = QVector3D(0.0, 1.0, 0.0)
     rotated = quat.rotatedVector(local_y)
+
     # Нормализуем оба
     def _norm(v: QVector3D) -> QVector3D:
-        l = math.sqrt(v.x() * v.x() + v.y() * v.y() + v.z() * v.z())
-        if l < 1e-9:
+        length = math.sqrt(v.x() * v.x() + v.y() * v.y() + v.z() * v.z())
+        if length < 1e-9:
             return QVector3D(0.0, 0.0, 0.0)
-        return QVector3D(v.x() / l, v.y() / l, v.z() / l)
+        return QVector3D(v.x() / length, v.y() / length, v.z() / length)
+
     rd = _norm(rotated)
     ed = _norm(expected_dir)
     return (
@@ -63,7 +67,11 @@ def _rotation_matches(instance, expected_dir: QVector3D) -> bool:
 @pytest.mark.parametrize(
     "start,end,expected",
     [
-        (QVector3D(0, 0, 0), QVector3D(0, 2, 0), QVector3D(0, 1, 0)),  # along +Y (identity)
+        (
+            QVector3D(0, 0, 0),
+            QVector3D(0, 2, 0),
+            QVector3D(0, 1, 0),
+        ),  # along +Y (identity)
         (QVector3D(0, 0, 0), QVector3D(2, 0, 0), QVector3D(1, 0, 0)),  # along +X
         (QVector3D(0, 0, 0), QVector3D(-2, 0, 0), QVector3D(-1, 0, 0)),  # along -X
         (QVector3D(0, 0, 0), QVector3D(0, 0, 2), QVector3D(0, 0, 1)),  # along +Z

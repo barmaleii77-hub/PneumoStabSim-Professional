@@ -12,6 +12,9 @@
 - Отсутствует QApplication или платформа headless/offscreen/minimal
 - Приложение выставило флаг QApplication.is_headless = True
 - Принудительное немодальное подтверждение: PSS_FORCE_NONBLOCKING_DIALOGS
+
+Дополнительно: прямые вызовы QMessageBox.* теперь патчатся и не блокируют
+тесты (автоматический возврат дефолтной кнопки / Ok) — см. _apply_qmessagebox_patch.
 """
 
 from __future__ import annotations
@@ -69,6 +72,87 @@ def dialogs_allowed() -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------
+# QMessageBox monkeypatch (чтобы прямые вызовы не блокировали тесты)
+# ---------------------------------------------------------------------------
+
+
+def _apply_qmessagebox_patch() -> None:
+    """Патчит стандартные методы QMessageBox.* если не было сделано ранее.
+
+    При подавлении диалогов возвращает сразу стандартные ответы без показа окна.
+    Это защищает тесты от зависаний при прямых вызовах QMessageBox.question и др.
+    """
+    force_nonblocking = _env_truthy("PSS_FORCE_NONBLOCKING_DIALOGS")
+    suppressed = not dialogs_allowed() or force_nonblocking
+    try:
+        from PySide6.QtWidgets import QMessageBox  # type: ignore
+    except Exception:
+        return
+
+    if getattr(QMessageBox, "_pss_patched", False):  # уже пропатчено
+        return
+
+    def _log(action: str, title: str, text: str) -> None:
+        _logger.info(
+            "[UI][patched-%s] %s: %s (suppressed=%s)", action, title, text, suppressed
+        )
+
+    # Сохраняем оригиналы
+    _orig_information = QMessageBox.information
+    _orig_warning = QMessageBox.warning
+    _orig_critical = QMessageBox.critical
+    _orig_question = QMessageBox.question
+
+    def _wrap_simple(orig_func, action: str):  # type: ignore
+        def _wrapped(parent, title, text, *args, **kwargs):
+            if not dialogs_allowed() or _env_truthy("PSS_FORCE_NONBLOCKING_DIALOGS"):
+                _log(action, title, text)
+                return QMessageBox.StandardButton.Ok
+            return orig_func(parent, title, text, *args, **kwargs)
+
+        return _wrapped
+
+    def _wrapped_question(
+        parent,
+        title,
+        text,
+        buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        defaultButton=QMessageBox.StandardButton.No,
+    ):  # type: ignore
+        if not dialogs_allowed() or _env_truthy("PSS_FORCE_NONBLOCKING_DIALOGS"):
+            _log("question", title, text)
+            # Возвращаем defaultButton как выбор пользователя
+            return defaultButton
+        return _orig_question(parent, title, text, buttons, defaultButton)
+
+    QMessageBox.information = _wrap_simple(_orig_information, "information")  # type: ignore[attr-defined]
+    QMessageBox.warning = _wrap_simple(_orig_warning, "warning")  # type: ignore[attr-defined]
+    QMessageBox.critical = _wrap_simple(_orig_critical, "critical")  # type: ignore[attr-defined]
+    QMessageBox.question = _wrapped_question  # type: ignore[attr-defined]
+    QMessageBox._pss_patched = True  # type: ignore[attr-defined]
+
+
+# Пытаемся применить патч сразу при импорте модуля (без ошибок)
+try:  # pragma: no cover - best effort
+    _apply_qmessagebox_patch()
+except Exception:  # noqa: BLE001
+    pass
+
+
+def ensure_dialog_patching() -> None:
+    """Явный вызов из bootstrap при необходимости повторить патч."""
+    try:
+        _apply_qmessagebox_patch()
+    except Exception:  # pragma: no cover
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Высокоуровневые удобные обёртки
+# ---------------------------------------------------------------------------
+
+
 def message_info(parent: Any, title: str, text: str) -> None:
     if not dialogs_allowed():
         _logger.info("[UI] %s: %s", title, text)
@@ -111,8 +195,7 @@ def message_question(
     """Показывает вопрос пользователю. Возвращает True для ответа "Да".
 
     Если диалоги подавлены или активирован принудительный немодальный режим,
-    возвращает default_yes и логирует событие. Принудительный режим включается
-    переменной окружения PSS_FORCE_NONBLOCKING_DIALOGS.
+    возвращает default_yes и логирует событие.
     """
     force_nonblocking = _env_truthy("PSS_FORCE_NONBLOCKING_DIALOGS")
     if force_nonblocking:

@@ -6,7 +6,7 @@
     "cv_atmo_dp": 1000.0,
     "cv_tank_dia": 0.003,
     "cv_tank_dp": 1000.0,
-    "diagonal_coupling_dia": 0.0028,
+    "diagonal_coupling_dia": 0.0037,
     "leak_coefficient": 5e-08,
     "leak_reference_area": 0.0002,
     "master_isolation_open": 1.0,

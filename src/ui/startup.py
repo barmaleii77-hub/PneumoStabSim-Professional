@@ -10,7 +10,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Mapping, MutableMapping
+from typing import Any
 
+from PySide6.QtQuick import QQuickWindow  # type: ignore
 
 _TRUTHY_VALUES = {"1", "true", "yes", "on"}
 
@@ -87,6 +89,12 @@ def bootstrap_graphics_environment(
     backend = choose_scenegraph_backend(platform)
     headless, reasons = detect_headless_environment(env)
 
+    # Optional override to allow QML 3D even in headless/offscreen CI runs.
+    # settings_cycle_runner relies on this to exercise QML-side batching.
+    if _is_truthy(env.get("PSS_FORCE_ALLOW_QML_3D")):
+        headless = False
+        # keep reasons for diagnostics but do not force-disable QML 3D
+
     use_qml_3d = not headless
 
     if headless:
@@ -107,9 +115,34 @@ def bootstrap_graphics_environment(
     )
 
 
+def enforce_fixed_window_metrics(
+    window: QQuickWindow, width: int = 640, height: int = 360
+) -> None:
+    """Принудительно применить фиксированные размеры окна для детерминированных скриншотов.
+
+    Отключает HiDPI масштабирование (если переменные окружения не выставлены) и
+    гарантирует точные значения width/height до захвата кадра.
+    """
+    try:
+        import os
+
+        os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "0")
+        os.environ.setdefault("QT_SCALE_FACTOR", "1")
+    except Exception:
+        pass
+    try:
+        if window.width() != width:
+            window.setWidth(width)
+        if window.height() != height:
+            window.setHeight(height)
+    except Exception:
+        pass
+
+
 __all__ = [
     "GraphicsEnvironmentDecision",
     "bootstrap_graphics_environment",
     "choose_scenegraph_backend",
     "detect_headless_environment",
+    "enforce_fixed_window_metrics",
 ]

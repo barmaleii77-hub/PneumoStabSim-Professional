@@ -21,6 +21,7 @@ from PySide6.QtQuick import QQuickView, QQuickWindow
 
 from src.ui.qml_bridge import QMLBridge
 from src.ui.scene_bridge import SceneBridge
+from src.ui.startup import enforce_fixed_window_metrics
 from tests._qt_headless import apply_headless_defaults
 from tests._qt_headless import headless_requested
 
@@ -107,6 +108,7 @@ def _initialise_view(
     view.setSource(QUrl.fromLocalFile(str(qml_path)))
     view.setWidth(width)
     view.setHeight(height)
+    enforce_fixed_window_metrics(view, width=width, height=height)
     view.show()
 
     def _view_ready() -> bool:
@@ -178,12 +180,95 @@ def _qimage_to_pillow(image: QImage) -> Image.Image:
     return pil_image.copy()
 
 
+def _grab_by_item(window: QQuickWindow, qapp, timeout_ms: int = 1500) -> QImage | None:
+    item = None
+    try:
+        item = window.contentItem()
+    except Exception:
+        pass
+    if item is None:
+        try:
+            item = window.property("contentItem")
+        except Exception:
+            item = None
+    if item is None:
+        try:
+            item = window.property("rootObject")
+        except Exception:
+            item = None
+    if item is None or not hasattr(item, "grabToImage"):
+        return None
+
+    try:
+        result = item.grabToImage()
+    except Exception:
+        return None
+
+    ready = [False]
+
+    def _on_ready():
+        ready[0] = True
+
+    try:
+        result.ready.connect(_on_ready)  # type: ignore[attr-defined]
+    except Exception:
+        # If signal not available, fall back to polling below
+        pass
+
+    deadline = time.monotonic() + max(0, timeout_ms) / 1000.0
+    while time.monotonic() < deadline and not ready[0]:
+        _process_events(qapp, iterations=1)
+        time.sleep(0.01)
+        # some bindings don't emit ready() reliably; check image size
+        try:
+            img = result.image()
+            if isinstance(img, QImage) and not img.isNull():
+                ready[0] = True
+                break
+        except Exception:
+            pass
+
+    try:
+        image = result.image()
+        if isinstance(image, QImage) and not image.isNull():
+            return image
+    except Exception:
+        return None
+    return None
+
+
 def capture_window_image(
     window: QQuickWindow, qapp, *, settle_iterations: int = 4
 ) -> Image.Image:
-    """Grab the current framebuffer of ``window`` as a Pillow image."""
+    """Grab the current framebuffer of ``window`` as a Pillow image.
 
+    В headless/offscreen режимах QSG может отложить первый кадр. Функция
+    активно запрашивает обновление и выполняет несколько попыток захвата. Если
+    кадр отсутствует, применяется резервный путь через QQuickItem.grabToImage().
+    """
+
+    # Первичная обработка очереди событий
     _process_events(qapp, iterations=max(1, settle_iterations))
+
+    # До 60 попыток (~1 сек) с активным обновлением окна
+    attempts = 60
+    for _ in range(attempts):
+        image = window.grabWindow()
+        if not image.isNull():
+            return _qimage_to_pillow(image)
+        try:
+            window.requestUpdate()
+        except Exception:
+            pass
+        _process_events(qapp, iterations=1)
+        time.sleep(0.01)
+
+    # Резервный способ: захват через root/content item
+    fallback = _grab_by_item(window, qapp, timeout_ms=2000)
+    if isinstance(fallback, QImage) and not fallback.isNull():
+        return _qimage_to_pillow(fallback)
+
+    # Последняя попытка прямого grabWindow
     image = window.grabWindow()
     if image.isNull():
         raise RuntimeError("grabWindow() returned an empty image")
@@ -266,7 +351,13 @@ def compare_with_baseline(
     tolerance: float = 3.5,
     diff_output: Path | None = None,
 ) -> float:
-    """Compare ``captured`` image against the stored baseline."""
+    """Compare ``captured`` image against the stored baseline.
+
+    HiDPI нормализация: если framebuffer масштабирован (например 960x540 при baseline 640x360),
+    то вычисляется ratio = captured.width / baseline.width (должен совпадать с captured.height / baseline.height).
+    Допустимые коэффициенты: 1.25, 1.5, 1.75, 2.0, 3.0.
+    При совпадении выполняем ресайз вниз и сравниваем содержимое.
+    """
 
     target = Path(baseline_path)
     if not target.exists():
@@ -276,10 +367,26 @@ def compare_with_baseline(
 
     baseline = _load_baseline_image(target)
     captured_rgba = captured.convert("RGBA")
+
     if baseline.size != captured_rgba.size:
-        raise AssertionError(
-            f"Baseline size {baseline.size} does not match captured image size {captured_rgba.size}"
-        )
+        bw, bh = baseline.size
+        cw, ch = captured_rgba.size
+        # Плавающий коэффициент масштабирования
+        ratio_w = cw / bw
+        ratio_h = ch / bh
+        if abs(ratio_w - ratio_h) < 1e-6:
+            ratio = ratio_w
+            if ratio in {1.25, 1.5, 1.75, 2.0, 3.0}:
+                # Масштабируем до baseline для визуального сравнения
+                captured_rgba = captured_rgba.resize(baseline.size, Image.BICUBIC)
+            else:
+                raise AssertionError(
+                    f"Unsupported scaling ratio {ratio:.4f}; baseline {baseline.size} vs captured {captured_rgba.size}"
+                )
+        else:
+            raise AssertionError(
+                f"Baseline size {baseline.size} does not match captured image size {captured_rgba.size}"
+            )
 
     diff = ImageChops.difference(baseline, captured_rgba)
     if diff_output is not None:
@@ -354,3 +461,26 @@ def _main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
     raise SystemExit(_main())
+
+
+def log_window_metrics(window: QQuickWindow) -> dict[str, int]:
+    """Записать метрики окна (width/height/contentSize) и вернуть их.
+
+    Используется тестами для диагностики расхождений baseline размеров.
+    """
+    metrics = {
+        "width": int(getattr(window, "width", lambda: 0)()),
+        "height": int(getattr(window, "height", lambda: 0)()),
+    }
+    try:
+        item = window.contentItem()
+        if item is not None:
+            metrics["contentWidth"] = int(getattr(item, "width", 0))
+            metrics["contentHeight"] = int(getattr(item, "height", 0))
+    except Exception:
+        pass
+    print("[screenshot] window metrics:", metrics)
+    return metrics
+
+
+__all__.append("log_window_metrics")
