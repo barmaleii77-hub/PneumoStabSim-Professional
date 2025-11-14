@@ -1606,7 +1606,8 @@
           }
         }
       }
-    }
+    },
+    "constants": null
   },
   "defaults_snapshot": {
     "geometry": {
