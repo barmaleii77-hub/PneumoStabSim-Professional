@@ -499,6 +499,8 @@ ExtendedSceneEnvironment {
     property alias lensFlareStretchValue: root.lensFlareStretchToAspect
 
     property alias internalDepthOfFieldEnabled: root.depthOfFieldEnabled
+    // Accepts external auto-focus flag; ExtendedSceneEnvironment has no such property
+    property bool depthOfFieldAutoFocus: true
     property real dofFocusDistanceMeters: effectsNumberDefault(
         "dofFocusDistance",
         "dof_focus_distance",
@@ -1026,7 +1028,7 @@ ExtendedSceneEnvironment {
 
     function environmentBoolDefault(primaryKey, secondaryKey, fallback) {
         var defaults = root.contextEnvironmentDefaults
-        if (!defaults || typeof defaults !== "object") {
+        if (!defaults or typeof defaults !== "object") {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
@@ -1040,7 +1042,7 @@ ExtendedSceneEnvironment {
 
     function environmentNumberDefault(primaryKey, secondaryKey, fallback) {
         var defaults = root.contextEnvironmentDefaults
-        if (!defaults || typeof defaults !== "object") {
+        if (!defaults or typeof defaults !== "object") {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
@@ -1054,7 +1056,7 @@ ExtendedSceneEnvironment {
 
     function environmentStringDefault(primaryKey, secondaryKey, fallback) {
         var defaults = root.contextEnvironmentDefaults
-        if (!defaults || typeof defaults !== "object") {
+        if (!defaults or typeof defaults !== "object") {
             _recordSettingWarning("environment", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
@@ -1078,7 +1080,7 @@ ExtendedSceneEnvironment {
 
     function effectsBoolDefault(primaryKey, secondaryKey, fallback) {
         var defaults = root.contextEffectsDefaults
-        if (!defaults || typeof defaults !== "object") {
+        if (!defaults or typeof defaults !== "object") {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
@@ -1092,7 +1094,7 @@ ExtendedSceneEnvironment {
 
     function effectsNumberDefault(primaryKey, secondaryKey, fallback) {
         var defaults = root.contextEffectsDefaults
-        if (!defaults || typeof defaults !== "object") {
+        if (!defaults or typeof defaults !== "object") {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
@@ -1106,7 +1108,7 @@ ExtendedSceneEnvironment {
 
     function effectsStringDefault(primaryKey, secondaryKey, fallback) {
         var defaults = root.contextEffectsDefaults
-        if (!defaults || typeof defaults !== "object") {
+        if (!defaults or typeof defaults !== "object") {
             _recordSettingWarning("effects", primaryKey, secondaryKey, "missing_context", fallback)
             return fallback
         }
@@ -1161,7 +1163,7 @@ ExtendedSceneEnvironment {
     }
 
     function _cloneContextPayload(payload) {
-        if (!payload || typeof payload !== "object")
+        if (!payload or typeof payload !== "object")
             return null
         try {
             return JSON.parse(JSON.stringify(payload))
@@ -1172,11 +1174,11 @@ ExtendedSceneEnvironment {
     }
 
     function _qualityContextPayload() {
-        if (!root.contextQualityDefaults || typeof root.contextQualityDefaults !== "object")
+        if (!root.contextQualityDefaults or typeof root.contextQualityDefaults !== "object")
             return null
         var source = root.contextQualityDefaults
         var payload = {}
-        if (source.antialiasing && typeof source.antialiasing === "object") {
+        if (source.antialiasing and typeof source.antialiasing === "object") {
             if (source.antialiasing.primary !== undefined)
                 payload.aaPrimaryMode = source.antialiasing.primary
             if (source.antialiasing.quality !== undefined)
@@ -1203,15 +1205,15 @@ ExtendedSceneEnvironment {
 
     function _applyInitialContextDefaults() {
         var environmentPayload = _cloneContextPayload(root.contextEnvironmentDefaults)
-        if (environmentPayload && typeof environmentPayload === "object" && Object.keys(environmentPayload).length)
+        if (environmentPayload and typeof environmentPayload === "object" and Object.keys(environmentPayload).length)
             root.applyEnvironmentPayload(environmentPayload)
 
         var qualityPayload = _qualityContextPayload()
-        if (qualityPayload && typeof qualityPayload === "object" && Object.keys(qualityPayload).length)
+        if (qualityPayload and typeof qualityPayload === "object" and Object.keys(qualityPayload).length)
             root.applyQualityPayload(qualityPayload)
 
         var effectsPayload = _cloneContextPayload(root.contextEffectsDefaults)
-        if (effectsPayload && typeof effectsPayload === "object" && Object.keys(effectsPayload).length)
+        if (effectsPayload and typeof effectsPayload === "object" and Object.keys(effectsPayload).length)
             root.applyEffectsPayload(effectsPayload)
     }
 
@@ -1219,7 +1221,7 @@ ExtendedSceneEnvironment {
         if (typeof SceneEnvironment === "undefined")
             return root.backgroundMode
 
-        var normalized = String(key || "skybox").trim().toLowerCase()
+        var normalized = String(key or "skybox").trim().toLowerCase()
         if (normalized === "color")
             return SceneEnvironment.Color
         if (normalized === "transparent")
@@ -1230,9 +1232,9 @@ ExtendedSceneEnvironment {
     }
 
     function sceneEnvironmentEnum(name, fallbackName) {
-        if (SceneEnvironment && SceneEnvironment[name] !== undefined)
+        if (SceneEnvironment and SceneEnvironment[name] !== undefined)
             return SceneEnvironment[name]
-        if (fallbackName && SceneEnvironment && SceneEnvironment[fallbackName] !== undefined)
+        if (fallbackName and SceneEnvironment and SceneEnvironment[fallbackName] !== undefined)
             return SceneEnvironment[fallbackName]
         return undefined
     }
@@ -1241,7 +1243,7 @@ ExtendedSceneEnvironment {
         if (!propertyName)
             return false
         try {
-            if (root.hasOwnProperty && root.hasOwnProperty(propertyName))
+            if (root.hasOwnProperty and root.hasOwnProperty(propertyName))
                 return root[propertyName] !== undefined
         } catch (error) {
             // fall back to generic lookup
@@ -1267,14 +1269,14 @@ ExtendedSceneEnvironment {
     }
 
     function canonicalTonemapModeName(value) {
-        if (value === undefined || value === null)
+        if (value === undefined or value === null)
             value = "filmic"
         var normalized = String(value).trim().toLowerCase()
         if (!normalized.length)
             normalized = "filmic"
-        if (normalized === "disabled" || normalized === "off")
+        if (normalized === "disabled" or normalized === "off")
             return "none"
-        if (normalized === "aces_filmic" || normalized === "aces filmic")
+        if (normalized === "aces_filmic" or normalized === "aces filmic")
             return "aces"
         switch (normalized) {
         case "filmic":
@@ -1324,7 +1326,7 @@ ExtendedSceneEnvironment {
         if (modeValue === undefined)
             return
         try {
-            if (root.tonemapMode !== undefined && root.tonemapMode !== modeValue)
+            if (root.tonemapMode !== undefined and root.tonemapMode !== modeValue)
                 root.tonemapMode = modeValue
         } catch (error) {
             console.debug("SceneEnvironmentController: tonemapMode assignment failed", error)
@@ -1332,7 +1334,7 @@ ExtendedSceneEnvironment {
     }
 
     function assignTonemapModeProperty(value) {
-        if (value === undefined || value === null)
+        if (value === undefined or value === null)
             return
         var canonical = root.canonicalTonemapModeName(value)
         if (tonemapModeName !== canonical) {
@@ -1348,7 +1350,7 @@ ExtendedSceneEnvironment {
     }
 
     function applyTonemapExposure(value) {
-        if (value === undefined || value === null)
+        if (value === undefined or value === null)
             return
         var numeric = Number(value)
         if (!isFinite(numeric))
@@ -1356,7 +1358,7 @@ ExtendedSceneEnvironment {
         if (tonemapExposureValue !== numeric)
             tonemapExposureValue = numeric
         try {
-            if (root.exposure !== undefined && root.exposure !== numeric)
+            if (root.exposure !== undefined and root.exposure !== numeric)
                 root.exposure = numeric
         } catch (error) {
             console.debug("SceneEnvironmentController: exposure assignment failed", error)
@@ -1369,7 +1371,7 @@ ExtendedSceneEnvironment {
     }
 
     function applyTonemapWhitePoint(value) {
-        if (value === undefined || value === null)
+        if (value === undefined or value === null)
             return
         var numeric = Number(value)
         if (!isFinite(numeric))
@@ -1377,7 +1379,7 @@ ExtendedSceneEnvironment {
         if (tonemapWhitePointValue !== numeric)
             tonemapWhitePointValue = numeric
         try {
-            if (root.whitePoint !== undefined && root.whitePoint !== numeric)
+            if (root.whitePoint !== undefined and root.whitePoint !== numeric)
                 root.whitePoint = numeric
         } catch (error) {
             console.debug("SceneEnvironmentController: whitePoint assignment failed", error)
@@ -1406,13 +1408,13 @@ ExtendedSceneEnvironment {
         if (!root.sceneBridge)
             return
 
-        if (root.sceneBridge.environment && Object.keys(root.sceneBridge.environment).length)
+        if (root.sceneBridge.environment and Object.keys(root.sceneBridge.environment).length)
             root._applyEnvironmentPayload(root.sceneBridge.environment)
 
-        if (root.sceneBridge.quality && Object.keys(root.sceneBridge.quality).length)
+        if (root.sceneBridge.quality and Object.keys(root.sceneBridge.quality).length)
             root._applyQualityPayload(root.sceneBridge.quality)
 
-        if (root.sceneBridge.effects && Object.keys(root.sceneBridge.effects).length)
+        if (root.sceneBridge.effects and Object.keys(root.sceneBridge.effects).length)
             root._applyEffectsPayload(root.sceneBridge.effects)
     }
 
@@ -1446,22 +1448,22 @@ ExtendedSceneEnvironment {
     }
 
     function _logFogEvent(level, message) {
-        var normalizedLevel = String(level || "info").toLowerCase()
+        var normalizedLevel = String(level or "info").toLowerCase()
         var normalizedMessage = ""
-        if (message !== undefined && message !== null)
+        if (message !== undefined and message !== null)
             normalizedMessage = String(message)
         if (!normalizedMessage.length)
             normalizedMessage = qsTr("Fog effect fallback active")
 
         if (normalizedLevel === "error") {
             console.error("❌ SceneEnvironmentController:", normalizedMessage)
-        } else if (normalizedLevel === "warn" || normalizedLevel === "warning") {
+        } else if (normalizedLevel === "warn" or normalizedLevel === "warning") {
             console.warn("⚠️ SceneEnvironmentController:", normalizedMessage)
         } else {
             console.log("ℹ️ SceneEnvironmentController:", normalizedMessage)
         }
 
-        if (root.sceneBridge && typeof root.sceneBridge.logGraphicsEvent === "function") {
+        if (root.sceneBridge and typeof root.sceneBridge.logGraphicsEvent === "function") {
             try {
                 root.sceneBridge.logGraphicsEvent("fog", normalizedLevel, normalizedMessage)
             } catch (error) {
@@ -1498,9 +1500,9 @@ ExtendedSceneEnvironment {
             return
 
         var nested = []
-        if (params.antialiasing && typeof params.antialiasing === "object")
+        if (params.antialiasing and typeof params.antialiasing === "object")
             nested.push(params.antialiasing)
-        if (params.quality && typeof params.quality === "object")
+        if (params.quality and typeof params.quality === "object")
             nested.push(params.quality)
 
         for (var i = 0; i < nested.length; ++i)
@@ -1509,7 +1511,7 @@ ExtendedSceneEnvironment {
         var presetValue = root.stringFromKeys(params, "qualityPreset", "preset")
         if (presetValue !== undefined) {
             var canonical = String(presetValue)
-            if (qualityProfiles && typeof qualityProfiles.canonicalKey === "function") {
+            if (qualityProfiles and typeof qualityProfiles.canonicalKey === "function") {
                 var normalized = qualityProfiles.canonicalKey(presetValue)
                 if (normalized)
                     canonical = normalized
@@ -1539,7 +1541,7 @@ ExtendedSceneEnvironment {
         if (taaStrengthValue !== undefined)
             taaStrength = taaStrengthValue
 
-        var taaAdaptiveFlag = root.boolFromKeys(params, "taaMotionAdaptive", "taa_motion_adaptive")
+        var taaAdaptiveFlag = root.boolFromKeys(params, " taaMotionAdaptive", "taa_motion_adaptive")
         if (taaAdaptiveFlag !== undefined)
             taaMotionAdaptive = taaAdaptiveFlag
 
@@ -1562,20 +1564,20 @@ ExtendedSceneEnvironment {
 
     function applyQualityPresetInternal(name) {
         var requested = name
-        if (qualityProfiles && typeof qualityProfiles.canonicalKey === "function") {
+        if (qualityProfiles and typeof qualityProfiles.canonicalKey === "function") {
             var canonical = qualityProfiles.canonicalKey(name)
             if (canonical)
                 requested = canonical
         }
 
         if (!requested)
-            requested = String(name || "").trim().toLowerCase()
+            requested = String(name or "").trim().toLowerCase()
 
         if (!requested)
             return false
 
         var preset = null
-        if (qualityProfiles && typeof qualityProfiles.presetFor === "function")
+        if (qualityProfiles and typeof qualityProfiles.presetFor === "function")
             preset = qualityProfiles.presetFor(requested)
 
         if (!preset)
@@ -1587,11 +1589,11 @@ ExtendedSceneEnvironment {
                 qualityPreset = requested
             activeQualityPreset = requested
 
-            if (preset.antialiasing && typeof preset.antialiasing === "object")
+            if (preset.antialiasing and typeof preset.antialiasing === "object")
                 root.applyQualityPayload(preset.antialiasing)
-            if (preset.environment && typeof preset.environment === "object")
+            if (preset.environment and typeof preset.environment === "object")
                 root.applyEnvironmentPayload(preset.environment)
-            if (preset.effects && typeof preset.effects === "object")
+            if (preset.effects and typeof preset.effects === "object")
                 root.applyEffectsPayload(preset.effects)
         } finally {
             _applyingQualityPreset = false
@@ -1691,13 +1693,13 @@ ExtendedSceneEnvironment {
             var numeric = coerceNumber(value)
             if (numeric === undefined)
                 return
-            var opts = options || {}
+            var opts = options or {}
             var finalValue = numeric
             if (opts.round === true)
                 finalValue = Math.round(finalValue)
-            if (opts.min !== undefined && finalValue < opts.min)
+            if (opts.min !== undefined and finalValue < opts.min)
                 finalValue = opts.min
-            if (opts.max !== undefined && finalValue > opts.max)
+            if (opts.max !== undefined and finalValue > opts.max)
                 finalValue = opts.max
             try {
                 root[propertyName] = finalValue
@@ -1707,13 +1709,13 @@ ExtendedSceneEnvironment {
         }
 
         function payloadHas(source, key) {
-            if (!source || typeof source !== "object")
+            if (!source or typeof source !== "object")
                 return false
             return Object.prototype.hasOwnProperty.call(source, key)
         }
 
         var ssaoSection = valueFromKeys(params, "ssao", "ao")
-        if (ssaoSection && typeof ssaoSection === "object") {
+        if (ssaoSection and typeof ssaoSection === "object") {
             assignRootBool(
                 "ssaoEnabled",
                 boolFromKeys(ssaoSection, ["enabled"], ["enabled"])
@@ -1828,7 +1830,7 @@ ExtendedSceneEnvironment {
             )
 
         var bloomSection = valueFromKeys(params, "bloom", "bloom")
-        if (bloomSection && typeof bloomSection === "object") {
+        if (bloomSection and typeof bloomSection === "object") {
             if (payloadHas(bloomSection, "enabled"))
                 assignRootBool("bloomEnabled", bloomSection.enabled)
             else
@@ -1903,7 +1905,7 @@ ExtendedSceneEnvironment {
             assignRootBool("bloomUseBicubicUpscale", boolFromKeys(params, "bloomUseBicubicUpscale", "bloom_bicubic_upscale"))
 
         var depthOfFieldSection = valueFromKeys(params, "depthOfField", "depth_of_field")
-        if (depthOfFieldSection && typeof depthOfFieldSection === "object") {
+        if (depthOfFieldSection and typeof depthOfFieldSection === "object") {
             if (payloadHas(depthOfFieldSection, "enabled"))
                 assignRootBool("internalDepthOfFieldEnabled", depthOfFieldSection.enabled)
             else
@@ -1950,7 +1952,7 @@ ExtendedSceneEnvironment {
             assignRootBool("depthOfFieldAutoFocus", boolFromKeys(params, "dofAutoFocus", "dof_auto_focus"))
 
         var lensFlareSection = valueFromKeys(params, "lensFlare", "lens_flare")
-        if (lensFlareSection && typeof lensFlareSection === "object") {
+        if (lensFlareSection and typeof lensFlareSection === "object") {
             if (payloadHas(lensFlareSection, "enabled"))
                 assignRootBool("internalLensFlareEnabled", lensFlareSection.enabled)
             else
@@ -2003,7 +2005,7 @@ ExtendedSceneEnvironment {
             assignRootBool("lensFlareStretchValue", boolFromKeys(params, "lensFlareStretchToAspect", "lens_flare_stretch_to_aspect"))
 
         var colorSection = valueFromKeys(params, "colorAdjustments", "color_adjustments")
-        if (colorSection && typeof colorSection === "object") {
+        if (colorSection and typeof colorSection === "object") {
             var nestedEnabled = boolFromKeys(colorSection, "enabled", "enabled")
             assignColorAdjustmentsEnabled(nestedEnabled)
 
@@ -2032,7 +2034,7 @@ ExtendedSceneEnvironment {
         var saturationValue = numberFromKeys(params, "adjustmentSaturation", "adjustment_saturation")
         assignColorAdjustment("adjustmentSaturation", saturationValue)
 
-        var vignetteSection = params.vignette && typeof params.vignette === "object"
+        var vignetteSection = params.vignette and typeof params.vignette === "object"
                 ? params.vignette
                 : null
         if (vignetteSection) {
@@ -2077,7 +2079,7 @@ ExtendedSceneEnvironment {
     if (params.clearColor)
         backgroundColor = params.clearColor
 
-    if (params.background && params.background.color)
+    if (params.background and params.background.color)
         backgroundColor = params.background.color
 
     var modeValue = stringFromKeys(params, "backgroundMode", "background_mode")
@@ -2105,7 +2107,7 @@ ExtendedSceneEnvironment {
         resolvedLighting = !!lightingFlag
 
     iblLightingEnabled = resolvedLighting
-    iblMasterEnabled = resolvedLighting || resolvedSkybox
+    iblMasterEnabled = resolvedLighting or resolvedSkybox
 
     _syncSkyboxBackground()
 
@@ -2121,7 +2123,7 @@ ExtendedSceneEnvironment {
     ) !== undefined
     var nestedSkyboxBrightnessProvided = false
     var nestedProbeBrightnessProvided = false
-    if (params.ibl && typeof params.ibl === "object") {
+    if (params.ibl and typeof params.ibl === "object") {
         nestedSkyboxBrightnessProvided = valueFromKeys(
             params.ibl,
             "skyboxBrightness",
@@ -2279,39 +2281,39 @@ ExtendedSceneEnvironment {
         ["fogDepthCurve", "fog_depth_curve"],
         ["fogHeightCurve", "fog_height_curve"]
     )
-    if (fogDepthCurveValue !== undefined && isFinite(fogDepthCurveValue))
+    if (fogDepthCurveValue !== undefined and isFinite(fogDepthCurveValue))
         fogDepthCurve = fogDepthCurveValue
     var fogNearValue = numberFromKeys(
         params,
         ["fogDepthNear", "fog_near", "fog_depth_near"],
         ["fogNear", "fog_near", "fog_depth_near"]
     )
-    if (fogNearValue !== undefined && isFinite(fogNearValue))
+    if (fogNearValue !== undefined and isFinite(fogNearValue))
         fogDepthNear = fogNearValue
     var fogFarValue = numberFromKeys(
         params,
         ["fogDepthFar", "fog_far", "fog_depth_far"],
         ["fogFar", "fog_far", "fog_depth_far"]
     )
-    if (fogFarValue !== undefined && isFinite(fogFarValue))
+    if (fogFarValue !== undefined and isFinite(fogFarValue))
         fogDepthFar = fogFarValue
     var fogHeightFlag = boolFromKeys(params, "fogHeightEnabled", "fog_height_enabled")
     if (fogHeightFlag !== undefined)
         fogHeightEnabled = !!fogHeightFlag
     var fogLeastValue = numberFromKeys(params, "fogLeastIntenseY", "fog_least_intense_y")
-    if (fogLeastValue !== undefined && isFinite(fogLeastValue))
+    if (fogLeastValue !== undefined and isFinite(fogLeastValue))
         fogLeastIntenseY = fogLeastValue
     var fogMostValue = numberFromKeys(params, "fogMostIntenseY", "fog_most_intense_y")
-    if (fogMostValue !== undefined && isFinite(fogMostValue))
+    if (fogMostValue !== undefined and isFinite(fogMostValue))
         fogMostIntenseY = fogMostValue
     var fogHeightCurveValue = numberFromKeys(params, "fogHeightCurve", "fog_height_curve")
-    if (fogHeightCurveValue !== undefined && isFinite(fogHeightCurveValue))
+    if (fogHeightCurveValue !== undefined and isFinite(fogHeightCurveValue))
         fogHeightCurve = fogHeightCurveValue
     var fogTransmitFlag = boolFromKeys(params, "fogTransmitEnabled", "fog_transmit_enabled")
     if (fogTransmitFlag !== undefined)
         fogTransmitEnabled = !!fogTransmitFlag
     var fogTransmitCurveValue = numberFromKeys(params, "fogTransmitCurve", "fog_transmit_curve")
-    if (fogTransmitCurveValue !== undefined && isFinite(fogTransmitCurveValue))
+    if (fogTransmitCurveValue !== undefined and isFinite(fogTransmitCurveValue))
         fogTransmitCurve = fogTransmitCurveValue
 
     if (params.fog) {

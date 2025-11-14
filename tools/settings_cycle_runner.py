@@ -249,7 +249,9 @@ def _write_temp_settings(template_path: Path, updates: dict[str, Any]) -> Path:
 
     fd, tmp_path = tempfile.mkstemp(prefix="pss_settings_", suffix=".json")
     os.close(fd)
-    Path(tmp_path).write_text(json.dumps(base, ensure_ascii=False, indent=2), encoding="utf-8")
+    Path(tmp_path).write_text(
+        json.dumps(base, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return Path(tmp_path)
 
 

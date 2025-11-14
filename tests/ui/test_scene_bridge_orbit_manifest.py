@@ -1,4 +1,5 @@
 """Дополнительный тест покрытия refresh_orbit_presets SceneBridge."""
+
 from __future__ import annotations
 
 import pytest
@@ -32,4 +33,7 @@ def test_scene_bridge_refresh_orbit_presets_manifest_version_increment(monkeypat
     received = bridge.refresh_orbit_presets()
     assert received["version"] == updated_manifest["version"]
     assert bridge.camera.get("orbitPresetVersion") == updated_manifest["version"]
-    assert bridge.latestUpdates["camera"]["orbitPresetVersion"] == updated_manifest["version"]
+    assert (
+        bridge.latestUpdates["camera"]["orbitPresetVersion"]
+        == updated_manifest["version"]
+    )

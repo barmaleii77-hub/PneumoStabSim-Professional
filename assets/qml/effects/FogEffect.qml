@@ -45,7 +45,7 @@ Effect {
     property bool depthTextureAvailable: false
     property bool forceDepthTextureUnavailable: false
     property bool _depthInitializationStarted: false
-    readonly property bool _depthInitializationComplete: initializeDepthTextureSupport()
+    property bool _depthInitializationComplete: false
 
     property bool fallbackActive: false
     property string fallbackReason: ""
@@ -65,8 +65,17 @@ Effect {
     }
 
     onForceDepthTextureUnavailableChanged: {
-        if (_depthInitializationStarted)
-            initializeDepthTextureSupport()
+        // Переинициализация флага доступности глубины при изменении форсированного состояния
+        if (!_depthInitializationStarted) return
+        if (!forceDepthTextureUnavailable) {
+            depthTextureAvailable = (GraphicsInfo.api === GraphicsInfo.OpenGL) || preferDesktopShaderProfile
+            fallbackDueToDepth = !depthTextureAvailable
+        } else {
+            depthTextureAvailable = false
+            fallbackDueToDepth = true
+        }
+        updateFallbackActivation()
+        refreshPassConfiguration()
     }
 
     onFallbackActiveChanged: {
@@ -84,50 +93,6 @@ Effect {
     onFallbackReasonChanged: {
         if (fallbackActive && fallbackReason.length)
             console.warn("⚠️ FogEffect: fallback reason updated ->", fallbackReason)
-    }
-
-    function enableDepthTextureSupport() {
-        const propertyName = "requiresDepthTexture"
-        var depthReady = true
-        var previousDepthState = depthTextureAvailable
-
-        if (forceDepthTextureUnavailable) {
-            depthReady = false
-        } else if (propertyName in fogEffect) {
-            try {
-                fogEffect[propertyName] = true
-            } catch (error) {
-                depthReady = false
-                console.debug("FogEffect requiresDepthTexture assignment failed", error)
-            }
-        } else {
-            depthReady = false
-        }
-
-        if (depthReady) {
-            depthTextureAvailable = true
-            fallbackDueToDepth = false
-            if (!previousDepthState)
-                console.log("🌫️ FogEffect: depth texture support enabled")
-        } else {
-            depthTextureAvailable = false
-            fallbackDueToDepth = true
-            var warningMessage = forceDepthTextureUnavailable
-                    ? qsTr("Depth texture support forced unavailable; using fallback shader")
-                    : qsTr("Depth texture not supported; using fallback shader")
-            console.warn("⚠️ FogEffect:", warningMessage)
-        }
-
-        if (previousDepthState === depthTextureAvailable)
-            updateFallbackActivation()
-
-        return depthTextureAvailable
-    }
-
-    function initializeDepthTextureSupport() {
-        if (!_depthInitializationStarted)
-            _depthInitializationStarted = true
-        return enableDepthTextureSupport()
     }
 
     // Стратегия выбора профиля шейдеров:
@@ -893,7 +858,7 @@ Effect {
                     : (useFallback
                         ? (fallbackDueToCompilation
                             ? qsTr("Fog shader compilation failed; fallback pass engaged")
-                            : qsTr("Depth texture unavailable; using fallback shader pass"))
+                            : qsTr("Depth texture unavailable; используя запасной шейдер для тумана"))
                         : qsTr("Primary fog shader path restored"))
             if (useFallback)
                 console.warn("⚠️ FogEffect: switching passes to fallback shader ->", transitionMessage)
@@ -1000,53 +965,26 @@ Effect {
         }
     }
 
-    // Compatible signal hookups (Qt versions lacking Shader.statusChanged)
-    Connections {
-        target: fogVertexShader
-        ignoreUnknownSignals: true
-        function onStatusChanged() {
-            fogEffect.handleShaderStatusChange(fogVertexShader, "fog.vert")
-        }
-    }
-    Connections {
-        target: fogFragmentShader
-        ignoreUnknownSignals: true
-        function onStatusChanged() {
-            fogEffect.handleShaderStatusChange(fogFragmentShader, "fog.frag")
-        }
-    }
-    Connections {
-        target: fogFallbackShader
-        ignoreUnknownSignals: true
-        function onStatusChanged() {
-            fogEffect.handleShaderStatusChange(fogFallbackShader, "fog_fallback.frag")
-        }
-    }
-
-    passes: [
-        Pass {
-            shaders: fogEffect.activePassShaders
-        }
-    ]
-
-    Timer {
-        id: animationTimer
-        running: fogEffect.animatedFog
-                && fogEffect.depthTextureAvailable
-                && !fogEffect.fallbackActive
-        interval: 16  // 60 FPS
-        repeat: true
-        onTriggered: fogEffect.time += 0.016
-    }
-
+    // Объединённый onCompleted: инициализация + логи
     Component.onCompleted: {
-        var depthReady = _depthInitializationComplete
+        if (!_depthInitializationStarted)
+            _depthInitializationStarted = true
+        if (!forceDepthTextureUnavailable) {
+            depthTextureAvailable = (GraphicsInfo.api === GraphicsInfo.OpenGL) || preferDesktopShaderProfile
+            fallbackDueToDepth = !depthTextureAvailable
+        } else {
+            depthTextureAvailable = false
+            fallbackDueToDepth = true
+        }
+        _depthInitializationComplete = true
         updateFallbackActivation()
+        refreshPassConfiguration()
+
+        var depthReady = _depthInitializationComplete
         if (enforceLegacyFallbackShaders && compatibilityFallbackMessage.length && !compatibilityFallbackLogged) {
             console.warn("⚠️ FogEffect:", compatibilityFallbackMessage)
             compatibilityFallbackLogged = true
         }
-        refreshPassConfiguration()
         console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
         if (normalizedRendererGraphicsApi.length)
             console.log("   Normalized API:", normalizedRendererGraphicsApi)
@@ -1068,6 +1006,22 @@ Effect {
         console.log("   Animated:", animatedFog)
         if (!depthReady)
             console.warn("⚠️ FogEffect: depth texture unavailable, fallback shader active")
+    }
+
+    passes: [
+        Pass {
+            shaders: fogEffect.activePassShaders
+        }
+    ]
+
+    Timer {
+        id: animationTimer
+        running: fogEffect.animatedFog
+                && fogEffect.depthTextureAvailable
+                && !fogEffect.fallbackActive
+        interval: 16  // 60 FPS
+        repeat: true
+        onTriggered: fogEffect.time += 0.016
     }
 
 }

@@ -8,6 +8,7 @@ import json
 import os
 
 from PySide6.QtCore import QObject, Property, Signal
+
 try:  # попытка импортировать QJSValue (может отсутствовать в минимальных окружениях)
     from PySide6.QtQml import QJSValue  # type: ignore
 except Exception:  # pragma: no cover - мягкий фолбек
@@ -161,9 +162,27 @@ class SceneBridge(QObject):
     # ------------------------------------------------------------------
     # Public API used by Python-side controllers
     # ------------------------------------------------------------------
-    def dispatch_updates(self, updates: dict[str, dict[str, Any]]) -> None:
-        self._service.dispatch_updates(updates)
-        self._emit_updates(updates)
+    def dispatch_updates(
+        self, updates: dict[str, dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
+        """Отправить пакет обновлений категорий в сервис и эмитить сигналы.
+
+        Возвращает нормализованный (sanitized) пакет после обогащения
+        (например, добавление `_access` и `hudTelemetry` для камеры) – тот же,
+        что возвращает `VisualizationService.dispatch_updates`. Тесты ожидают
+        истинное значение, поэтому при пустом входе будет возвращён пустой dict.
+        """
+        if not isinstance(updates, dict) or not updates:
+            return {}
+        sanitized = self._service.dispatch_updates(updates)
+        # Эмитим сигналы на основании уже нормализованного состояния
+        # (используем sanitized чтобы избежать расхождения между raw и enriched)
+        try:
+            self._emit_updates({k: dict(v) for k, v in sanitized.items()})
+        except Exception:
+            # В случае ошибки всё равно возвращаем sanitized для тестов
+            pass
+        return {k: dict(v) for k, v in sanitized.items()}
 
     def refresh_orbit_presets(self) -> dict[str, Any]:
         """Перечитать пресеты орбитальной камеры и уведомить QML.

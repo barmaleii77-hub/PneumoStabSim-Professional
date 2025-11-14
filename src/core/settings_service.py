@@ -18,6 +18,12 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 from collections.abc import Iterable, Mapping, MutableMapping
 from collections.abc import Mapping as MappingABC
+from pydantic import (
+    ValidationError as _PydanticValidationError,
+)  # add alias at top if not present
+
+# Совместимый алиас для использования ниже
+ValidationError = _PydanticValidationError
 
 from src.core.settings_defaults import load_default_settings_payload
 from src.infrastructure.container import (
@@ -27,12 +33,15 @@ from src.infrastructure.container import (
     get_default_container,
 )
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN
-from pydantic import ValidationError
 from src.core.settings_validation import (
     DEFAULT_REQUIRED_MATERIALS,
     FORBIDDEN_MATERIAL_ALIASES,
 )
-from src.core.settings_models import AppSettings, dump_settings
+from src.core.settings_models import (
+    AppSettings,
+    dump_settings,
+    GeometrySettings,
+)  # extend import
 
 
 logger = logging.getLogger(__name__)
@@ -54,7 +63,7 @@ class _RelaxedAppSettings(AppSettings):
 
 
 class _LooseMetadata:
-    """Минимальный адаптер метаданных для loose-модели (смоук-тесты).
+    """Минимальный адаптор метаданных для loose-модели (смоук-тесты).
 
     Доступны только поля, которые реально запрашиваются тестами.
     """
@@ -131,6 +140,57 @@ class SettingsService:
         self._unknown_paths: set[str] = set()
         self._last_modified_snapshot: str | None = None
 
+    # --- PRE-SCHEMA GUARDS -------------------------------------------------
+    def _guard_unknown_geometry_keys(self, payload: MappingABC[str, Any]) -> None:
+        """Проверить, что в разделах geometry нет неизвестных ключей.
+
+        Используем JSON Schema для получения допустимого списка полей GeometrySettings
+        и сравниваем его с фактическими ключами как в ``current``, так и в
+        ``defaults_snapshot``. Это обеспечивает строгий отказ при вызовах
+        ``set``/``update`` с неописанными полями (см. persistence‑тесты).
+        """
+        if not isinstance(payload, MappingABC):
+            return
+
+        try:
+            schema = self._read_schema()
+            defs = schema.get("$defs", {}) if isinstance(schema, dict) else {}
+            geom = defs.get("GeometrySettings", {}) if isinstance(defs, dict) else {}
+            props = geom.get("properties", {}) if isinstance(geom, dict) else {}
+            allowed: set[str] = set(props.keys()) if isinstance(props, dict) else set()
+        except Exception:
+            allowed = set()
+
+        if not allowed:
+            # Если не удалось извлечь список полей, не выполняем дополнительную проверку
+            return
+
+        # Разрешённые служебные/наследуемые ключи, которые допускаются сверх схемы
+        allowed |= {"meta"}
+
+        def _section_geometry(root: MappingABC[str, Any] | None) -> MappingABC[str, Any] | None:
+            if not isinstance(root, MappingABC):
+                return None
+            geometry = root.get("geometry")
+            return geometry if isinstance(geometry, MappingABC) else None
+
+        current = payload.get("current") if isinstance(payload, MappingABC) else None
+        defaults = (
+            payload.get("defaults_snapshot") if isinstance(payload, MappingABC) else None
+        )
+
+        offenders: set[str] = set()
+        for section in (_section_geometry(current), _section_geometry(defaults)):
+            if section is None:
+                continue
+            offenders |= set(section.keys()) - allowed
+
+        if offenders:
+            ordered = ", ".join(sorted(offenders))
+            raise SettingsValidationError(
+                f"Unknown geometry keys are not allowed: {ordered}"
+            )
+
     # ------------------------------------------------------------------
     # Path resolution & raw IO
     # ------------------------------------------------------------------
@@ -154,27 +214,37 @@ class SettingsService:
         try:
             with path.open("r", encoding="utf-8") as stream:
                 payload: dict[str, Any] = json.load(stream)
-        except FileNotFoundError:
-            logger.warning(
-                "Settings file not found at '%s'; loading default payload.", path
-            )
-            payload = load_default_settings_payload()
+        except FileNotFoundError as exc:
+            # Поведение по требованиям тестов: отсутствие файла — ошибка, без автоподстановки дефолтов
+            raise SettingsValidationError(
+                f"Settings file not found: {path}") from exc
         except json.JSONDecodeError as exc:
-            logger.error(
-                "Settings file contains invalid JSON: %s (line %s, column %s); "
-                "loading default payload.",
-                path,
-                exc.lineno,
-                exc.colno,
-            )
-            payload = load_default_settings_payload()
+            # Некорректный JSON — ошибка с явным указанием
+            raise SettingsValidationError(
+                f"Settings file contains invalid JSON: {path} (line {exc.lineno}, column {exc.colno})"
+            ) from exc
         except OSError as exc:
-            logger.error(
-                "Failed to read settings file '%s': %s; loading default payload.",
-                path,
-                exc,
+            raise SettingsValidationError(
+                f"Failed to read settings file '{path}': {exc}"
+            ) from exc
+
+        # Первичная структурная проверка до любых миграций — не мутируем payload,
+        # если отсутствуют ключевые разделы.
+        missing_root: list[str] = []
+        for key in ("current", "defaults_snapshot"):
+            if key not in payload:
+                missing_root.append(key)
+        if missing_root:
+            raise SettingsValidationError(
+                "Settings payload missing sections: " + ", ".join(missing_root)
             )
-            payload = load_default_settings_payload()
+
+        # Ранний предохранитель: отклоняем payload с устаревшими mesh‑полями в geometry
+        try:
+            self._guard_legacy_geometry_mesh_extras(payload)
+        except SettingsValidationError:
+            # Пробрасываем без миграций и нормализаций
+            raise
 
         # Apply structural migrations before any normalisation/validation
         try:
@@ -277,15 +347,18 @@ class SettingsService:
         """Выполнить миграции структуры и устранить дубли.
 
         1) graphics.reflection_probe.* → graphics.environment.reflection_*
-        2) geometry.lever_length_m → geometry.lever_length (и удалить *_m)
+        2) geometry.lever_length_m → geometry.lever_length (и удалить *_м)
         3) pneumatic.diagonal_coupling_dia: выровнять defaults_snapshot по current
         4) Синхронизация metadata.environment_slider_ranges с graphics.environment_ranges
+        5) Удаление устаревших geometry mesh‑полей (cylinder_segments/rings, frame_segments/rings)
         """
 
         if not isinstance(payload, MutableMapping):
             return
 
-        def _ensure_dict(root: MutableMapping[str, Any], key: str) -> MutableMapping[str, Any]:
+        def _ensure_dict(
+            root: MutableMapping[str, Any], key: str
+        ) -> MutableMapping[str, Any]:
             node = root.get(key)
             if not isinstance(node, MutableMapping):
                 node = {}
@@ -335,10 +408,22 @@ class SettingsService:
                 geometry["lever_length"] = float(geometry["lever_length_m"])
             geometry.pop("lever_length_m", None)
 
-        def _sync_diagonal_coupling(curr: MutableMapping[str, Any], defs: MutableMapping[str, Any]) -> None:
+        def _prune_legacy_geometry_mesh(section: MutableMapping[str, Any]) -> None:
+            geometry = section.get("geometry")
+            if not isinstance(geometry, MutableMapping):
+                return
+            for key in list(geometry.keys()):
+                if key in LEGACY_GEOMETRY_MESH_EXTRAS:
+                    geometry.pop(key, None)
+
+        def _sync_diagonal_coupling(
+            curr: MutableMapping[str, Any], defs: MutableMapping[str, Any]
+        ) -> None:
             pneu_c = curr.get("pneumatic")
             pneu_d = defs.get("pneumatic")
-            if not isinstance(pneu_c, MutableMapping) and not isinstance(pneu_d, MutableMapping):
+            if not isinstance(pneu_c, MutableMapping) and not isinstance(
+                pneu_d, MutableMapping
+            ):
                 return
             current_value = None
             if isinstance(pneu_c, MutableMapping):
@@ -350,7 +435,9 @@ class SettingsService:
             if isinstance(pneu_d, MutableMapping):
                 pneu_d["diagonal_coupling_dia"] = current_value
 
-        def _sync_slider_ranges(meta: MutableMapping[str, Any], section: MutableMapping[str, Any]) -> None:
+        def _sync_slider_ranges(
+            meta: MutableMapping[str, Any], section: MutableMapping[str, Any]
+        ) -> None:
             # metadata.environment_slider_ranges ⟵ graphics.environment_ranges (current)
             ranges_src = None
             graphics = section.get("graphics")
@@ -371,12 +458,55 @@ class SettingsService:
                     slider_meta[key] = {
                         k: v
                         for k, v in rng.items()
-                        if v is not None and k in {"min", "max", "step", "decimals", "units"}
+                        if v is not None
+                        and k in {"min", "max", "step", "decimals", "units"}
                     }
                 else:
                     for fld in ("min", "max", "step", "decimals", "units"):
                         if fld not in entry and fld in rng and rng[fld] is not None:
                             entry[fld] = rng[fld]
+
+        def _ensure_current_environment_ranges(
+            meta: MutableMapping[str, Any],
+            curr: MutableMapping[str, Any],
+            defs: MutableMapping[str, Any],
+        ) -> None:
+            """Убедиться, что current.graphics.environment_ranges присутствует.
+
+            Источники по приоритету:
+            1) defaults_snapshot.graphics.environment_ranges
+            2) metadata.environment_slider_ranges
+            Создаём раздел, не перетирая существующие ключи.
+            """
+            curr_graphics = curr.get("graphics")
+            if not isinstance(curr_graphics, MutableMapping):
+                return
+            curr_ranges = curr_graphics.get("environment_ranges")
+            if isinstance(curr_ranges, MutableMapping) and curr_ranges:
+                return
+
+            # Кандидаты-источники
+            defs_graphics = defs.get("graphics") if isinstance(defs, MutableMapping) else None
+            defs_ranges = (
+                defs_graphics.get("environment_ranges")
+                if isinstance(defs_graphics, MutableMapping)
+                else None
+            )
+            meta_ranges = meta.get("environment_slider_ranges")
+
+            new_ranges: MutableMapping[str, Any] = {}
+            if isinstance(defs_ranges, MutableMapping) and defs_ranges:
+                for k, v in defs_ranges.items():
+                    if isinstance(v, MutableMapping):
+                        new_ranges[k] = deepcopy(v)
+            elif isinstance(meta_ranges, MutableMapping) and meta_ranges:
+                for k, v in meta_ranges.items():
+                    if isinstance(v, MutableMapping):
+                        # карта meta использует те же поля
+                        new_ranges[k] = deepcopy(v)
+
+            if new_ranges:
+                curr_graphics["environment_ranges"] = new_ranges
 
         # Sections: current / defaults_snapshot
         current = _ensure_dict(payload, "current")
@@ -391,11 +521,20 @@ class SettingsService:
         _migrate_geometry_lengths(current)
         _migrate_geometry_lengths(defaults)
 
+        # 5) Prune legacy geometry mesh extras
+        # РАНЕЕ: автоматически удаляли устаревшие mesh‑поля. Тесты требуют жёсткого отказа,
+        # поэтому больше не удаляем их в миграциях — проверка выполняется в validate().
+        # _prune_legacy_geometry_mesh(current)
+        # _prune_legacy_geometry_mesh(defaults)
+
         # 3) Diagonal coupling consistency between current and defaults
         _sync_diagonal_coupling(current, defaults)
 
         # 4) Slider ranges metadata sync (non-destructive)
         _sync_slider_ranges(metadata, current)
+
+        # 6) Ensure current.graphics.environment_ranges exists
+        _ensure_current_environment_ranges(metadata, current, defaults)
 
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None
@@ -472,6 +611,7 @@ class SettingsService:
 
     @staticmethod
     def _normalise_hdr_path_value(value: Any) -> str:
+        """Нормализовать HDR путь с приоритетом относительного формата."""
         if value is None:
             return ""
         try:
@@ -480,41 +620,39 @@ class SettingsService:
             return ""
         if not text:
             return ""
-
         lowered = text.lower()
         if lowered.startswith("file://"):
             text = text[7:]
         elif lowered.startswith("file:/"):
             text = text[6:]
-
         text = text.replace("\\", "/")
-
         try:
             candidate = Path(text).expanduser()
         except Exception:
             return text
-
         try:
             resolved = candidate.resolve(strict=False)
         except Exception:
             resolved = candidate
-
         normalised = resolved.as_posix()
-
+        relative_override: str | None = None
         if resolved.is_absolute():
             try:
                 relative = resolved.relative_to(PROJECT_ROOT)
             except ValueError:
+                relative_override = None
+            else:
+                relative_override = relative.as_posix()
+        if relative_override:
+            return relative_override
+        if re.match(r"^[a-zA-Z]:[\\/].*", text):
+            windows_normalised = PureWindowsPath(text).as_posix().lower()
+            if relative_override:
                 pass
             else:
-                normalised = relative.as_posix()
-
-        if re.match(r"^[a-zA-Z]:[\\/].*", text):
-            windows_normalised = PureWindowsPath(text).as_posix()
-            if windows_normalised and windows_normalised not in normalised:
-                normalised = windows_normalised
-
-        return normalised
+                if windows_normalised and windows_normalised not in normalised.lower():
+                    normalised = windows_normalised
+        return normalised.lower()
 
     def _normalise_hdr_paths(self, payload: MutableMapping[str, Any] | None) -> None:
         if not isinstance(payload, MutableMapping):
@@ -654,10 +792,7 @@ class SettingsService:
     # Helper utilities
     # ------------------------------------------------------------------
     def get(self, path: str, default: Any | None = None) -> Any:
-        """Получить значение по dot‑пути.
-
-        Пример: ``service.get("current.constants.geometry.kinematics.track_width_m")``
-        """
+        """Получить значение по dot‑пути."""
 
         segments = list(self._split_path(path))
         if not segments:
@@ -778,12 +913,15 @@ class SettingsService:
     def validate(self, payload: dict[str, Any]) -> None:
         """Проверить payload по JSON Schema и выбросить ошибку при несовпадении."""
 
-        # Предварительно проверяем устаревшие mesh-поля геометрии (смоук-тесты).
+        # Предварительные проверки до JSON Schema
         self._guard_legacy_geometry_mesh_extras(payload)
         self._guard_legacy_material_aliases(payload)
+        self._guard_unknown_geometry_keys(payload)
+
         validator = self._get_validator()
         errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
         if not errors:
+            # Безошибочная схема — дополнительно сверяем материалы и выходим.
             self._validate_graphics_materials(payload)
             return
 
@@ -827,10 +965,7 @@ class SettingsService:
         ) from None
 
     def _guard_legacy_material_aliases(self, payload: MappingABC[str, Any]) -> None:
-        """Pre-validate payload to surface legacy material aliases before JSON Schema.
-
-        Исправлено: опечатка maybe_defaults вместо maybeDefaults.
-        """
+        """Pre-validate payload to surface legacy material aliases before JSON Schema."""
 
         def _material_section(
             root: MappingABC[str, Any] | None,
@@ -878,12 +1013,7 @@ class SettingsService:
             )
 
     def _guard_legacy_geometry_mesh_extras(self, payload: MappingABC[str, Any]) -> None:
-        """Обнаружение и удаление устаревших mesh-полей геометрии.
-
-        Удаляет ключи из LEGACY_GEOMETRY_MESH_EXTRAS в секциях
-        current.geometry и defaults_snapshot.geometry. Никогда не падает,
-        только логирует предупреждение если что-то найдено.
-        """
+        """Обнаружение устаревших mesh-полей геометрии (теперь жёстко запрещены)."""
         if not isinstance(payload, MappingABC):
             return
 
@@ -909,27 +1039,15 @@ class SettingsService:
         )
 
         offenders: set[str] = set()
-        sections: list[MappingABC[str, Any]] = []
         for section in (_geom_section(current), _geom_section(defaults)):
             if isinstance(section, MappingABC):
-                sections.append(section)
                 offenders |= set(section.keys()) & LEGACY_GEOMETRY_MESH_EXTRAS
 
-        if not offenders:
-            return
-
-        # Стрипим прямо на месте.
-        for section in sections:
-            for key in list(section.keys()):
-                if key in LEGACY_GEOMETRY_MESH_EXTRAS:
-                    try:
-                        if hasattr(section, "pop"):
-                            section.pop(key, None)  # type: ignore[attr-defined]
-                    except Exception:
-                        pass
-        logger.warning(
-            "Stripped legacy geometry mesh fields: %s", ", ".join(sorted(offenders))
-        )
+        if offenders:
+            ordered = ", ".join(sorted(offenders))
+            raise SettingsValidationError(
+                f"Settings payload contains legacy geometry mesh fields: {ordered}"
+            )
 
     def _validate_graphics_materials(self, payload: MappingABC[str, Any]) -> None:
         """Ensure graphics materials are synchronised between current/defaults."""
@@ -1102,8 +1220,13 @@ class SettingsService:
         *,
         extra_unknown_paths: Iterable[str] | None = None,
     ) -> Mapping[str, Any]:
-        """Return the payload for typed validation without pruning extras."""
+        """Вернуть payload для типовой модели без удаления extra.
 
+        Прямо сейчас возвращаем входной mapping как есть. Аргумент
+        ``extra_unknown_paths`` оставлен для совместимости с вызывающим кодом
+        и может использоваться в будущем для инъекции служебных меток.
+        """
+        # Ничего не меняем, чтобы сохранить поведение save()/load()
         return payload
 
     def _capture_last_modified(self, payload: MappingABC[str, Any]) -> None:

@@ -1,0 +1,53 @@
+{
+  "metadata": {
+    "units_version": "legacy"
+  },
+  "current": {
+    "graphics": {
+      "environment": {
+        "probeBrightness": 1.6,
+        "iblSource": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\assets\\hdr\\legacy_added.hdr"
+      },
+      "effects": {
+        "tonemapActive": true,
+        "bloomHDRMaximum": 3.5,
+        "motionBlurEnabled": false
+      },
+      "camera": {
+        "manualMode": true
+      }
+    },
+    "simulation": {
+      "physics_dt": 0.0025
+    },
+    "geometry": {
+      "frame_length_mm": 2500,
+      "lever_length_visual_mm": 640.0
+    }
+  },
+  "defaults_snapshot": {
+    "graphics": {
+      "environment": {
+        "probe_brightness": 0.75,
+        "iblSource": "C\\HDR\\legacy_default.hdr"
+      },
+      "effects": {
+        "tonemapenabled": false,
+        "colorBrightness": 1.15
+      },
+      "camera": {
+        "manualMode": false
+      }
+    },
+    "simulation": {
+      "physics_dt": 0.0025
+    },
+    "geometry": {
+      "frame_length_mm": 1800,
+      "lever_length_visual": 0.55
+    }
+  },
+  "legacy": {
+    "unused": true
+  }
+}

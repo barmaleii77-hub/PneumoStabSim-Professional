@@ -462,6 +462,33 @@ class GeometryPanel(QWidget):
         self.interference_check.toggled.connect(self._on_interference_check_toggled)
         self.link_rod_diameters.toggled.connect(self._on_link_rod_diameters_toggled)
 
+        # Метапараметры (шаг/точность/единицы) для каждого слайдера
+        meta_map = {
+            "wheelbase": self.wheelbase_slider,
+            "track": self.track_slider,
+            "frame_to_pivot": self.frame_to_pivot_slider,
+            "lever_length": self.lever_length_slider,
+            "rod_position": self.rod_position_slider,
+            "cylinder_length": self.cylinder_length_slider,
+            "cyl_diam_m": self.cyl_diam_m_slider,
+            "stroke_m": self.stroke_m_slider,
+            "dead_gap_m": self.dead_gap_m_slider,
+            "rod_diameter_m": self.rod_diameter_front_slider,
+            "rod_diameter_rear_m": self.rod_diameter_rear_slider,
+            "piston_rod_length_m": self.piston_rod_length_m_slider,
+            "piston_thickness_m": self.piston_thickness_m_slider,
+        }
+        for key, slider in meta_map.items():
+            slider.stepChanged.connect(
+                lambda v, k=key: self._on_slider_step_changed(k, v)
+            )
+            slider.decimalsChanged.connect(
+                lambda v, k=key: self._on_slider_decimals_changed(k, v)
+            )
+            slider.unitsChanged.connect(
+                lambda v, k=key: self._on_slider_units_changed(k, v)
+            )
+
     @Slot(bool)
     def _on_interference_check_toggled(self, checked: bool) -> None:
         """Изменение опции проверки пересечений геометрии"""
@@ -599,7 +626,13 @@ class GeometryPanel(QWidget):
         }
         for key, slider in slider_map.items():
             snapshot[key] = float(slider.value_spinbox.value())
-
+        # Добавляем раздел meta из настроек, если он присутствует
+        try:
+            meta_payload = self._settings_manager.get("current.geometry.meta")
+            if isinstance(meta_payload, dict):
+                snapshot["meta"] = meta_payload
+        except Exception:
+            pass
         snapshot["interference_check"] = bool(self.interference_check.isChecked())
         snapshot["link_rod_diameters"] = bool(self.link_rod_diameters.isChecked())
         snapshot["active_preset"] = self._active_preset
@@ -1056,3 +1089,27 @@ class GeometryPanel(QWidget):
             QMessageBox.information(
                 self, "Проверка геометрии", "Все параметры геометрии корректны."
             )
+
+    def _on_slider_step_changed(self, param: str, value: float) -> None:
+        try:
+            self._settings_manager.set(
+                f"current.geometry.meta.{param}.step", float(value), auto_save=False
+            )
+        except Exception:
+            pass
+
+    def _on_slider_decimals_changed(self, param: str, value: int) -> None:
+        try:
+            self._settings_manager.set(
+                f"current.geometry.meta.{param}.decimals", int(value), auto_save=False
+            )
+        except Exception:
+            pass
+
+    def _on_slider_units_changed(self, param: str, units: str) -> None:
+        try:
+            self._settings_manager.set(
+                f"current.geometry.meta.{param}.units", str(units), auto_save=False
+            )
+        except Exception:
+            pass

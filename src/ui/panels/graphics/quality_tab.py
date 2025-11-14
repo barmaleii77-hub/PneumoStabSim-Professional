@@ -5,7 +5,7 @@ Part of modular GraphicsPanel restructuring
 СТРУКТУРА ТОЧНО ПОВТОРЯЕТ МОНОЛИТ panel_graphics.py (строки1133-1300):
 - _build_quality_preset_group() → Предустановки качества (ultra/high/medium/low/custom)
 - _build_shadow_group() → Тени (enabled, resolution, filter, bias, darkness)
-- _build_antialiasing_group() → Сглаживание (primary, quality, post, TAA, FXAA, specular AA)
+- _build_antialiasing_group() → Сглаживание (primary, quality, post, TAA, FXAA, Specular AA)
 - _build_render_group() → Производительность (render scale, policy, FPS limit, dithering, OIT)
 - _build_mesh_group() → Параметры мешей (цилиндр: сегменты/кольца)
 """
@@ -430,7 +430,7 @@ class QualityTab(QWidget):
         grid.setVerticalSpacing(8)
 
         seg = LabeledSlider(
-            "Сегменты цилиндра по окружности", 8.0, 128.0, 1.0, decimals=0
+            "Сегменты цилиндра по окружности", 8.0, 256.0, 1.0, decimals=0
         )
         seg.setToolTip("Настраивает детализацию меша цилиндров подвески по окружности.")
         seg.valueChanged.connect(

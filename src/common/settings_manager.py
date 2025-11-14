@@ -142,6 +142,8 @@ _EFFECTS_KEY_ALIASES: dict[str, str] = {
     "color_contrast": "adjustment_contrast",
     "color_saturation": "adjustment_saturation",
     "bloom_hdr_maximum": "bloom_hdr_max",
+    # Дополнительный fallback для случаев когда акронимы не были слиты (до обновления функции):
+    "bloom_h_d_r_maximum": "bloom_hdr_max",
 }
 
 _CAMERA_KEY_ALIASES: dict[str, str] = {"manual_mode": "manual_camera"}
@@ -191,7 +193,21 @@ def _camel_to_snake(name: Any) -> Any:
     snake = _CAMEL_BOUNDARY.sub("_", token)
     while "__" in snake:
         snake = snake.replace("__", "_")
-    return snake.lower()
+    snake = snake.lower()
+    # Усиленная нормализация акронимов: соединяем разорванные буквы (h_d_r -> hdr, i_b_l -> ibl, s_s_a_o -> ssao)
+    # Выполняем глобальные замены без опоры на границы слова – это устойчивее к позициям внутри идентификатора
+    for acronym_parts, fused in (
+        ("h_d_r", "hdr"),
+        ("i_b_l", "ibl"),
+        ("s_s_a_o", "ssao"),
+        (
+            "t_o_n_e_m_a_p",
+            "tonemap",
+        ),  # встречается в некоторых плохо сформированных payload
+    ):
+        if acronym_parts in snake:
+            snake = snake.replace(acronym_parts, fused)
+    return snake
 
 
 def _scale_mm_value(value: Any) -> tuple[Any, bool]:
@@ -373,12 +389,36 @@ class SettingsManager:
     # ----------------------------------------------------------------- migration
 
     def _convert_geometry_section(self, section: dict[str, Any]) -> bool:
+        # Сохраняем исходный набор ключей до нормализации для определения, какие были в мм
+        original_keys = set(section.keys())
         changed = _normalise_dict_keys(section, _GEOMETRY_KEY_ALIASES)
+
+        # Определяем какие метрические ключи должны масштабироваться (только если исходный mm-ключ присутствовал)
+        mm_source_map: dict[str, bool] = {}
+        for src, dst in _GEOMETRY_KEY_ALIASES.items():
+            if src.endswith("_mm") and dst in _GEOMETRY_LINEAR_KEYS:
+                if src in original_keys:
+                    mm_source_map[dst] = True
+        # Специальные визуальные алиасы с суффиксом _visual_mm
+        for src, dst in _GEOMETRY_KEY_ALIASES.items():
+            if src.endswith("_visual_mm") and dst in _GEOMETRY_LINEAR_KEYS:
+                if src in original_keys:
+                    mm_source_map[dst] = True
 
         for key in _GEOMETRY_LINEAR_KEYS:
             if key not in section:
                 continue
-            value, did_convert = _scale_mm_value(section[key])
+            # Масштабируем только если исходный ключ был mm-вариантом и значение выглядит как миллиметры (>=10.0)
+            if not mm_source_map.get(key, False):
+                continue
+            raw_value = section[key]
+            try:
+                numeric = float(raw_value)
+            except (TypeError, ValueError):
+                continue
+            if numeric < 10.0:  # Уже метры или малый коэффициент — не масштабируем
+                continue
+            value, did_convert = _scale_mm_value(numeric)
             if did_convert:
                 section[key] = value
                 changed = True
@@ -424,7 +464,12 @@ class SettingsManager:
     def _normalise_effects_section(self, section: dict[str, Any]) -> bool:
         if not isinstance(section, dict):
             return False
-        return _normalise_dict_keys(section, _EFFECTS_KEY_ALIASES)
+        changed = _normalise_dict_keys(section, _EFFECTS_KEY_ALIASES)
+        # Дополнительный fallback: если после нормализации остался bloom_hdr_maximum вместо bloom_hdr_max
+        if "bloom_hdr_max" not in section and "bloom_hdr_maximum" in section:
+            section["bloom_hdr_max"] = section.pop("bloom_hdr_maximum")
+            changed = True
+        return changed
 
     def _normalise_camera_section(self, section: dict[str, Any]) -> bool:
         if not isinstance(section, dict):
@@ -479,6 +524,15 @@ class SettingsManager:
 
     @staticmethod
     def _normalise_hdr_path_value(value: Any) -> str:
+        """Нормализация пути HDR.
+
+        Шаги:
+        1. Стандартизация разделителей на '/'
+        2. Исправление legacy формата без двоеточия вида 'C/...' → 'C:/...'
+        3. Приведение к нижнему регистру для стабильных сравнений
+        4. Попытка получить относительный путь к PROJECT_ROOT (если внутри репозитория)
+        5. Возврат либо относительного, либо абсолютного Windows POSIX пути в lowercase
+        """
         if value is None:
             return ""
         try:
@@ -487,40 +541,50 @@ class SettingsManager:
             return ""
         if not text:
             return ""
-
         lowered = text.lower()
         if lowered.startswith("file://"):
             text = text[7:]
         elif lowered.startswith("file:/"):
             text = text[6:]
-
+        # Унифицируем обратные слеши
         text = text.replace("\\", "/")
+        # Исправляем формат 'C/...' (без двоеточия после буквы диска)
+        import re
 
+        if re.match(r"^[A-Za-z]/", text):
+            # Вставляем двоеточие после буквы диска
+            text = f"{text[0]}:/" + text[2:]
+        # Гарантируем слеш после 'C:' если указан диск
+        if re.match(r"^[A-Za-z]:[^/].*", text):
+            text = text[0:2] + "/" + text[2:]
+        # Приводим к lowercase для дальнейшей обработки (но сохраним исходный для Path)
+        text_lower = text.lower()
         try:
-            candidate = Path(text).expanduser()
+            candidate = Path(text_lower).expanduser()
         except Exception:
-            return text
-
+            return text_lower
         try:
             resolved = candidate.resolve(strict=False)
         except Exception:
             resolved = candidate
-
-        normalised = resolved.as_posix()
-
+        normalised = resolved.as_posix().lower()
+        relative_override: str | None = None
         if resolved.is_absolute():
             try:
                 relative = resolved.relative_to(PROJECT_ROOT)
             except ValueError:
-                pass
+                relative_override = None
             else:
-                normalised = relative.as_posix()
-
-        if _WINDOWS_DRIVE_PATTERN.match(text):
-            windows_normalised = PureWindowsPath(text).as_posix()
+                relative_override = relative.as_posix().lower()
+        if relative_override:
+            return relative_override
+        # Если путь соответствует формату диска, используем windows normalised напрямую
+        if _WINDOWS_DRIVE_PATTERN.match(text + "/") or re.match(
+            r"^[a-zA-Z]:/", text_lower
+        ):
+            windows_normalised = PureWindowsPath(text_lower).as_posix().lower()
             if windows_normalised and windows_normalised not in normalised:
                 normalised = windows_normalised
-
         return normalised
 
     def _normalise_hdr_paths(self) -> bool:

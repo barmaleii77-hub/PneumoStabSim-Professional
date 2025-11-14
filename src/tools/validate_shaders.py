@@ -205,9 +205,11 @@ def _collect_shader_files(shader_root: Path) -> dict[tuple[str, str], list[Shade
 
 def _relative(path: Path, root: Path) -> str:
     try:
-        return str(path.relative_to(root))
+        rel = path.relative_to(root)
+        return rel.as_posix()
     except ValueError:
-        return str(path)
+        # Путь за пределами корня — возвращаем POSIX-представление абсолютного пути
+        return Path(str(path)).as_posix()
 
 
 def _validate_versions(

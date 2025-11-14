@@ -12,6 +12,10 @@ PneumoStabSim. Все актуальные компоненты работают
 - **Устранение дублей:** ссылки на архивные QML-заглушки перенесены в раздел
   legacy (`archive/assets/qml/legacy_backups`); взаимодействие с `archive/old_qml`
   прекращено после удаления каталога.
+- **Июнь 2026 (обновление мета-параметров):** `RangeSlider` теперь публикует
+  сигналы `stepChanged`, `decimalsChanged`, `unitsChanged` для сохранения
+  пользовательских настроек точности и отображения. `GeometryPanel`_SERIALIZUET
+  эти значения под ключами `current.geometry.meta.<param>.*`.
 
 ## Inventory (March 2026)
 
@@ -21,7 +25,7 @@ PneumoStabSim. Все актуальные компоненты работают
 | `PneumoPanel` | `src/ui/panels/panel_pneumo.py` | ✅ В эксплуатации | Совместимый реэкспорт модульной реализации (`src/ui/panels/pneumo/`), используется в главном окне и автотестах. 【F:src/ui/panels/panel_pneumo.py†L1-L8】|
 | `ModesPanel` | `src/ui/panels/panel_modes.py` | ⚠️ Legacy | Поддержка исторических сценариев через стандартные Qt-слайдеры; сохраняет настройки через `SettingsManager`, но в новых сборках заменён QML-панелью. 【F:src/ui/panels/panel_modes.py†L1-L77】|
 | `RoadPanel` | `src/ui/panels/panel_road.py` | ✅ В эксплуатации | Управление CSV-профилями дорог, пресетами и назначением на колёса, включает сигналы `load_csv_profile`, `apply_preset`, `apply_to_wheels`. 【F:src/ui/panels/panel_road.py†L1-L78】|
-| `RangeSlider` | `src/ui/widgets/range_slider.py` | ✅ Виджет общего назначения | Поддерживает дебаунс, визуальные подсказки и кастомные шорткаты для доступности. 【F:src/ui/widgets/range_slider.py†L1-L103】【F:src/ui/widgets/range_slider.py†L143-L206】|
+| `RangeSlider` | `src/ui/widgets/range_slider.py` | ✅ Виджет общего назначения | Поддерживает дебаунс, визуальные подсказки и кастомные шорткаты для доступности. Теперь также публикует `stepChanged`, `decimalsChanged`, `unitsChanged` для сериализации пользовательской точности диапазонов. 【F:src/ui/widgets/range_slider.py†L1-L103】【F:src/ui/widgets/range_slider.py†L143-L206】|
 | `Knob` | `src/ui/widgets/knob.py` | ✅ Виджет общего назначения | Ротари-контрол с двойным вводом (dial + spinbox), поддерживает шорткаты и отображение единиц измерения. 【F:src/ui/widgets/knob.py†L1-L60】|
 
 ## GeometryPanel
@@ -35,6 +39,9 @@ PneumoStabSim. Все актуальные компоненты работают
   тысячных метра и дебаунс сигналов `valueEdited`. 【F:src/ui/panels/panel_geometry.py†L150-L232】
 - Панель публикует события `geometry_changed` и `geometry_updated`, что позволяет
   синхронизировать модуль геометрии и визуализацию. 【F:src/ui/panels/panel_geometry.py†L35-L76】
+- Новые мета-параметры шага/точности/единиц для каждого диапазона сохраняются в
+  `current.geometry.meta.<param>.step|decimals|units` через обработчики
+  `_on_slider_step_changed`, `_on_slider_decimals_changed`, `_on_slider_units_changed`.
 
 ## PneumoPanel
 
@@ -75,6 +82,9 @@ PneumoStabSim. Все актуальные компоненты работают
   `rangeChanged`) и подробные визуальные подсказки диапазона. 【F:src/ui/widgets/range_slider.py†L32-L104】
 - Встроенные шорткаты (`Ctrl+Alt+Right/Left`, `Ctrl+Alt+1..3`) повышают
   доступность и повторяют конфигурацию панели геометрии. 【F:src/ui/widgets/range_slider.py†L143-L206】
+- Метапараметры пользовательской точности (`step`, `decimals`, `units`) имеют
+  собственные сигналы и могут сохраняться панелями в SettingsManager, исключая
+  скрытые дефолты.
 
 ### Knob
 

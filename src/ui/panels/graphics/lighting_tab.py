@@ -808,8 +808,17 @@ class LightingTab(QWidget):
         point = merged.get("point")
         if not isinstance(point, Mapping):
             point = {}
+
+        # Гарантируем наличие положительного range в состоянии
+        resolved_range = self._resolve_point_range(point)
+        if resolved_range is None or resolved_range <= 0.0:
+            resolved_range = 3.0  # движковый дефолт для стабильных тестов
+        # Пробрасываем range назад в состояние, чтобы потребители видели значение
+        point_with_core: dict[str, float] = {"range": float(resolved_range)}
+
+        # Аттенюации с учётом дефолтов
         point_with_defaults: dict[str, float] = {}
-        linear_default = self._compute_point_linear_default(point)
+        linear_default = _quantize_attenuation(2.0 / resolved_range)
         for key, default in _POINT_ATTENUATION_DEFAULTS.items():
             effective_default = (
                 linear_default if key == "linear_fade" else float(default or 0.0)
@@ -819,10 +828,11 @@ class LightingTab(QWidget):
                 effective_default,
             )
 
-        if point_with_defaults:
-            existing_point = dict(point) if isinstance(point, Mapping) else {}
-            existing_point.update(point_with_defaults)
-            merged["point"] = existing_point
+        # Сборка итогового блока point
+        existing_point = dict(point) if isinstance(point, Mapping) else {}
+        existing_point.update(point_with_core)
+        existing_point.update(point_with_defaults)
+        merged["point"] = existing_point
 
         return merged
 

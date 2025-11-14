@@ -26,9 +26,11 @@ from PySide6.QtWidgets import (
     QSlider,
     QDoubleSpinBox,
     QSizePolicy,
+    QSpinBox,
+    QLineEdit,
 )
 from PySide6.QtCore import Signal, Slot, QTimer, Qt
-from PySide6.QtGui import QFont, QPalette, QColor, QKeySequence, QShortcut
+from PySide6.QtGui import QFont, QPalette, QColor, QKeySequence, QShortcut, QKeyEvent
 
 
 ShortcutCallback = Callable[[], None]
@@ -62,6 +64,10 @@ class RangeSlider(QWidget):
     valueEdited = Signal(float)  # Финальное значение после debounce
     valueChanged = Signal(float)  # Мгновенное значение во время движения
     rangeChanged = Signal(float, float)
+    # Добавляем сигналы мета-параметров для внешней сериализации
+    stepChanged = Signal(float)
+    decimalsChanged = Signal(int)
+    unitsChanged = Signal(str)
 
     def __init__(
         self,
@@ -97,11 +103,14 @@ class RangeSlider(QWidget):
         self.value_spinbox: QDoubleSpinBox
         self.max_spinbox: QDoubleSpinBox
         self.units_label: QLabel
+        self.step_spinbox: QDoubleSpinBox
+        self.decimals_spinbox: QSpinBox
+        self.units_edit: QLineEdit
 
         # УВЕЛИЧЕННОЕ разрешение слайдера для точности 0.001м
         # Для диапазона 4м с шагом 0.001м нужно 4000 позиций
         # Используем 100000 для запаса и плавности
-        self._slider_resolution = 100000  # Было 10000, теперь 100000
+        self._slider_resolution = 100000
         self._updating_internally = False
 
         self._debounce_timer = QTimer()
@@ -257,6 +266,63 @@ class RangeSlider(QWidget):
         font.setItalic(True)
         self.units_label.setFont(font)
         layout.addWidget(self.units_label)
+
+        # ✨ Редактируемые параметры шага, точности и единиц
+        params_layout = QHBoxLayout()
+        params_layout.setSpacing(6)
+
+        step_box = QVBoxLayout()
+        step_label = QLabel("Шаг")
+        step_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        f = QFont()
+        f.setPointSize(7)
+        step_label.setFont(f)
+        step_box.addWidget(step_label)
+        self.step_spinbox = QDoubleSpinBox()
+        self.step_spinbox.setRange(1e-12, 1e6)
+        self.step_spinbox.setDecimals(6)
+        self.step_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.step_spinbox.setToolTip("Логический шаг квантования и клавиатурного нуджа")
+        step_box.addWidget(self.step_spinbox)
+        params_layout.addLayout(step_box)
+
+        dec_box = QVBoxLayout()
+        dec_label = QLabel("Точность")
+        dec_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dec_label.setFont(f)
+        dec_box.addWidget(dec_label)
+        self.decimals_spinbox = QSpinBox()
+        self.decimals_spinbox.setRange(0, 10)
+        self.decimals_spinbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.decimals_spinbox.setToolTip("Количество знаков после запятой")
+        dec_box.addWidget(self.decimals_spinbox)
+        params_layout.addLayout(dec_box)
+
+        units_box = QVBoxLayout()
+        units_label = QLabel("Ед. изм.")
+        units_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        units_label.setFont(f)
+        units_box.addWidget(units_label)
+        self.units_edit = QLineEdit()
+        self.units_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.units_edit.setPlaceholderText("мм / m / ...")
+        self.units_edit.setToolTip("Единицы измерения для подписи")
+        units_box.addWidget(self.units_edit)
+        params_layout.addLayout(units_box)
+
+        layout.addLayout(params_layout)
+
+        # Инициализация значений параметров из текущего состояния
+        self.step_spinbox.setValue(max(self._step, 1e-12))
+        self.decimals_spinbox.setValue(self._decimals)
+        self.units_edit.setText(self._units)
+
+        # Связи сигналов UI → поведение виджета
+        self.step_spinbox.valueChanged.connect(lambda v: self.setStepSize(float(v)))
+        self.decimals_spinbox.valueChanged.connect(self.setDecimals)
+        self.units_edit.editingFinished.connect(
+            lambda: self.setUnits(self.units_edit.text() or "")
+        )
 
     def _configure_accessibility(self, title: str) -> None:
         """Configure accessibility metadata for assistive technologies."""
@@ -463,11 +529,13 @@ class RangeSlider(QWidget):
         return list(self._shortcut_metadata)
 
     def _nudge_slider(self, delta: float) -> None:
-        """Increment the slider value by *delta*."""
+        """Increment the slider value by *delta*.
 
+        Полностью полагаемся на setValue для эмиссии сигналов и debounce,
+        чтобы избежать двойной эмиссии valueChanged.
+        """
         target_value = self.value() + delta
         self.setValue(target_value)
-        self.valueChanged.emit(self.value())
 
     def _connect_signals(self) -> None:
         self.slider.valueChanged.connect(self._on_slider_value_changed)
@@ -488,10 +556,34 @@ class RangeSlider(QWidget):
         self.value_spinbox.setDecimals(decimals)
         self.min_spinbox.setDecimals(decimals)
         self.max_spinbox.setDecimals(decimals)
+        # Обновляем UI-спинбокс точности
+        try:
+            self.decimals_spinbox.blockSignals(True)
+            self.decimals_spinbox.setValue(decimals)
+        finally:
+            self.decimals_spinbox.blockSignals(False)
+        self.decimalsChanged.emit(decimals)
+        self._update_range_indicator()
+        self._refresh_accessibility_descriptions()
 
     def setRange(self, minimum: float, maximum: float) -> None:
         if minimum >= maximum:
             maximum = minimum + abs(self._step) if self._step else minimum + 0.001
+
+        # Если диапазон не изменился, не выполняем лишние обновления и не эмитим сигнал
+        try:
+            prev_min = getattr(self, "_minimum")
+            prev_max = getattr(self, "_maximum")
+        except Exception:
+            prev_min = None
+            prev_max = None
+        if (
+            prev_min is not None
+            and prev_max is not None
+            and math.isclose(prev_min, minimum, rel_tol=1e-12, abs_tol=1e-12)
+            and math.isclose(prev_max, maximum, rel_tol=1e-12, abs_tol=1e-12)
+        ):
+            return
 
         self._minimum = minimum
         self._maximum = maximum
@@ -513,25 +605,45 @@ class RangeSlider(QWidget):
             self.units_label.setText(f"Единицы: {units}")
         else:
             self.units_label.clear()
+        try:
+            self.units_edit.blockSignals(True)
+            self.units_edit.setText(units)
+        finally:
+            self.units_edit.blockSignals(False)
+        # Перерисовываем индикатор диапазона с суффиксом единиц
+        self._update_range_indicator()
+        self.unitsChanged.emit(units)
         self._refresh_accessibility_descriptions()
 
     def setStepSize(self, step: float) -> None:
-        """Update the logical step used for rounding and keyboard nudges."""
+        """Обновить логический шаг с нормализацией.
 
+        Правила:
+        - шаг <= 0 → 0.001
+        - отрицательный → abs
+        - синхронизируем singleStep всех спинбоксов
+        """
         step = float(step)
+        if not math.isfinite(step):
+            step = 0.001
+        if step == 0.0:
+            step = 0.001
+        if step < 0.0:
+            step = abs(step)
         self._step = step
-        single_step = abs(step) if not math.isclose(step, 0.0, abs_tol=1e-12) else 0.001
-        spinboxes: SpinBoxTriple = (
-            self.min_spinbox,
-            self.value_spinbox,
-            self.max_spinbox,
-        )
-        for spinbox in spinboxes:
+        single_step = step
+        for spinbox in (self.min_spinbox, self.value_spinbox, self.max_spinbox):
             spinbox.setSingleStep(single_step)
+        # Обновляем UI-спинбокс шага
+        try:
+            self.step_spinbox.blockSignals(True)
+            self.step_spinbox.setValue(max(step, 1e-12))
+        finally:
+            self.step_spinbox.blockSignals(False)
+        self.stepChanged.emit(self._step)
 
     def stepSize(self) -> float:
-        """Return the configured step size."""
-
+        """Вернуть нормализованный шаг квантования/нуджа."""
         return float(self._step)
 
     @property
@@ -551,10 +663,30 @@ class RangeSlider(QWidget):
         self.setStepSize(value)
 
     def setTitle(self, title: str) -> None:
+        """Изменить заголовок и обновить a11y-метаданные под новый label."""
         if self.title_label is not None:
             self.title_label.setText(title)
+            self.title_label.setAccessibleName(self.tr("%1 title").replace("%1", title))
         else:
             self.title_label = QLabel(title)
+        # Обновляем отображаемую метку для a11y и имена контролов
+        self._display_label = title or self.tr("Range")
+        self.setAccessibleName(
+            self.tr("%1 range slider").replace("%1", self._display_label)
+        )
+        self.slider.setAccessibleName(
+            self.tr("%1 slider track").replace("%1", self._display_label)
+        )
+        self.min_spinbox.setAccessibleName(
+            self.tr("%1 minimum value").replace("%1", self._display_label)
+        )
+        self.value_spinbox.setAccessibleName(
+            self.tr("%1 current value").replace("%1", self._display_label)
+        )
+        self.max_spinbox.setAccessibleName(
+            self.tr("%1 maximum value").replace("%1", self._display_label)
+        )
+        self._refresh_accessibility_descriptions()
 
     # =========================================================================
     # STATE MANAGEMENT
@@ -562,6 +694,8 @@ class RangeSlider(QWidget):
     def setValue(self, value: float) -> None:
         value = float(value)
         value = max(self._minimum, min(self._maximum, value))
+        # Если фактическое значение не изменилось, ограничимся синхронизацией
+        # позиции слайдера и индикаторов без эмиссии сигналов.
         if math.isclose(value, self.value_spinbox.value(), rel_tol=1e-9, abs_tol=1e-9):
             self._update_slider_position(value)
             return
@@ -572,9 +706,20 @@ class RangeSlider(QWidget):
         finally:
             self.value_spinbox.blockSignals(False)
         self._update_slider_position(value)
+        # Эмитим сигнал только при реальном изменении.
+        self.valueChanged.emit(value)
+        self._debounce_timer.start(self._debounce_delay)
 
     def value(self) -> float:
         return float(self.value_spinbox.value())
+
+    def _emit_value_edited(self) -> None:
+        """Сигнализировать о завершении редактирования со значением из спинбокса."""
+        try:
+            value = float(self.value_spinbox.value())
+        except Exception:
+            value = self.value()
+        self.valueEdited.emit(value)
 
     def minimum(self) -> float:
         return float(self._minimum)
@@ -598,21 +743,26 @@ class RangeSlider(QWidget):
     # INTERNAL UPDATES
     # =========================================================================
     def _update_slider_position(self, value: float) -> None:
-        if self._maximum == self._minimum:
-            position = 0
-        else:
-            position = int(
-                (value - self._minimum)
-                / (self._maximum - self._minimum)
-                * self._slider_resolution
-            )
-
-        self._updating_internally = True
+        """Обновить позицию внутреннего QSlider согласно значению."""
         try:
-            self.slider.setValue(position)
-        finally:
-            self._updating_internally = False
-        self._update_position_indicator(position)
+            if self._maximum == self._minimum:
+                position = 0
+            else:
+                # Пересчёт из значения в позицию слайдера
+                ratio = (float(value) - self._minimum) / (self._maximum - self._minimum)
+                ratio = min(max(ratio, 0.0), 1.0)
+                position = int(ratio * self._slider_resolution)
+
+            self._updating_internally = True
+            try:
+                self.slider.setValue(position)
+            finally:
+                self._updating_internally = False
+            # Обновляем текстовый индикатор позиции
+            self._update_position_indicator(position)
+        except Exception:
+            # Defensive: не даём падать UI при граничных случаях
+            pass
 
     def _update_range_indicator(self) -> None:
         width = self._maximum - self._minimum
@@ -652,37 +802,48 @@ class RangeSlider(QWidget):
         if self._updating_internally:
             return
 
-        value = self._minimum + (
-            (self._maximum - self._minimum) * position / self._slider_resolution
-        )
-        value = round(value / self._step) * self._step if self._step else value
+        # Вычисляем значение из позиции слайдера
+        if self._slider_resolution == 0:
+            value = self._minimum
+        else:
+            span = self._maximum - self._minimum
+            value = self._minimum + (span * position / self._slider_resolution)
+        # Квантование по шагу
+        if self._step:
+            value = round(value / self._step) * self._step
         value = max(self._minimum, min(self._maximum, value))
 
+        # Обновляем spinbox без рекурсивных сигналов
         self.value_spinbox.blockSignals(True)
         try:
             self.value_spinbox.setValue(value)
         finally:
             self.value_spinbox.blockSignals(False)
 
+        self._update_position_indicator(position)
         self.valueChanged.emit(value)
         self._debounce_timer.start(self._debounce_delay)
-        self._update_position_indicator(position)
 
     @Slot(float)
     def _on_value_spinbox_changed(self, value: float) -> None:
+        # Синхронизация ползунка с вручную введённым значением
         self._update_slider_position(value)
-        self.valueChanged.emit(value)
+        self.valueChanged.emit(float(value))
         self._debounce_timer.start(self._debounce_delay)
 
     @Slot()
     def _on_value_spinbox_finished(self) -> None:
+        # Отложенная фиксация редактирования
         self._debounce_timer.start(self._debounce_delay)
 
     @Slot(float)
     def _on_min_spinbox_changed(self, value: float) -> None:
+        # Предотвращаем инверсию диапазона
         if value >= self._maximum:
             value = (
-                self._maximum - abs(self._step) if self._step else self._maximum - 0.001
+                (self._maximum - abs(self._step))
+                if self._step
+                else (self._maximum - 0.001)
             )
             self.min_spinbox.blockSignals(True)
             try:
@@ -690,16 +851,18 @@ class RangeSlider(QWidget):
             finally:
                 self.min_spinbox.blockSignals(False)
 
-        self._minimum = value
+        self._minimum = float(value)
         self._update_range_indicator()
-        self._update_slider_position(self.value_spinbox.value())
+        self._update_slider_position(self.value())
         self.rangeChanged.emit(self._minimum, self._maximum)
 
     @Slot(float)
     def _on_max_spinbox_changed(self, value: float) -> None:
         if value <= self._minimum:
             value = (
-                self._minimum + abs(self._step) if self._step else self._minimum + 0.001
+                (self._minimum + abs(self._step))
+                if self._step
+                else (self._minimum + 0.001)
             )
             self.max_spinbox.blockSignals(True)
             try:
@@ -707,14 +870,43 @@ class RangeSlider(QWidget):
             finally:
                 self.max_spinbox.blockSignals(False)
 
-        self._maximum = value
+        self._maximum = float(value)
         self._update_range_indicator()
-        self._update_slider_position(self.value_spinbox.value())
+        self._update_slider_position(self.value())
         self.rangeChanged.emit(self._minimum, self._maximum)
 
-    def _emit_value_edited(self) -> None:
-        value = self.value_spinbox.value()
-        self.valueEdited.emit(value)
+    # =========================================================================
+    # KEYBOARD HANDLING (fallback in addition to QShortcut)
+    # =========================================================================
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # type: ignore[override]
+        """Обработка клавиатуры как резерв к QShortcut.
 
-
-__all__ = ["RangeSlider"]
+        Некоторые окружения не активируют QShortcut на сочетания с стрелками.
+        Дублируем поведение вручную для Ctrl+Alt+Right/Left и Ctrl+Alt+1..3.
+        """
+        if (
+            event.modifiers() & Qt.KeyboardModifier.ControlModifier
+            and event.modifiers() & Qt.KeyboardModifier.AltModifier
+        ):
+            key = event.key()
+            if key == Qt.Key_Right:
+                self._nudge_slider(self._step)
+                event.accept()
+                return
+            if key == Qt.Key_Left:
+                self._nudge_slider(-self._step)
+                event.accept()
+                return
+            if key == Qt.Key_1:
+                self.min_spinbox.setFocus()
+                event.accept()
+                return
+            if key == Qt.Key_2:
+                self.value_spinbox.setFocus()
+                event.accept()
+                return
+            if key == Qt.Key_3:
+                self.max_spinbox.setFocus()
+                event.accept()
+                return
+        super().keyPressEvent(event)

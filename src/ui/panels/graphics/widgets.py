@@ -656,7 +656,7 @@ class FileCyclerWidget(QWidget):
             self._logged_missing_paths.add(path)
 
         # Показываем предупреждение один раз и только если разрешено окружением.
-        if path in self._dialogued_missing_paths:
+        if path in self._dialogied_missing_paths if hasattr(self, "_dialogied_missing_paths") else False:
             return
 
         # Специальный режим для автотестов: даже если диалоги подавлены, вызовем
@@ -698,15 +698,11 @@ class FileCyclerWidget(QWidget):
     def _is_path_missing(self, path: str) -> bool:
         """Вернуть True если путь считается отсутствующим.
 
-        Исправленная логика: пути, пришедшие через set_items (предопределённые
-        варианты) считаются доступными даже при отсутствии реального файла на
-        диске. Это упрощает unit-тесты, где текстуры не создаются физически.
-        Пользовательские (config / произвольные) пути продолжают проверяться.
+        Логика: для любого текущего пути (из списка items или пользовательского)
+        считаем его отсутствующим, если ни один из кандидатов на файловой системе
+        не существует. Результат кэшируется до явной инвалидации.
         """
         if not path:
-            return False
-        # Пути из self._items -> не отсутствуют (быстрый список для тестов)
-        if any(candidate == path for _label, candidate in self._items):
             return False
         cached = self._path_exists_cache.get(path)
         if cached is True:

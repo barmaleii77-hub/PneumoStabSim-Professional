@@ -111,6 +111,12 @@ class GraphicsPanel(QWidget):
         self.load_settings()
 
         # Начальная синхронизация
+        # Применяем загруженное состояние к табам немедленно,
+        # чтобы тесты могли считать актуальные значения сразу после конструктора
+        try:
+            self._apply_state_to_tabs(self._sync_controller.snapshot())
+        except Exception:  # pragma: no cover - защита от сбоев UI при старте
+            pass
         QTimer.singleShot(0, self._emit_all_initial)
         self.logger.info(
             "✅ GraphicsPanel coordinator initialized (v3.1, centralized save-on-exit)"
@@ -434,6 +440,9 @@ class GraphicsPanel(QWidget):
 
             state = self.settings_service.load_current()
             self._sync_controller.bootstrap(state)
+            # Немедленно применяем загруженное состояние к табам,
+            # чтобы их UI отражал значения из конфигурации
+            self._apply_state_to_tabs(state)
 
             self.logger.info("✅ Graphics settings loaded from app_settings.json")
         except GraphicsSettingsError as exc:

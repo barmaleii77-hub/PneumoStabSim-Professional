@@ -1,18 +1,13 @@
 {
-  "timestamp": "2025-11-13T17:39:18.475188+00:00",
-  "coverage": {
-    "percent": "40.04",
-    "lines_covered": "13105",
-    "lines_total": "32733"
-  },
+  "timestamp": "2025-11-14T12:23:40.712007+00:00",
   "tests": {
-    "total_duration_seconds": "27.341",
-    "total_cases": "550",
-    "integration_duration_seconds": "1.135",
+    "total_duration_seconds": "17.306",
+    "total_cases": "247",
+    "integration_duration_seconds": "1.006",
     "integration_cases": "28",
-    "ui_duration_seconds": "20.235",
-    "ui_cases": "149",
-    "unit_duration_seconds": "5.971",
-    "unit_cases": "373"
+    "ui_duration_seconds": "10.380",
+    "ui_cases": "183",
+    "unit_duration_seconds": "5.920",
+    "unit_cases": "36"
   }
 }

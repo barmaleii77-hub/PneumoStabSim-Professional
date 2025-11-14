@@ -40,7 +40,9 @@ def apply_headless_defaults(env: MutableMapping[str, str] | None = None) -> None
 
     if sys.platform.startswith("win"):
         environment["QT_QUICK_BACKEND"] = "rhi"
-        environment["QSG_RHI_BACKEND"] = "d3d11"  # предпочтительный backend для Windows GPU
+        environment["QSG_RHI_BACKEND"] = (
+            "d3d11"  # предпочтительный backend для Windows GPU
+        )
     else:
         environment["QT_QUICK_BACKEND"] = "software"
         environment.pop("QSG_RHI_BACKEND", None)
