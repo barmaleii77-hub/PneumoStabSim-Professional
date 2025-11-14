@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from collections.abc import Callable
 from collections.abc import Mapping
 from functools import partial
+from typing import Protocol  # near top
 
 from importlib import import_module, util
 
@@ -114,10 +115,10 @@ class SignalsRouter:
 
     @staticmethod
     def _normalise_environment_payload(
-        window: MainWindow,
+        window: "MainWindow",
         params: dict[str, Any],
         env_payload: dict[str, Any],
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any]:  # explicit return type
         """Ensure HDR sources are normalised before dispatching to QML.
 
         The UI may report the selected HDRI through several legacy keys. We
@@ -434,7 +435,9 @@ class SignalsRouter:
         return candidate == ""
 
     @staticmethod
-    def _sanitize_camera_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    def _sanitize_camera_payload(
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:  # already dict
         cleaned: dict[str, Any] = {}
         for key, value in payload.items():
             if value is None:
@@ -972,7 +975,7 @@ class SignalsRouter:
 
     @staticmethod
     def _dispatch_environment_update(
-        window: MainWindow, params: dict[str, Any]
+        window: "MainWindow", params: dict[str, Any]
     ) -> None:
         if not isinstance(params, dict):
             return
@@ -1043,6 +1046,7 @@ class SignalsRouter:
                 )
 
         window._apply_settings_update("graphics.environment", params)
+        return None
 
     @staticmethod
     def handle_quality_changed(window: MainWindow, params: dict[str, Any]) -> None:
@@ -1110,7 +1114,7 @@ class SignalsRouter:
         )
 
     @staticmethod
-    def _dispatch_effects_update(window: MainWindow, params: dict[str, Any]) -> None:
+    def _dispatch_effects_update(window: "MainWindow", params: dict[str, Any]) -> None:
         if not isinstance(params, dict):
             return
 
@@ -1124,6 +1128,7 @@ class SignalsRouter:
             SignalsRouter._record_dispatched_payload(window, "effects", params)
 
         window._apply_settings_update("graphics.effects", params)
+        return None
 
     @staticmethod
     def handle_scene_changed(window: MainWindow, params: dict[str, Any]) -> None:
@@ -1365,7 +1370,7 @@ class SignalsRouter:
         SignalsRouter._push_animation_panel(window)
 
     @staticmethod
-    def handle_modes_preset_selected(window: MainWindow, preset_id: str) -> None:
+    def handle_modes_preset_selected(window: "MainWindow", preset_id: str) -> None:
         """Apply a preset selected from the QML simulation panel."""
 
         key = (preset_id or "").strip().lower()
@@ -1409,7 +1414,7 @@ class SignalsRouter:
 
     @staticmethod
     def handle_modes_mode_changed(
-        window: MainWindow, mode_type: str, new_mode: str
+        window: "MainWindow", mode_type: str, new_mode: str
     ) -> None:
         """Handle simulation/thermo mode toggles from QML."""
 
@@ -1718,7 +1723,7 @@ class SignalsRouter:
             SignalsRouter.logger.error(f"State update error: {e}")
 
     @staticmethod
-    def handle_physics_error(window: MainWindow, message: str) -> None:
+    def handle_physics_error(window: "MainWindow", message: str) -> None:
         """Handle physics engine error
 
         Args:
@@ -1995,7 +2000,7 @@ class SignalsRouter:
             dispatcher(window, payload)
 
     @staticmethod
-    def _flush_debounced_update(window: MainWindow, category: str) -> None:
+    def _flush_debounced_update(window: "MainWindow", category: str) -> None:
         registry: dict[str, dict[str, Any]] | None = getattr(
             window, "_qml_debounce_registry", None
         )
@@ -2016,6 +2021,7 @@ class SignalsRouter:
             return
 
         dispatcher(window, pending)
+        return None
 
     # ------------------------------------------------------------------
     # Settings helpers (Python → QML synchronisation)
@@ -2100,3 +2106,10 @@ class SignalsRouter:
         if not isinstance(registry, dict):
             return None
         return registry.pop(category, None)
+
+
+class _WindowLoggerProtocol(Protocol):
+    def warning(self, msg: str, *args: object, **kwargs: object) -> None: ...
+    def info(self, msg: str, *args: object, **kwargs: object) -> None: ...
+    def debug(self, msg: str, *args: object, **kwargs: object) -> None: ...
+    def error(self, msg: str, *args: object, **kwargs: object) -> None: ...

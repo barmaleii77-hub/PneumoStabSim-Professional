@@ -24,11 +24,12 @@ import copy
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Protocol, TypedDict, Optional
 
 from PySide6.QtWidgets import QMainWindow, QLabel
 from PySide6.QtCore import Qt, QTimer, Slot, QUrl
 from PySide6.QtQuickWidgets import QQuickWidget
+from PySide6.QtGui import QCloseEvent  # add near top
 from pathlib import Path
 
 # Локальные модули
@@ -50,6 +51,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SHADER_STATUS_LOG_PATH = (
     PROJECT_ROOT / "reports" / "graphics" / "shader_status_dump.json"
 )
+
+
+class LoggerProtocol(Protocol):
+    def info(self, msg: str, *args: object, **kwargs: object) -> None: ...
+    def warning(self, msg: str, *args: object, **kwargs: object) -> None: ...
+    def error(self, msg: str, *args: object, **kwargs: object) -> None: ...
+    def debug(self, msg: str, *args: object, **kwargs: object) -> None: ...
+
+
+class ShaderStatusPayload(TypedDict, total=False):
+    timestamp: str
+    reason: str
+    effectsBypassReason: str
 
 
 class MainWindow(QMainWindow):
@@ -175,7 +189,7 @@ class MainWindow(QMainWindow):
         # IBL Logger
         from ..ibl_logger import get_ibl_logger, log_ibl_event
 
-        self.ibl_logger = get_ibl_logger()
+        self.ibl_logger: LoggerProtocol | None = get_ibl_logger()
         log_ibl_event("INFO", "MainWindow", "IBL Logger initialized")
 
         # Event Logger (Python↔QML)
@@ -393,17 +407,19 @@ class MainWindow(QMainWindow):
                 exc_info=exc,
             )
 
-    @Slot("QVariantMap")
+    @Slot(dict)
     def _on_shader_status_dump(self, payload: dict[str, Any]) -> None:
         """Persist shader diagnostics emitted from the QML scene."""
-
-        snapshot = dict(payload) if isinstance(payload, dict) else {}
-        snapshot.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
-        reason = str(
-            snapshot.get("effectsBypassReason") or snapshot.get("reason") or "unknown"
-        )
+        # refine type usage
+        data: ShaderStatusPayload = {}
+        if isinstance(payload, dict):
+            for k, v in payload.items():
+                if isinstance(v, str):
+                    data[k] = v
+        data.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+        reason = data.get("effectsBypassReason") or data.get("reason") or "unknown"
         self.logger.warning("⚠️ Shader diagnostics dump recorded (%s)", reason)
-        self._persist_shader_status_dump(snapshot)
+        self._persist_shader_status_dump(dict(data))
 
     # ------------------------------------------------------------------
     # Settings synchronization helpers
@@ -634,7 +650,7 @@ class MainWindow(QMainWindow):
 
             if changed_track and not changed_frame and not changed_lever:
                 base_frame = prev_frame if prev_frame is not None else frame_to_pivot
-                base_lever = prev_lever if prev_lever is not None else lever_length
+                base_lever = prev_lever if prev_lever is not None else track_half / 2.0
                 total = (base_frame or 0.0) + (base_lever or 0.0)
                 if total <= tolerance:
                     base_frame = base_lever = track_half / 2.0
@@ -1007,9 +1023,13 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_sim_control(self, command)
 
     @Slot(object)
-    def _on_state_update(self, snapshot) -> None:
-        """State update → SignalsRouter"""
-        SignalsRouter.handle_state_update(self, snapshot)
+    def _on_state_update(self, snapshot: "StateSnapshot") -> None:
+        from ...runtime import StateSnapshot as _StateSnapshot
+
+        if isinstance(snapshot, _StateSnapshot):
+            SignalsRouter.handle_state_update(self, snapshot)
+        else:
+            self.logger.debug("Ignored non-StateSnapshot payload in _on_state_update")
 
     @Slot(str)
     def _on_physics_error(self, message: str) -> None:
@@ -1018,9 +1038,8 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def logIblEvent(self, message: str) -> None:
-        """Expose QML logging hook for IBL loader components."""
         try:
-            if hasattr(self, "ibl_logger") and self.ibl_logger:
+            if self.ibl_logger is not None:
                 self.ibl_logger.info(message)
             else:
                 self.logger.info("IBL:%s", message)
@@ -1093,7 +1112,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
-    def closeEvent(self, event) -> None:  # type: ignore[override]
+    def closeEvent(self, event: QCloseEvent) -> None:  # override with explicit type
         """Close event → save settings"""
         try:
             StateSync.save_settings(self)
@@ -1108,7 +1127,6 @@ class MainWindow(QMainWindow):
                 )
             except Exception:
                 pass
-            # Прерываем закрытие, чтобы не терять состояние молча
             try:
                 event.ignore()
                 return

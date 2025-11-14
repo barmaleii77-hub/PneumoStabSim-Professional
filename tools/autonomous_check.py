@@ -31,6 +31,9 @@ from collections.abc import Iterable, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = PROJECT_ROOT / "reports" / "quality"
+_DEFAULT_HISTORY_LIMIT = (
+    7  # renamed internally (keep external name) but preserve constant usage
+)
 DEFAULT_HISTORY_LIMIT = 7
 DEFAULT_TRACE_HISTORY_LIMIT = 5
 DEFAULT_SANITIZE_HISTORY = 3
@@ -206,6 +209,8 @@ def run_autonomous_check(
         "",
         f"- Timestamp: {timestamp.isoformat()}",
         f"- Steps executed: {len(results)}",
+        f"- CWD: {Path.cwd().as_posix()}",
+        f"- Report dir absolute: {REPORT_DIR.resolve().as_posix()}",
         "",
     ]
 
@@ -220,6 +225,11 @@ def run_autonomous_check(
     latest_path.write_text(log_text + "\n", encoding="utf-8")
 
     overall_return_code = max(result["return_code"] for result in results)
+    try:
+        relative_log = str(log_path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        relative_log = log_path.as_posix()
+
     status_payload = {
         "timestamp": timestamp.isoformat(),
         "commands": [
@@ -231,7 +241,10 @@ def run_autonomous_check(
             }
             for result in results
         ],
-        "log_path": str(log_path.relative_to(PROJECT_ROOT)),
+        "log_path": relative_log,
+        "log_path_abs": log_path.resolve().as_posix(),
+        "project_root_abs": PROJECT_ROOT.resolve().as_posix(),
+        "cwd": Path.cwd().resolve().as_posix(),
         "success": overall_return_code == 0,
     }
     _status_path().write_text(
@@ -243,7 +256,8 @@ def run_autonomous_check(
 
     summary_lines = ["Autonomous check summary:"]
     summary_lines.extend(_format_summary_line(result) for result in results)
-    summary_lines.append(f" Log file: {log_path.relative_to(PROJECT_ROOT)}")
+    summary_lines.append(f" Log file (relative): {relative_log}")
+    summary_lines.append(f" Log file (absolute): {log_path.resolve().as_posix()}")
     summary_lines.append(
         f" Overall status: {'OK' if overall_return_code == 0 else 'FAILED'}"
     )
