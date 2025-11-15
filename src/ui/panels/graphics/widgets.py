@@ -432,8 +432,14 @@ class FileCyclerWidget(QWidget):
         self._resolution_roots = resolved
         self._invalidate_path_cache()
 
-    def set_current_data(self, path: str | None, *, emit: bool = True) -> None:
-        """Установить текущий путь. Допускает значения вне списка items."""
+    def set_current_data(self, path: str | None, *, emit: bool = True, suppress_warnings: bool = False) -> None:
+        """Установить текущий путь. Допускает значения вне списка items.
+        
+        Args:
+            path: Путь к файлу или None для пустого выбора
+            emit: Эмитить currentChanged при изменении
+            suppress_warnings: Подавить warning dialogs (для автозагрузки настроек)
+        """
 
         previous_path = self.current_path()
         normalised = str(path).strip().replace("\\", "/") if path else ""
@@ -451,7 +457,7 @@ class FileCyclerWidget(QWidget):
             )
             self._index = -1
             self._custom_entry = None
-            self._update_ui(emit=emit and changed)
+            self._update_ui(emit=emit and changed, suppress_warnings=suppress_warnings)
             if previous_path:
                 self._invalidate_path_cache_for(previous_path)
             return
@@ -465,7 +471,7 @@ class FileCyclerWidget(QWidget):
                 changed = self._index != idx or self._custom_entry is not None
                 self._index = idx
                 self._custom_entry = None
-                self._update_ui(emit=emit and changed)
+                self._update_ui(emit=emit and changed, suppress_warnings=suppress_warnings)
                 return
 
         label = Path(normalised).name or normalised
@@ -477,7 +483,7 @@ class FileCyclerWidget(QWidget):
         )
         self._index = -1
         self._custom_entry = (custom_label, normalised)
-        self._update_ui(emit=emit and changed)
+        self._update_ui(emit=emit and changed, suppress_warnings=suppress_warnings)
 
     def current_path(self) -> str:
         entry = self._current_entry()
@@ -536,7 +542,7 @@ class FileCyclerWidget(QWidget):
             return (self._placeholder, "")
         return None
 
-    def _update_ui(self, *, emit: bool) -> None:
+    def _update_ui(self, *, emit: bool, suppress_warnings: bool = False) -> None:
         entry = self._current_entry()
         if entry:
             label, path = entry
@@ -559,7 +565,7 @@ class FileCyclerWidget(QWidget):
         self._warning_label.setToolTip(path if missing else "")
         self._label.setToolTip(path if path else "")
 
-        if missing:
+        if missing and not suppress_warnings:
             self._handle_missing_path(path)
 
         available_states = len(self._items)

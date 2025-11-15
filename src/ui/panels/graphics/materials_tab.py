@@ -388,7 +388,8 @@ class MaterialsTab(QWidget):
                     elif isinstance(ctrl, LabeledSlider):
                         ctrl.set_value(v)
                     elif isinstance(ctrl, FileCyclerWidget):
-                        ctrl.set_current_data(v, emit=False)
+                        # Подавляем warnings при программном применении состояния
+                        ctrl.set_current_data(v, emit=False, suppress_warnings=True)
                     elif hasattr(ctrl, "findData"):
                         idx = ctrl.findData(v)
                         if idx >= 0:
@@ -578,9 +579,11 @@ class MaterialsTab(QWidget):
         initial_key = self.get_current_material_key()
         saved = self._initial_texture_paths.get(initial_key, "") if initial_key else ""
         if saved:
-            tw.set_current_data(saved, emit=False)
+            # Подавляем warnings при автозагрузке из настроек
+            tw.set_current_data(saved, emit=False, suppress_warnings=True)
         tw.set_items(self._texture_items)
-        tw.set_current_data(saved, emit=False)
+        # Второй вызов также с suppress_warnings для избежания дублирования
+        tw.set_current_data(saved, emit=False, suppress_warnings=True)
 
     def _apply_saved_texture_path(self) -> None:
         tw = self._controls.get("texture_path")
@@ -589,7 +592,8 @@ class MaterialsTab(QWidget):
         key = self.get_current_material_key()
         saved = self._initial_texture_paths.get(key, "") if key else ""
         if saved:
-            tw.set_current_data(saved, emit=False)
+            # Подавляем warnings при программном восстановлении из настроек
+            tw.set_current_data(saved, emit=False, suppress_warnings=True)
 
     def set_state(
         self, payload: dict[str, dict[str, Any]]

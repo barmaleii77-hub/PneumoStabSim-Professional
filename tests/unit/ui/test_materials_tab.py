@@ -127,6 +127,13 @@ def test_materials_tab_preserves_missing_texture_until_user_confirms(
 
     textures = [("One", "one.png"), ("Two", "two.png")]
     texture_widget = tab.get_controls()["texture_path"]
+
+    # Мокаем проверку существования: one.png и two.png существуют, missing.png нет
+    def mock_probe(path: str) -> bool:
+        return path in {"one.png", "two.png"}
+
+    monkeypatch.setattr(texture_widget, "_probe_path_exists", mock_probe)
+
     texture_widget.set_items(textures)
 
     payload = deepcopy(materials_payload)
@@ -134,6 +141,8 @@ def test_materials_tab_preserves_missing_texture_until_user_confirms(
     tab.set_state(payload)
 
     tab.show()
+    # Ждём полной инициализации UI перед обработкой событий
+    qtbot.waitExposed(tab)
     qapp.processEvents()
 
     assert texture_widget.current_path() == "missing.png"
@@ -142,6 +151,8 @@ def test_materials_tab_preserves_missing_texture_until_user_confirms(
     cached = tab.get_all_state()
     assert cached["frame"]["texture_path"] == "missing.png"
 
+    # Гарантируем что виджет всё ещё живой перед кликом
+    assert texture_widget._next_btn is not None  # type: ignore[attr-defined]
     qtbot.mouseClick(texture_widget._next_btn, Qt.LeftButton)  # type: ignore[attr-defined]
     qapp.processEvents()
 
