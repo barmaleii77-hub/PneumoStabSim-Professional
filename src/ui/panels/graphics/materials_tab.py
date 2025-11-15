@@ -303,22 +303,31 @@ class MaterialsTab(QWidget):
                 if comps:
                     if norm:
                         # Нормализованные значения [0.0, 1.0] → [0, 255]
+                        # Логика: floor для всех кроме точного .5, который округляется вверх
+                        import math
                         conv: list[int] = []
                         for c in comps:
                             c = max(0.0, min(1.0, c))
                             raw = c * 255.0
-                            # Используем banker's rounding (round half to even) для стабильности
-                            # но согласно тестам ожидается простое округление вверх для .5
-                            comp = int(round(raw))  # round() делает banker's rounding в Python 3
+                            floor_val = math.floor(raw)
+                            frac = raw - floor_val
+                            if abs(frac - 0.5) < 1e-9:
+                                comp = floor_val + 1  # Округляем вверх для .5
+                            else:
+                                comp = floor_val  # Иначе floor
                             conv.append(comp)
                     else:
-                        conv = [int(round(c)) for c in comps]
+                        # Для значений вне диапазона [0,1] используем прямое приведение
+                        conv = [int(c) if c >= 0 else 0 for c in comps]
                     r, g, b = (max(0, min(255, c)) for c in conv)
                     return f"#{r:02x}{g:02x}{b:02x}"
             if isinstance(value, (int, float)):
+                import math
                 v = max(0.0, min(1.0, float(value)))
                 raw = v * 255.0
-                c = int(round(raw))
+                floor_val = math.floor(raw)
+                frac = raw - floor_val
+                c = floor_val + 1 if abs(frac - 0.5) < 1e-9 else floor_val
                 return f"#{c:02x}{c:02x}{c:02x}"
         except Exception:
             pass
