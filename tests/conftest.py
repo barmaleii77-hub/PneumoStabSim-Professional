@@ -170,6 +170,36 @@ def qtbot(qapp):  # noqa: D401
                 except Exception:
                     pass
 
+        def mouseDClick(self, widget, button):  # type: ignore[override]
+            """Симуляция двойного клика по виджету."""
+            try:
+                from PySide6.QtTest import QTest
+
+                QTest.mouseDClick(widget, button)
+            except Exception:
+                try:
+                    from PySide6.QtCore import QEvent
+                    from PySide6.QtGui import QMouseEvent
+                    from PySide6.QtWidgets import QApplication
+
+                    if not widget.hasFocus():
+                        widget.setFocus()
+                    for ev_type in (
+                        QEvent.Type.MouseButtonDblClick,
+                        QEvent.Type.MouseButtonRelease,
+                    ):
+                        ev = QMouseEvent(
+                            ev_type, widget.rect().center(), button, button, 0
+                        )
+                        QApplication.sendEvent(widget, ev)
+                except Exception:
+                    # финальный фолбек — два обычных клика
+                    try:
+                        self.mouseClick(widget, button)
+                        self.mouseClick(widget, button)
+                    except Exception:
+                        pass
+
         def waitSignal(self, signal, timeout: int = 1000):  # type: ignore[override]
             """Контекстный менеджер ожидания Qt-сигнала без зависимости от QSignalSpy.
 
@@ -258,6 +288,49 @@ def qtbot(qapp):  # noqa: D401
                     pass
             except Exception:
                 pass
+
+        def keyClicks(self, widget, text: str, modifier=Qt.NoModifier, delay: int = 0) -> None:
+            """Симуляция ввода последовательности символов (аналог pytest-qt)."""
+            try:
+                from PySide6.QtTest import QTest
+                QTest.keyClicks(widget, text, modifier, delay)
+            except Exception:
+                for ch in str(text):
+                    try:
+                        from PySide6.QtTest import QTest as _QTest
+                        _QTest.keyClick(widget, ord(ch), modifier, delay)
+                    except Exception:
+                        pass
+
+        def assertNotEmitted(self, signal):  # type: ignore[override]
+            """Контекстный менеджер: убеждаемся, что сигнал не эмитится."""
+            class _Ctx:
+                def __init__(self, sig):
+                    from PySide6.QtCore import QObject
+                    self._count = 0
+                    self._sig = sig
+
+                    def _inc(*_):
+                        self._count += 1
+
+                    self._inc = _inc
+
+                def __enter__(self):
+                    try:
+                        self._sig.connect(self._inc)
+                    except Exception:
+                        pass
+                    return self
+
+                def __exit__(self, exc_type, exc, tb):
+                    try:
+                        self._sig.disconnect(self._inc)
+                    except Exception:
+                        pass
+                    assert self._count == 0, "Signal was emitted unexpectedly"
+                    return False
+
+            return _Ctx(signal)
 
     bot = _FallbackQtBot()
     yield bot

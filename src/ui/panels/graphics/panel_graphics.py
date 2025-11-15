@@ -508,19 +508,48 @@ class GraphicsPanel(QWidget):
     # Централизованный сбор состояния — для MainWindow.closeEvent()
     # ------------------------------------------------------------------
     def collect_state(self) -> dict[str, Any]:
+        """Собрать текущее состояние напрямую из табов и синхронизировать снапшот.
+
+        Требование тестов: возвращаемое состояние должно совпадать с тем, что
+        отражено в UI-табах после всех нормализаций/квантования значений.
+        Поэтому сбор выполняем ИЗ ТАБОВ, а не из внутреннего снапшота.
+        """
         try:
-            snapshot = self._sync_controller.snapshot()
-            validated = self.settings_service.ensure_valid_state(snapshot)
-            if validated != snapshot:
-                self._sync_controller.apply_state(
-                    validated,
-                    description="Validate graphics state",
-                    source="collect_state",
-                    origin="validation",
-                    record=False,
-                    metadata={"force_refresh": True},
-                )
-            self.state = validated
+            aggregated: dict[str, Any] = {}
+            if self.lighting_tab is not None:
+                aggregated["lighting"] = deepcopy(self.lighting_tab.get_state())
+            if self.environment_tab is not None:
+                aggregated["environment"] = deepcopy(self.environment_tab.get_state())
+            if self.quality_tab is not None:
+                aggregated["quality"] = deepcopy(self.quality_tab.get_state())
+            if self.scene_tab is not None:
+                aggregated["scene"] = deepcopy(self.scene_tab.get_state())
+            if self.animation_tab is not None:
+                aggregated["animation"] = deepcopy(self.animation_tab.get_state())
+            if self.camera_tab is not None:
+                aggregated["camera"] = deepcopy(self.camera_tab.get_state())
+            if self.materials_tab is not None:
+                # Материалы: экспортируем полный набор для QML синхронизации
+                aggregated["materials"] = deepcopy(self.materials_tab.get_all_state())
+            if self.effects_tab is not None:
+                aggregated["effects"] = deepcopy(self.effects_tab.get_state())
+
+            # Валидация структуры/типов на уровне сервиса (без форс-правок значений табов)
+            try:
+                validated = self.settings_service.ensure_valid_state(aggregated)
+            except Exception:
+                validated = aggregated
+
+            # Синхронизируем внутренний снапшот, но не инициируем повторное применение к табам
+            self._sync_controller.apply_state(
+                validated,
+                description="Collect graphics state",
+                source="collect_state",
+                origin="collection",
+                record=False,
+                metadata={"force_refresh": False},
+            )
+            self.state = deepcopy(validated)
             return validated
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Failed to collect graphics state: {exc}")

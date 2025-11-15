@@ -154,8 +154,6 @@ Item {
                 keys.push(key)
         }
         var active = keys.length > 0
-        if (effectsBypass !== active)
-            effectsBypass = active
         var reason = ""
         if (active) {
             for (var i = 0; i < keys.length; ++i) {
@@ -169,8 +167,11 @@ Item {
                 }
             }
         }
+        // СНАЧАЛА обновляем reason, затем флаг, чтобы обработчик видел актуальную причину
         if (effectsBypassReason !== reason)
             effectsBypassReason = reason
+        if (effectsBypass !== active)
+            effectsBypass = active
         updateSimplifiedFallbackState(active, reason)
     }
 

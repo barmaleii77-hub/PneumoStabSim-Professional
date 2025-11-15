@@ -412,19 +412,28 @@ Item {
 
                 if (bypass) {
                     console.warn("[SimulationRoot] Post-processing bypassed:", reason)
-                    // Cache current effects and clear View3D.effects
-                    if (root.sceneView && Array.isArray(root.sceneView.effects)) {
-                        root.postProcessingEffectBackup = root.sceneView.effects.slice()
+                    // Кэшируем текущие эффекты независимо от их JS-типа и очищаем список
+                    if (root.sceneView && root.sceneView.hasOwnProperty && root.sceneView.hasOwnProperty("effects")) {
+                        var current = root.sceneView.effects
+                        try {
+                            root.postProcessingEffectBackup = (current && typeof current.slice === "function") ? current.slice() : (Array.isArray(current) ? current : (current ? [current] : []))
+                        } catch (e) {
+                            root.postProcessingEffectBackup = []
+                        }
                         root.sceneView.effects = []
                     }
                 } else {
                     console.log("[SimulationRoot] Post-processing bypass cleared")
-                    // Restore effects from backup
                     if (root.sceneView && root.postProcessingEffectBackup.length > 0) {
                         root.sceneView.effects = root.postProcessingEffectBackup
                         root.postProcessingEffectBackup = []
                     }
                 }
+                // Эмитим снапшот статуса шейдеров для тестов/диагностики
+                try {
+                    var snapshot = root.postEffects.dumpShaderStatus(reason)
+                    root.shaderStatusDumpRequested(snapshot)
+                } catch (e) {}
             } catch (e) {
                 console.error("[SimulationRoot] effectsBypassChanged handler failed:", e)
             }
