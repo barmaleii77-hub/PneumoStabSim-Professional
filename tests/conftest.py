@@ -241,6 +241,7 @@ def qtbot(qapp):  # noqa: D401
                 from PySide6.QtCore import QEvent
                 from PySide6.QtGui import QKeyEvent
                 from PySide6.QtWidgets import QApplication
+
                 # Фокус на виджет если потерян
                 if not widget.hasFocus():
                     widget.setFocus(Qt.FocusReason.OtherFocusReason)
@@ -251,6 +252,7 @@ def qtbot(qapp):  # noqa: D401
                 # Небольшая задержка для обработки шортката
                 try:
                     from PySide6.QtTest import QTest
+
                     QTest.qWait(max(1, delay))
                 except Exception:
                     pass

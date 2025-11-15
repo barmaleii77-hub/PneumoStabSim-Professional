@@ -211,7 +211,9 @@ class SettingsService:
             defaults = {}
             payload["defaults_snapshot"] = defaults
 
-        def _merge_missing(src: MutableMapping[str, Any], dst: MutableMapping[str, Any]) -> None:
+        def _merge_missing(
+            src: MutableMapping[str, Any], dst: MutableMapping[str, Any]
+        ) -> None:
             for key, value in src.items():
                 if key not in dst:
                     dst[key] = deepcopy(value)
@@ -219,7 +221,9 @@ class SettingsService:
                 # Рекурсивно дополняем только mapping‑узлы
                 src_child = value
                 dst_child = dst.get(key)
-                if isinstance(src_child, MutableMapping) and isinstance(dst_child, MutableMapping):
+                if isinstance(src_child, MutableMapping) and isinstance(
+                    dst_child, MutableMapping
+                ):
                     _merge_missing(src_child, dst_child)
 
         _merge_missing(current, defaults)

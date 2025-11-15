@@ -911,9 +911,15 @@ class RangeSlider(QWidget):
                         return
                 return  # уже обработано или сработал шорткат
             if key == Qt.Key_1:
-                self.min_spinbox.setFocus(); event.accept(); return
+                self.min_spinbox.setFocus()
+                event.accept()
+                return
             if key == Qt.Key_2:
-                self.value_spinbox.setFocus(); event.accept(); return
+                self.value_spinbox.setFocus()
+                event.accept()
+                return
             if key == Qt.Key_3:
-                self.max_spinbox.setFocus(); event.accept(); return
+                self.max_spinbox.setFocus()
+                event.accept()
+                return
         super().keyPressEvent(event)
