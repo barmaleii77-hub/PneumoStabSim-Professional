@@ -22,33 +22,27 @@ python -m tools.autonomous_check %*
 GOTO :eof
 
 :verify
-SHIFT
-python -m tools.autonomous_check --task verify --launch-trace %*
+python -m tools.autonomous_check --task verify --launch-trace
 GOTO :eof
 
 :check
-SHIFT
-python -m tools.autonomous_check --task verify %*
+python -m tools.autonomous_check --task verify
 GOTO :eof
 
 :test
-SHIFT
-python -m tools.autonomous_check --task test %*
+python -m tools.autonomous_check --task test
 GOTO :eof
 
 :lint
-SHIFT
-python -m tools.autonomous_check --task lint %*
+python -m tools.autonomous_check --task lint
 GOTO :eof
 
 :typecheck
-SHIFT
-python -m tools.autonomous_check --task typecheck %*
+python -m tools.autonomous_check --task typecheck
 GOTO :eof
 
 :qmllint
-SHIFT
-python -m tools.autonomous_check --task qml-lint %*
+python -m tools.autonomous_check --task qml-lint
 GOTO :eof
 
 :sanitize
