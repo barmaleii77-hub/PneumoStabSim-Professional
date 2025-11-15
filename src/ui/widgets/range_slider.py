@@ -433,9 +433,16 @@ class RangeSlider(QWidget):
         focus_value_shortcut: str,
         focus_max_shortcut: str,
     ) -> None:
-        """Expose keyboard shortcuts mirroring pointer interactions."""
+        """Expose keyboard shortcuts mirroring pointer interactions.
 
+        ДОПОЛНЕНО: если QShortcut не срабатывает (например, в fallback qtbot),
+        обеспечиваем резервную обработку в keyPressEvent без двойной эмиссии.
+        """
         self._shortcut_metadata.clear()
+
+        # Регистрируем, но сохраняем строку сочетаний для fallback
+        self._increase_sequence = increase_shortcut
+        self._decrease_sequence = decrease_shortcut
 
         self._increase_shortcut = self._register_shortcut(
             "increase",
@@ -767,7 +774,8 @@ class RangeSlider(QWidget):
         width = self._maximum - self._minimum
         self.range_indicator_label.setText(
             f"Диапазон: {self._minimum:.{self._decimals}f} — {self._maximum:.{self._decimals}f} "
-            f"ширина диапазона {width:.{self._decimals}f}" + (f" {self._units}" if self._units else "")
+            f"ширина диапазона {width:.{self._decimals}f}"
+            + (f" {self._units}" if self._units else "")
         )
 
     def _update_position_indicator(self, position: int) -> None:
@@ -879,25 +887,20 @@ class RangeSlider(QWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # type: ignore[override]
         """Обработка клавиатуры как резерв к QShortcut.
 
-        Актуализировано: устраняем двойное срабатывание нуджа.
-        Стрелки с Ctrl+Alt обрабатываются ТОЛЬКО через QShortcut. Здесь
-        реализуем fallback ТОЛЬКО для фокуса по Ctrl+Alt+1..3 или если
-        шорткаты по какой-то причине отключены.
+        ДОПОЛНЕНО: явная обработка Ctrl+Alt+Right/Left если QShortcut не изменяет значение.
         """
         if (
             event.modifiers() & Qt.KeyboardModifier.ControlModifier
             and event.modifiers() & Qt.KeyboardModifier.AltModifier
         ):
             key = event.key()
-            # Fallback для стрелок только если шорткаты недоступны
             if key in (Qt.Key_Right, Qt.Key_Left):
-                shortcuts_active = (
-                    getattr(self, "_increase_shortcut", None) is not None
-                    and self._increase_shortcut.isEnabled()
-                    and getattr(self, "_decrease_shortcut", None) is not None
-                    and self._decrease_shortcut.isEnabled()
-                )
-                if not shortcuts_active:
+                # Проверяем предварительно значение до события
+                before = self.value()
+                super().keyPressEvent(event)  # даём шанс QShortcut
+                after = self.value()
+                if math.isclose(before, after, rel_tol=1e-12, abs_tol=1e-12):
+                    # Shortcut не сработал — вручную нуджим
                     if key == Qt.Key_Right:
                         self._nudge_slider(self._step)
                         event.accept()
@@ -906,17 +909,11 @@ class RangeSlider(QWidget):
                         self._nudge_slider(-self._step)
                         event.accept()
                         return
-                # В противном случае даём событию пройти к QShortcut
+                return  # уже обработано или сработал шорткат
             if key == Qt.Key_1:
-                self.min_spinbox.setFocus()
-                event.accept()
-                return
+                self.min_spinbox.setFocus(); event.accept(); return
             if key == Qt.Key_2:
-                self.value_spinbox.setFocus()
-                event.accept()
-                return
+                self.value_spinbox.setFocus(); event.accept(); return
             if key == Qt.Key_3:
-                self.max_spinbox.setFocus()
-                event.accept()
-                return
+                self.max_spinbox.setFocus(); event.accept(); return
         super().keyPressEvent(event)

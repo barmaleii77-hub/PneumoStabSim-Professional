@@ -231,6 +231,32 @@ def qtbot(qapp):  # noqa: D401
         def addCleanup(self, func: Callable[[], Any]) -> None:
             self._cleanups.append(func)
 
+        def keyClick(self, widget, key, modifier=Qt.NoModifier, delay: int = 0) -> None:
+            """Симуляция нажатия клавиши в виджете (поддержка шорткатов).
+
+            Реализуем отправку событий напрямую через QApplication.sendEvent,
+            чтобы QShortcut на контейнере (RangeSlider) обрабатывал Ctrl+Alt стрелки.
+            """
+            try:
+                from PySide6.QtCore import QEvent
+                from PySide6.QtGui import QKeyEvent
+                from PySide6.QtWidgets import QApplication
+                # Фокус на виджет если потерян
+                if not widget.hasFocus():
+                    widget.setFocus(Qt.FocusReason.OtherFocusReason)
+                press = QKeyEvent(QEvent.Type.KeyPress, key, modifier)
+                release = QKeyEvent(QEvent.Type.KeyRelease, key, modifier)
+                QApplication.sendEvent(widget, press)
+                QApplication.sendEvent(widget, release)
+                # Небольшая задержка для обработки шортката
+                try:
+                    from PySide6.QtTest import QTest
+                    QTest.qWait(max(1, delay))
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
     bot = _FallbackQtBot()
     yield bot
     for c in bot._cleanups:
