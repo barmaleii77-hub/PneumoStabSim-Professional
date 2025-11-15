@@ -1,205 +1,27 @@
 {
-  "metadata": {
-    "version": "5.0.0",
-    "schema_version": "0.2.1",
-    "last_modified": "2025-11-14T18:27:36.618Z",
-    "units_version": "si_v2",
-    "migrations": [
-      "0001_add_diagnostics_defaults",
-      "0002_remove_geometry_mesh_extras"
-    ],
-    "last_migration": "0002_remove_geometry_mesh_extras",
-    "migrated_from": "src/ui/panels/graphics/defaults.py",
-    "migration_date": "2025-10-18",
-    "total_parameters": 313,
-    "description": "✅ FIXED: tonemap_enabled=false, depth_of_field=false, vignette=false по умолчанию",
-    "operational_imperatives": [
-      "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
-      "Все графические параметры управляются пользователем через UI: один параметр — один контрол без скрытых зависимостей.",
-      "Сервис настроек не должен изменять файл при первой загрузке; сохранение происходит только по явному запросу пользователя."
-    ],
-    "environment_slider_ranges": {
-      "ibl_intensity": {
-        "min": 0.0,
-        "max": 8.0,
-        "step": 0.05
-      },
-      "skybox_brightness": {
-        "min": 0.0,
-        "max": 8.0,
-        "step": 0.05
-      },
-      "probe_horizon": {
-        "min": -1.0,
-        "max": 1.0,
-        "step": 0.01
-      },
-      "skybox_blur": {
-        "min": 0.0,
-        "max": 1.0,
-        "step": 0.01
-      },
-      "ibl_rotation": {
-        "min": -1080.0,
-        "max": 1080.0,
-        "step": 1.0
-      },
-      "ibl_offset_x": {
-        "min": -180.0,
-        "max": 180.0,
-        "step": 1.0
-      },
-      "ibl_offset_y": {
-        "min": -180.0,
-        "max": 180.0,
-        "step": 1.0
-      },
-      "reflection_padding_m": {
-        "min": 0.0,
-        "max": 1.0,
-        "step": 0.01,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_density": {
-        "min": 0.0,
-        "max": 1.0,
-        "step": 0.01
-      },
-      "fog_depth_near": {
-        "min": 0.0,
-        "max": 200.0,
-        "step": 0.1,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_near": {
-        "min": 0.0,
-        "max": 200.0,
-        "step": 0.1,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_depth_far": {
-        "min": 0.0,
-        "max": 500.0,
-        "step": 0.1,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_far": {
-        "min": 0.0,
-        "max": 500.0,
-        "step": 0.1,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_least_intense_y": {
-        "min": -100.0,
-        "max": 100.0,
-        "step": 0.1,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_most_intense_y": {
-        "min": -100.0,
-        "max": 100.0,
-        "step": 0.1,
-        "decimals": 2,
-        "units": "м"
-      },
-      "fog_height_curve": {
-        "min": 0.0,
-        "max": 4.0,
-        "step": 0.05
-      },
-      "fog_depth_curve": {
-        "min": 0.0,
-        "max": 4.0,
-        "step": 0.05
-      },
-      "fog_transmit_curve": {
-        "min": 0.0,
-        "max": 4.0,
-        "step": 0.05
-      },
-      "ao_strength": {
-        "min": 0.0,
-        "max": 100.0,
-        "step": 1.0
-      },
-      "ao_radius": {
-        "min": 0.001,
-        "max": 0.1,
-        "step": 0.001,
-        "decimals": 3,
-        "units": "м"
-      },
-      "ao_bias": {
-        "min": 0.0,
-        "max": 0.1,
-        "step": 0.001,
-        "decimals": 3
-      },
-      "ao_softness": {
-        "min": 0.0,
-        "max": 50.0,
-        "step": 1.0
-      }
-    },
-    "scene_defaults": {
-      "suspension": {
-        "rod_warning_threshold_m": 0.001
-      }
-    },
-    "legacy": {
-      "current": {
-        "geometry": {
-          "meta": {
-            "wheelbase": {
-              "step": 0.002,
-              "decimals": 5,
-              "units": "м"
-            }
-          },
-          "active_preset": "custom"
-        }
-      }
-    }
-  },
   "current": {
     "geometry": {
-      "stroke_m": 0.38,
-      "rod_diameter_m": 0.035,
-      "frame_height_m": 0.65,
+      "wheelbase": 3.4,
+      "track": 2.34,
+      "frame_to_pivot": 0.42,
+      "lever_length": 0.75,
+      "rod_position": 0.34,
       "cylinder_length": 0.46,
       "cyl_diam_m": 0.11,
-      "wheelbase": 3.4,
-      "cylinder_segments": 128,
-      "rod_diameter_rear_m": 0.035,
-      "interference_check": true,
-      "piston_rod_length_m": 0.32,
-      "meta": {
-        "wheelbase": {
-          "step": 0.002,
-          "decimals": 5,
-          "units": "м"
-        }
-      },
-      "link_rod_diameters": false,
-      "track": 2.34,
-      "lever_length": 0.5,
-      "frame_beam_size_m": 0.12,
-      "frame_to_pivot": 0.42,
-      "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18,
+      "stroke_m": 0.38,
       "dead_gap_m": 0.02,
+      "rod_diameter_m": 0.035,
+      "rod_diameter_rear_m": 0.035,
+      "piston_rod_length_m": 0.32,
       "piston_thickness_m": 0.025,
-      "rod_position": 0.34,
-      "lever_length_m": 0.15,
+      "interference_check": true,
+      "link_rod_diameters": false,
+      "frame_height_m": 0.65,
+      "frame_beam_size_m": 0.12,
       "frame_length_m": 3.4,
-      "cylinder_rings": 32,
-      "active_preset": "custom"
+      "lever_length_m": 0.75,
+      "cylinder_body_length_m": 0.46,
+      "tail_rod_length_m": 0.18
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -215,15 +37,15 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0016,
+      "diagonal_coupling_dia": 0.0008,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "master_isolation_open": false,
       "pressure_units": "Па",
-      "polytropic_heat_transfer_coeff": 45.0,
-      "polytropic_exchange_area": 0.12,
-      "leak_coefficient": 5e-08,
-      "leak_reference_area": 0.0002,
+      "polytropic_heat_transfer_coeff": 0.0,
+      "polytropic_exchange_area": 0.0,
+      "leak_coefficient": 0.0,
+      "leak_reference_area": 0.0,
       "receiver_volume_limits": {
         "min_m3": 0.001,
         "max_m3": 1.0
@@ -669,12 +491,141 @@
         "suspension": {
           "rod_warning_threshold_m": 0.001
         }
+      },
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
+        }
       }
     },
     "animation": {
       "is_running": false,
       "animation_time": 0.0,
-      "amplitude": 0.05,
+      "amplitude": 8.0,
       "frequency": 1.0,
       "phase_global": 0.0,
       "phase_fl": 0.0,
@@ -682,7 +633,7 @@
       "phase_rl": 0.0,
       "phase_rr": 0.0,
       "smoothing_enabled": true,
-      "smoothing_duration_ms": 120.0,
+      "smoothing_duration_ms": 120,
       "smoothing_angle_snap_deg": 65.0,
       "smoothing_piston_snap_m": 0.05,
       "smoothing_easing": "OutCubic"
@@ -742,11 +693,7 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted",
-        "mesh": {
-          "cylinder_segments": 128,
-          "cylinder_rings": 32
-        }
+        "oit": "weighted"
       },
       "high": {
         "shadows": {
@@ -770,11 +717,7 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted",
-        "mesh": {
-          "cylinder_segments": 40,
-          "cylinder_rings": 5
-        }
+        "oit": "weighted"
       },
       "medium": {
         "shadows": {
@@ -798,11 +741,7 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted",
-        "mesh": {
-          "cylinder_segments": 28,
-          "cylinder_rings": 4
-        }
+        "oit": "weighted"
       },
       "low": {
         "shadows": {
@@ -826,11 +765,7 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none",
-        "mesh": {
-          "cylinder_segments": 20,
-          "cylinder_rings": 3
-        }
+        "oit": "none"
       }
     },
     "diagnostics": {
@@ -949,663 +884,6 @@
               "install_command": "apt-get install -y libxkbcommon0"
             }
           ]
-        }
-      }
-    },
-    "defaults_snapshot": {
-      "geometry": {
-        "wheelbase": 3.4,
-        "track": 2.34,
-        "frame_to_pivot": 0.42,
-        "lever_length": 0.75,
-        "rod_position": 0.34,
-        "cylinder_length": 0.46,
-        "cyl_diam_m": 0.11,
-        "stroke_m": 0.38,
-        "dead_gap_m": 0.02,
-        "rod_diameter_m": 0.035,
-        "rod_diameter_rear_m": 0.035,
-        "piston_rod_length_m": 0.32,
-        "piston_thickness_m": 0.025,
-        "interference_check": true,
-        "link_rod_diameters": false,
-        "frame_height_m": 0.65,
-        "frame_beam_size_m": 0.12,
-        "frame_length_m": 3.4,
-        "cylinder_body_length_m": 0.46,
-        "tail_rod_length_m": 0.18
-      },
-      "pneumatic": {
-        "volume_mode": "MANUAL",
-        "receiver_volume": 0.02,
-        "receiver_diameter": 0.2,
-        "receiver_length": 0.5,
-        "cv_atmo_dp": 1000.0,
-        "cv_tank_dp": 1000.0,
-        "cv_atmo_dia": 0.003,
-        "cv_tank_dia": 0.003,
-        "relief_min_pressure": 250000.0,
-        "relief_stiff_pressure": 1500000.0,
-        "relief_safety_pressure": 5000000.0,
-        "throttle_min_dia": 0.001,
-        "throttle_stiff_dia": 0.0015,
-        "diagonal_coupling_dia": 0.0012,
-        "atmo_temp": 20.0,
-        "thermo_mode": "ISOTHERMAL",
-        "master_isolation_open": false,
-        "pressure_units": "Па",
-        "polytropic_heat_transfer_coeff": 45.0,
-        "polytropic_exchange_area": 0.12,
-        "leak_coefficient": 5e-08,
-        "leak_reference_area": 0.0002,
-        "receiver_volume_limits": {
-          "min_m3": 0.001,
-          "max_m3": 1.0
-        }
-      },
-      "modes": {
-        "sim_type": "KINEMATICS",
-        "mode_preset": "standard",
-        "amplitude": 0.05,
-        "frequency": 1.0,
-        "phase": 0.0,
-        "lf_phase": 0.0,
-        "rf_phase": 0.0,
-        "lr_phase": 0.0,
-        "rr_phase": 0.0,
-        "physics": {
-          "include_springs": true,
-          "include_dampers": true,
-          "include_pneumatics": true,
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "lever_inertia_multiplier": 1.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "integrator_method": "rk4"
-        }
-      },
-      "graphics": {
-        "lighting": {
-          "key": {
-            "brightness": 1.0,
-            "color": "#ffffff",
-            "angle_x": 25.0,
-            "angle_y": 23.5,
-            "angle_z": 0.0,
-            "position_x": 0.0,
-            "position_y": 0.0,
-            "position_z": 0.0,
-            "cast_shadow": true,
-            "bind_to_camera": false
-          },
-          "fill": {
-            "brightness": 1.0,
-            "color": "#f1f4ff",
-            "angle_x": 0.0,
-            "angle_y": -45.0,
-            "angle_z": 0.0,
-            "position_x": 0.0,
-            "position_y": 0.0,
-            "position_z": 0.0,
-            "cast_shadow": false,
-            "bind_to_camera": false
-          },
-          "rim": {
-            "brightness": 1.1,
-            "color": "#ffe1bd",
-            "angle_x": 30.0,
-            "angle_y": -135.0,
-            "angle_z": 0.0,
-            "position_x": 0.0,
-            "position_y": 0.0,
-            "position_z": 0.0,
-            "cast_shadow": false,
-            "bind_to_camera": false
-          },
-          "point": {
-            "brightness": 50.0,
-            "color": "#fff7e0",
-            "position_x": 0.0,
-            "position_y": 2.6,
-            "position_z": 1.5,
-            "range": 3.6,
-            "constant_fade": 1.0,
-            "linear_fade": 0.01,
-            "quadratic_fade": 1.0,
-            "cast_shadow": false,
-            "bind_to_camera": false
-          },
-          "spot": {
-            "brightness": 4900.0,
-            "color": "#ffffff",
-            "position_y": 1.0,
-            "range": 0.2,
-            "cone_angle": 6.0,
-            "inner_cone_angle": 0.0,
-            "angle_x": -9.0,
-            "angle_y": 0.0,
-            "position_x": 0.0,
-            "position_z": 2.28,
-            "angle_z": 0.0,
-            "cast_shadow": true,
-            "bind_to_camera": false
-          }
-        },
-        "environment": {
-          "background_mode": "skybox",
-          "background_color": "#1f242c",
-          "skybox_enabled": true,
-          "ibl_enabled": true,
-          "ibl_intensity": 1.3,
-          "skybox_brightness": 1.0,
-          "probe_horizon": 0.0,
-          "ibl_rotation": 0.0,
-          "ibl_source": "",
-          "skybox_blur": 0.08,
-          "ibl_offset_x": 0.0,
-          "ibl_offset_y": 0.0,
-          "ibl_bind_to_camera": false,
-          "reflection_enabled": true,
-          "reflection_padding_m": 0.15,
-          "reflection_quality": "veryhigh",
-          "reflection_refresh_mode": "everyframe",
-          "reflection_time_slicing": "individualfaces",
-          "fog_enabled": true,
-          "fog_color": "#aab9cf",
-          "fog_density": 0.06,
-          "fog_depth_enabled": true,
-          "fog_depth_near": 2.0,
-          "fog_depth_far": 20.0,
-          "fog_depth_curve": 1.0,
-          "fog_near": 2.0,
-          "fog_far": 20.0,
-          "fog_height_enabled": false,
-          "fog_least_intense_y": 0.0,
-          "fog_most_intense_y": 3.0,
-          "fog_height_curve": 1.0,
-          "fog_transmit_enabled": true,
-          "fog_transmit_curve": 1.0,
-          "ao_enabled": true,
-          "ao_strength": 1.0,
-          "ao_radius": 0.008,
-          "ao_bias": 0.025,
-          "ao_softness": 20.0,
-          "ao_dither": true,
-          "ao_sample_rate": 4
-        },
-        "quality": {
-          "preset": "ultra",
-          "shadows": {
-            "enabled": true,
-            "resolution": 4096,
-            "filter": 32,
-            "bias": 8.0,
-            "darkness": 80.0
-          },
-          "antialiasing": {
-            "primary": "ssaa",
-            "quality": "high",
-            "post": "taa"
-          },
-          "taa_enabled": true,
-          "taa_strength": 0.4,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.05,
-          "render_policy": "always",
-          "frame_rate_limit": 144.0,
-          "oit": "weighted",
-          "mesh": {
-            "cylinder_segments": 128,
-            "cylinder_rings": 32
-          }
-        },
-        "camera": {
-          "fov": 60.0,
-          "near": 0.08,
-          "far": 150.0,
-          "speed": 1.0,
-          "auto_rotate": false,
-          "auto_rotate_speed": 8.0,
-          "auto_fit": true,
-          "manual_camera": false,
-          "camera_pos_x": 0.0,
-          "camera_pos_y": 0.0,
-          "camera_pos_z": 0.0,
-          "camera_rot_x": 0.0,
-          "camera_rot_y": 0.0,
-          "camera_rot_z": 0.0,
-          "orbit_target_x": 0.0,
-          "orbit_target_y": 0.0,
-          "orbit_target_z": 0.5,
-          "orbit_yaw": 30.0,
-          "orbit_pitch": -20.0,
-          "orbit_distance": 4.6,
-          "orbit_inertia_enabled": true,
-          "orbit_inertia": 0.4,
-          "orbit_rotate_smoothing": 0.5,
-          "orbit_pan_smoothing": 0.5,
-          "orbit_zoom_smoothing": 0.51,
-          "orbit_friction": 0.2,
-          "world_pos_x": 0.0,
-          "world_pos_y": 0.0,
-          "world_pos_z": 0.0,
-          "world_rot_x": 0.0,
-          "world_rot_y": 0.0,
-          "world_rot_z": 0.0,
-          "world_scale": 1.0
-        },
-        "materials": {
-          "frame": {
-            "base_color": "#2D323C",
-            "metalness": 0.0,
-            "roughness": 0.58,
-            "specular": 0.55,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.35,
-            "clearcoat_roughness": 0.12,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "frame"
-          },
-          "lever": {
-            "base_color": "#A7ADB4",
-            "metalness": 1.0,
-            "roughness": 0.38,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.05,
-            "clearcoat_roughness": 0.05,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "lever"
-          },
-          "cylinder": {
-            "base_color": "#E1F5FF",
-            "metalness": 0.0,
-            "roughness": 0.05,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.0,
-            "clearcoat_roughness": 0.0,
-            "transmission": 1.0,
-            "ior": 1.52,
-            "thickness": 0.0,
-            "attenuation_distance": 1800.0,
-            "attenuation_color": "#B7E7FF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "cylinder"
-          },
-          "piston_body": {
-            "base_color": "#FF3C6E",
-            "metalness": 0.0,
-            "roughness": 0.45,
-            "specular": 0.6,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.42,
-            "clearcoat_roughness": 0.18,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "piston_body"
-          },
-          "piston_rod": {
-            "base_color": "#F0F0F0",
-            "metalness": 1.0,
-            "roughness": 0.12,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.05,
-            "clearcoat_roughness": 0.02,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "piston_rod"
-          },
-          "joint_tail": {
-            "base_color": "#2A82FF",
-            "metalness": 0.0,
-            "roughness": 0.42,
-            "specular": 0.6,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.28,
-            "clearcoat_roughness": 0.16,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "joint_tail"
-          },
-          "joint_arm": {
-            "base_color": "#FF9C3A",
-            "metalness": 0.0,
-            "roughness": 0.4,
-            "specular": 0.65,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.3,
-            "clearcoat_roughness": 0.14,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "joint_arm"
-          },
-          "joint_rod": {
-            "base_color": "#B6BBC1",
-            "metalness": 0.68,
-            "roughness": 0.33,
-            "specular": 0.6,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.12,
-            "clearcoat_roughness": 0.08,
-            "transmission": 0.0,
-            "ior": 1.45,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.4,
-            "occlusion_amount": 0.3,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "joint_rod"
-          },
-          "tail_rod": {
-            "base_color": "#D5D9DF",
-            "metalness": 1.0,
-            "roughness": 0.32,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.08,
-            "clearcoat_roughness": 0.05,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "tail_rod"
-          }
-        },
-        "effects": {
-          "bloom_enabled": true,
-          "bloom_intensity": 0.5,
-          "bloom_threshold": 1.0,
-          "bloom_spread": 0.65,
-          "bloom_glow_strength": 1.0,
-          "bloom_hdr_max": 8.0,
-          "bloom_hdr_scale": 2.0,
-          "bloom_quality_high": true,
-          "bloom_bicubic_upscale": true,
-          "tonemap_enabled": false,
-          "tonemap_mode": "filmic",
-          "tonemap_exposure": 1.0,
-          "tonemap_white_point": 1.0,
-          "depth_of_field": false,
-          "dof_auto_focus": true,
-          "dof_focus_distance": 2.5,
-          "dof_blur": 4.0,
-          "motion_blur": false,
-          "motion_blur_amount": 0.2,
-          "lens_flare": false,
-          "lens_flare_ghost_count": 4,
-          "lens_flare_ghost_dispersal": 0.06,
-          "lens_flare_halo_width": 0.05,
-          "lens_flare_bloom_bias": 1.0,
-          "lens_flare_stretch_to_aspect": false,
-          "vignette": false,
-          "vignette_strength": 0.35,
-          "vignette_radius": 0.5,
-          "color_adjustments_enabled": true,
-          "color_adjustments_active": true,
-          "adjustment_brightness": 0.0,
-          "adjustment_contrast": 0.0,
-          "adjustment_saturation": 0.0
-        },
-        "scene": {
-          "scale_factor": 1.0,
-          "exposure": 1.0,
-          "default_clear_color": "#1b1f27",
-          "model_base_color": "#9da3aa",
-          "model_roughness": 0.42,
-          "model_metalness": 0.82,
-          "suspension": {
-            "rod_warning_threshold_m": 0.001
-          }
-        }
-      },
-      "constants": {
-        "geometry": {
-          "kinematics": {
-            "track_width_m": 1.1,
-            "lever_length_m": 0.35,
-            "pivot_offset_from_frame_m": 0.2,
-            "rod_attach_fraction": 0.5
-          },
-          "cylinder": {
-            "inner_diameter_m": 0.08,
-            "rod_diameter_m": 0.035,
-            "piston_thickness_m": 0.02,
-            "body_length_m": 0.25,
-            "dead_zone_head_m3": 0.001,
-            "dead_zone_rod_m3": 0.001
-          },
-          "visualization": {
-            "arm_radius_m": 0.05,
-            "cylinder_radius_m": 0.04,
-            "pivot_offset_x_m": 0.0,
-            "tail_offset_x_m": 0.0,
-            "piston_clip_min_fraction": 0.05,
-            "piston_clip_max_fraction": 0.95,
-            "max_stroke_fraction": 0.9
-          },
-          "initial_state": {
-            "lever_length_m": 0.35,
-            "tail_rod_length_m": 0.18,
-            "frame_beam_size_m": 0.12,
-            "frame_height_m": 0.65,
-            "frame_length_m": 2.0,
-            "cylinder_body_length_m": 0.25,
-            "j_arm_left": [
-              -0.35,
-              0.65,
-              -0.5
-            ],
-            "j_arm_right": [
-              0.35,
-              0.65,
-              -0.5
-            ],
-            "j_tail_left": [
-              -0.4,
-              0.35,
-              -0.5
-            ],
-            "j_tail_right": [
-              0.4,
-              0.35,
-              -0.5
-            ]
-          }
-        },
-        "pneumo": {
-          "valves": {
-            "delta_open_pa": 5000.0,
-            "equivalent_diameter_m": 0.008,
-            "relief_min_orifice_diameter_m": 0.001,
-            "relief_stiff_orifice_diameter_m": 0.0015
-          },
-          "receiver": {
-            "volume_min_m3": 0.0018,
-            "volume_max_m3": 0.0045,
-            "initial_volume_m3": 0.003,
-            "initial_pressure_pa": 101325.0,
-            "initial_temperature_k": 293.15,
-            "volume_mode": "ADIABATIC_RECALC"
-          },
-          "gas": {
-            "tank_volume_initial_m3": 0.0035,
-            "tank_pressure_initial_pa": 101325.0,
-            "tank_temperature_initial_k": 293.15,
-            "tank_volume_mode": "ADIABATIC_RECALC",
-            "time_step_s": 0.005,
-            "thermo_mode": "ISOTHERMAL",
-            "total_time_s": 3.0,
-            "relief_min_threshold_pa": 106391.25,
-            "relief_stiff_threshold_pa": 151987.5,
-            "relief_safety_threshold_pa": 202650.0
-          }
-        },
-        "physics": {
-          "suspension": {
-            "spring_constant": 50000.0,
-            "damper_coefficient": 2000.0,
-            "damper_force_threshold_n": 50.0,
-            "spring_rest_position_m": 0.0,
-            "cylinder_head_area_m2": 0.005,
-            "cylinder_rod_area_m2": 0.004,
-            "axis_unit_world": [
-              0.0,
-              1.0,
-              0.0
-            ]
-          },
-          "reference_axes": {
-            "vertical_world": [
-              0.0,
-              1.0,
-              0.0
-            ]
-          },
-          "validation": {
-            "max_force_n": 100000.0,
-            "max_moment_n_m": 1000000.0
-          },
-          "rigid_body": {
-            "default_mass_kg": 1500.0,
-            "default_inertia_pitch_kg_m2": 2000.0,
-            "default_inertia_roll_kg_m2": 3000.0,
-            "gravity_m_s2": 9.81,
-            "track_width_m": 1.6,
-            "wheelbase_m": 3.2,
-            "angle_limit_rad": 0.5,
-            "damping_coefficient": 0.1,
-            "static_load_tolerance": 0.05,
-            "load_sum_tolerance_scale": 1e-09,
-            "load_sum_min_reference": 1.0,
-            "attachment_points_m": {
-              "LP": {
-                "x_m": -0.8,
-                "z_m": -1.6
-              },
-              "PP": {
-                "x_m": 0.8,
-                "z_m": -1.6
-              },
-              "LZ": {
-                "x_m": -0.8,
-                "z_m": 1.6
-              },
-              "PZ": {
-                "x_m": 0.8,
-                "z_m": 1.6
-              }
-            }
-          },
-          "integrator": {
-            "solver": {
-              "primary_method": "Radau",
-              "fallback_methods": [
-                "BDF",
-                "RK45"
-              ],
-              "relative_tolerance": 1e-06,
-              "absolute_tolerance": 1e-09,
-              "max_step_divisor": 4.0
-            },
-            "loop": {
-              "max_steps_per_render": 50,
-              "lever_ratio_clip_min": -0.999,
-              "lever_ratio_clip_max": 0.999,
-              "statistics_min_total_steps": 1,
-              "max_linear_velocity_m_s": 10.0,
-              "max_angular_velocity_rad_s": 10.0,
-              "nan_replacement_value": 0.0,
-              "posinf_replacement_value": 0.0,
-              "neginf_replacement_value": 0.0
-            }
-          }
         }
       }
     },
@@ -1776,34 +1054,26 @@
   "defaults_snapshot": {
     "geometry": {
       "wheelbase": 3.4,
-      "piston_rod_length_m": 0.32,
-      "link_rod_diameters": false,
-      "frame_to_pivot": 0.42,
-      "rod_position": 0.34,
-      "rod_diameter_rear_m": 0.035,
-      "stroke_m": 0.38,
-      "cyl_diam_m": 0.11,
-      "cylinder_body_length_m": 0.46,
-      "lever_length_m": 0.15,
-      "cylinder_length": 0.46,
-      "tail_rod_length_m": 0.18,
-      "frame_length_m": 3.4,
-      "piston_thickness_m": 0.025,
       "track": 2.34,
-      "interference_check": true,
-      "frame_beam_size_m": 0.12,
-      "rod_diameter_m": 0.035,
-      "frame_height_m": 0.65,
+      "frame_to_pivot": 0.42,
+      "lever_length": 0.75,
+      "rod_position": 0.34,
+      "cylinder_length": 0.46,
+      "cyl_diam_m": 0.11,
+      "stroke_m": 0.38,
       "dead_gap_m": 0.02,
-      "lever_length": 0.5,
-      "meta": {
-        "wheelbase": {
-          "step": 0.002,
-          "decimals": 5,
-          "units": "м"
-        }
-      },
-      "active_preset": "custom"
+      "rod_diameter_m": 0.035,
+      "rod_diameter_rear_m": 0.035,
+      "piston_rod_length_m": 0.32,
+      "piston_thickness_m": 0.025,
+      "interference_check": true,
+      "link_rod_diameters": false,
+      "frame_height_m": 0.65,
+      "frame_beam_size_m": 0.12,
+      "frame_length_m": 3.4,
+      "lever_length_m": 0.75,
+      "cylinder_body_length_m": 0.46,
+      "tail_rod_length_m": 0.18
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -1819,15 +1089,15 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0015,
+      "diagonal_coupling_dia": 0.0008,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "master_isolation_open": false,
       "pressure_units": "Па",
-      "polytropic_heat_transfer_coeff": 45.0,
-      "polytropic_exchange_area": 0.12,
-      "leak_coefficient": 5e-08,
-      "leak_reference_area": 0.0002,
+      "polytropic_heat_transfer_coeff": 0.0,
+      "polytropic_exchange_area": 0.0,
+      "leak_coefficient": 0.0,
+      "leak_reference_area": 0.0,
       "receiver_volume_limits": {
         "min_m3": 0.001,
         "max_m3": 1.0
@@ -2033,9 +1303,13 @@
           "base_color": "#2D323C",
           "metalness": 0.0,
           "roughness": 0.58,
+          "specular": 0.55,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.35,
           "clearcoat_roughness": 0.12,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2051,9 +1325,13 @@
           "base_color": "#A7ADB4",
           "metalness": 1.0,
           "roughness": 0.38,
+          "specular": 1.0,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.05,
           "clearcoat_roughness": 0.05,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2069,9 +1347,13 @@
           "base_color": "#E1F5FF",
           "metalness": 0.0,
           "roughness": 0.05,
+          "specular": 1.0,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.0,
           "clearcoat_roughness": 0.0,
+          "transmission": 1.0,
+          "ior": 1.52,
           "thickness": 0.0,
           "attenuation_distance": 1800.0,
           "attenuation_color": "#B7E7FF",
@@ -2087,9 +1369,13 @@
           "base_color": "#FF3C6E",
           "metalness": 0.0,
           "roughness": 0.45,
+          "specular": 0.6,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.42,
           "clearcoat_roughness": 0.18,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2105,9 +1391,13 @@
           "base_color": "#F0F0F0",
           "metalness": 1.0,
           "roughness": 0.12,
+          "specular": 1.0,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.05,
           "clearcoat_roughness": 0.02,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2123,9 +1413,13 @@
           "base_color": "#2A82FF",
           "metalness": 0.0,
           "roughness": 0.42,
+          "specular": 0.6,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.28,
           "clearcoat_roughness": 0.16,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2141,9 +1435,13 @@
           "base_color": "#FF9C3A",
           "metalness": 0.0,
           "roughness": 0.4,
+          "specular": 0.65,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.3,
           "clearcoat_roughness": 0.14,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2159,9 +1457,13 @@
           "base_color": "#B6BBC1",
           "metalness": 0.68,
           "roughness": 0.33,
+          "specular": 0.6,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.12,
           "clearcoat_roughness": 0.08,
+          "transmission": 0.0,
+          "ior": 1.45,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2177,9 +1479,13 @@
           "base_color": "#D5D9DF",
           "metalness": 1.0,
           "roughness": 0.32,
+          "specular": 1.0,
+          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.08,
           "clearcoat_roughness": 0.05,
+          "transmission": 0.0,
+          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2237,12 +1543,141 @@
         "suspension": {
           "rod_warning_threshold_m": 0.001
         }
+      },
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
+        },
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
+        }
       }
     },
     "animation": {
       "is_running": false,
       "animation_time": 0.0,
-      "amplitude": 0.05,
+      "amplitude": 8.0,
       "frequency": 1.0,
       "phase_global": 0.0,
       "phase_fl": 0.0,
@@ -2250,36 +1685,10 @@
       "phase_rl": 0.0,
       "phase_rr": 0.0,
       "smoothing_enabled": true,
-      "smoothing_duration_ms": 120.0,
+      "smoothing_duration_ms": 120,
       "smoothing_angle_snap_deg": 65.0,
       "smoothing_piston_snap_m": 0.05,
       "smoothing_easing": "OutCubic"
-    },
-    "physics": {
-      "suspension": {
-        "spring_constant": 50000.0,
-        "damper_coefficient": 2000.0,
-        "damper_force_threshold_n": 50.0,
-        "spring_rest_position_m": 0.0,
-        "cylinder_head_area_m2": 0.005,
-        "cylinder_rod_area_m2": 0.004,
-        "axis_unit_world": [
-          0.0,
-          1.0,
-          0.0
-        ]
-      },
-      "reference_axes": {
-        "vertical_world": [
-          0.0,
-          1.0,
-          0.0
-        ]
-      },
-      "validation": {
-        "max_force_n": 100000.0,
-        "max_moment_n_m": 1000000.0
-      }
     },
     "simulation": {
       "physics_dt": 0.001,
@@ -2520,663 +1929,6 @@
         }
       }
     },
-    "defaults_snapshot": {
-      "geometry": {
-        "wheelbase": 3.4,
-        "track": 2.34,
-        "frame_to_pivot": 0.42,
-        "lever_length": 0.75,
-        "rod_position": 0.34,
-        "cylinder_length": 0.46,
-        "cyl_diam_m": 0.11,
-        "stroke_m": 0.38,
-        "dead_gap_m": 0.02,
-        "rod_diameter_m": 0.035,
-        "rod_diameter_rear_m": 0.035,
-        "piston_rod_length_m": 0.32,
-        "piston_thickness_m": 0.025,
-        "interference_check": true,
-        "link_rod_diameters": false,
-        "frame_height_m": 0.65,
-        "frame_beam_size_m": 0.12,
-        "frame_length_m": 3.4,
-        "cylinder_body_length_m": 0.46,
-        "tail_rod_length_m": 0.18
-      },
-      "pneumatic": {
-        "volume_mode": "MANUAL",
-        "receiver_volume": 0.02,
-        "receiver_diameter": 0.2,
-        "receiver_length": 0.5,
-        "cv_atmo_dp": 1000.0,
-        "cv_tank_dp": 1000.0,
-        "cv_atmo_dia": 0.003,
-        "cv_tank_dia": 0.003,
-        "relief_min_pressure": 250000.0,
-        "relief_stiff_pressure": 1500000.0,
-        "relief_safety_pressure": 5000000.0,
-        "throttle_min_dia": 0.001,
-        "throttle_stiff_dia": 0.0015,
-        "diagonal_coupling_dia": 0.0012,
-        "atmo_temp": 20.0,
-        "thermo_mode": "ISOTHERMAL",
-        "master_isolation_open": false,
-        "pressure_units": "Па",
-        "polytropic_heat_transfer_coeff": 45.0,
-        "polytropic_exchange_area": 0.12,
-        "leak_coefficient": 5e-08,
-        "leak_reference_area": 0.0002,
-        "receiver_volume_limits": {
-          "min_m3": 0.001,
-          "max_m3": 1.0
-        }
-      },
-      "modes": {
-        "sim_type": "KINEMATICS",
-        "mode_preset": "standard",
-        "amplitude": 0.05,
-        "frequency": 1.0,
-        "phase": 0.0,
-        "lf_phase": 0.0,
-        "rf_phase": 0.0,
-        "lr_phase": 0.0,
-        "rr_phase": 0.0,
-        "physics": {
-          "include_springs": true,
-          "include_dampers": true,
-          "include_pneumatics": true,
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "lever_inertia_multiplier": 1.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "integrator_method": "rk4"
-        }
-      },
-      "graphics": {
-        "lighting": {
-          "key": {
-            "brightness": 1.0,
-            "color": "#ffffff",
-            "angle_x": 25.0,
-            "angle_y": 23.5,
-            "angle_z": 0.0,
-            "position_x": 0.0,
-            "position_y": 0.0,
-            "position_z": 0.0,
-            "cast_shadow": true,
-            "bind_to_camera": false
-          },
-          "fill": {
-            "brightness": 1.0,
-            "color": "#f1f4ff",
-            "angle_x": 0.0,
-            "angle_y": -45.0,
-            "angle_z": 0.0,
-            "position_x": 0.0,
-            "position_y": 0.0,
-            "position_z": 0.0,
-            "cast_shadow": false,
-            "bind_to_camera": false
-          },
-          "rim": {
-            "brightness": 1.1,
-            "color": "#ffe1bd",
-            "angle_x": 30.0,
-            "angle_y": -135.0,
-            "angle_z": 0.0,
-            "position_x": 0.0,
-            "position_y": 0.0,
-            "position_z": 0.0,
-            "cast_shadow": false,
-            "bind_to_camera": false
-          },
-          "point": {
-            "brightness": 50.0,
-            "color": "#fff7e0",
-            "position_x": 0.0,
-            "position_y": 2.6,
-            "position_z": 1.5,
-            "range": 3.6,
-            "constant_fade": 1.0,
-            "linear_fade": 0.01,
-            "quadratic_fade": 1.0,
-            "cast_shadow": false,
-            "bind_to_camera": false
-          },
-          "spot": {
-            "brightness": 4900.0,
-            "color": "#ffffff",
-            "position_y": 1.0,
-            "range": 0.2,
-            "cone_angle": 6.0,
-            "inner_cone_angle": 0.0,
-            "angle_x": -9.0,
-            "angle_y": 0.0,
-            "position_x": 0.0,
-            "position_z": 2.28,
-            "angle_z": 0.0,
-            "cast_shadow": true,
-            "bind_to_camera": false
-          }
-        },
-        "environment": {
-          "background_mode": "skybox",
-          "background_color": "#1f242c",
-          "skybox_enabled": true,
-          "ibl_enabled": true,
-          "ibl_intensity": 1.3,
-          "skybox_brightness": 1.0,
-          "probe_horizon": 0.0,
-          "ibl_rotation": 0.0,
-          "ibl_source": "",
-          "skybox_blur": 0.08,
-          "ibl_offset_x": 0.0,
-          "ibl_offset_y": 0.0,
-          "ibl_bind_to_camera": false,
-          "reflection_enabled": true,
-          "reflection_padding_m": 0.15,
-          "reflection_quality": "veryhigh",
-          "reflection_refresh_mode": "everyframe",
-          "reflection_time_slicing": "individualfaces",
-          "fog_enabled": true,
-          "fog_color": "#aab9cf",
-          "fog_density": 0.06,
-          "fog_depth_enabled": true,
-          "fog_depth_near": 2.0,
-          "fog_depth_far": 20.0,
-          "fog_depth_curve": 1.0,
-          "fog_near": 2.0,
-          "fog_far": 20.0,
-          "fog_height_enabled": false,
-          "fog_least_intense_y": 0.0,
-          "fog_most_intense_y": 3.0,
-          "fog_height_curve": 1.0,
-          "fog_transmit_enabled": true,
-          "fog_transmit_curve": 1.0,
-          "ao_enabled": true,
-          "ao_strength": 1.0,
-          "ao_radius": 0.008,
-          "ao_bias": 0.025,
-          "ao_softness": 20.0,
-          "ao_dither": true,
-          "ao_sample_rate": 4
-        },
-        "quality": {
-          "preset": "ultra",
-          "shadows": {
-            "enabled": true,
-            "resolution": 4096,
-            "filter": 32,
-            "bias": 8.0,
-            "darkness": 80.0
-          },
-          "antialiasing": {
-            "primary": "ssaa",
-            "quality": "high",
-            "post": "taa"
-          },
-          "taa_enabled": true,
-          "taa_strength": 0.4,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.05,
-          "render_policy": "always",
-          "frame_rate_limit": 144.0,
-          "oit": "weighted",
-          "mesh": {
-            "cylinder_segments": 128,
-            "cylinder_rings": 32
-          }
-        },
-        "camera": {
-          "fov": 60.0,
-          "near": 0.08,
-          "far": 150.0,
-          "speed": 1.0,
-          "auto_rotate": false,
-          "auto_rotate_speed": 8.0,
-          "auto_fit": true,
-          "manual_camera": false,
-          "camera_pos_x": 0.0,
-          "camera_pos_y": 0.0,
-          "camera_pos_z": 0.0,
-          "camera_rot_x": 0.0,
-          "camera_rot_y": 0.0,
-          "camera_rot_z": 0.0,
-          "orbit_target_x": 0.0,
-          "orbit_target_y": 0.0,
-          "orbit_target_z": 0.5,
-          "orbit_yaw": 30.0,
-          "orbit_pitch": -20.0,
-          "orbit_distance": 4.6,
-          "orbit_inertia_enabled": true,
-          "orbit_inertia": 0.4,
-          "orbit_rotate_smoothing": 0.5,
-          "orbit_pan_smoothing": 0.5,
-          "orbit_zoom_smoothing": 0.51,
-          "orbit_friction": 0.2,
-          "world_pos_x": 0.0,
-          "world_pos_y": 0.0,
-          "world_pos_z": 0.0,
-          "world_rot_x": 0.0,
-          "world_rot_y": 0.0,
-          "world_rot_z": 0.0,
-          "world_scale": 1.0
-        },
-        "materials": {
-          "frame": {
-            "base_color": "#2D323C",
-            "metalness": 0.0,
-            "roughness": 0.58,
-            "specular": 0.55,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.35,
-            "clearcoat_roughness": 0.12,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "frame"
-          },
-          "lever": {
-            "base_color": "#A7ADB4",
-            "metalness": 1.0,
-            "roughness": 0.38,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.05,
-            "clearcoat_roughness": 0.05,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "lever"
-          },
-          "cylinder": {
-            "base_color": "#E1F5FF",
-            "metalness": 0.0,
-            "roughness": 0.05,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.0,
-            "clearcoat_roughness": 0.0,
-            "transmission": 1.0,
-            "ior": 1.52,
-            "thickness": 0.0,
-            "attenuation_distance": 1800.0,
-            "attenuation_color": "#B7E7FF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "cylinder"
-          },
-          "piston_body": {
-            "base_color": "#FF3C6E",
-            "metalness": 0.0,
-            "roughness": 0.45,
-            "specular": 0.6,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.42,
-            "clearcoat_roughness": 0.18,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "piston_body"
-          },
-          "piston_rod": {
-            "base_color": "#F0F0F0",
-            "metalness": 1.0,
-            "roughness": 0.12,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.05,
-            "clearcoat_roughness": 0.02,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "piston_rod"
-          },
-          "joint_tail": {
-            "base_color": "#2A82FF",
-            "metalness": 0.0,
-            "roughness": 0.42,
-            "specular": 0.6,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.28,
-            "clearcoat_roughness": 0.16,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "joint_tail"
-          },
-          "joint_arm": {
-            "base_color": "#FF9C3A",
-            "metalness": 0.0,
-            "roughness": 0.4,
-            "specular": 0.65,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.3,
-            "clearcoat_roughness": 0.14,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "joint_arm"
-          },
-          "joint_rod": {
-            "base_color": "#B6BBC1",
-            "metalness": 0.68,
-            "roughness": 0.33,
-            "specular": 0.6,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.12,
-            "clearcoat_roughness": 0.08,
-            "transmission": 0.0,
-            "ior": 1.45,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.4,
-            "occlusion_amount": 0.3,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "joint_rod"
-          },
-          "tail_rod": {
-            "base_color": "#D5D9DF",
-            "metalness": 1.0,
-            "roughness": 0.32,
-            "specular": 1.0,
-            "specular_tint": 0.0,
-            "opacity": 1.0,
-            "clearcoat": 0.08,
-            "clearcoat_roughness": 0.05,
-            "transmission": 0.0,
-            "ior": 1.5,
-            "thickness": 0.0,
-            "attenuation_distance": 10000.0,
-            "attenuation_color": "#FFFFFF",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 0.0,
-            "occlusion_amount": 0.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.0,
-            "id": "tail_rod"
-          }
-        },
-        "effects": {
-          "bloom_enabled": true,
-          "bloom_intensity": 0.5,
-          "bloom_threshold": 1.0,
-          "bloom_spread": 0.65,
-          "bloom_glow_strength": 1.0,
-          "bloom_hdr_max": 8.0,
-          "bloom_hdr_scale": 2.0,
-          "bloom_quality_high": true,
-          "bloom_bicubic_upscale": true,
-          "tonemap_enabled": false,
-          "tonemap_mode": "filmic",
-          "tonemap_exposure": 1.0,
-          "tonemap_white_point": 1.0,
-          "depth_of_field": false,
-          "dof_auto_focus": true,
-          "dof_focus_distance": 2.5,
-          "dof_blur": 4.0,
-          "motion_blur": false,
-          "motion_blur_amount": 0.2,
-          "lens_flare": false,
-          "lens_flare_ghost_count": 4,
-          "lens_flare_ghost_dispersal": 0.06,
-          "lens_flare_halo_width": 0.05,
-          "lens_flare_bloom_bias": 1.0,
-          "lens_flare_stretch_to_aspect": false,
-          "vignette": false,
-          "vignette_strength": 0.35,
-          "vignette_radius": 0.5,
-          "color_adjustments_enabled": true,
-          "color_adjustments_active": true,
-          "adjustment_brightness": 0.0,
-          "adjustment_contrast": 0.0,
-          "adjustment_saturation": 0.0
-        },
-        "scene": {
-          "scale_factor": 1.0,
-          "exposure": 1.0,
-          "default_clear_color": "#1b1f27",
-          "model_base_color": "#9da3aa",
-          "model_roughness": 0.42,
-          "model_metalness": 0.82,
-          "suspension": {
-            "rod_warning_threshold_m": 0.001
-          }
-        }
-      },
-      "constants": {
-        "geometry": {
-          "kinematics": {
-            "track_width_m": 1.1,
-            "lever_length_m": 0.35,
-            "pivot_offset_from_frame_m": 0.2,
-            "rod_attach_fraction": 0.5
-          },
-          "cylinder": {
-            "inner_diameter_m": 0.08,
-            "rod_diameter_m": 0.035,
-            "piston_thickness_m": 0.02,
-            "body_length_m": 0.25,
-            "dead_zone_head_m3": 0.001,
-            "dead_zone_rod_m3": 0.001
-          },
-          "visualization": {
-            "arm_radius_m": 0.05,
-            "cylinder_radius_m": 0.04,
-            "pivot_offset_x_m": 0.0,
-            "tail_offset_x_m": 0.0,
-            "piston_clip_min_fraction": 0.05,
-            "piston_clip_max_fraction": 0.95,
-            "max_stroke_fraction": 0.9
-          },
-          "initial_state": {
-            "lever_length_m": 0.35,
-            "tail_rod_length_m": 0.18,
-            "frame_beam_size_m": 0.12,
-            "frame_height_m": 0.65,
-            "frame_length_m": 2.0,
-            "cylinder_body_length_m": 0.25,
-            "j_arm_left": [
-              -0.35,
-              0.65,
-              -0.5
-            ],
-            "j_arm_right": [
-              0.35,
-              0.65,
-              -0.5
-            ],
-            "j_tail_left": [
-              -0.4,
-              0.35,
-              -0.5
-            ],
-            "j_tail_right": [
-              0.4,
-              0.35,
-              -0.5
-            ]
-          }
-        },
-        "pneumo": {
-          "valves": {
-            "delta_open_pa": 5000.0,
-            "equivalent_diameter_m": 0.008,
-            "relief_min_orifice_diameter_m": 0.001,
-            "relief_stiff_orifice_diameter_m": 0.0015
-          },
-          "receiver": {
-            "volume_min_m3": 0.0018,
-            "volume_max_m3": 0.0045,
-            "initial_volume_m3": 0.003,
-            "initial_pressure_pa": 101325.0,
-            "initial_temperature_k": 293.15,
-            "volume_mode": "ADIABATIC_RECALC"
-          },
-          "gas": {
-            "tank_volume_initial_m3": 0.0035,
-            "tank_pressure_initial_pa": 101325.0,
-            "tank_temperature_initial_k": 293.15,
-            "tank_volume_mode": "ADIABATIC_RECALC",
-            "time_step_s": 0.005,
-            "thermo_mode": "ISOTHERMAL",
-            "total_time_s": 3.0,
-            "relief_min_threshold_pa": 106391.25,
-            "relief_stiff_threshold_pa": 151987.5,
-            "relief_safety_threshold_pa": 202650.0
-          }
-        },
-        "physics": {
-          "suspension": {
-            "spring_constant": 50000.0,
-            "damper_coefficient": 2000.0,
-            "damper_force_threshold_n": 50.0,
-            "spring_rest_position_m": 0.0,
-            "cylinder_head_area_m2": 0.005,
-            "cylinder_rod_area_m2": 0.004,
-            "axis_unit_world": [
-              0.0,
-              1.0,
-              0.0
-            ]
-          },
-          "reference_axes": {
-            "vertical_world": [
-              0.0,
-              1.0,
-              0.0
-            ]
-          },
-          "validation": {
-            "max_force_n": 100000.0,
-            "max_moment_n_m": 1000000.0
-          },
-          "rigid_body": {
-            "default_mass_kg": 1500.0,
-            "default_inertia_pitch_kg_m2": 2000.0,
-            "default_inertia_roll_kg_m2": 3000.0,
-            "gravity_m_s2": 9.81,
-            "track_width_m": 1.6,
-            "wheelbase_m": 3.2,
-            "angle_limit_rad": 0.5,
-            "damping_coefficient": 0.1,
-            "static_load_tolerance": 0.05,
-            "load_sum_tolerance_scale": 1e-09,
-            "load_sum_min_reference": 1.0,
-            "attachment_points_m": {
-              "LP": {
-                "x_m": -0.8,
-                "z_m": -1.6
-              },
-              "PP": {
-                "x_m": 0.8,
-                "z_m": -1.6
-              },
-              "LZ": {
-                "x_m": -0.8,
-                "z_m": 1.6
-              },
-              "PZ": {
-                "x_m": 0.8,
-                "z_m": 1.6
-              }
-            }
-          },
-          "integrator": {
-            "solver": {
-              "primary_method": "Radau",
-              "fallback_methods": [
-                "BDF",
-                "RK45"
-              ],
-              "relative_tolerance": 1e-06,
-              "absolute_tolerance": 1e-09,
-              "max_step_divisor": 4.0
-            },
-            "loop": {
-              "max_steps_per_render": 50,
-              "lever_ratio_clip_min": -0.999,
-              "lever_ratio_clip_max": 0.999,
-              "statistics_min_total_steps": 1,
-              "max_linear_velocity_m_s": 10.0,
-              "max_angular_velocity_rad_s": 10.0,
-              "nan_replacement_value": 0.0,
-              "posinf_replacement_value": 0.0,
-              "neginf_replacement_value": 0.0
-            }
-          }
-        }
-      }
-    },
     "constants": {
       "geometry": {
         "kinematics": {
@@ -3340,5 +2092,160 @@
         }
       }
     }
+  },
+  "metadata": {
+    "version": "5.0.0",
+    "schema_version": "0.2.1",
+    "last_modified": "2025-11-01T12:00:00Z",
+    "units_version": "si_v2",
+    "migrations": [
+      "0001_add_diagnostics_defaults",
+      "0002_remove_geometry_mesh_extras"
+    ],
+    "last_migration": "0002_remove_geometry_mesh_extras",
+    "migrated_from": "src/ui/panels/graphics/defaults.py",
+    "migration_date": "2025-10-18",
+    "total_parameters": 313,
+    "description": "✅ FIXED: tonemap_enabled=false, depth_of_field=false, vignette=false по умолчанию",
+    "operational_imperatives": [
+      "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
+      "Все графические параметры управляются пользователем через UI: один параметр — один контрол без скрытых зависимостей.",
+      "Сервис настроек не должен изменять файл при первой загрузке; сохранение происходит только по явному запросу пользователя."
+    ],
+    "environment_slider_ranges": {
+      "ibl_intensity": {
+        "min": 0.0,
+        "max": 8.0,
+        "step": 0.05
+      },
+      "skybox_brightness": {
+        "min": 0.0,
+        "max": 8.0,
+        "step": 0.05
+      },
+      "probe_horizon": {
+        "min": -1.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "skybox_blur": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "ibl_rotation": {
+        "min": -1080.0,
+        "max": 1080.0,
+        "step": 1.0
+      },
+      "ibl_offset_x": {
+        "min": -180.0,
+        "max": 180.0,
+        "step": 1.0
+      },
+      "ibl_offset_y": {
+        "min": -180.0,
+        "max": 180.0,
+        "step": 1.0
+      },
+      "reflection_padding_m": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_density": {
+        "min": 0.0,
+        "max": 1.0,
+        "step": 0.01
+      },
+      "fog_depth_near": {
+        "min": 0.0,
+        "max": 200.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_near": {
+        "min": 0.0,
+        "max": 200.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_depth_far": {
+        "min": 0.0,
+        "max": 500.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_far": {
+        "min": 0.0,
+        "max": 500.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_least_intense_y": {
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_most_intense_y": {
+        "min": -100.0,
+        "max": 100.0,
+        "step": 0.1,
+        "decimals": 2,
+        "units": "м"
+      },
+      "fog_height_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "fog_depth_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "fog_transmit_curve": {
+        "min": 0.0,
+        "max": 4.0,
+        "step": 0.05
+      },
+      "ao_strength": {
+        "min": 0.0,
+        "max": 100.0,
+        "step": 1.0
+      },
+      "ao_radius": {
+        "min": 0.001,
+        "max": 0.1,
+        "step": 0.001,
+        "decimals": 3,
+        "units": "м"
+      },
+      "ao_bias": {
+        "min": 0.0,
+        "max": 0.1,
+        "step": 0.001,
+        "decimals": 3
+      },
+      "ao_softness": {
+        "min": 0.0,
+        "max": 50.0,
+        "step": 1.0
+      }
+    },
+    "scene_defaults": {
+      "suspension": {
+        "rod_warning_threshold_m": 0.001
+      }
+    },
+    "legacy": {}
   }
 }

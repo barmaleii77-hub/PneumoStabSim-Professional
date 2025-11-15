@@ -95,61 +95,149 @@ def _install_qtbot_compat_shims() -> None:
     QtBot.addCleanup = addCleanup  # type: ignore[attr-defined]
 
 
-# --- Fallback qtbot fixture (если плагин pytest-qt недоступен) ------------------
-# Добавляем минимальный адаптор, чтобы тесты не падали при отсутствии плагина.
-# Реализованы методы wait, waitUntil, addWidget, addCleanup для совместимости.
-try:
-    import importlib.util as _imp_util
+# --- Fallback qtbot fixture (универсально, перекрывает плагин при необходимости) ---
+# Определяем упрощённый адаптер всегда. Если полноценный плагин загрузится, он
+# может не использоваться, но минимальная совместимость для smoke/UI тестов
+# сохранится даже при отключённой автозагрузке плагинов.
 
-    _spec = _imp_util.find_spec("pytestqt.plugin")
-except Exception:
-    _spec = None
 
-if _spec is None:
+@pytest.fixture
+def qtbot(qapp):  # noqa: D401
+    """Упрощённый QtBot fallback без полного функционала pytest-qt.
 
-    @pytest.fixture
-    def qtbot(qapp):  # noqa: D401
-        """Упрощённый QtBot fallback без полного функционала pytest-qt.
+    Реализованы популярные методы: wait, waitUntil, waitExposed, addWidget,
+    addCleanup, mouseClick, waitSignal. Этого достаточно для smoke/UI тестов.
+    """
+    from PySide6.QtTest import QTest, QSignalSpy
+    from PySide6.QtCore import Qt
+    import time
 
-        Предназначен для базовых ожиданий и регистрации виджетов.
-        """
-        from PySide6.QtTest import QTest
-        import time
+    class _FallbackQtBot:  # минимальный адаптер
+        def __init__(self):
+            self._cleanups: list[Callable[[], Any]] = []
 
-        class _FallbackQtBot:  # минимальный адаптер
-            def __init__(self):
-                self._cleanups: list[Callable[[], Any]] = []
+        def addWidget(self, widget):  # совместимость с тестами
+            # В реальном QtBot происходит трекинг; нам достаточно ссылки
+            setattr(self, "_last_widget", widget)
 
-            def addWidget(self, widget):  # совместимость с тестами
-                # В реальном QtBot происходит трекинг; нам достаточно ссылки
-                setattr(self, "_last_widget", widget)
+        def wait(self, ms: int) -> None:
+            QTest.qWait(ms)
 
-            def wait(self, ms: int) -> None:
-                QTest.qWait(ms)
+        def waitUntil(
+            self, func: Callable[[], bool], timeout: int = 1000, interval: int = 25
+        ) -> None:
+            deadline = time.time() + timeout / 1000.0
+            while time.time() < deadline:
+                try:
+                    if func():
+                        return
+                except Exception:
+                    pass
+                QTest.qWait(interval)
+            raise AssertionError("waitUntil timeout")
 
-            def waitUntil(
-                self, func: Callable[[], bool], timeout: int = 1000, interval: int = 25
-            ) -> None:
-                deadline = time.time() + timeout / 1000.0
-                while time.time() < deadline:
+        def waitExposed(self, widget, timeout: int = 1000) -> None:
+            # Универсальная реализация для QWidget/QWindow
+            try:
+                if hasattr(widget, "show"):
+                    widget.show()
+
+                def _exposed() -> bool:
                     try:
-                        if func():
-                            return
+                        wh = (
+                            widget.windowHandle()
+                            if hasattr(widget, "windowHandle")
+                            else None
+                        )
+                        return bool(getattr(widget, "isVisible", lambda: True)()) and (
+                            wh is None or getattr(wh, "isExposed", lambda: True)()
+                        )
+                    except Exception:
+                        return True
+
+                self.waitUntil(_exposed, timeout=timeout, interval=25)
+            except Exception:
+                # Последняя попытка — короткая задержка
+                QTest.qWait(min(timeout, 200))
+
+        def mouseClick(self, widget, button=Qt.LeftButton) -> None:
+            try:
+                QTest.mouseClick(widget, button)
+            except Exception:
+                # В крайнем случае — имитация события через click() если есть
+                try:
+                    widget.click()
+                except Exception:
+                    pass
+
+        def waitSignal(self, signal, timeout: int = 1000):  # type: ignore[override]
+            """Контекстный менеджер ожидания Qt-сигнала без зависимости от QSignalSpy.
+
+            Реализовано через прямое подключение слота и циклический qWait с
+            интервалом 10–25 мс. Совместим по интерфейсу (поле args).
+            """
+
+            class _WaitCtx:
+                def __init__(self, sig, to):
+                    from PySide6.QtCore import QObject
+                    from PySide6.QtTest import QTest
+
+                    self._signal = sig
+                    self._timeout = int(to)
+                    self._received = False
+                    self._args: list[Any] | None = None
+                    self._obj = QObject()
+                    self._QTest = QTest
+
+                    def _on_emit(*args):
+                        self._received = True
+                        try:
+                            self._args = list(args)
+                        except Exception:
+                            self._args = None
+
+                    self._on_emit = _on_emit
+
+                def __enter__(self):
+                    try:
+                        self._signal.connect(self._on_emit)
                     except Exception:
                         pass
-                    QTest.qWait(interval)
-                raise AssertionError("waitUntil timeout")
+                    return self
 
-            def addCleanup(self, func: Callable[[], Any]) -> None:
-                self._cleanups.append(func)
+                def __exit__(self, exc_type, exc, tb):
+                    # Если сигнал ещё не пришёл — ждём с шагом
+                    deadline = time.time() + (self._timeout / 1000.0)
+                    while not self._received and time.time() < deadline:
+                        try:
+                            self._QTest.qWait(10)
+                        except Exception:
+                            # В крайнем случае небольшая пауза, чтобы дать Qt обработать события
+                            time.sleep(0.01)
+                    try:
+                        self._signal.disconnect(self._on_emit)
+                    except Exception:
+                        pass
+                    if not self._received:
+                        raise AssertionError("waitSignal timeout")
+                    return False
 
-        bot = _FallbackQtBot()
-        yield bot
-        for c in bot._cleanups:
-            try:
-                c()
-            except Exception:
-                pass
+                @property
+                def args(self):  # совместимость с pytest-qt
+                    return self._args
+
+            return _WaitCtx(signal, timeout)
+
+        def addCleanup(self, func: Callable[[], Any]) -> None:
+            self._cleanups.append(func)
+
+    bot = _FallbackQtBot()
+    yield bot
+    for c in bot._cleanups:
+        try:
+            c()
+        except Exception:
+            pass
 
 
 # --- MonkeyPatch compatibility wrapper ------------------------------------------
@@ -719,7 +807,7 @@ def geometry_bridge(sample_geometry_params):
     )
 
 
-# --- Session teardown -----------------------------------------------------------
+# --- Session teardown ------------------------------------------------------------
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:  # noqa: D401

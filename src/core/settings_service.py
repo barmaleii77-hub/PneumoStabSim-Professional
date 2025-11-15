@@ -59,7 +59,7 @@ class _RelaxedAppSettings(AppSettings):
 
 
 class _LooseMetadata:
-    """Минимальный адаптор метаданных для loose-модели (смоук-тесты).
+    """Минимальный адаптер метаданных для loose-модели (смоук-тесты).
 
     Доступны только поля, которые реально запрашиваются тестами.
     """
@@ -158,7 +158,7 @@ class SettingsService:
             allowed = set()
 
         if not allowed:
-            # Если не удалось извлечь список полей, не выполняем дополнительную проверку
+            # Если не удаётся извлечь список полей, не выполняем дополнительную проверку
             return
 
         # Разрешённые служебные/наследуемые ключи, которые допускаются сверх схемы
@@ -190,6 +190,39 @@ class SettingsService:
             raise SettingsValidationError(
                 f"Unknown geometry keys are not allowed: {ordered}"
             )
+
+    # ------------------------- SOFT DEFAULTS FILL ---------------------------
+    def _soft_fill_defaults(self, payload: MutableMapping[str, Any]) -> None:
+        """Мягко дополнить раздел ``defaults_snapshot`` недостающими значениями.
+
+        - Создаёт ``defaults_snapshot``, если он отсутствует, на основе ``current``.
+        - Рекурсивно копирует только отсутствующие ключи из ``current`` в
+          ``defaults_snapshot`` без перезаписи существующих значений.
+        - Не создаёт файл на диске — изменения происходят только в *payload*.
+        """
+        if not isinstance(payload, MutableMapping):
+            return
+
+        current = payload.get("current")
+        defaults = payload.get("defaults_snapshot")
+        if not isinstance(current, MutableMapping):
+            return
+        if not isinstance(defaults, MutableMapping):
+            defaults = {}
+            payload["defaults_snapshot"] = defaults
+
+        def _merge_missing(src: MutableMapping[str, Any], dst: MutableMapping[str, Any]) -> None:
+            for key, value in src.items():
+                if key not in dst:
+                    dst[key] = deepcopy(value)
+                    continue
+                # Рекурсивно дополняем только mapping‑узлы
+                src_child = value
+                dst_child = dst.get(key)
+                if isinstance(src_child, MutableMapping) and isinstance(dst_child, MutableMapping):
+                    _merge_missing(src_child, dst_child)
+
+        _merge_missing(current, defaults)
 
     # ------------------------------------------------------------------
     # Path resolution & raw IO
@@ -249,12 +282,9 @@ class SettingsService:
                 "Settings payload missing sections: " + ", ".join(missing_root)
             )
 
-        # Ранний предохранитель: отклоняем payload с устаревшими mesh‑полями в geometry
-        # try:
-        #     self._guard_legacy_geometry_mesh_extras(payload)
-        # except SettingsValidationError:
-        #     # Пробрасываем без миграций и нормализаций
-        #     raise
+        # РАННИЙ ПРЕДОХРАНИТЕЛЬ: отклоняем payload с устаревшими mesh‑полями в geometry
+        # Важно выполнять ДО миграций, иначе _apply_migrations() удалит поля и тесты не увидят ошибку
+        self._guard_legacy_geometry_mesh_extras(payload)
 
         # Apply structural migrations before any normalisation/validation
         try:
@@ -262,10 +292,18 @@ class SettingsService:
         except Exception as mig_exc:  # pragma: no cover - migration best-effort
             logger.warning("settings_migration_failed: %s", mig_exc)
 
-        # Теперь, после миграций, запускаем предохранитель на легаси mesh‑поля
+        # Теперь, после миграций, запускаем предохранитель на легаси mesh‑поля (повторно, на всякий случай)
         self._guard_legacy_geometry_mesh_extras(payload)
         self._normalise_fog_depth_aliases(payload)
         self._normalise_hdr_paths(payload)
+
+        # Мягко дополняем defaults_snapshot недостающими разделами из current перед строгой типовой валидацией
+        # Это не записывает изменения на диск, используется только для корректной загрузки модели
+        try:
+            self._soft_fill_defaults(payload)
+            self._soft_fill_constants(payload)
+        except Exception:
+            pass
 
         if self._validate_schema:
             self.validate(payload)
@@ -725,35 +763,78 @@ class SettingsService:
         settings = self.load(use_cache=True)
         return dump_settings(settings)
 
-    def _soft_fill_defaults(self, payload: MutableMapping[str, Any]) -> None:
-        """Мягко дополнить ``defaults_snapshot`` недостающими ключами из ``current``.
+    # --- NEW: мягкое наполнение constants из defaults/baseline -----------------
+    def _soft_fill_constants(self, payload: MutableMapping[str, Any]) -> None:
+        """Гарантировать наличие ``current.constants`` и ``defaults_snapshot.constants``.
 
-        Рекурсивно копируем только отсутствующие поля, не перетирая существующие
-        значения в defaults. Выполняется только в save() перед validate(),
-        поскольку по требованиям файл не должен модифицироваться при первой загрузке.
+        Источники (по приоритету):
+        - Соседний раздел (копируем current <-> defaults_snapshot)
+        - Базовый конфиг ``config/baseline/app_settings.json``
         """
         if not isinstance(payload, MutableMapping):
             return
+
+        def _ensure_mapping(
+            root: MutableMapping[str, Any], key: str
+        ) -> MutableMapping[str, Any]:
+            node = root.get(key)
+            if not isinstance(node, MutableMapping):
+                node = {}
+                root[key] = node
+            return node
+
         current = payload.get("current")
         defaults = payload.get("defaults_snapshot")
-        if not isinstance(current, MutableMapping):
-            return
-        if not isinstance(defaults, MutableMapping):
-            payload["defaults_snapshot"] = deepcopy(current)
+        if not isinstance(current, MutableMapping) or not isinstance(
+            defaults, MutableMapping
+        ):
             return
 
-        def _deep_fill(dst: MutableMapping[str, Any], src: Mapping[str, Any]) -> None:
-            """Рекурсивно заполнить dst недостающими ключами из src."""
-            for k, v in src.items():
-                if k not in dst:
-                    # Ключа нет вообще — полностью копируем значение
-                    dst[k] = deepcopy(v)
-                elif isinstance(dst[k], MutableMapping) and isinstance(v, Mapping):
-                    # Оба значения — mapping, рекурсивно заполняем вложенные ключи
-                    _deep_fill(dst[k], v)
-                # Если ключ уже есть, но типы не mapping — не трогаем (сохраняем defaults)
+        curr_has = isinstance(current.get("constants"), MutableMapping)
+        defs_has = isinstance(defaults.get("constants"), MutableMapping)
 
-        _deep_fill(defaults, current)
+        # Попытка загрузить constants из baseline
+        baseline_constants: Mapping[str, Any] | None = None
+        try:
+            baseline_path = PROJECT_ROOT / "config" / "baseline" / "app_settings.json"
+            with baseline_path.open("r", encoding="utf-8") as f:
+                baseline = json.load(f)
+            # baseline хранит константы в defaults_snapshot или current
+            for candidate_root in ("defaults_snapshot", "current"):
+                node = baseline.get(candidate_root)
+                if isinstance(node, MappingABC):
+                    maybe = node.get("constants")
+                    if isinstance(maybe, MappingABC):
+                        baseline_constants = maybe  # type: ignore[assignment]
+                        break
+        except Exception:
+            baseline_constants = None
+
+        if not curr_has:
+            source: Mapping[str, Any] | None = None
+            maybe = (
+                defaults.get("constants")
+                if isinstance(defaults, MutableMapping)
+                else None
+            )
+            source = maybe if isinstance(maybe, MappingABC) else None
+            if source is None:
+                source = baseline_constants
+            if source is not None:
+                _ensure_mapping(current, "constants").update(deepcopy(source))
+
+        if not defs_has:
+            source2: Mapping[str, Any] | None = None
+            maybe2 = (
+                current.get("constants")
+                if isinstance(current, MutableMapping)
+                else None
+            )
+            source2 = maybe2 if isinstance(maybe2, MappingABC) else None
+            if source2 is None:
+                source2 = baseline_constants
+            if source2 is not None:
+                _ensure_mapping(defaults, "constants").update(deepcopy(source2))
 
     def save(
         self,
@@ -775,6 +856,7 @@ class SettingsService:
             logger.warning("settings_migration_failed_on_save: %s", mig_exc)
         # Мягкая реконструкция defaults_snapshot до validate()
         self._soft_fill_defaults(payload_dict)
+        self._soft_fill_constants(payload_dict)
         self._normalise_fog_depth_aliases(payload_dict)
         self._normalise_hdr_paths(payload_dict)
         self._strip_null_slider_metadata(payload_dict)
@@ -1059,7 +1141,12 @@ class SettingsService:
             )
 
     def _guard_legacy_geometry_mesh_extras(self, payload: MappingABC[str, Any]) -> None:
-        """Обнаружение устаревших mesh-полей геометрии (теперь жёстко запрещены)."""
+        """Обнаружение устаревших mesh-полей геометрии (теперь жёстко запрещены).
+
+        Проверяем рекурсивно внутри разделов ``current.geometry`` и
+        ``defaults_snapshot.geometry`` — запрещённые ключи не должны появляться
+        ни на верхнем уровне, ни во вложенных объектах (например, в ``meta``).
+        """
         if not isinstance(payload, MappingABC):
             return
 
@@ -1069,9 +1156,23 @@ class SettingsService:
             if not isinstance(root, MappingABC):
                 return None
             geometry = root.get("geometry")
-            if not isinstance(geometry, MappingABC):
-                return None
-            return geometry
+            return geometry if isinstance(geometry, MappingABC) else None
+
+        def _iter_keys_recursive(node: MappingABC[str, Any] | Any) -> set[str]:
+            found: set[str] = set()
+            if isinstance(node, MappingABC):
+                for k, v in node.items():
+                    try:
+                        found.add(str(k))
+                    except Exception:
+                        pass
+                    if isinstance(v, MappingABC):
+                        found |= _iter_keys_recursive(v)
+                    elif isinstance(v, list):
+                        for item in v:
+                            if isinstance(item, MappingABC):
+                                found |= _iter_keys_recursive(item)
+            return found
 
         current = (
             payload.get("current")
@@ -1087,7 +1188,8 @@ class SettingsService:
         offenders: set[str] = set()
         for section in (_geom_section(current), _geom_section(defaults)):
             if isinstance(section, MappingABC):
-                offenders |= set(section.keys()) & LEGACY_GEOMETRY_MESH_EXTRAS
+                keys = _iter_keys_recursive(section)
+                offenders |= keys & LEGACY_GEOMETRY_MESH_EXTRAS
 
         if offenders:
             ordered = ", ".join(sorted(offenders))
