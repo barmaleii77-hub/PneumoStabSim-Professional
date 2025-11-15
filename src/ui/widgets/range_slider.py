@@ -1,7 +1,7 @@
 """Rich range slider widget used throughout the geometry panel.
 
 The widget exposes both live updates (``valueChanged``) and debounced updates
-(``valueEdited``) to mirror the behaviour of the historical implementation.
+(""valueEdited"") to mirror the behaviour of the historical implementation.
 
 Key refinements introduced during the refactor:
 
@@ -305,7 +305,7 @@ class RangeSlider(QWidget):
         units_box.addWidget(units_label)
         self.units_edit = QLineEdit()
         self.units_edit.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.units_edit.setPlaceholderText("мм / m / ...")
+        self.units_edit.setPlaceholderText("мм / м / ...")
         self.units_edit.setToolTip("Единицы измерения для подписи")
         units_box.addWidget(self.units_edit)
         params_layout.addLayout(units_box)
@@ -616,28 +616,27 @@ class RangeSlider(QWidget):
         self._refresh_accessibility_descriptions()
 
     def setStepSize(self, step: float) -> None:
-        """Обновить логический шаг с нормализацией.
+        """Обновить логический шаг с жёсткой нормализацией > 0.
 
         Правила:
-        - шаг <= 0 → 0.001
-        - отрицательный → abs
-        - синхронизируем singleStep всех спинбоксов
+        - NaN/inf → 0.001
+        - отрицательный или нулевой → abs(value) или 0.001 минимум
+        - синхронизируем singleStep всех спинбоксов и значение UI step
         """
-        step = float(step)
-        if not math.isfinite(step):
-            step = 0.001
-        if step == 0.0:
-            step = 0.001
-        if step < 0.0:
-            step = abs(step)
-        self._step = step
-        single_step = step
+        raw_step = float(step)
+        if not math.isfinite(raw_step):
+            raw_step = 0.001
+        if raw_step <= 0.0:
+            raw_step = abs(raw_step) if raw_step != 0.0 else 0.001
+        if raw_step == 0.0:
+            raw_step = 0.001
+        # Логический шаг всегда > 0
+        self._step = raw_step
         for spinbox in (self.min_spinbox, self.value_spinbox, self.max_spinbox):
-            spinbox.setSingleStep(single_step)
-        # Обновляем UI-спинбокс шага
+            spinbox.setSingleStep(self._step)
         try:
             self.step_spinbox.blockSignals(True)
-            self.step_spinbox.setValue(max(step, 1e-12))
+            self.step_spinbox.setValue(self._step)
         finally:
             self.step_spinbox.blockSignals(False)
         self.stepChanged.emit(self._step)
@@ -768,8 +767,7 @@ class RangeSlider(QWidget):
         width = self._maximum - self._minimum
         self.range_indicator_label.setText(
             f"Диапазон: {self._minimum:.{self._decimals}f} — {self._maximum:.{self._decimals}f} "
-            f"ширина диапазона {width:.{self._decimals}f}"
-            + (f" {self._units}" if self._units else "")
+            f"ширина диапазона {width:.{self._decimals}f}" + (f" {self._units}" if self._units else "")
         )
 
     def _update_position_indicator(self, position: int) -> None:
@@ -808,8 +806,8 @@ class RangeSlider(QWidget):
         else:
             span = self._maximum - self._minimum
             value = self._minimum + (span * position / self._slider_resolution)
-        # Квантование по шагу
-        if self._step:
+        # Квантование по шагу (шаг всегда > 0)
+        if self._step > 0.0:
             value = round(value / self._step) * self._step
         value = max(self._minimum, min(self._maximum, value))
 
@@ -881,22 +879,34 @@ class RangeSlider(QWidget):
     def keyPressEvent(self, event: QKeyEvent) -> None:  # type: ignore[override]
         """Обработка клавиатуры как резерв к QShortcut.
 
-        Некоторые окружения не активируют QShortcut на сочетания с стрелками.
-        Дублируем поведение вручную для Ctrl+Alt+Right/Left и Ctrl+Alt+1..3.
+        Актуализировано: устраняем двойное срабатывание нуджа.
+        Стрелки с Ctrl+Alt обрабатываются ТОЛЬКО через QShortcut. Здесь
+        реализуем fallback ТОЛЬКО для фокуса по Ctrl+Alt+1..3 или если
+        шорткаты по какой-то причине отключены.
         """
         if (
             event.modifiers() & Qt.KeyboardModifier.ControlModifier
             and event.modifiers() & Qt.KeyboardModifier.AltModifier
         ):
             key = event.key()
-            if key == Qt.Key_Right:
-                self._nudge_slider(self._step)
-                event.accept()
-                return
-            if key == Qt.Key_Left:
-                self._nudge_slider(-self._step)
-                event.accept()
-                return
+            # Fallback для стрелок только если шорткаты недоступны
+            if key in (Qt.Key_Right, Qt.Key_Left):
+                shortcuts_active = (
+                    getattr(self, "_increase_shortcut", None) is not None
+                    and self._increase_shortcut.isEnabled()
+                    and getattr(self, "_decrease_shortcut", None) is not None
+                    and self._decrease_shortcut.isEnabled()
+                )
+                if not shortcuts_active:
+                    if key == Qt.Key_Right:
+                        self._nudge_slider(self._step)
+                        event.accept()
+                        return
+                    if key == Qt.Key_Left:
+                        self._nudge_slider(-self._step)
+                        event.accept()
+                        return
+                # В противном случае даём событию пройти к QShortcut
             if key == Qt.Key_1:
                 self.min_spinbox.setFocus()
                 event.accept()

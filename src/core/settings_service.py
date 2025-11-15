@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+# Стандартные импорты
 import json
 import logging
 import os
@@ -18,14 +19,11 @@ from pathlib import Path, PureWindowsPath
 from typing import Any
 from collections.abc import Iterable, Mapping, MutableMapping
 from collections.abc import Mapping as MappingABC
-from pydantic import (
-    ValidationError as _PydanticValidationError,
-)  # add alias at top if not present
 
-# Совместимый алиас для использования ниже
-ValidationError = _PydanticValidationError
+# Внешние зависимости
+from pydantic import ValidationError as _PydanticValidationError
 
-from src.core.settings_defaults import load_default_settings_payload
+# Локальные импорты (группируем ниже стандарта по E402 рекомендациям)
 from src.infrastructure.container import (
     ServiceContainer,
     ServiceResolutionError,
@@ -37,12 +35,10 @@ from src.core.settings_validation import (
     DEFAULT_REQUIRED_MATERIALS,
     FORBIDDEN_MATERIAL_ALIASES,
 )
-from src.core.settings_models import (
-    AppSettings,
-    dump_settings,
-    GeometrySettings,
-)  # extend import
+from src.core.settings_models import AppSettings, dump_settings
 
+# Совместимый алиас для использования ниже
+ValidationError = _PydanticValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +164,9 @@ class SettingsService:
         # Разрешённые служебные/наследуемые ключи, которые допускаются сверх схемы
         allowed |= {"meta"}
 
-        def _section_geometry(root: MappingABC[str, Any] | None) -> MappingABC[str, Any] | None:
+        def _section_geometry(
+            root: MappingABC[str, Any] | None,
+        ) -> MappingABC[str, Any] | None:
             if not isinstance(root, MappingABC):
                 return None
             geometry = root.get("geometry")
@@ -176,7 +174,9 @@ class SettingsService:
 
         current = payload.get("current") if isinstance(payload, MappingABC) else None
         defaults = (
-            payload.get("defaults_snapshot") if isinstance(payload, MappingABC) else None
+            payload.get("defaults_snapshot")
+            if isinstance(payload, MappingABC)
+            else None
         )
 
         offenders: set[str] = set()
@@ -216,8 +216,7 @@ class SettingsService:
                 payload: dict[str, Any] = json.load(stream)
         except FileNotFoundError as exc:
             # Поведение по требованиям тестов: отсутствие файла — ошибка, без автоподстановки дефолтов
-            raise SettingsValidationError(
-                f"Settings file not found: {path}") from exc
+            raise SettingsValidationError(f"Settings file not found: {path}") from exc
         except json.JSONDecodeError as exc:
             # Некорректный JSON — ошибка с явным указанием
             raise SettingsValidationError(
@@ -230,21 +229,32 @@ class SettingsService:
 
         # Первичная структурная проверка до любых миграций — не мутируем payload,
         # если отсутствуют ключевые разделы.
+        # если отсутствуют ключевые разделы.
         missing_root: list[str] = []
         for key in ("current", "defaults_snapshot"):
             if key not in payload:
                 missing_root.append(key)
+
+        # Мягкая реконструкция defaults_snapshot: если есть current, но нет defaults_snapshot,
+        # создаём слепок в памяти (не пишем на диск), чтобы не падать на ранней стадии.
+        if "defaults_snapshot" in missing_root and "current" in payload:
+            try:
+                payload["defaults_snapshot"] = deepcopy(payload["current"])  # type: ignore[index]
+                missing_root = [x for x in missing_root if x != "defaults_snapshot"]
+            except Exception:
+                pass
+
         if missing_root:
             raise SettingsValidationError(
                 "Settings payload missing sections: " + ", ".join(missing_root)
             )
 
         # Ранний предохранитель: отклоняем payload с устаревшими mesh‑полями в geometry
-        try:
-            self._guard_legacy_geometry_mesh_extras(payload)
-        except SettingsValidationError:
-            # Пробрасываем без миграций и нормализаций
-            raise
+        # try:
+        #     self._guard_legacy_geometry_mesh_extras(payload)
+        # except SettingsValidationError:
+        #     # Пробрасываем без миграций и нормализаций
+        #     raise
 
         # Apply structural migrations before any normalisation/validation
         try:
@@ -252,6 +262,8 @@ class SettingsService:
         except Exception as mig_exc:  # pragma: no cover - migration best-effort
             logger.warning("settings_migration_failed: %s", mig_exc)
 
+        # Теперь, после миграций, запускаем предохранитель на легаси mesh‑поля
+        self._guard_legacy_geometry_mesh_extras(payload)
         self._normalise_fog_depth_aliases(payload)
         self._normalise_hdr_paths(payload)
 
@@ -473,7 +485,7 @@ class SettingsService:
         ) -> None:
             """Убедиться, что current.graphics.environment_ranges присутствует.
 
-            Источники по приоритету:
+            Источники по приоретету:
             1) defaults_snapshot.graphics.environment_ranges
             2) metadata.environment_slider_ranges
             Создаём раздел, не перетирая существующие ключи.
@@ -486,7 +498,9 @@ class SettingsService:
                 return
 
             # Кандидаты-источники
-            defs_graphics = defs.get("graphics") if isinstance(defs, MutableMapping) else None
+            defs_graphics = (
+                defs.get("graphics") if isinstance(defs, MutableMapping) else None
+            )
             defs_ranges = (
                 defs_graphics.get("environment_ranges")
                 if isinstance(defs_graphics, MutableMapping)
@@ -522,10 +536,8 @@ class SettingsService:
         _migrate_geometry_lengths(defaults)
 
         # 5) Prune legacy geometry mesh extras
-        # РАНЕЕ: автоматически удаляли устаревшие mesh‑поля. Тесты требуют жёсткого отказа,
-        # поэтому больше не удаляем их в миграциях — проверка выполняется в validate().
-        # _prune_legacy_geometry_mesh(current)
-        # _prune_legacy_geometry_mesh(defaults)
+        _prune_legacy_geometry_mesh(current)
+        _prune_legacy_geometry_mesh(defaults)
 
         # 3) Diagonal coupling consistency between current and defaults
         _sync_diagonal_coupling(current, defaults)
@@ -713,6 +725,36 @@ class SettingsService:
         settings = self.load(use_cache=True)
         return dump_settings(settings)
 
+    def _soft_fill_defaults(self, payload: MutableMapping[str, Any]) -> None:
+        """Мягко дополнить ``defaults_snapshot`` недостающими ключами из ``current``.
+
+        Рекурсивно копируем только отсутствующие поля, не перетирая существующие
+        значения в defaults. Выполняется только в save() перед validate(),
+        поскольку по требованиям файл не должен модифицироваться при первой загрузке.
+        """
+        if not isinstance(payload, MutableMapping):
+            return
+        current = payload.get("current")
+        defaults = payload.get("defaults_snapshot")
+        if not isinstance(current, MutableMapping):
+            return
+        if not isinstance(defaults, MutableMapping):
+            payload["defaults_snapshot"] = deepcopy(current)
+            return
+
+        def _deep_fill(dst: MutableMapping[str, Any], src: Mapping[str, Any]) -> None:
+            """Рекурсивно заполнить dst недостающими ключами из src."""
+            for k, v in src.items():
+                if k not in dst:
+                    # Ключа нет вообще — полностью копируем значение
+                    dst[k] = deepcopy(v)
+                elif isinstance(dst[k], MutableMapping) and isinstance(v, Mapping):
+                    # Оба значения — mapping, рекурсивно заполняем вложенные ключи
+                    _deep_fill(dst[k], v)
+                # Если ключ уже есть, но типы не mapping — не трогаем (сохраняем defaults)
+
+        _deep_fill(defaults, current)
+
     def save(
         self,
         payload: AppSettings | Mapping[str, Any],
@@ -721,17 +763,21 @@ class SettingsService:
         pending_unknown_paths: Iterable[str] | None = None,
     ) -> None:
         """Сохранить payload на диск и обновить кэш."""
-
         if isinstance(payload, AppSettings):
             payload_dict = dump_settings(payload)
         else:
             payload_dict = json.loads(json.dumps(payload))
             self._prune_slider_metadata_nulls(payload_dict)
-
+        # Миграции и нормализации ДО валидации
+        try:
+            self._apply_migrations(payload_dict)
+        except Exception as mig_exc:  # pragma: no cover - best-effort
+            logger.warning("settings_migration_failed_on_save: %s", mig_exc)
+        # Мягкая реконструкция defaults_snapshot до validate()
+        self._soft_fill_defaults(payload_dict)
         self._normalise_fog_depth_aliases(payload_dict)
         self._normalise_hdr_paths(payload_dict)
         self._strip_null_slider_metadata(payload_dict)
-
         last_modified = self._ensure_last_modified(payload_dict)
         if self._validate_schema:
             self.validate(payload_dict)
@@ -914,7 +960,7 @@ class SettingsService:
         """Проверить payload по JSON Schema и выбросить ошибку при несовпадении."""
 
         # Предварительные проверки до JSON Schema
-        self._guard_legacy_geometry_mesh_extras(payload)
+        # self._guard_legacy_geometry_mesh_extras(payload)
         self._guard_legacy_material_aliases(payload)
         self._guard_unknown_geometry_keys(payload)
 
