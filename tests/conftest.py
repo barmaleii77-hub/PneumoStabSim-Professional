@@ -289,24 +289,30 @@ def qtbot(qapp):  # noqa: D401
             except Exception:
                 pass
 
-        def keyClicks(self, widget, text: str, modifier=Qt.NoModifier, delay: int = 0) -> None:
+        def keyClicks(
+            self, widget, text: str, modifier=Qt.NoModifier, delay: int = 0
+        ) -> None:
             """Симуляция ввода последовательности символов (аналог pytest-qt)."""
             try:
                 from PySide6.QtTest import QTest
+
                 QTest.keyClicks(widget, text, modifier, delay)
             except Exception:
                 for ch in str(text):
                     try:
                         from PySide6.QtTest import QTest as _QTest
+
                         _QTest.keyClick(widget, ord(ch), modifier, delay)
                     except Exception:
                         pass
 
         def assertNotEmitted(self, signal):  # type: ignore[override]
             """Контекстный менеджер: убеждаемся, что сигнал не эмитится."""
+
             class _Ctx:
                 def __init__(self, sig):
                     from PySide6.QtCore import QObject
+
                     self._count = 0
                     self._sig = sig
 
