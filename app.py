@@ -152,6 +152,27 @@ _BOOTSTRAP_LOGGER.info(
     env_empty=_EMPTY_ENV_VARS if "_EMPTY_ENV_VARS" in globals() else (),
 )
 
+# --- Автопереопределение QPA на Windows (offscreen/minimal → windows) для интерактивной сессии
+if sys.platform.startswith("win"):
+    def _truthy(val: str | None) -> bool:
+        return (val or "").strip().lower() in {"1", "true", "yes", "on"}
+
+    current_qpa = (os.environ.get("QT_QPA_PLATFORM") or "").strip().lower()
+    # Не трогаем, если явно запрошен headless или safe-runtime
+    if (
+        current_qpa in {"offscreen", "minimal", "minimal:tools=auto"}
+        and not _truthy(os.environ.get("PSS_HEADLESS"))
+        and not SAFE_RUNTIME_MODE_REQUESTED
+    ):
+        old_qpa = os.environ.get("QT_QPA_PLATFORM", "<unset>")
+        os.environ["QT_QPA_PLATFORM"] = "windows"
+        _BOOTSTRAP_LOGGER.info(
+            "override-qpa-platform",
+            reason="interactive-windows-session",
+            old=old_qpa,
+            new="windows",
+        )
+
 
 def _log_scenegraph_backend(message: str) -> None:
     """Emit Qt scene graph backend selection during bootstrap."""

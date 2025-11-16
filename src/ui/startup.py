@@ -9,149 +9,101 @@ Qt stack during unit tests.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections.abc import Mapping, MutableMapping
-
-_TRUTHY_VALUES = {"1", "true", "yes", "on"}
-
-# Type alias for window to avoid heavy import at module import time
-try:  # pragma: no cover - optional runtime import
-    from PySide6.QtQuick import QQuickWindow as _QQuickWindowType  # type: ignore
-except Exception:  # pragma: no cover
-
-    class _QQuickWindowType:  # minimal stub type for type checkers
-        def width(self) -> int: ...
-        def height(self) -> int: ...
-        def setWidth(self, w: int) -> None: ...
-        def setHeight(self, h: int) -> None: ...
-
-
-def _is_truthy(value: str | None) -> bool:
-    """Return ``True`` for common truthy environment string values."""
-
-    if value is None:
-        return False
-    return value.strip().lower() in _TRUTHY_VALUES
-
-
-def choose_scenegraph_backend(platform: str) -> str:
-    """Return the preferred Qt Quick Scene Graph backend for ``platform``."""
-
-    normalised = platform.lower()
-    if normalised.startswith("win"):
-        return "d3d11"
-    if normalised.startswith("darwin") or normalised.startswith("mac"):
-        return "metal"
-    if normalised.startswith("linux"):
-        return "opengl"
-    return "opengl"
-
-
-def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str, ...]]:
-    """Detect whether the current process should consider itself headless.
-
-    Parameters
-    ----------
-    env:
-        Environment mapping to inspect.  ``os.environ`` is passed at runtime but
-        the mapping can be substituted in tests.
-    """
-
-    reasons: list[str] = []
-
-    if _is_truthy(env.get("CI")):
-        reasons.append("ci-flag")
-
-    if _is_truthy(env.get("PSS_HEADLESS")):
-        # Явный флаг headless имеет приоритет и не смешивается с прочими причинами
-        return True, ("flag:pss-headless",)
-
-    qt_qpa_raw = env.get("QT_QPA_PLATFORM")
-    qt_qpa = (qt_qpa_raw or "").strip().lower()
-    has_display = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
-
-    if qt_qpa in {"offscreen", "minimal", "minimalgl", "vkkhrdisplay"}:
-        reasons.append(f"qt-qpa-platform:{qt_qpa}")
-    if not has_display:
-        reasons.append("no-display-server")
-        if qt_qpa_raw is None or not qt_qpa_raw.strip():
-            reasons.append("qt-qpa-platform-missing")
-
-    return bool(reasons), tuple(reasons)
+from typing import Mapping
 
 
 @dataclass(frozen=True)
-class GraphicsEnvironmentDecision:
-    """Outcome of the graphics bootstrap phase."""
+class GraphicsBootstrapState:
+    """Снимок параметров графической среды, сформированных на этапе bootstrap.
+
+    Attributes:
+        backend: Выбранный графический backend (например, "d3d11", "opengl").
+        use_qml_3d: Разрешено ли использовать Qt Quick 3D.
+        safe_mode: Включён ли безопасный режим (минимальные требования графики).
+        headless: Запуск без графического дисплея/окна.
+        headless_reasons: Причины, по которым активирован headless.
+    """
 
     backend: str
+    use_qml_3d: bool
+    safe_mode: bool
     headless: bool
     headless_reasons: tuple[str, ...]
-    safe_mode: bool
-    use_qml_3d: bool
+
+
+def _truthy(value: str | None) -> bool:
+    """Интерпретировать строку окружения как истину."""
+
+    if value is None:
+        return False
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def bootstrap_graphics_environment(
-    env: MutableMapping[str, str], *, platform: str, safe_mode: bool
-) -> GraphicsEnvironmentDecision:
-    """Prepare environment variables for Qt graphics initialisation."""
+    env: Mapping[str, str],
+    *,
+    platform: str,
+    safe_mode: bool,
+) -> GraphicsBootstrapState:
+    """Определение графической среды без агрессивного headless на Windows.
 
-    backend = choose_scenegraph_backend(platform)
-    headless, reasons = detect_headless_environment(env)
+    Правки:
+    - Windows больше NO помечается headless по косвенным признакам.
+    - Headless на Windows только при:
+        * PSS_HEADLESS=1 (или аналогичных truthy),
+        * QT_QPA_PLATFORM=offscreen (явно задан пользователем/окружением).
+    - На Unix: headless при отсутствии DISPLAY/WAYLAND_DISPLAY, либо при offscreen.
+    - ``use_qml_3d`` выключается только при реальном headless или в ``safe_mode``.
+    """
 
-    # Optional override to allow QML 3D even in headless/offscreen CI runs.
-    # settings_cycle_runner relies on this to exercise QML-side batching.
-    if _is_truthy(env.get("PSS_FORCE_ALLOW_QML_3D")):
-        headless = False
-        # keep reasons for diagnostics but do not force-disable QML 3D
+    is_windows = platform.startswith("win")
 
-    use_qml_3d = not headless
+    qpa = (env.get("QT_QPA_PLATFORM") or "").strip().lower()
+    user_forced_offscreen = qpa in {"offscreen", "minimal", "minimal:tools=auto"}
 
-    if headless:
-        env.setdefault("QT_QPA_PLATFORM", "offscreen")
-        env["PSS_FORCE_NO_QML_3D"] = "1"
-    else:
-        env.pop("PSS_FORCE_NO_QML_3D", None)
-
-    if not safe_mode:
-        env["QSG_RHI_BACKEND"] = backend
-
-    return GraphicsEnvironmentDecision(
-        backend=backend,
-        headless=headless,
-        headless_reasons=reasons,
-        safe_mode=safe_mode,
-        use_qml_3d=use_qml_3d,
+    explicit_headless = (
+        _truthy(env.get("PSS_HEADLESS"))
+        or _truthy(env.get("CI"))
+        or _truthy(env.get("GITHUB_ACTIONS"))
     )
 
+    headless = False
+    reasons: list[str] = []
 
-def enforce_fixed_window_metrics(
-    window: _QQuickWindowType, width: int = 640, height: int = 360
-) -> None:
-    """Принудительно применить фиксированные размеры окна для детерминированных скриншотов.
+    if is_windows:
+        # На Windows headless только по явному сигналу пользователя/окружения
+        if explicit_headless:
+            headless = True
+            reasons.append("user-requested")
+        elif user_forced_offscreen:
+            headless = True
+            reasons.append("qt-qpa-offscreen")
+        # иначе — считаем интерактивный режим
+    else:
+        # Unix: нет дисплея => headless, либо явный offscreen
+        display_present = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
+        if explicit_headless:
+            headless = True
+            reasons.append("user-requested")
+        elif user_forced_offscreen:
+            headless = True
+            reasons.append("qt-qpa-offscreen")
+        elif not display_present:
+            headless = True
+            reasons.append("no-display-server")
 
-    Принимает абстрактный тип _QQuickWindowType (реальный QQuickWindow или заглушку),
-    что устраняет F821 и позволяет headless тестам импортировать модуль.
-    """
-    try:
-        import os
+    # Выбор backend по умолчанию
+    backend = (env.get("QSG_RHI_BACKEND") or "").strip().lower()
+    if not backend:
+        backend = "d3d11" if is_windows else "opengl"
 
-        os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "0")
-        os.environ.setdefault("QT_SCALE_FACTOR", "1")
-    except Exception:
-        pass
-    try:
-        if window.width() != width:
-            window.setWidth(width)
-        if window.height() != height:
-            window.setHeight(height)
-    except Exception:
-        pass
+    # QML 3D доступен только вне safe_mode и не в headless
+    use_qml_3d = not safe_mode and not headless
 
-
-__all__ = [
-    "GraphicsEnvironmentDecision",
-    "bootstrap_graphics_environment",
-    "choose_scenegraph_backend",
-    "detect_headless_environment",
-    "enforce_fixed_window_metrics",
-]
+    return GraphicsBootstrapState(
+        backend=backend,
+        use_qml_3d=use_qml_3d,
+        safe_mode=safe_mode,
+        headless=headless,
+        headless_reasons=tuple(reasons),
+    )
