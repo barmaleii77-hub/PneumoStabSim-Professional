@@ -77,7 +77,7 @@ def qt_runtime_ready(qapp):
 
         ensure_qt_runtime()
     except Exception as exc:
-        pytest.skip(f"Qt runtime not available: {exc}")
+        pytest.skip(f"Qt runtime not available: {exc}")  # pytest-skip-ok
     yield
 
 
@@ -90,7 +90,9 @@ def settings_manager(tmp_path, monkeypatch):
     settings_path = tmp_path / "app_settings.json"
     # Load baseline config from project
     try:
-        baseline = json.loads((PROJECT_ROOT / "config" / "app_settings.json").read_text(encoding="utf-8"))
+        baseline = json.loads(
+            (PROJECT_ROOT / "config" / "app_settings.json").read_text(encoding="utf-8")
+        )
     except Exception:
         baseline = {
             "metadata": {"units_version": "si_v2"},
@@ -98,7 +100,9 @@ def settings_manager(tmp_path, monkeypatch):
             "defaults_snapshot": {},
         }
 
-    settings_path.write_text(json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8")
+    settings_path.write_text(
+        json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     manager = SettingsManager(settings_path)
     yield manager
 
@@ -115,10 +119,11 @@ def integration_reports_dir(tmp_path):
 def structlog_logger_config():
     """Provide basic structlog config for diagnostic tests."""
     from src.diagnostics.logger_factory import LoggerConfig, DEFAULT_LOG_LEVEL
+
     return LoggerConfig(
         name="test.logger",
         level=DEFAULT_LOG_LEVEL,
-        context=(("subsystem", "diagnostics"), ("component", "logger"))
+        context=(("subsystem", "diagnostics"), ("component", "logger")),
     )
 
 
@@ -126,15 +131,79 @@ def structlog_logger_config():
 def reference_suspension_linkage():
     """Provide reference suspension linkage geometry for tests."""
     # Minimal reference geometry from baseline config
-    from src.mechanics.geometry import SuspensionLinkage, LinkagePoint
-    # Baseline geometry parameters
-    linkage = SuspensionLinkage(
-        frame_to_pivot=0.3,
-        lever_length=0.4,
-        cylinder_length=0.5,
-        track_width=2.5,
+    from src.mechanics.geometry import SuspensionLinkage
+
+    try:
+        from src.mechanics.geometry import SuspensionLinkage
+    except Exception:
+        # Backwards-compatible import path
+        from src.mechanics.linkage_geometry import SuspensionLinkage
+
+    # Baseline geometry parameters in metres (simple canonical linkage)
+    linkage = SuspensionLinkage.from_mm(
+        pivot=(200.0, 0.0),
+        free_end=(500.0, 0.0),
+        rod_joint=(450.0, 0.0),
+        cylinder_tail=(150.0, 500.0),
+        cylinder_body_length=300.0,
     )
     return linkage
+
+
+@pytest.fixture
+def temp_settings_file(tmp_path):
+    """Provide a temporary settings file for tests."""
+    import json
+
+    settings_path = tmp_path / "config" / "app_settings.json"
+    settings_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Load baseline config
+    try:
+        baseline = json.loads(
+            (PROJECT_ROOT / "config" / "app_settings.json").read_text(encoding="utf-8")
+        )
+    except Exception:
+        baseline = {
+            "metadata": {"units_version": "si_v2"},
+            "current": {},
+            "defaults_snapshot": {},
+        }
+    
+    settings_path.write_text(
+        json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return settings_path
+
+
+@pytest.fixture
+def hysteretic_check_valve():
+    """Provide a check valve with hysteresis for testing state transitions."""
+    from src.pneumo.valves import CheckValve
+    
+    # Калиброванный клапан: открывается при Δp > 1.5 kPa,
+    # закрывается при Δp < 0.9 kPa (гистерезис 600 Pa)
+    return CheckValve(
+        delta_open_min=1500.0,  # 1.5 kPa
+        d_eq=0.008,  # 8mm equivalent diameter
+        hyst=600.0,  # 600 Pa hysteresis
+    )
+
+
+@pytest.fixture
+def relief_valve_reference():
+    """Provide a reference relief valve for testing flow and hysteresis."""
+    from src.pneumo.valves import ReliefValve
+    from src.pneumo.enums import ReliefValveKind
+    
+    # Клапан давления: открывается при p > 205 kPa,
+    # закрывается при p < 200 kPa (гистерезис 5 kPa)
+    return ReliefValve(
+        kind=ReliefValveKind.STIFFNESS,
+        p_set=200_000.0,  # 200 kPa
+        hyst=5000.0,  # 5 kPa
+        d_eq=0.02,  # throttle coefficient
+    )
 
 
 # Enhanced qtbot fallback implementing required methods used by tests
@@ -374,3 +443,18 @@ def monkeypatch():  # custom to ignore raising kw
         yield mp
     finally:
         mp.undo()
+
+@pytest.fixture
+def legacy_gas_state_factory():
+    """Factory fixture producing LegacyGasState instances for legacy tests."""
+    from src.pneumo.gas_state import LegacyGasState
+
+    def _factory(*, pressure: float, volume: float, temperature: float, mass: float | None = None):
+        return LegacyGasState(
+            pressure=pressure,
+            volume=volume,
+            temperature=temperature,
+            mass=mass,
+        )
+
+    return _factory

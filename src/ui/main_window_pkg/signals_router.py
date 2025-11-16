@@ -1258,7 +1258,10 @@ class SignalsRouter:
             if modes_key:
                 modes_payload[modes_key] = numeric
 
-        def _assign_bool(source_keys, settings_key: str, qml_key: str) -> None:
+        # ✅ FIXED: Added type annotation for source_keys parameter
+        def _assign_bool(
+            source_keys: list[str] | tuple[str, ...], settings_key: str, qml_key: str
+        ) -> None:
             for key in source_keys:
                 if key in params:
                     value = bool(params.get(key))
@@ -1570,21 +1573,25 @@ class SignalsRouter:
                 resolved_mode = "GEOMETRIC"
             resolved_mode = str(resolved_mode).upper()
 
-            try:
-                bus = window.simulation_manager.state_bus
-                bus.set_receiver_volume.emit(float(receiver_volume), str(resolved_mode))
-                SignalsRouter.logger.info(
-                    "Receiver volume synchronised",
-                    extra={
-                        "mode": resolved_mode,
-                        "volume_m3": float(receiver_volume),
-                        "recalculated": recalculated_volume is not None,
-                    },
-                )
-            except Exception as exc:
-                SignalsRouter.logger.debug(
-                    "Failed to emit receiver volume update: %s", exc
-                )
+            # ✅ FIXED: Added type guard for float(Any | None)
+            if receiver_volume is not None:
+                try:
+                    bus = window.simulation_manager.state_bus
+                    bus.set_receiver_volume.emit(
+                        float(receiver_volume), str(resolved_mode)
+                    )
+                    SignalsRouter.logger.info(
+                        "Receiver volume synchronised",
+                        extra={
+                            "mode": resolved_mode,
+                            "volume_m3": float(receiver_volume),
+                            "recalculated": recalculated_volume is not None,
+                        },
+                    )
+                except Exception as exc:
+                    SignalsRouter.logger.debug(
+                        "Failed to emit receiver volume update: %s", exc
+                    )
 
     @staticmethod
     def handle_simulation_settings_changed(
@@ -1693,14 +1700,19 @@ class SignalsRouter:
         try:
             if latest_snapshot:
                 # Update status bar metrics
-                window.sim_time_label.setText(
-                    f"Sim Time: {latest_snapshot.simulation_time:.3f}s"
-                )
-                window.step_count_label.setText(f"Steps: {latest_snapshot.step_number}")
+                if window.sim_time_label is not None:
+                    window.sim_time_label.setText(
+                        f"Sim Time: {latest_snapshot.simulation_time:.3f}s"
+                    )
+                if window.step_count_label is not None:
+                    window.step_count_label.setText(
+                        f"Steps: {latest_snapshot.step_number}"
+                    )
 
                 if latest_snapshot.aggregates.physics_step_time > 0:
                     fps = 1.0 / latest_snapshot.aggregates.physics_step_time
-                    window.fps_label.setText(f"Physics FPS: {fps:.1f}")
+                    if window.fps_label is not None:
+                        window.fps_label.setText(f"Physics FPS: {fps:.1f}")
 
             # Update charts
             if window.chart_widget:
@@ -1741,7 +1753,8 @@ class SignalsRouter:
                 "Failed to write physics error to stderr", exc_info=True
             )
 
-        if hasattr(window, "status_bar") and window.status_bar:
+        # ✅ FIXED: Added None-check for status_bar
+        if hasattr(window, "status_bar") and window.status_bar is not None:
             window.status_bar.showMessage(f"Physics error: {message}", 5000)
 
         app = QCoreApplication.instance() if QCoreApplication is not None else None
@@ -1880,7 +1893,8 @@ class SignalsRouter:
         if isinstance(left, numeric_types) and isinstance(right, numeric_types):
             return math.isclose(float(left), float(right), rel_tol=1e-9, abs_tol=1e-9)
 
-        return left == right
+        # ✅ FIXED: Explicit bool return instead of Any
+        return bool(left == right)
 
     @staticmethod
     def _get_last_payloads(window: MainWindow) -> dict[str, Any]:
@@ -1891,7 +1905,8 @@ class SignalsRouter:
         )
         if payloads is None:
             payloads = {}
-            window._last_dispatched_payloads = payloads
+            # ✅ FIXED: Type ignore for dynamic attribute assignment
+            window._last_dispatched_payloads = payloads  # type: ignore[attr-defined]
         return payloads
 
     @staticmethod
@@ -2105,7 +2120,9 @@ class SignalsRouter:
         registry = getattr(window, SignalsRouter._UPDATE_SOURCE_ATTR, None)
         if not isinstance(registry, dict):
             return None
-        return registry.pop(category, None)
+        # ✅ FIXED: Explicit str | None return
+        result = registry.pop(category, None)
+        return str(result) if result is not None else None
 
 
 class _WindowLoggerProtocol(Protocol):

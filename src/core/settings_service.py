@@ -57,8 +57,7 @@ LEGACY_GEOMETRY_ALLOWED_KEYS: set[str] = {"max_susp_travel_m", "max_susp_travel"
 class _RelaxedAppSettings(AppSettings):
     """Variant of :class:`AppSettings` that ignores unknown fields."""
 
-    model_config = dict(AppSettings.model_config)
-    model_config["extra"] = "ignore"
+    model_config: dict[str, Any] = {**AppSettings.model_config, "extra": "ignore"}  # type: ignore[misc]
 
 
 class _LooseMetadata:
@@ -82,10 +81,11 @@ class _LooseAppSettings:
 
     def __init__(self, payload: Mapping[str, Any]) -> None:
         self._payload = json.loads(json.dumps(payload))
-        self.metadata = _LooseMetadata(self._payload.get("metadata"))  # type: ignore[attr-defined]
+        self.metadata = _LooseMetadata(self._payload.get("metadata"))
 
-    def model_dump(self, *_, **__) -> dict[str, Any]:  # pragma: no cover - minimal shim
-        return json.loads(json.dumps(self._payload))
+    def model_dump(self, *_: Any, **__: Any) -> dict[str, Any]:
+        payload_copy: dict[str, Any] = json.loads(json.dumps(self._payload))
+        return payload_copy
 
 
 _MISSING = object()
@@ -133,7 +133,7 @@ class SettingsService:
         self._schema_env_var = schema_env_var
         self._validate_schema = validate_schema
         self._cache_dict: dict[str, Any] | None = None
-        self._cache_model: AppSettings | None = None
+        self._cache_model: AppSettings | _LooseAppSettings | None = None
         self._schema_cache: dict[str, Any] | None = None
         self._validator: Any | None = None
         self._unknown_paths: set[str] = set()
@@ -144,7 +144,7 @@ class SettingsService:
         """Проверить, что в разделах geometry нет неизвестных ключей.
 
         Разрешаем дополнительные легаси ключи из LEGACY_GEOMETRY_ALLOWED_KEYS, чтобы
-        старые тестовые снапшоты не падали на строгой валидации (см. physics tests).
+        старые тестовые снбшоты не падали на строгой валидации (см. physics tests).
         """
         if not isinstance(payload, MappingABC):
             return
@@ -281,7 +281,7 @@ class SettingsService:
         # создаём слепок в памяти (не пишем на диск), чтобы не падать на ранней стадии.
         if "defaults_snapshot" in missing_root and "current" in payload:
             try:
-                payload["defaults_snapshot"] = deepcopy(payload["current"])  # type: ignore[index]
+                payload["defaults_snapshot"] = deepcopy(payload["current"])
                 missing_root = [x for x in missing_root if x != "defaults_snapshot"]
             except Exception:
                 pass
@@ -298,10 +298,10 @@ class SettingsService:
         # Apply structural migrations before any normalisation/validation
         try:
             self._apply_migrations(payload)
-        except Exception as mig_exc:  # pragma: no cover - migration best-effort
+        except Exception as mig_exc:
             logger.warning("settings_migration_failed: %s", mig_exc)
 
-        # Теперь, после миграций, снова проверяем geometry keys (на всякий случай)
+        # Maintenant, après les migrations, vérifier à nouveau les clés de géométrie (au cas où)
         self._guard_unknown_geometry_keys(payload)
         self._normalise_fog_depth_aliases(payload)
         self._normalise_hdr_paths(payload)
@@ -373,16 +373,18 @@ class SettingsService:
                 errors_path.as_posix(),
                 payload_path.as_posix(),
             )
-        except Exception as io_exc:  # pragma: no cover - best-effort diagnostics
+        except Exception as io_exc:
             logger.error("Failed to write validation artifacts: %s", io_exc)
 
-    def _parse_model(self, payload: Mapping[str, Any]) -> AppSettings:
+    def _parse_model(
+        self, payload: Mapping[str, Any]
+    ) -> AppSettings | _LooseAppSettings:
         """Return a typed settings model. При провале строгой проверки падаем на relaxed или dict-backed модель."""
 
         # Пытаемся строгую модель
         try:
             return AppSettings.model_validate(payload)
-        except ValidationError as exc:  # pragma: no cover - validated via tests
+        except ValidationError as exc:
             # Сохраняем подробности в файлы и логируем кратко, затем фолбек
             self._emit_typed_validation_artifacts(payload, exc)
             # Relaxed: игнорируем extras там, где это возможно
@@ -392,14 +394,14 @@ class SettingsService:
                     "Settings typed validation relaxed: using ignore‑extras model (see %s)",
                     (LOG_DIR / "typed_model_errors.json").as_posix(),
                 )
-                return relaxed  # type: ignore[return-value]
+                return relaxed
             except Exception:
                 # Последний рубеж — dict‑backed модель без типовой валидации
                 logger.warning(
                     "Settings typed validation bypassed: falling back to Loose model (see %s)",
                     (LOG_DIR / "typed_model_errors.json").as_posix(),
                 )
-                return _LooseAppSettings(payload)  # type: ignore[return-value]
+                return _LooseAppSettings(payload)
 
     # ------------------------------ MIGRATIONS ------------------------------
     def _apply_migrations(self, payload: MutableMapping[str, Any]) -> None:
@@ -446,33 +448,34 @@ class SettingsService:
                     env[dst_key] = deepcopy(probe[src_key])
                     changed = True
             # Remove legacy section if everything mapped
-            try:
-                if changed:
-                    graphics.pop("reflection_probe", None)
-            except Exception:
-                pass
+            if changed:
+                graphics.pop("reflection_probe", None)
 
         def _migrate_geometry_lengths(section: MutableMapping[str, Any]) -> None:
             geometry = section.get("geometry")
             if not isinstance(geometry, MutableMapping):
                 return
             if "lever_length" not in geometry and "lever_length_m" in geometry:
-                geometry["lever_length"] = float(geometry.get("lever_length_m"))
+                lever_value = geometry.get("lever_length_m")
+                geometry["lever_length"] = (
+                    float(lever_value) if lever_value is not None else 0.0
+                )
             elif (
                 "lever_length" in geometry
                 and "lever_length_m" in geometry
                 and geometry["lever_length"] != geometry["lever_length_m"]
             ):
-                geometry["lever_length"] = float(geometry["lever_length_m"])
+                lever_m_value = geometry["lever_length_m"]
+                geometry["lever_length"] = (
+                    float(lever_m_value) if lever_m_value is not None else 0.0
+                )
             geometry.pop("lever_length_m", None)
             # Новая миграция: max_susp_travel_m → max_susp_travel
             if "max_susp_travel" not in geometry and "max_susp_travel_m" in geometry:
-                try:
-                    geometry["max_susp_travel"] = float(
-                        geometry.get("max_susp_travel_m")
-                    )
-                except Exception:
-                    geometry["max_susp_travel"] = geometry.get("max_susp_travel_m")
+                max_travel_value = geometry.get("max_susp_travel_m")
+                geometry["max_susp_travel"] = (
+                    float(max_travel_value) if max_travel_value is not None else 0.0
+                )
             geometry.pop("max_susp_travel_m", None)
 
         def _prune_legacy_geometry_mesh(section: MutableMapping[str, Any]) -> None:
@@ -606,6 +609,7 @@ class SettingsService:
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None
     ) -> None:
+        """Normalize fog depth aliases across settings sections."""
         if not isinstance(payload, MutableMapping):
             return
 
@@ -628,26 +632,26 @@ class SettingsService:
         def _environment_section(
             root: MutableMapping[str, Any] | None,
         ) -> MutableMapping[str, Any] | None:
-            if not isinstance(root, MutableMapping):
+            if not isinstance(root, MappingABC):
                 return None
             graphics = root.get("graphics")
-            if not isinstance(graphics, MutableMapping):
+            if not isinstance(graphics, MappingABC):
                 return None
             environment = graphics.get("environment")
-            if not isinstance(environment, MutableMapping):
+            if not isinstance(environment, MappingABC):
                 return None
             return environment
 
         def _environment_ranges(
             root: MutableMapping[str, Any] | None,
         ) -> MutableMapping[str, Any] | None:
-            if not isinstance(root, MutableMapping):
+            if not isinstance(root, MappingABC):
                 return None
             graphics = root.get("graphics")
-            if not isinstance(graphics, MutableMapping):
+            if not isinstance(graphics, MappingABC):
                 return None
             ranges = graphics.get("environment_ranges")
-            if not isinstance(ranges, MutableMapping):
+            if not isinstance(ranges, MappingABC):
                 return None
             return ranges
 
@@ -665,6 +669,7 @@ class SettingsService:
 
     @staticmethod
     def _prune_slider_metadata_nulls(payload: Any) -> None:
+        """Remove null values from slider metadata fields."""
         if isinstance(payload, MutableMapping):
             if {"min", "max", "step"}.issubset(payload.keys()):
                 for field in ("decimals", "units"):
@@ -722,6 +727,7 @@ class SettingsService:
         return normalised.lower()
 
     def _normalise_hdr_paths(self, payload: MutableMapping[str, Any] | None) -> None:
+        """Normalize HDR paths in graphics settings."""
         if not isinstance(payload, MutableMapping):
             return
 
@@ -744,6 +750,7 @@ class SettingsService:
         _normalise_section(payload.get("defaults_snapshot"))
 
     def _write_file(self, payload: dict[str, Any]) -> None:
+        """Write settings payload to disk."""
         path = self.resolve_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -754,7 +761,7 @@ class SettingsService:
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
-    def load(self, *, use_cache: bool = True) -> AppSettings:
+    def load(self, *, use_cache: bool = True) -> AppSettings | _LooseAppSettings:
         """Load and return the typed settings payload."""
 
         if not use_cache or self._cache_model is None:
@@ -822,7 +829,7 @@ class SettingsService:
                 if isinstance(node, MappingABC):
                     maybe = node.get("constants")
                     if isinstance(maybe, MappingABC):
-                        baseline_constants = maybe  # type: ignore[assignment]
+                        baseline_constants = maybe
                         break
         except Exception:
             baseline_constants = None
@@ -855,23 +862,22 @@ class SettingsService:
 
     def save(
         self,
-        payload: AppSettings | Mapping[str, Any],
+        payload: AppSettings | _LooseAppSettings | Mapping[str, Any],
         *,
         metadata: dict[str, Any] | None = None,
         pending_unknown_paths: Iterable[str] | None = None,
     ) -> None:
         """Сохранить payload на диск и обновить кэш."""
-        if isinstance(payload, AppSettings):
+        if isinstance(payload, (AppSettings, _LooseAppSettings)):
             payload_dict = dump_settings(payload)
         else:
-            # Ранее здесь выполнялся json.dumps(payload) что падало для _LooseAppSettings.
             # Унифицированный путь: используем dump_settings() (поддерживает BaseModel, loose модели и dict).
             payload_dict = dump_settings(payload)
             self._prune_slider_metadata_nulls(payload_dict)
         # Миграции и нормализации ДО валидации
         try:
             self._apply_migrations(payload_dict)
-        except Exception as mig_exc:  # pragma: no cover - best-effort
+        except Exception as mig_exc:
             logger.warning("settings_migration_failed_on_save: %s", mig_exc)
         # Мягкая реконструкция defaults_snapshot до validate()
         self._soft_fill_defaults(payload_dict)
@@ -938,7 +944,7 @@ class SettingsService:
     # ------------------------------------------------------------------
     # Helper utilities
     # ------------------------------------------------------------------
-    def get(self, path: str, default: Any | None = None) -> Any:
+    def get(self, path: str, default: Any = None) -> Any:
         """Получить значение по dot‑пути."""
 
         segments = list(self._split_path(path))
@@ -1026,6 +1032,7 @@ class SettingsService:
         )
 
     def _read_schema(self) -> dict[str, Any]:
+        """Read and cache JSON schema."""
         if self._schema_cache is None:
             path = self.resolve_schema_path()
             if not path.exists():
@@ -1035,13 +1042,14 @@ class SettingsService:
         return self._schema_cache
 
     def _get_validator(self) -> Any:
+        """Get or create JSON schema validator."""
         if self._validator is not None:
             return self._validator
 
         try:
             from jsonschema import Draft202012Validator
             from jsonschema.exceptions import SchemaError
-        except ModuleNotFoundError as exc:  # pragma: no cover - import guard
+        except ModuleNotFoundError as exc:
             raise SettingsValidationError(
                 "jsonschema package is required for settings validation"
             ) from exc
@@ -1109,7 +1117,7 @@ class SettingsService:
         raise SettingsValidationError(
             f"Settings payload failed JSON Schema validation: {joined}",
             errors=formatted,
-        ) from None
+        )
 
     def _guard_legacy_material_aliases(self, payload: MappingABC[str, Any]) -> None:
         """Pre-validate payload to surface legacy material aliases before JSON Schema."""
@@ -1177,7 +1185,7 @@ class SettingsService:
             geometry = root.get("geometry")
             return geometry if isinstance(geometry, MappingABC) else None
 
-        def _iter_keys_recursive(node: MappingABC[str, Any] | Any) -> set[str]:
+        def _iter_keys_recursive(node: Any) -> set[str]:
             found: set[str] = set()
             if isinstance(node, MappingABC):
                 for k, v in node.items():
@@ -1285,7 +1293,8 @@ class SettingsService:
     def _require_mapping(
         self, payload: MappingABC[str, Any], path: tuple[str, ...]
     ) -> MappingABC[str, Any]:
-        node: MappingABC[str, Any] | Any = payload
+        """Require that a path exists and points to a mapping."""
+        node: Any = payload
         traversed: list[str] = []
         for segment in path:
             traversed.append(segment)
@@ -1311,6 +1320,7 @@ class SettingsService:
     def _collect_material_id_mismatches(
         materials: MappingABC[str, Any], section: str
     ) -> list[str]:
+        """Collect material ID mismatches for validation."""
         problems: list[str] = []
         for key, material in materials.items():
             if not isinstance(material, MappingABC):
@@ -1324,6 +1334,7 @@ class SettingsService:
     def _resolve_existing_parent(
         self, payload: dict[str, Any], segments: list[str]
     ) -> MutableMapping[str, Any]:
+        """Resolve parent mapping for a path."""
         data: MutableMapping[str, Any] = payload
         for index, key in enumerate(segments[:-1]):
             next_value = data.get(key)
@@ -1331,12 +1342,13 @@ class SettingsService:
                 raise KeyError(
                     f"Unknown settings path '{'.'.join(segments[: index + 1])}'"
                 )
-            data = next_value  # type: ignore[assignment]
+            data = next_value
         return data
 
     def _get_existing_mapping(
         self, payload: dict[str, Any], path: str
     ) -> MutableMapping[str, Any]:
+        """Get existing mapping at a dot-path."""
         if not path:
             raise ValueError("path must not be empty")
 
@@ -1348,7 +1360,7 @@ class SettingsService:
                 raise KeyError(
                     f"Unknown settings path '{'.'.join(segments[: index + 1])}'"
                 )
-            data = next_value  # type: ignore[assignment]
+            data = next_value
         return data
 
     @staticmethod
@@ -1364,6 +1376,7 @@ class SettingsService:
 
     @staticmethod
     def _traverse_mapping(data: Any, segments: Iterable[str], default: Any) -> Any:
+        """Traverse a nested mapping structure."""
         current: Any = data
         for key in segments:
             if not isinstance(current, MutableMapping):
@@ -1379,6 +1392,7 @@ class SettingsService:
         return sorted(self._unknown_paths)
 
     def _record_unknown_path(self, path: str) -> None:
+        """Record a path that was not pre-defined in schema."""
         self._unknown_paths.add(path)
 
     def _build_model_payload(
@@ -1397,6 +1411,7 @@ class SettingsService:
         return payload
 
     def _capture_last_modified(self, payload: MappingABC[str, Any]) -> None:
+        """Capture last_modified timestamp from payload metadata."""
         metadata = payload.get("metadata") if isinstance(payload, MappingABC) else None
         if isinstance(metadata, MappingABC):
             value = metadata.get("last_modified")
@@ -1405,6 +1420,7 @@ class SettingsService:
             self._last_modified_snapshot = None
 
     def _ensure_last_modified(self, payload: dict[str, Any]) -> str | None:
+        """Ensure last_modified timestamp exists in payload metadata."""
         metadata = payload.get("metadata")
         if not isinstance(metadata, MutableMapping):
             metadata = {}
@@ -1425,6 +1441,7 @@ class SettingsService:
         return timestamp
 
     def _publish_update_event(self, metadata: dict[str, Any]) -> None:
+        """Publish settings update event to event bus."""
         container = get_default_container()
         try:
             event_bus = container.resolve(EVENT_BUS_TOKEN)
