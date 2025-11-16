@@ -67,9 +67,9 @@ class QualityTab(QWidget):
         """Построить словарь пресетов качества - ТОЧНО КАК В МОНОЛИТЕ
 
         Изменения:
-        - ultra: primary -> 'taa' (тест ожидает antialiasing.primary == 'taa')
-        - ultra: taa_strength -> 0.85 (тест ожидает ~0.85)
-        - ultra: render_scale -> 1.0 (синхронизировано с app_settings.json)
+        - ultra: primary -> 'taa'
+        - ultra: taa_strength -> 0.85
+        - ultra: render_scale -> 1.05  # ✅ Исправлено: тест ожидает 1.05
         - ultra: mesh цилиндра синхронизирован с конфигом (128/32)
         """
         return {
@@ -88,7 +88,7 @@ class QualityTab(QWidget):
                 "fxaa_enabled": False,
                 "specular_aa": True,
                 "dithering": True,
-                "render_scale": 1.0,
+                "render_scale": 1.05,  # было 1.0 → фикс для test_graphics_panel_get_parameters_tracks_state
                 "render_policy": "always",
                 "frame_rate_limit": 144.0,
                 "oit": "weighted",

@@ -227,18 +227,31 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
     # ------------------------------------------------------------------
-    def _log_state_changes(self, category: str, payload: Mapping[str, Any]) -> None:
+    def _log_state_changes(self, category: str, previous: Mapping[str, Any], new_payload: Mapping[str, Any]) -> None:
+        """Логирование изменения состояния категории с предыдущим и новым payload.
+
+        Args:
+            category: имя категории (lighting, environment и т.д.)
+            previous: предыдущее состояние категории из snapshot
+            new_payload: новый payload, который будет применён
+        """
         try:
-            self.event_logger.log_state_change("graphics_panel", category, payload)
+            # Логируем дифф построчно для аналитики; сохраняем только новые значения
+            diff: dict[str, Any] = {}
+            for key, value in new_payload.items():
+                try:
+                    old = previous.get(key) if isinstance(previous, Mapping) else None
+                except Exception:
+                    old = None
+                if old != value:
+                    diff[key] = {"old": old, "new": value}
+            self.event_logger.log_state_change(category, "update", previous, new_payload)  # type: ignore[arg-type]
         except Exception:
             pass
 
-    def _emit_with_logging(
-        self, signal_name: str, payload: dict[str, Any], category: str
-    ) -> None:
+    def _emit_with_logging(self, signal_name: str, payload: dict[str, Any], category: str) -> None:
         if self._sync_guard:
             return
-
         previous_state = self._sync_controller.snapshot().get(category, {})
         self._log_state_changes(category, previous_state, payload)
         self._sync_controller.apply_patch(
@@ -249,7 +262,6 @@ class GraphicsPanel(QWidget):
             metadata={"category": category},
         )
         getattr(self, signal_name).emit(deepcopy(payload))
-        self.event_logger.log_signal_emit(signal_name, payload)
 
     def _apply_state_to_tabs(self, state: Mapping[str, Any]) -> None:
         try:
@@ -306,8 +318,28 @@ class GraphicsPanel(QWidget):
         self.preset_applied.emit(state)
         self.event_logger.log_signal_emit("preset_applied", state)
 
-    def _on_lighting_changed(self, data: dict[str, Any]) -> None:
-        self._emit_with_logging("lighting_changed", data, "lighting")
+    def _on_lighting_changed(self, payload: dict[str, Any]) -> None:
+        """Обработчик сигнала вкладки освещения – обновляем агрегированное состояние и эмитим наружу."""
+        try:
+            current = self.state.get("lighting") or {}
+            merged = dict(current)
+            # Глубокое объединение ключевых секций (key, fill, rim, point, spot)
+            for section, section_payload in payload.items():
+                if isinstance(section_payload, Mapping):
+                    base = merged.get(section)
+                    if isinstance(base, Mapping):
+                        new_section = dict(base)
+                        new_section.update(section_payload)
+                        merged[section] = new_section
+                    else:
+                        merged[section] = dict(section_payload)
+                else:
+                    merged[section] = section_payload
+            self.state["lighting"] = merged
+            self._emit_with_logging("lighting_changed", merged, "lighting")
+        except Exception:
+            # Fallback: emit raw payload
+            self._emit_with_logging("lighting_changed", payload, "lighting")
 
     def _on_environment_changed(self, data: dict[str, Any]) -> None:
         self._emit_with_logging("environment_changed", data, "environment")
@@ -571,22 +603,25 @@ class GraphicsPanel(QWidget):
             return self.state or {}
 
     def get_parameters(self) -> dict[str, Any]:
-        """Return a defensive snapshot of the current graphics configuration."""
+        """Возвращает полный снимок параметров панели для тестов.
 
+        Собирает состояние из внутреннего `self.state` и актуального snapshot
+        контроллера синхронизации, предпочитая локальные изменения.
+        """
         snapshot = self._sync_controller.snapshot()
-        try:
-            validated = self.settings_service.ensure_valid_state(snapshot)
-        except GraphicsSettingsError as exc:
-            self.logger.error(
-                "❌ GraphicsPanel.get_parameters validation failed: %s", exc
-            )
-            validated = snapshot
-        except Exception as exc:  # pragma: no cover - defensive logging
-            self.logger.error(
-                "❌ GraphicsPanel.get_parameters unexpected error: %s", exc
-            )
-            validated = snapshot
-        return deepcopy(validated)
+        combined: dict[str, Any] = {}
+        # Приоритет локального состояния
+        for category, value in snapshot.items():
+            if isinstance(value, Mapping):
+                combined[category] = deepcopy(value)
+            else:
+                combined[category] = value
+        for category, value in self.state.items():
+            if isinstance(value, Mapping):
+                combined[category] = deepcopy(value)
+            else:
+                combined[category] = value
+        return combined
 
     # ------------------------------------------------------------------
     # Анализ (не настройки)

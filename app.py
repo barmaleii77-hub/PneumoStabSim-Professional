@@ -21,6 +21,7 @@ from src.cli.arguments import create_bootstrap_parser  # noqa: E402
 from src.diagnostics.logger_factory import get_logger  # noqa: E402
 from src.diagnostics.logging_presets import apply_logging_preset  # noqa: E402
 from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
+from src.diagnostics.path_diagnostics import dump_path_snapshot, verify_repo_root  # noqa: E402
 
 
 bootstrap_parser = create_bootstrap_parser()
@@ -194,7 +195,14 @@ from src.app_runner import ApplicationRunner  # noqa: E402
 def main() -> int:
     """Main application entry point - MODULAR VERSION"""
     args = parse_arguments()
-
+    # Диагностика путей при запуске по флагу --env-paths (добавляем без падения).
+    if getattr(args, "env_paths", False):  # ожидаемый пользовательский флаг
+        snapshot_path = dump_path_snapshot()
+        if snapshot_path is not None:
+            print(f"[paths] snapshot written: {snapshot_path}")
+        else:
+            print("[paths] snapshot failed")
+        print(f"[paths] cwd_ok={verify_repo_root()}")
     safe_cli_mode = bool(getattr(args, "safe_cli_mode", False))
 
     force_disable_reasons: list[str] = []

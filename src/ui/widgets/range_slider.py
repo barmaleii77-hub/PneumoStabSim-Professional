@@ -451,7 +451,7 @@ class RangeSlider(QWidget):
             self.tr("Increase %1 by one step (%2)."),
             {
                 "%1": self._display_label,
-                "%2": increase_shortcut,
+                "%2": increase_last_shortcut,
             },
         )
 
@@ -649,8 +649,8 @@ class RangeSlider(QWidget):
         self.stepChanged.emit(self._step)
 
     def stepSize(self) -> float:
-        """Вернуть нормализованный шаг квантования/нуджа."""
-        return float(self._step)
+        """Текущее значение шага (нормализованное)."""
+        return max(1e-3, float(self._step))
 
     @property
     def step(self) -> float:
@@ -884,42 +884,64 @@ class RangeSlider(QWidget):
     # =========================================================================
     # KEYBOARD HANDLING (fallback in addition to QShortcut)
     # =========================================================================
-    def keyPressEvent(self, event: QKeyEvent) -> None:  # type: ignore[override]
-        """Обработка клавиатуры как резерв к QShortcut.
+    def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: D401
+        """Обработка горячих клавиш (нудж и фокус) прямо на виджете.
 
-        ДОПОЛНЕНО: явная обработка Ctrl+Alt+Right/Left если QShortcut не изменяет значение.
+        Ctrl+Alt+Right / Ctrl+Alt+Left: изменение значения на текущий step.
+        Ctrl+Alt+1 / 2 / 3: фокус на min/value/max spinbox.
         """
-        if (
-            event.modifiers() & Qt.KeyboardModifier.ControlModifier
-            and event.modifiers() & Qt.KeyboardModifier.AltModifier
-        ):
+        if not event:  # pragma: no cover - защитный случай
+            return super().keyPressEvent(event)
+        mods = event.modifiers()
+        is_combo = bool(mods & Qt.KeyboardModifier.ControlModifier) and bool(
+            mods & Qt.KeyboardModifier.AltModifier
+        )
+        handled = False
+        if is_combo:
             key = event.key()
-            if key in (Qt.Key_Right, Qt.Key_Left):
-                # Проверяем предварительно значение до события
-                before = self.value()
-                super().keyPressEvent(event)  # даём шанс QShortcut
-                after = self.value()
-                if math.isclose(before, after, rel_tol=1e-12, abs_tol=1e-12):
-                    # Shortcut не сработал — вручную нуджим
-                    if key == Qt.Key_Right:
-                        self._nudge_slider(self._step)
-                        event.accept()
-                        return
-                    if key == Qt.Key_Left:
-                        self._nudge_slider(-self._step)
-                        event.accept()
-                        return
-                return  # уже обработано или сработал шорткат
-            if key == Qt.Key_1:
-                self.min_spinbox.setFocus()
-                event.accept()
-                return
-            if key == Qt.Key_2:
-                self.value_spinbox.setFocus()
-                event.accept()
-                return
-            if key == Qt.Key_3:
-                self.max_spinbox.setFocus()
-                event.accept()
-                return
-        super().keyPressEvent(event)
+            step = self.stepSize()
+            if key == Qt.Key_Right:
+                self.setValue(self._quantize_value(self.value() + step))
+                handled = True
+            elif key == Qt.Key_Left:
+                self.setValue(self._quantize_value(self.value() - step))
+                handled = True
+            elif key == Qt.Key_1:
+                self.min_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
+                handled = True
+            elif key == Qt.Key_2:
+                self.value_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
+                handled = True
+            elif key == Qt.Key_3:
+                self.max_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
+                handled = True
+        if handled:
+            event.accept()
+            return
+        return super().keyPressEvent(event)
+
+    def stepSize(self) -> float:
+        return float(max(self._step, 0.000001))
+
+    def setStepSize(self, value: float) -> None:
+        """Задать шаг и синхронизировать со спинбоксами и slider tick interval."""
+        if not math.isfinite(value) or value <= 0.0:
+            value = 0.001
+        self._step = float(value)
+        # Синхронизация singleStep для спинбоксов
+        self.min_spinbox.setSingleStep(self._step)
+        self.value_spinbox.setSingleStep(self._step)
+        self.max_spinbox.setSingleStep(self._step)
+        # Обновление tickInterval (приблизительно 50 делений по диапазону)
+        rng = max(1e-9, self.maximum() - self.minimum())
+        desired_ticks = max(10, min(200, int(rng / self._step)))
+        self.slider.setTickInterval(max(1, self._slider_resolution // desired_ticks))
+        self.stepChanged.emit(self._step)
+        self._refresh_accessibility_descriptions()
+
+    def _quantize_value(self, value: float) -> float:
+        """Квантизация значения по шагу (если step > 0)."""
+        step = self.stepSize()
+        if step <= 0.0:
+            return value
+        return round(value / step) * step

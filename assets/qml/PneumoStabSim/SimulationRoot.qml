@@ -399,7 +399,7 @@ Item {
     // Проксирование предупреждений шейдеров из PostEffects в sceneBridge
     Connections {
         target: root.postEffects
-        enabled: !!target
+        enabled: !!target && !!root.sceneBridge
         ignoreUnknownSignals: true
 
         function onEffectsBypassChanged() {
@@ -449,6 +449,35 @@ Item {
                 }
             } catch (err) {
                 console.error("[SimulationRoot] effectsBypassChanged handler failed:", err)
+            }
+        }
+
+        // Добавляем обработчики сигналов PostEffects для маршрутизации shader предупреждений
+        function onEffectCompilationError(effectId, fallbackActive, message) {
+            try {
+                if (root.sceneBridge && typeof root.sceneBridge.registerShaderWarning === 'function') {
+                    root.sceneBridge.registerShaderWarning(effectId, message)
+                }
+                // Emit status snapshot for tests expecting shaderStatusDumpRequested
+                var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
+                    ? root.postEffects.dumpShaderStatus(message)
+                    : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
+                root.shaderStatusDumpRequested(snapshot)
+            } catch (e) {
+                console.debug('[SimulationRoot] onEffectCompilationError routing failed', e)
+            }
+        }
+        function onEffectCompilationRecovered(effectId, wasFallbackActive) {
+            try {
+                if (root.sceneBridge && typeof root.sceneBridge.clearShaderWarning === 'function') {
+                    root.sceneBridge.clearShaderWarning(effectId)
+                }
+                var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
+                    ? root.postEffects.dumpShaderStatus('recovered')
+                    : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
+                root.shaderStatusDumpRequested(snapshot)
+            } catch (e) {
+                console.debug('[SimulationRoot] onEffectCompilationRecovered routing failed', e)
             }
         }
     }

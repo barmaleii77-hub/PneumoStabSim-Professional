@@ -11,6 +11,7 @@ import json
 import subprocess
 import sys
 import time
+import os  # Добавлено: модуль os нужен для доступа к переменным окружения
 from pathlib import Path
 from collections.abc import Iterable, Sequence
 
@@ -138,6 +139,15 @@ def _run_commands(
             check=False,
         )
         duration = time.perf_counter() - start
+
+        # Дополнительный отладочный вывод в консоль для диагностики сбоев
+        try:
+            print(f"[autonomous-check][{label}] return_code={completed.returncode}")
+            if completed.stdout:
+                preview = completed.stdout.splitlines()[:40]
+                print("[autonomous-check][stdout-preview]" + "\n".join(preview))
+        except Exception:
+            pass
 
         results.append(_format_command_result(label, command, completed, duration))
 
