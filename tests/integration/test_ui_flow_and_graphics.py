@@ -165,12 +165,45 @@ def test_visualization_service_enriches_graphics_payload(settings_manager) -> No
 
     camera_payload = sanitized["camera"]
     assert camera_payload["_access"]["canEdit"] is True
+    
+    # CRITICAL: orbit_target в world space сохраняется как есть
+    assert camera_payload["orbit_target"]["z"] == pytest.approx(-0.5, rel=1e-6)
+    
+    # HUD telemetry нормализует Z → abs(z) для camera space (расстояние от камеры)
     telemetry = camera_payload.get("hudTelemetry")
-    # Note: VisualizationService flips Z coordinate for telemetry (world→camera transform)
     assert telemetry is not None and telemetry["pivot"]["z"] == pytest.approx(
-        0.5, rel=1e-6
+        0.5, rel=1e-6  # abs(-0.5) = 0.5 для HUD
     )
 
     latest = service.latest_updates()["camera"]
     assert latest["hudTelemetry"]["pivot"]["x"] == pytest.approx(1.0, rel=1e-6)
     assert latest["_access"]["role"] == "engineer"
+
+
+def test_visualization_service_hudtelemetry_pivot_normalization(settings_manager) -> None:
+    """Test world→camera space normalization for hudTelemetry pivot.z"""
+    service = VisualizationService(
+        settings_manager=settings_manager,
+        access_control=_StubAccessControl(),
+    )
+
+    test_cases = [
+        # (orbit_target dict, expected_pivot.z)
+        ({"x": 0.0, "y": 0.0, "z": 0.5}, 0.5),       # Positive → unchanged
+        ({"x": 0.0, "y": 0.0, "z": -0.5}, 0.5),      # Negative → abs()
+        ({"x": 0.0, "y": 0.0, "z": -2.3}, 2.3),      # Large negative → abs()
+        ({"x": 0.0, "y": 0.0, "z": 0.0}, 0.5),       # Zero → default 0.5
+        ({"x": 0.0, "y": 0.0, "z": 0.00001}, 0.5),   # Near-zero → default 0.5
+    ]
+
+    for orbit_target, expected_hud_z in test_cases:
+        payload = service.prepare_camera_payload({"orbit_target": orbit_target})
+        telemetry = payload.get("hudTelemetry")
+        
+        assert telemetry is not None, f"Missing telemetry for {orbit_target}"
+        pivot = telemetry.get("pivot")
+        assert isinstance(pivot, dict), f"Invalid pivot for {orbit_target}"
+        
+        actual_z = pivot.get("z")
+        assert actual_z == pytest.approx(expected_hud_z, rel=1e-6), \
+            f"orbit_target={orbit_target}: expected {expected_hud_z}, got {actual_z}"

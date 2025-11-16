@@ -216,7 +216,9 @@ class VisualizationService(VisualizationServiceProtocol):
 
         telemetry = self._camera_telemetry.build(base)
         if telemetry:
-            # Гарантируем нормализованный pivot.z >= 0.0 и дефолт 0.5 если отсутствует
+            # ВАЖНО: orbit_target в world space сохраняется as-is,
+            # но hudTelemetry.pivot нормализуется для camera space (z >= 0)
+            # так как HUD отображает расстояние от камеры, а не мировую координату
             try:
                 pivot = (
                     telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
@@ -224,11 +226,19 @@ class VisualizationService(VisualizationServiceProtocol):
                 if isinstance(pivot, Mapping):
                     z_val = pivot.get("z")
                     if z_val is None or not isinstance(z_val, (int, float)):
+                        # Отсутствует или невалидный тип → дефолт
                         pivot = dict(pivot)
                         pivot["z"] = 0.5
                         telemetry = dict(telemetry)
                         telemetry["pivot"] = pivot
                     elif z_val < 0.0:
+                        # Нормализация: отрицательный Z в world → позитивное расстояние в camera space
+                        pivot = dict(pivot)
+                        pivot["z"] = abs(z_val) if abs(z_val) > 0.01 else 0.5
+                        telemetry = dict(telemetry)
+                        telemetry["pivot"] = pivot
+                    elif abs(z_val) < 0.01:
+                        # Почти ноль (на плоскости камеры) → небольшой дефолт для видимости
                         pivot = dict(pivot)
                         pivot["z"] = 0.5
                         telemetry = dict(telemetry)
