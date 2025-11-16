@@ -17,7 +17,9 @@ def temp_settings(tmp_path: Path) -> Path:
     }
     cfg = tmp_path / "config" / "app_settings.json"
     cfg.parent.mkdir(parents=True, exist_ok=True)
-    cfg.write_text(json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    cfg.write_text(
+        json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return cfg
 
 
@@ -49,8 +51,16 @@ def temp_migrations_dir(tmp_path: Path) -> Path:
                 "id": "002_tune_physics_dt",
                 "description": "Adjust physics dt precision",
                 "operations": [
-                    {"op": "set", "path": "current.simulation.physics_dt", "value": 0.004},
-                    {"op": "set", "path": "defaults_snapshot.simulation.physics_dt", "value": 0.004},
+                    {
+                        "op": "set",
+                        "path": "current.simulation.physics_dt",
+                        "value": 0.004,
+                    },
+                    {
+                        "op": "set",
+                        "path": "defaults_snapshot.simulation.physics_dt",
+                        "value": 0.004,
+                    },
                 ],
             },
             ensure_ascii=False,
@@ -61,23 +71,27 @@ def temp_migrations_dir(tmp_path: Path) -> Path:
     return mig_dir
 
 
-def test_migrations_append_jsonl_log(tmp_path: Path, temp_settings: Path, temp_migrations_dir: Path) -> None:
+def test_migrations_append_jsonl_log(
+    tmp_path: Path, temp_settings: Path, temp_migrations_dir: Path
+) -> None:
     log_dir = tmp_path / "logs_root"
     log_path = log_dir / "migrations.jsonl"
 
     assert not log_path.exists(), "Лог миграций не должен существовать до запуска"
 
     # Run migrations via direct call to module main
-    exit_code = settings_migrate.main([
-        "--settings",
-        str(temp_settings),
-        "--migrations",
-        str(temp_migrations_dir),
-        "--in-place",
-        "--verbose",
-        "--log-dir",
-        str(log_dir),
-    ])
+    exit_code = settings_migrate.main(
+        [
+            "--settings",
+            str(temp_settings),
+            "--migrations",
+            str(temp_migrations_dir),
+            "--in-place",
+            "--verbose",
+            "--log-dir",
+            str(log_dir),
+        ]
+    )
     assert exit_code == 0
 
     assert log_path.exists(), "Ожидается создание файла лога migrations.jsonl"
@@ -102,28 +116,34 @@ def test_migrations_append_jsonl_log(tmp_path: Path, temp_settings: Path, temp_m
     assert final["payload_hash_before"] != final["payload_hash_after"]
 
 
-def test_re_run_is_idempotent(tmp_path: Path, temp_settings: Path, temp_migrations_dir: Path) -> None:
+def test_re_run_is_idempotent(
+    tmp_path: Path, temp_settings: Path, temp_migrations_dir: Path
+) -> None:
     # First run
-    settings_migrate.main([
-        "--settings",
-        str(temp_settings),
-        "--migrations",
-        str(temp_migrations_dir),
-        "--in-place",
-    ])
+    settings_migrate.main(
+        [
+            "--settings",
+            str(temp_settings),
+            "--migrations",
+            str(temp_migrations_dir),
+            "--in-place",
+        ]
+    )
 
     # Capture original payload hash
     payload1 = json.loads(temp_settings.read_text(encoding="utf-8"))
     hash1 = json.dumps(payload1, sort_keys=True, ensure_ascii=False)
 
     # Second run (should not apply migrations again)
-    settings_migrate.main([
-        "--settings",
-        str(temp_settings),
-        "--migrations",
-        str(temp_migrations_dir),
-        "--in-place",
-    ])
+    settings_migrate.main(
+        [
+            "--settings",
+            str(temp_settings),
+            "--migrations",
+            str(temp_migrations_dir),
+            "--in-place",
+        ]
+    )
 
     payload2 = json.loads(temp_settings.read_text(encoding="utf-8"))
     hash2 = json.dumps(payload2, sort_keys=True, ensure_ascii=False)

@@ -5,6 +5,7 @@ output, and stores artefacts under ``reports/quality/launch_traces``.  The
 resulting logs provide traceability for environment provisioning issues without
 requiring a full GUI session on headless agents.
 """
+
 from __future__ import annotations
 
 import argparse

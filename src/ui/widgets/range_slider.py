@@ -451,7 +451,7 @@ class RangeSlider(QWidget):
             self.tr("Increase %1 by one step (%2)."),
             {
                 "%1": self._display_label,
-                "%2": increase_last_shortcut,
+                "%2": increase_shortcut,
             },
         )
 
@@ -919,25 +919,6 @@ class RangeSlider(QWidget):
             event.accept()
             return
         return super().keyPressEvent(event)
-
-    def stepSize(self) -> float:
-        return float(max(self._step, 0.000001))
-
-    def setStepSize(self, value: float) -> None:
-        """Задать шаг и синхронизировать со спинбоксами и slider tick interval."""
-        if not math.isfinite(value) or value <= 0.0:
-            value = 0.001
-        self._step = float(value)
-        # Синхронизация singleStep для спинбоксов
-        self.min_spinbox.setSingleStep(self._step)
-        self.value_spinbox.setSingleStep(self._step)
-        self.max_spinbox.setSingleStep(self._step)
-        # Обновление tickInterval (приблизительно 50 делений по диапазону)
-        rng = max(1e-9, self.maximum() - self.minimum())
-        desired_ticks = max(10, min(200, int(rng / self._step)))
-        self.slider.setTickInterval(max(1, self._slider_resolution // desired_ticks))
-        self.stepChanged.emit(self._step)
-        self._refresh_accessibility_descriptions()
 
     def _quantize_value(self, value: float) -> float:
         """Квантизация значения по шагу (если step > 0)."""

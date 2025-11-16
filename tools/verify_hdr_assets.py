@@ -21,12 +21,12 @@ Args:
   ]
 }
 """
+
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -34,10 +34,12 @@ from typing import Iterable
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = PROJECT_ROOT / "assets" / "hdr" / "hdr_manifest.json"
 
+
 @dataclass
 class ManifestEntry:
     name: str
     sha256: str
+
 
 @dataclass
 class FileStatus:
@@ -83,7 +85,9 @@ def _generate_manifest(entries: Iterable[Path]) -> list[ManifestEntry]:
     manifest_entries: list[ManifestEntry] = []
     for path in entries:
         try:
-            manifest_entries.append(ManifestEntry(name=path.name, sha256=_hash_file(path)))
+            manifest_entries.append(
+                ManifestEntry(name=path.name, sha256=_hash_file(path))
+            )
         except Exception:
             continue
     return manifest_entries
@@ -93,7 +97,9 @@ def _write_manifest(path: Path, entries: list[ManifestEntry]) -> None:
     try:
         payload = {"files": [{"name": e.name, "sha256": e.sha256} for e in entries]}
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
     except Exception:
         pass
 
@@ -118,17 +124,35 @@ def verify_hdr_assets(manifest_path: Path, summary_json: Path | None) -> int:
     for name, entry in manifest_map.items():
         path = discovered_map.get(name)
         if path is None:
-            statuses.append(FileStatus(name=name, status="missing", expected_sha256=entry.sha256))
+            statuses.append(
+                FileStatus(name=name, status="missing", expected_sha256=entry.sha256)
+            )
             continue
         try:
             actual_sha = _hash_file(path)
         except Exception:
-            statuses.append(FileStatus(name=name, status="missing", expected_sha256=entry.sha256))
+            statuses.append(
+                FileStatus(name=name, status="missing", expected_sha256=entry.sha256)
+            )
             continue
         if actual_sha != entry.sha256:
-            statuses.append(FileStatus(name=name, status="checksum-mismatch", expected_sha256=entry.sha256, actual_sha256=actual_sha))
+            statuses.append(
+                FileStatus(
+                    name=name,
+                    status="checksum-mismatch",
+                    expected_sha256=entry.sha256,
+                    actual_sha256=actual_sha,
+                )
+            )
         else:
-            statuses.append(FileStatus(name=name, status="ok", expected_sha256=entry.sha256, actual_sha256=actual_sha))
+            statuses.append(
+                FileStatus(
+                    name=name,
+                    status="ok",
+                    expected_sha256=entry.sha256,
+                    actual_sha256=actual_sha,
+                )
+            )
 
     # Дополнительные файлы не в манифесте
     for name, path in discovered_map.items():
@@ -137,7 +161,9 @@ def verify_hdr_assets(manifest_path: Path, summary_json: Path | None) -> int:
                 actual_sha = _hash_file(path)
             except Exception:  # pragma: no cover
                 actual_sha = None
-            statuses.append(FileStatus(name=name, status="extra", actual_sha256=actual_sha))
+            statuses.append(
+                FileStatus(name=name, status="extra", actual_sha256=actual_sha)
+            )
 
     summary = {
         "manifest": str(manifest_path),
@@ -160,12 +186,17 @@ def verify_hdr_assets(manifest_path: Path, summary_json: Path | None) -> int:
     mismatch_count = sum(1 for s in statuses if s.status == "checksum-mismatch")
     extra_count = sum(1 for s in statuses if s.status == "extra")
 
-    print(f"[hdr-verify] ok={ok_count} missing={missing_count} mismatch={mismatch_count} extra={extra_count}")
+    print(
+        f"[hdr-verify] ok={ok_count} missing={missing_count} mismatch={mismatch_count} extra={extra_count}"
+    )
 
     if summary_json is not None:
         try:
             summary_json.parent.mkdir(parents=True, exist_ok=True)
-            summary_json.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            summary_json.write_text(
+                json.dumps(summary, indent=2, ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
             print(f"[hdr-verify] Summary written to {summary_json}")
         except Exception as exc:  # pragma: no cover
             print(f"[hdr-verify] Unable to write summary JSON: {summary_json} ({exc})")
@@ -176,9 +207,20 @@ def verify_hdr_assets(manifest_path: Path, summary_json: Path | None) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Verify HDR assets manifest integrity")
-    parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST, help="Path to hdr_manifest.json (default: assets/hdr/hdr_manifest.json)")
-    parser.add_argument("--summary-json", type=Path, default=None, help="Path for JSON status output")
-    parser.add_argument("--fetch-missing", action="store_true", help="Placeholder: attempt to fetch missing assets (not implemented)")
+    parser.add_argument(
+        "--manifest",
+        type=Path,
+        default=DEFAULT_MANIFEST,
+        help="Path to hdr_manifest.json (default: assets/hdr/hdr_manifest.json)",
+    )
+    parser.add_argument(
+        "--summary-json", type=Path, default=None, help="Path for JSON status output"
+    )
+    parser.add_argument(
+        "--fetch-missing",
+        action="store_true",
+        help="Placeholder: attempt to fetch missing assets (not implemented)",
+    )
     return parser
 
 

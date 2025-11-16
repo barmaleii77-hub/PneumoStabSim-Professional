@@ -70,7 +70,9 @@ def _prune_old_logs(limit: int) -> None:
             pass
 
 
-def _build_command(task: str, extra_args: Sequence[str], coverage_min: float | None) -> list[str]:
+def _build_command(
+    task: str, extra_args: Sequence[str], coverage_min: float | None
+) -> list[str]:
     if task not in _TASK_COMMANDS:
         valid = ", ".join(sorted(_TASK_COMMANDS))
         raise ValueError(f"Unknown task '{task}'. Valid options: {valid}")
@@ -288,15 +290,70 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Run repository quality gates and persist logs under reports/quality.",
     )
-    parser.add_argument("--task", choices=sorted(_TASK_COMMANDS), default="verify", help="Which tools.ci_tasks command to execute (default: verify).")
-    parser.add_argument("--history-limit", type=int, default=DEFAULT_HISTORY_LIMIT, help="How many historical log files to retain (default: 7).")
-    parser.add_argument("--launch-trace", action="store_true", help=("Also run tools.trace_launch after completing the selected task to capture environment diagnostics."))
-    parser.add_argument("--trace-history-limit", type=int, default=None, help=("Override how many launch trace artefacts are retained when the trace step is enabled (default mirrors tools.trace_launch)."))
-    parser.add_argument("--sanitize", action="store_true", help=("Run tools.project_sanitize before executing the selected task to remove transient artefacts and prune historical logs."))
-    parser.add_argument("--sanitize-history", type=int, default=DEFAULT_SANITIZE_HISTORY, help=("How many historical quality artefacts should be kept when the sanitize step runs (default: %(default)s)."))
-    parser.add_argument("--trace-arg", dest="trace_args", action="append", default=None, help=("Additional arguments appended to tools.trace_launch. Repeat the option for multiple values."))
-    parser.add_argument("--require-coverage-min", type=float, default=None, help="Fail if coverage percent (COVERAGE_MIN_PERCENT) is below this value.")
-    parser.add_argument("extra_args", nargs=argparse.REMAINDER, help=("Optional additional arguments appended to the selected task. Start the list with '--' if the first value looks like an option."))
+    parser.add_argument(
+        "--task",
+        choices=sorted(_TASK_COMMANDS),
+        default="verify",
+        help="Which tools.ci_tasks command to execute (default: verify).",
+    )
+    parser.add_argument(
+        "--history-limit",
+        type=int,
+        default=DEFAULT_HISTORY_LIMIT,
+        help="How many historical log files to retain (default: 7).",
+    )
+    parser.add_argument(
+        "--launch-trace",
+        action="store_true",
+        help=(
+            "Also run tools.trace_launch after completing the selected task to capture environment diagnostics."
+        ),
+    )
+    parser.add_argument(
+        "--trace-history-limit",
+        type=int,
+        default=None,
+        help=(
+            "Override how many launch trace artefacts are retained when the trace step is enabled (default mirrors tools.trace_launch)."
+        ),
+    )
+    parser.add_argument(
+        "--sanitize",
+        action="store_true",
+        help=(
+            "Run tools.project_sanitize before executing the selected task to remove transient artefacts and prune historical logs."
+        ),
+    )
+    parser.add_argument(
+        "--sanitize-history",
+        type=int,
+        default=DEFAULT_SANITIZE_HISTORY,
+        help=(
+            "How many historical quality artefacts should be kept when the sanitize step runs (default: %(default)s)."
+        ),
+    )
+    parser.add_argument(
+        "--trace-arg",
+        dest="trace_args",
+        action="append",
+        default=None,
+        help=(
+            "Additional arguments appended to tools.trace_launch. Repeat the option for multiple values."
+        ),
+    )
+    parser.add_argument(
+        "--require-coverage-min",
+        type=float,
+        default=None,
+        help="Fail if coverage percent (COVERAGE_MIN_PERCENT) is below this value.",
+    )
+    parser.add_argument(
+        "extra_args",
+        nargs=argparse.REMAINDER,
+        help=(
+            "Optional additional arguments appended to the selected task. Start the list with '--' if the first value looks like an option."
+        ),
+    )
     return parser
 
 
@@ -306,7 +363,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     extra_args: Sequence[str] = tuple(arg for arg in args.extra_args or [] if arg)
     trace_args: Sequence[str] = tuple(arg for arg in args.trace_args or [] if arg)
     trace_history_limit = (
-        args.trace_history_limit if args.trace_history_limit is not None else DEFAULT_TRACE_HISTORY_LIMIT
+        args.trace_history_limit
+        if args.trace_history_limit is not None
+        else DEFAULT_TRACE_HISTORY_LIMIT
     )
     exit_code = run_autonomous_check(
         args.task,

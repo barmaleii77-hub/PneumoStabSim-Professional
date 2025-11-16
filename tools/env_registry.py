@@ -20,9 +20,11 @@
   "matrix": [ {"name":..., "value":..., "status": "ok|missing|empty", "suggested": "..." }, ... ]
 }
 """
+
 from __future__ import annotations
 
-from typing import Iterable, Mapping, MutableMapping, Dict, Any
+from collections.abc import Mapping
+from typing import Dict, Any
 
 # Критичные для запуска UI / тестов переменные (порядок важен для вывода)
 CRITICAL_VARS: tuple[str, ...] = (
@@ -40,9 +42,10 @@ CRITICAL_VARS: tuple[str, ...] = (
 SUGGESTED_DEFAULTS: dict[str, str] = {
     "QT_QUICK_CONTROLS_STYLE": "Basic",
     "QT_QPA_PLATFORM": "offscreen",  # для headless Linux
-    "QSG_RHI_BACKEND": "d3d11",      # для Windows GPU с Direct3D 11
-    "LIBGL_ALWAYS_SOFTWARE": "1",    # стабильность headless Linux
+    "QSG_RHI_BACKEND": "d3d11",  # для Windows GPU с Direct3D 11
+    "LIBGL_ALWAYS_SOFTWARE": "1",  # стабильность headless Linux
 }
+
 
 def _classify(value: str | None) -> str:
     if value is None:
@@ -50,6 +53,7 @@ def _classify(value: str | None) -> str:
     if str(value).strip() == "":
         return "empty"
     return "ok"
+
 
 def validate_environment(env: Mapping[str, str]) -> Dict[str, Any]:
     """Построить отчёт по состоянию критичных переменных.
@@ -70,16 +74,20 @@ def validate_environment(env: Mapping[str, str]) -> Dict[str, Any]:
         if status == "missing":
             missing.append(name)
             if name in SUGGESTED_DEFAULTS:
-                warnings.append(f"Переменная {name} отсутствует (рекомендуется установить {SUGGESTED_DEFAULTS[name]})")
+                warnings.append(
+                    f"Переменная {name} отсутствует (рекомендуется установить {SUGGESTED_DEFAULTS[name]})"
+                )
         elif status == "empty":
             empty.append(name)
             warnings.append(f"Переменная {name} установлена пустой строкой")
-        matrix.append({
-            "name": name,
-            "value": raw or "",
-            "status": status,
-            "suggested": SUGGESTED_DEFAULTS.get(name, ""),
-        })
+        matrix.append(
+            {
+                "name": name,
+                "value": raw or "",
+                "status": status,
+                "suggested": SUGGESTED_DEFAULTS.get(name, ""),
+            }
+        )
 
     return {
         "checked": {m["name"]: m["value"] for m in matrix},
@@ -90,6 +98,7 @@ def validate_environment(env: Mapping[str, str]) -> Dict[str, Any]:
         "matrix": matrix,
     }
 
+
 def format_matrix_markdown(report: Mapping[str, Any]) -> str:
     """Сформировать markdown-таблицу для отчётных логов."""
     rows = ["| Name | Value | Status | Suggested |", "| --- | --- | --- | --- |"]
@@ -99,4 +108,10 @@ def format_matrix_markdown(report: Mapping[str, Any]) -> str:
         )
     return "\n".join(rows)
 
-__all__ = ["CRITICAL_VARS", "SUGGESTED_DEFAULTS", "validate_environment", "format_matrix_markdown"]
+
+__all__ = [
+    "CRITICAL_VARS",
+    "SUGGESTED_DEFAULTS",
+    "validate_environment",
+    "format_matrix_markdown",
+]

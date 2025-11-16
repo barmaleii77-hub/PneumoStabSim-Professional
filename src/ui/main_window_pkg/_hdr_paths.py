@@ -24,8 +24,11 @@ def _ensure_ibl_events_path(project_root: Path) -> Path:
     try:
         logs_root.mkdir(parents=True, exist_ok=True)
     except Exception:
-        return project_root / "logs" / _IBL_EVENTS_DIR_NAME / "ibl_events_fallback.jsonl"
+        return (
+            project_root / "logs" / _IBL_EVENTS_DIR_NAME / "ibl_events_fallback.jsonl"
+        )
     return logs_root / _IBL_EVENTS_SINGLE_FILE_NAME
+
 
 _ibl_session_path_cache: dict[Path, Path] = {}
 

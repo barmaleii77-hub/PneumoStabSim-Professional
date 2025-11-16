@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 import argparse
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -129,7 +130,9 @@ def _prune_reports(*, keep: int, dry_run: bool, verbose: bool) -> int:
     return removed
 
 
-def _prune_directory_patterns(directory: Path, patterns: Sequence[str], keep: int, *, dry_run: bool, verbose: bool) -> int:
+def _prune_directory_patterns(
+    directory: Path, patterns: Sequence[str], keep: int, *, dry_run: bool, verbose: bool
+) -> int:
     removed = 0
     if keep < 0:
         keep = 0
@@ -144,7 +147,9 @@ def _prune_directory_patterns(directory: Path, patterns: Sequence[str], keep: in
     return removed
 
 
-def sanitize_repository(*, dry_run: bool, verbose: bool, report_history: int, tests_history: int) -> None:
+def sanitize_repository(
+    *, dry_run: bool, verbose: bool, report_history: int, tests_history: int
+) -> None:
     removed_items = 0
     pycache_removed = 0
     test_logs_pruned = 0
@@ -214,10 +219,26 @@ def build_parser() -> argparse.ArgumentParser:
             "temporary files from the repository."
         )
     )
-    parser.add_argument("--dry-run", action="store_true", help="List the actions without deleting files.")
-    parser.add_argument("--verbose", action="store_true", help="Print each removal as it happens.")
-    parser.add_argument("--report-history", type=int, default=3, help="How many historical quality report artefacts to keep (default: 3).")
-    parser.add_argument("--tests-history", type=int, default=2, help="How many historical test artefacts (pytest_*.xml/log) to keep (default: 2).")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="List the actions without deleting files.",
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Print each removal as it happens."
+    )
+    parser.add_argument(
+        "--report-history",
+        type=int,
+        default=3,
+        help="How many historical quality report artefacts to keep (default: 3).",
+    )
+    parser.add_argument(
+        "--tests-history",
+        type=int,
+        default=2,
+        help="How many historical test artefacts (pytest_*.xml/log) to keep (default: 2).",
+    )
     return parser
 
 

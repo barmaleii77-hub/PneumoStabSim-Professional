@@ -9,6 +9,7 @@ Pydantic's forward compatibility.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field, RootModel, model_validator
@@ -734,12 +735,15 @@ class AppSettings(_StrictModel):
     current: CurrentSettings
     defaults_snapshot: CurrentSettings
 
+
 @runtime_checkable
 class _ModelDumpProto(Protocol):  # pragma: no cover - structural typing helper
     def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
-def dump_settings(settings: AppSettings | _ModelDumpProto | Mapping[str, Any] | Any) -> dict[str, Any]:
+def dump_settings(
+    settings: AppSettings | _ModelDumpProto | Mapping[str, Any] | Any,
+) -> dict[str, Any]:
     """Return a serialisable dictionary representation of the settings.
 
     Дополняем оригинальную реализацию поддержкой *loose* / *relaxed* моделей,
@@ -757,7 +761,9 @@ def dump_settings(settings: AppSettings | _ModelDumpProto | Mapping[str, Any] | 
     - Для plain dict возвращаем копию (защита от мутаций вызывающим кодом).
     - Любые другие объекты сначала пробуем привести к dict через `getattr(model, "__dict__", {})`.
     """
-    from collections.abc import Mapping as _MappingABC  # локальный импорт для облегчения тестирования
+    from collections.abc import (
+        Mapping as _MappingABC,
+    )  # локальный импорт для облегчения тестирования
 
     # Pydantic строгая модель
     if isinstance(settings, AppSettings):
@@ -769,6 +775,7 @@ def dump_settings(settings: AppSettings | _ModelDumpProto | Mapping[str, Any] | 
             data = settings.model_dump()
         except Exception:  # pragma: no cover - защитный fallback
             data = {}
+
         # Локальная очистка None значений только там, где это критично (environment_slider_ranges)
         def _prune_slider_metadata_nulls(node: Any) -> None:
             if isinstance(node, _MappingABC):
@@ -781,6 +788,7 @@ def dump_settings(settings: AppSettings | _ModelDumpProto | Mapping[str, Any] | 
             elif isinstance(node, list):
                 for item in node:
                     _prune_slider_metadata_nulls(item)
+
         try:
             meta = data.get("metadata") if isinstance(data, _MappingABC) else None
             if isinstance(meta, _MappingABC):

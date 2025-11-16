@@ -227,7 +227,9 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
     # ------------------------------------------------------------------
-    def _log_state_changes(self, category: str, previous: Mapping[str, Any], new_payload: Mapping[str, Any]) -> None:
+    def _log_state_changes(
+        self, category: str, previous: Mapping[str, Any], new_payload: Mapping[str, Any]
+    ) -> None:
         """Логирование изменения состояния категории с предыдущим и новым payload.
 
         Args:
@@ -245,11 +247,15 @@ class GraphicsPanel(QWidget):
                     old = None
                 if old != value:
                     diff[key] = {"old": old, "new": value}
-            self.event_logger.log_state_change(category, "update", previous, new_payload)  # type: ignore[arg-type]
+            self.event_logger.log_state_change(
+                category, "update", previous, new_payload
+            )  # type: ignore[arg-type]
         except Exception:
             pass
 
-    def _emit_with_logging(self, signal_name: str, payload: dict[str, Any], category: str) -> None:
+    def _emit_with_logging(
+        self, signal_name: str, payload: dict[str, Any], category: str
+    ) -> None:
         if self._sync_guard:
             return
         previous_state = self._sync_controller.snapshot().get(category, {})

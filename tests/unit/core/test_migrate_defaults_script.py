@@ -8,7 +8,9 @@ import pytest
 import migrate_defaults_to_json as script
 
 
-def test_migrate_defaults_dry_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_migrate_defaults_dry_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     out_path = tmp_path / "config" / "app_settings.json"
 
     # Запуск dry-run

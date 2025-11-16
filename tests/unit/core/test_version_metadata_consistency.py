@@ -24,4 +24,6 @@ def test_metadata_version_matches_pyproject() -> None:
     settings_payload = json.loads(SETTINGS.read_text(encoding="utf-8"))
     meta = settings_payload.get("metadata", {})
     version_meta = meta.get("version")
-    assert version_meta == version_py, f"metadata.version {version_meta} != pyproject {version_py}"
+    assert version_meta == version_py, (
+        f"metadata.version {version_meta} != pyproject {version_py}"
+    )

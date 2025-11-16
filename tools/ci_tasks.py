@@ -22,7 +22,11 @@ from pathlib import Path
 from collections.abc import Iterable, MutableMapping, Sequence
 from defusedxml import ElementTree as ET
 from tools import env_profiles, merge_conflict_scan, pytest_skip_guard
-from tools.headless import apply_gpu_defaults, apply_headless_defaults, headless_requested
+from tools.headless import (
+    apply_gpu_defaults,
+    apply_headless_defaults,
+    headless_requested,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
@@ -359,7 +363,9 @@ def _run_command(
     if log_path is not None:
         with log_path.open(mode, encoding="utf-8") as handle:
             if mode == "w":
-                handle.write(f"# Log captured {datetime.now(timezone.utc).isoformat()}\n")
+                handle.write(
+                    f"# Log captured {datetime.now(timezone.utc).isoformat()}\n"
+                )
             elif file_exists:
                 handle.write("\n")
             if header:
@@ -475,7 +481,9 @@ def _run_pytest_suites(
         suite = suites[name]
         targets = suite.resolve_targets()
         if not targets:
-            print(f"[ci_tasks] No pytest targets configured for suite '{name}'; skipping.")
+            print(
+                f"[ci_tasks] No pytest targets configured for suite '{name}'; skipping."
+            )
             continue
         existing_targets = _ensure_targets_exist(targets)
         use_cov_for_suite = bool(use_coverage and name != "ui")
@@ -541,14 +549,35 @@ def _finalise_coverage_reports() -> Path | None:
         if path.is_file() and not path.name.endswith(".json")
     ]
     if not coverage_files:
-        print("[ci_tasks] No coverage data files found; skipping coverage consolidation.")
+        print(
+            "[ci_tasks] No coverage data files found; skipping coverage consolidation."
+        )
         return None
     QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
     coverage_log = "coverage.log"
-    _run_command([sys.executable, "-m", "coverage", "combine"], task_name="coverage:combine", log_name=coverage_log)
-    _run_command([sys.executable, "-m", "coverage", "report"], task_name="coverage:report", log_name=coverage_log, append=True)
-    json_command = [sys.executable, "-m", "coverage", "json", "--pretty-print", "-o", str(COVERAGE_JSON_PATH)]
-    _run_command(json_command, task_name="coverage:json", log_name=coverage_log, append=True)
+    _run_command(
+        [sys.executable, "-m", "coverage", "combine"],
+        task_name="coverage:combine",
+        log_name=coverage_log,
+    )
+    _run_command(
+        [sys.executable, "-m", "coverage", "report"],
+        task_name="coverage:report",
+        log_name=coverage_log,
+        append=True,
+    )
+    json_command = [
+        sys.executable,
+        "-m",
+        "coverage",
+        "json",
+        "--pretty-print",
+        "-o",
+        str(COVERAGE_JSON_PATH),
+    ]
+    _run_command(
+        json_command, task_name="coverage:json", log_name=coverage_log, append=True
+    )
     min_threshold = _read_float_env(COVERAGE_MIN_ENV_VAR)
     if min_threshold is not None and COVERAGE_JSON_PATH.exists():
         try:
@@ -581,7 +610,11 @@ def _collect_skipped_tests() -> list[SkippedTestCase]:
                 continue
             classname = testcase.attrib.get("classname", "")
             name = testcase.attrib.get("name", "")
-            test_id = f"{classname}.{name}" if classname and name else (name or classname or "<unknown>")
+            test_id = (
+                f"{classname}.{name}"
+                if classname and name
+                else (name or classname or "<unknown>")
+            )
             for node in skipped_nodes:
                 message = (node.attrib.get("message") or node.text or "").strip()
                 skipped.append(
@@ -643,7 +676,9 @@ def _enforce_ci_skip_policy(entries: list[SkippedTestCase]) -> None:
     location_hint = (
         f" See {_relative_display(summary_path)} for details." if summary_path else ""
     )
-    base_message = f"{count} skipped test{plural} detected across pytest suites." + location_hint
+    base_message = (
+        f"{count} skipped test{plural} detected across pytest suites." + location_hint
+    )
     if not allow_flag:
         raise TaskError(
             base_message
@@ -713,7 +748,9 @@ def _emit_quality_metrics_markdown(payload: dict[str, object]) -> None:
             lines.append(f"- Timestamp: {timestamp}")
         coverage = payload.get("coverage")
         if isinstance(coverage, dict):
-            lines.append("- Coverage: " + ", ".join(f"{k}={v}" for k, v in coverage.items()))
+            lines.append(
+                "- Coverage: " + ", ".join(f"{k}={v}" for k, v in coverage.items())
+            )
         tests = payload.get("tests")
         if isinstance(tests, dict):
             lines.append(
@@ -747,7 +784,11 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
             coverage_payload = json.loads(coverage_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise TaskError(f"Invalid coverage JSON payload: {exc}") from exc
-        totals = coverage_payload.get("totals", {}) if isinstance(coverage_payload, dict) else {}
+        totals = (
+            coverage_payload.get("totals", {})
+            if isinstance(coverage_payload, dict)
+            else {}
+        )
         if totals:
             percent = totals.get("percent_covered")
             covered = totals.get("covered_lines")
@@ -766,20 +807,28 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
     if summaries:
         totals = summaries.pop("total", {"duration": 0.0, "tests": 0})
         tests_payload: dict[str, str] = {
-            "total_duration_seconds": _format_seconds(float(totals.get("duration", 0.0))),
+            "total_duration_seconds": _format_seconds(
+                float(totals.get("duration", 0.0))
+            ),
             "total_cases": str(int(float(totals.get("tests", 0)))),
         }
         for suite_name, data in summaries.items():
             duration_value = float(data.get("duration", 0.0))
             tests_value = int(float(data.get("tests", 0)))
-            tests_payload[f"{suite_name}_duration_seconds"] = _format_seconds(duration_value)
+            tests_payload[f"{suite_name}_duration_seconds"] = _format_seconds(
+                duration_value
+            )
             tests_payload[f"{suite_name}_cases"] = str(tests_value)
         payload["tests"] = tests_payload
     if len(payload) == 1:
-        print("[ci_tasks] No coverage or test metrics available; skipping dashboard update.")
+        print(
+            "[ci_tasks] No coverage or test metrics available; skipping dashboard update."
+        )
         return
     QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
-    LATEST_METRICS_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    LATEST_METRICS_PATH.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     _emit_quality_metrics_markdown(payload)
     command = [
         sys.executable,
@@ -810,7 +859,9 @@ def task_lint() -> None:
     try:
         _run_command(format_cmd, task_name="ruff-format", log_name="ruff_format.log")
     except TaskError as exc:
-        raise TaskError("Ruff formatting violations detected; fix them before running lint") from exc
+        raise TaskError(
+            "Ruff formatting violations detected; fix them before running lint"
+        ) from exc
     _run_command(check_cmd, task_name="ruff-check", log_name="ruff_check.log")
     _run_command(flake8_cmd, task_name="flake8", log_name="flake8.log")
 
@@ -844,13 +895,16 @@ def _resolve_qml_linter() -> tuple[str, ...]:
         if resolved:
             return (resolved,)
         return None
+
     candidates = _split_env_list(os.environ.get("QML_LINTER"))
     if candidates:
         for candidate in candidates:
             command = _command_from_candidate(candidate)
             if command is not None:
                 return command
-        raise TaskError("None of the QML linters specified in QML_LINTER are executable.")
+        raise TaskError(
+            "None of the QML linters specified in QML_LINTER are executable."
+        )
     for name in ("qmllint", "pyside6-qmllint"):
         command = _command_from_candidate(name)
         if command is not None:
@@ -896,7 +950,9 @@ def _collect_qml_targets() -> list[Path]:
             print(f"[ci_tasks] Auto-discovered QML lint roots: {', '.join(auto)}")
             configured = auto
         else:
-            raise TaskError("No QML lint targets configured and auto-discovery found none.")
+            raise TaskError(
+                "No QML lint targets configured and auto-discovery found none."
+            )
     collected: list[Path] = []
     for relative in configured:
         candidate = PROJECT_ROOT / relative
@@ -971,6 +1027,7 @@ def task_shaders() -> None:
     if qsb_path is None:
         try:
             from tools import validate_shaders as _vs  # type: ignore
+
             qsb_env_name = getattr(_vs, "QSB_ENV_VARIABLE", "QSB_EXECUTABLE")
         except Exception:
             qsb_env_name = "QSB_EXECUTABLE"
@@ -1065,7 +1122,9 @@ def task_test() -> None:
         except TaskError as exc:
             if primary_error is None:
                 raise
-            print(f"[ci_tasks] Coverage aggregation skipped due to earlier failure: {exc}")
+            print(
+                f"[ci_tasks] Coverage aggregation skipped due to earlier failure: {exc}"
+            )
     try:
         _publish_quality_metrics(coverage_path if use_coverage else None)
     except TaskError as exc:
@@ -1148,17 +1207,25 @@ def task_verify() -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CI task runner for PneumoStabSim Professional")
+    parser = argparse.ArgumentParser(
+        description="CI task runner for PneumoStabSim Professional"
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("lint", help="Run Ruff format check and lint")
     subparsers.add_parser("typecheck", help="Run mypy against configured targets")
-    subparsers.add_parser("test", help="Run pytest across unit, integration, and UI suites")
+    subparsers.add_parser(
+        "test", help="Run pytest across unit, integration, and UI suites"
+    )
     subparsers.add_parser("test-unit", help="Run the unit test suite")
     subparsers.add_parser("test-integration", help="Run the integration test suite")
     subparsers.add_parser("test-ui", help="Run the UI/QML test suite")
-    subparsers.add_parser("analyze-logs", help="Analyze application logs for recent runs")
+    subparsers.add_parser(
+        "analyze-logs", help="Analyze application logs for recent runs"
+    )
     subparsers.add_parser("qml-lint", help="Run qmllint against configured targets")
-    subparsers.add_parser("verify", help="Run lint, typecheck, qml-lint, and tests in sequence")
+    subparsers.add_parser(
+        "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
+    )
     subparsers.add_parser("security", help="Run bandit security scanner")
     return parser
 

@@ -218,7 +218,9 @@ class VisualizationService(VisualizationServiceProtocol):
         if telemetry:
             # Гарантируем нормализованный pivot.z >= 0.0 и дефолт 0.5 если отсутствует
             try:
-                pivot = telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
+                pivot = (
+                    telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
+                )
                 if isinstance(pivot, Mapping):
                     z_val = pivot.get("z")
                     if z_val is None or not isinstance(z_val, (int, float)):

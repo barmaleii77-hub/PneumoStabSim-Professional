@@ -468,7 +468,9 @@ class SettingsService:
             # Новая миграция: max_susp_travel_m → max_susp_travel
             if "max_susp_travel" not in geometry and "max_susp_travel_m" in geometry:
                 try:
-                    geometry["max_susp_travel"] = float(geometry.get("max_susp_travel_m"))
+                    geometry["max_susp_travel"] = float(
+                        geometry.get("max_susp_travel_m")
+                    )
                 except Exception:
                     geometry["max_susp_travel"] = geometry.get("max_susp_travel_m")
             geometry.pop("max_susp_travel_m", None)

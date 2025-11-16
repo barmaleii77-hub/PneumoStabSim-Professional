@@ -7,9 +7,11 @@ from src.ui.main_window_pkg._hdr_paths import normalise_hdr_path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
+
 class _LoggerStub:
     def __init__(self) -> None:
         self.records: list[str] = []
+
     def warning(self, msg: str, *args) -> None:  # type: ignore[override]
         formatted = msg % args if args else msg
         self.records.append(formatted)
@@ -59,4 +61,6 @@ def test_hdr_logging_emits_missing_event(tmp_path: Path) -> None:
     )
     assert result == ""
     events = _read_events()
-    assert any(e.get("status") == "missing" for e in events), "Ожидался статус missing в событиях"
+    assert any(e.get("status") == "missing" for e in events), (
+        "Ожидался статус missing в событиях"
+    )

@@ -7,6 +7,7 @@
 
 Используется автотестами и при запуске приложения с флагом --env-paths.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -61,10 +62,13 @@ def dump_path_snapshot(snapshot: dict[str, Any] | None = None) -> Path | None:
         REPORTS_ROOT.mkdir(parents=True, exist_ok=True)
         payload = snapshot or collect_path_snapshot()
         target = REPORTS_ROOT / "runtime_paths.json"
-        target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        target.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         return target
     except Exception:
         return None
+
 
 __all__ = [
     "verify_repo_root",

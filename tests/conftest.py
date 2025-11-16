@@ -1,4 +1,5 @@
 """Extended pytest configuration with enhanced qtbot and monkeypatch shims."""
+
 from __future__ import annotations
 import os
 import sys
@@ -32,10 +33,12 @@ _MARKERS = [
     "ui: Legacy UI tests",
 ]
 
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config: pytest.Config) -> None:
     for marker in _MARKERS:
         config.addinivalue_line("markers", marker)
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _path_snapshot() -> None:
@@ -49,6 +52,7 @@ def _path_snapshot() -> None:
         )
     except Exception:
         pass
+
 
 @pytest.fixture(scope="session")
 def qapp():
@@ -64,12 +68,13 @@ def qapp():
     except Exception:
         pass
 
+
 # Enhanced qtbot fallback implementing required methods used by tests
 @pytest.fixture
 def qtbot(qapp):
     try:
         from PySide6.QtTest import QTest  # type: ignore
-        from PySide6.QtCore import Qt, QEvent, QObject, Signal
+        from PySide6.QtCore import Qt, QEvent, QObject
         from PySide6.QtGui import QMouseEvent, QKeyEvent
         from PySide6.QtWidgets import QApplication
     except Exception:
@@ -98,7 +103,9 @@ def qtbot(qapp):
                     pass
             time.sleep(ms / 1000.0)
 
-        def waitUntil(self, func: Callable[[], bool], timeout: int = 1000, interval: int = 25) -> None:
+        def waitUntil(
+            self, func: Callable[[], bool], timeout: int = 1000, interval: int = 25
+        ) -> None:
             deadline = time.time() + timeout / 1000.0
             while time.time() < deadline:
                 try:
@@ -144,6 +151,7 @@ def qtbot(qapp):
                     if not self._received:
                         raise AssertionError("waitSignal timeout")
                     return False
+
             return _Ctx(signal)
 
         def addCleanup(self, func: Callable[[], object]) -> None:
@@ -162,7 +170,9 @@ def qtbot(qapp):
                 if not widget.hasFocus():
                     widget.setFocus()
                 press = QKeyEvent(QEvent.Type.KeyPress, key, modifier or Qt.NoModifier)
-                release = QKeyEvent(QEvent.Type.KeyRelease, key, modifier or Qt.NoModifier)
+                release = QKeyEvent(
+                    QEvent.Type.KeyRelease, key, modifier or Qt.NoModifier
+                )
                 QApplication.sendEvent(widget, press)
                 QApplication.sendEvent(widget, release)
             except Exception:
@@ -177,7 +187,12 @@ def qtbot(qapp):
                     pass
             for ch in str(text):
                 try:
-                    self.keyClick(widget, ord(ch), modifier or (Qt.NoModifier if Qt else None), delay)
+                    self.keyClick(
+                        widget,
+                        ord(ch),
+                        modifier or (Qt.NoModifier if Qt else None),
+                        delay,
+                    )
                 except Exception:
                     pass
 
@@ -191,9 +206,21 @@ def qtbot(qapp):
             try:
                 if button is None and Qt is not None:
                     button = Qt.LeftButton
-                ev = QMouseEvent(QEvent.Type.MouseButtonPress, widget.rect().center(), button, button, Qt.NoModifier)  # type: ignore[arg-type]
+                ev = QMouseEvent(
+                    QEvent.Type.MouseButtonPress,
+                    widget.rect().center(),
+                    button,
+                    button,
+                    Qt.NoModifier,
+                )  # type: ignore[arg-type]
                 QApplication.sendEvent(widget, ev)
-                ev2 = QMouseEvent(QEvent.Type.MouseButtonRelease, widget.rect().center(), button, button, Qt.NoModifier)  # type: ignore[arg-type]
+                ev2 = QMouseEvent(
+                    QEvent.Type.MouseButtonRelease,
+                    widget.rect().center(),
+                    button,
+                    button,
+                    Qt.NoModifier,
+                )  # type: ignore[arg-type]
                 QApplication.sendEvent(widget, ev2)
             except Exception:
                 pass
@@ -202,6 +229,7 @@ def qtbot(qapp):
             if QTest is not None and Qt is not None:
                 try:
                     from PySide6.QtTest import QTest as _QTest
+
                     _QTest.mouseDClick(widget, button or Qt.LeftButton)
                     return
                 except Exception:
@@ -212,9 +240,11 @@ def qtbot(qapp):
 
         def assertNotEmitted(self, signal, timeout: int = 100) -> None:
             emitted = False
+
             def _on(*_):
                 nonlocal emitted
                 emitted = True
+
             try:
                 signal.connect(_on)
             except Exception:
@@ -234,10 +264,17 @@ def qtbot(qapp):
             # Basic exposure detection
             def _visible():
                 try:
-                    wh = widget.windowHandle() if hasattr(widget, "windowHandle") else None
-                    return bool(getattr(widget, "isVisible", lambda: True)()) and (wh is None or getattr(wh, "isExposed", lambda: True)())
+                    wh = (
+                        widget.windowHandle()
+                        if hasattr(widget, "windowHandle")
+                        else None
+                    )
+                    return bool(getattr(widget, "isVisible", lambda: True)()) and (
+                        wh is None or getattr(wh, "isExposed", lambda: True)()
+                    )
                 except Exception:
                     return True
+
             if hasattr(widget, "show"):
                 try:
                     widget.show()
@@ -253,9 +290,11 @@ def qtbot(qapp):
         except Exception:
             pass
 
+
 @pytest.fixture
 def monkeypatch():  # custom to ignore raising kw
     from pytest import MonkeyPatch
+
     mp = MonkeyPatch()
     original_setitem = mp.setitem
 

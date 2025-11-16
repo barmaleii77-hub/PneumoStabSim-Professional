@@ -85,7 +85,7 @@ SELECTED_LOG_PRESET = apply_logging_preset(os.environ)
 
 # Валидация критичных переменных окружения (до конфигурации Qt)
 try:
-    from tools.env_registry import validate_environment, format_matrix_markdown
+    from tools.env_registry import validate_environment
 
     _ENV_VALIDATION_REPORT = validate_environment(os.environ)
     _MISSING_ENV_VARS = list(_ENV_VALIDATION_REPORT.get("missing", []))
@@ -96,9 +96,7 @@ try:
             + ", ".join(sorted(_MISSING_ENV_VARS))
         )
     if _EMPTY_ENV_VARS:
-        print(
-            "⚠ Пустые переменные окружения: " + ", ".join(sorted(_EMPTY_ENV_VARS))
-        )
+        print("⚠ Пустые переменные окружения: " + ", ".join(sorted(_EMPTY_ENV_VARS)))
 except Exception:
     _ENV_VALIDATION_REPORT = None
 
@@ -150,8 +148,8 @@ _BOOTSTRAP_LOGGER.info(
     legacy_requested=LEGACY_MODE_REQUESTED,
     safe_runtime=SAFE_RUNTIME_MODE_REQUESTED,
     use_qml_3d=BOOTSTRAP_USE_QML_3D,
-    env_missing=_MISSING_ENV_VARS if '_MISSING_ENV_VARS' in globals() else (),
-    env_empty=_EMPTY_ENV_VARS if '_EMPTY_ENV_VARS' in globals() else (),
+    env_missing=_MISSING_ENV_VARS if "_MISSING_ENV_VARS" in globals() else (),
+    env_empty=_EMPTY_ENV_VARS if "_EMPTY_ENV_VARS" in globals() else (),
 )
 
 

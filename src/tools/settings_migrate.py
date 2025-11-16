@@ -14,6 +14,7 @@ Example usage::
     python -m src.tools.settings_migrate --settings config/app_settings.json \
         --migrations config/migrations --in-place --verbose
 """
+
 from __future__ import annotations
 
 import argparse
@@ -25,7 +26,9 @@ from typing import Any
 from datetime import datetime, timezone
 from collections.abc import Iterable, Sequence
 
-SETTINGS_REPORT_ROOT = Path("reports") / "settings"  # default root; can be overridden by CLI
+SETTINGS_REPORT_ROOT = (
+    Path("reports") / "settings"
+)  # default root; can be overridden by CLI
 MIGRATIONS_LOG_PATH = SETTINGS_REPORT_ROOT / "migrations.jsonl"
 
 
@@ -41,7 +44,9 @@ def _payload_hash(payload: dict[str, Any]) -> str:
     return hashlib.sha256(dumped.encode("utf-8", "replace")).hexdigest()
 
 
-def _append_migration_event(event: dict[str, Any], *, log_root: Path | None = None) -> None:
+def _append_migration_event(
+    event: dict[str, Any], *, log_root: Path | None = None
+) -> None:
     root = log_root or SETTINGS_REPORT_ROOT
     path = root / "migrations.jsonl"
     try:
@@ -193,14 +198,17 @@ class MigrationDescriptor:
             else:
                 print(f"[migration:{self.identifier}] {op_type}")
             op_results.append({"op": op_type, "path": path, "changed": bool(mutated)})
-        _append_migration_event({
-            "timestamp": _utc_now(),
-            "migration": self.identifier,
-            "description": self.description,
-            "source": str(self.source),
-            "operations": op_results,
-            "changed": changed,
-        }, log_root=log_root)
+        _append_migration_event(
+            {
+                "timestamp": _utc_now(),
+                "migration": self.identifier,
+                "description": self.description,
+                "source": str(self.source),
+                "operations": op_results,
+                "changed": changed,
+            },
+            log_root=log_root,
+        )
         return changed
 
 
@@ -242,7 +250,10 @@ def _ensure_metadata(payload: dict[str, Any]) -> tuple[dict[str, Any], list[str]
 
 
 def apply_migrations(
-    payload: dict[str, Any], migrations: Iterable[MigrationDescriptor], *, log_root: Path | None = None
+    payload: dict[str, Any],
+    migrations: Iterable[MigrationDescriptor],
+    *,
+    log_root: Path | None = None,
 ) -> list[str]:
     """Apply *migrations* to *payload*.
 
@@ -306,7 +317,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print applied migration identifiers",
     )
-    parser.add_argument("--log-dir", type=Path, help="Override migration log directory (default: reports/settings)")
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        help="Override migration log directory (default: reports/settings)",
+    )
     return parser
 
 
@@ -321,16 +336,19 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     executed = apply_migrations(payload, migrations, log_root=log_root)
 
-    _append_migration_event({
-        "timestamp": _utc_now(),
-        "event": "migration-run-complete",
-        "settings_file": str(args.settings),
-        "migrations_dir": str(args.migrations),
-        "executed": executed,
-        "executed_count": len(executed),
-        "payload_hash_before": hash_before,
-        "payload_hash_after": _payload_hash(payload),
-    }, log_root=log_root)
+    _append_migration_event(
+        {
+            "timestamp": _utc_now(),
+            "event": "migration-run-complete",
+            "settings_file": str(args.settings),
+            "migrations_dir": str(args.migrations),
+            "executed": executed,
+            "executed_count": len(executed),
+            "payload_hash_before": hash_before,
+            "payload_hash_after": _payload_hash(payload),
+        },
+        log_root=log_root,
+    )
 
     if args.verbose:
         if executed:
