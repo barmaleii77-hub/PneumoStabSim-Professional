@@ -2,7 +2,7 @@
   "metadata": {
     "version": "5.0.0",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-16T09:50:10.862Z",
+    "last_modified": "2025-11-16T13:12:57.833Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults",
