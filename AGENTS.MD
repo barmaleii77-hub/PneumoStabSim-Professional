@@ -19,6 +19,8 @@ instructions explicitly override a rule.
   - [`Phase 5`](docs/RENOVATION_PHASE_5_STABILIZATION_PLAN.md)
 - **Settings architecture**: [`docs/SETTINGS_ARCHITECTURE.md`](docs/SETTINGS_ARCHITECTURE.md)
 - **Assistant guidance**: [`docs/ai_assistants.md`](docs/ai_assistants.md)
+- **Environment variables matrix**: [`docs/ENV_VARS_MATRIX.md`](docs/ENV_VARS_MATRIX.md)
+- **Release quality matrix**: [`docs/RELEASE_QUALITY_MATRIX.md`](docs/RELEASE_QUALITY_MATRIX.md)
 
 Before modifying code or configuration, review the relevant phase document and
 ensure the master plan accurately reflects the intended scope.
@@ -66,6 +68,8 @@ ensure the master plan accurately reflects the intended scope.
    the same branch.
 5. **Traceability**: link code changes to plan checklist items using inline
    comments or PR descriptions referencing the relevant section.
+6. **Coverage threshold**: honour `COVERAGE_MIN_PERCENT` (see `docs/ENV_VARS_MATRIX.md`).
+   Commits reducing coverage below the threshold must include remediation steps.
 
 ---
 
@@ -83,6 +87,8 @@ ensure the master plan accurately reflects the intended scope.
 - **Performance**: profile with `tools/performance_monitor.py` when adjusting
   animations or rendering parameters. Attach the `.json` or `.prof` report to
   the relevant documentation if regressions occur.
+- **HDR path logging**: all HDR path resolutions append JSON events (`asset_lookup`) to
+  `logs/ibl/ibl_events.jsonl` (единый файл) for traceability (status: ok|missing|remote|empty).
 
 ---
 
@@ -97,6 +103,8 @@ ensure the master plan accurately reflects the intended scope.
 - **Reporting**: publish test artefacts to `reports/` (e.g. `reports/tests/`,
   `reports/performance/`). Link them from the phase documents when closing
   action items.
+- **HDR integrity**: run verification (`hdr-verify` via `make verify`) to ensure
+  all manifest entries are present and checksums match before merging feature branches.
 
 ---
 
@@ -139,3 +147,5 @@ apply to all contributors without exception:
 - **Dependency & testing compliance**: Всегда в обязательном порядке
   устанавливайте все необходимые модули и библиотеки и тестируйте все
   изменения в полном объеме.
+- **Coverage gate**: CI enforces `COVERAGE_MIN_PERCENT`; failing the threshold blocks merge.
+- **HDR verification**: run HDR manifest integrity checks (`hdr-verify`) before release tagging.

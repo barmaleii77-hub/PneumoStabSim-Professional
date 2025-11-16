@@ -17,7 +17,7 @@ def legacy_settings(tmp_path: Path) -> Path:
 
     source = Path("config/app_settings.json")
     data = json.loads(source.read_text(encoding="utf-8"))
-    
+
     # Preserve ENTIRE defaults_snapshot from source to ensure all categories exist
     # Only modify units_version and simulation values for testing
     data.setdefault("metadata", {})["units_version"] = "legacy"
@@ -384,7 +384,12 @@ def test_settings_manager_migrates_legacy_graphics_categories(
             # Удаляем legacy ключи из expected для корректного сравнения
             for mat_name, mat_payload in expected.items():
                 if isinstance(mat_payload, dict):
-                    for legacy_key in ("specular", "specular_tint", "transmission", "ior"):
+                    for legacy_key in (
+                        "specular",
+                        "specular_tint",
+                        "transmission",
+                        "ior",
+                    ):
                         mat_payload.pop(legacy_key, None)
         assert actual == expected
 

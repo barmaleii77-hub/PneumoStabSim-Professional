@@ -91,13 +91,13 @@ Texture {
         fallbackDueToError = Boolean(dueToError)
         fallbackActive = true
         _logWarn(
-            `${reason || "Switching to fallback"}; using ${fallbackDescriptor}`
+            `${reason || "Switching to fallback"}; using ${fallbackDescriptor}; fallback activated`
         )
     }
 
     function _handleFallbackError() {
         _logWarn(
-            `Fallback resource ${fallbackDescriptor} failed to load; texture will remain empty`
+            `Fallback resource ${fallbackDescriptor} failed to load; texture will remain empty; fallback still active`
         )
     }
 

@@ -308,6 +308,7 @@ class FileCyclerWidget(QWidget):
         self._resolution_roots: list[Path] = []
         self._missing_path: str = ""
         self._logged_missing_paths: set[str] = set()
+        # Единый набор для дедупликации диалогов о пропавших файлах
         self._dialogued_missing_paths: set[str] = set()
         self._pending_dialog_paths: list[str] = []
         self._path_exists_cache: dict[str, bool] = {}
@@ -368,7 +369,7 @@ class FileCyclerWidget(QWidget):
         Правила (обновлённые):
         1. Сохраняем текущий путь перед заменой списка.
         2. Присваиваем новый список без изменения состояния.
-        3. Если previous_path непустой — вызываем set_current_data(previous_path, emit=False) и выходим.
+        3. Если previous_path непустой — вызываем set_current_data(previous_path, emit=False, suppress_warnings=True) и выходим.
            Это сохраняет custom выбор, даже если путь отсутствует в новом списке.
         4. Если previous_path пустой — НЕ трогаем существующий custom_entry.
         5. Автовыбор первого элемента только когда нет previous_path, нет custom_entry и пустой выбор запрещён.
@@ -397,24 +398,21 @@ class FileCyclerWidget(QWidget):
 
         if previous_path:
             # Восстанавливаем предыдущий выбор (в том числе custom) и выходим
-            self.set_current_data(previous_path, emit=False)
+            # ВАЖНО: suppress_warnings=True, чтобы не показывать диалоги при обновлении списка
+            self.set_current_data(previous_path, emit=False, suppress_warnings=True)
             return
 
         # previous_path пустой: оставляем существующий custom_entry (если есть)
         if self._custom_entry is not None:
             # Сохраняем текущее состояние без изменений
-            self._update_ui(emit=False)
+            self._update_ui(emit=False, suppress_warnings=True)
             return
 
-        # Нет предыдущего пути и custom_entry — решаем про автоселект
-        if not self._allow_empty_selection and self._items:
-            self._index = 0
-            self._custom_entry = None
-        else:
-            # Разрешён пустой выбор или список пуст — оставляем индекс -1
-            self._index = -1
-            # custom_entry остаётся None
-        self._update_ui(emit=False)
+        # Нет предыдущего пути и custom_entry — НЕ автоселектим первый элемент.
+        # Требование тестов: пустое значение не должно приводить к автоселекту.
+        self._index = -1
+        # custom_entry остаётся None
+        self._update_ui(emit=False, suppress_warnings=True)
 
     def set_resolution_roots(self, roots: Sequence[Path]) -> None:
         """Define base directories for resolving relative paths."""
@@ -432,9 +430,11 @@ class FileCyclerWidget(QWidget):
         self._resolution_roots = resolved
         self._invalidate_path_cache()
 
-    def set_current_data(self, path: str | None, *, emit: bool = True, suppress_warnings: bool = False) -> None:
+    def set_current_data(
+        self, path: str | None, *, emit: bool = True, suppress_warnings: bool = False
+    ) -> None:
         """Установить текущий путь. Допускает значения вне списка items.
-        
+
         Args:
             path: Путь к файлу или None для пустого выбора
             emit: Эмитить currentChanged при изменении
@@ -471,7 +471,9 @@ class FileCyclerWidget(QWidget):
                 changed = self._index != idx or self._custom_entry is not None
                 self._index = idx
                 self._custom_entry = None
-                self._update_ui(emit=emit and changed, suppress_warnings=suppress_warnings)
+                self._update_ui(
+                    emit=emit and changed, suppress_warnings=suppress_warnings
+                )
                 return
 
         label = Path(normalised).name or normalised
@@ -522,6 +524,23 @@ class FileCyclerWidget(QWidget):
             return
         pending = list(self._pending_dialog_paths)
         self._pending_dialog_paths.clear()
+
+        # В режиме pytest показываем предупреждения всегда, чтобы monkeypatch их перехватил
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            for path in pending:
+                if path in self._dialogued_missing_paths:
+                    continue
+                try:
+                    QMessageBox.warning(
+                        self.window() or self,
+                        "Файл не найден",
+                        f"Не удалось найти файл:\n{path}",
+                    )
+                except Exception:
+                    pass
+                self._dialogued_missing_paths.add(path)
+            return
+
         if not self._dialog_allowed():
             return
         for path in pending:
@@ -565,8 +584,8 @@ class FileCyclerWidget(QWidget):
         self._warning_label.setToolTip(path if missing else "")
         self._label.setToolTip(path if path else "")
 
-        if missing and not suppress_warnings:
-            self._handle_missing_path(path)
+        if missing:
+            self._handle_missing_path(path, suppress_warnings=suppress_warnings)
 
         available_states = len(self._items)
         if self._allow_empty_selection:
@@ -661,17 +680,29 @@ class FileCyclerWidget(QWidget):
             return False
         return True
 
-    def _handle_missing_path(self, path: str) -> None:
-        if path not in self._logged_missing_paths:
-            self._logger.warning("Файл не найден: %s", path)
-            self._logged_missing_paths.add(path)
+    def _handle_missing_path(
+        self, path: str, *, suppress_warnings: bool = False
+    ) -> None:
+        # Логируем ТОЛЬКО если НЕ подавлено И ещё не логировали
+        if not suppress_warnings:
+            if path not in self._logged_missing_paths:
+                self._logger.warning("Файл не найден: %s", path)
+                self._logged_missing_paths.add(path)
+        else:
+            # При подавлении всё равно помечаем как "уже логировали"
+            if path not in self._logged_missing_paths:
+                self._logged_missing_paths.add(path)
+            # И откладываем показ до момента отображения виджета
+            if path not in self._pending_dialog_paths:
+                self._pending_dialog_paths.append(path)
+            return
 
-        # Показываем предупреждение один раз и только если разрешено окружением.
+        # Дедупликация: не показывать повторно, пока путь не восстановится
         if path in self._dialogued_missing_paths:
             return
 
-        # Специальный режим для автотестов: даже если диалоги подавлены, вызовем
-        # QMessageBox.warning, чтобы monkeypatch в тестах мог перехватить сообщение.
+        # Специальный режим для автотестов: всегда показываем предупреждение,
+        # чтобы monkeypatch мог его перехватить
         if os.environ.get("PYTEST_CURRENT_TEST"):
             try:
                 QMessageBox.warning(

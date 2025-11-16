@@ -216,6 +216,23 @@ class VisualizationService(VisualizationServiceProtocol):
 
         telemetry = self._camera_telemetry.build(base)
         if telemetry:
+            # Гарантируем нормализованный pivot.z >= 0.0 и дефолт 0.5 если отсутствует
+            try:
+                pivot = telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
+                if isinstance(pivot, Mapping):
+                    z_val = pivot.get("z")
+                    if z_val is None or not isinstance(z_val, (int, float)):
+                        pivot = dict(pivot)
+                        pivot["z"] = 0.5
+                        telemetry = dict(telemetry)
+                        telemetry["pivot"] = pivot
+                    elif z_val < 0.0:
+                        pivot = dict(pivot)
+                        pivot["z"] = 0.5
+                        telemetry = dict(telemetry)
+                        telemetry["pivot"] = pivot
+            except Exception:
+                pass
             base["hudTelemetry"] = telemetry
 
         return dict(base)

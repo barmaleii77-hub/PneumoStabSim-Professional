@@ -111,8 +111,6 @@ class GraphicsPanel(QWidget):
         self.load_settings()
 
         # Начальная синхронизация
-        # Применяем загруженное состояние к табам немедленно,
-        # чтобы тесты могли считать актуальные значения сразу после конструктора
         try:
             self._apply_state_to_tabs(self._sync_controller.snapshot())
         except Exception:  # pragma: no cover - защита от сбоев UI при старте
@@ -121,6 +119,35 @@ class GraphicsPanel(QWidget):
         self.logger.info(
             "✅ GraphicsPanel coordinator initialized (v3.1, centralized save-on-exit)"
         )
+
+    # ------------------------------------------------------------------
+    # PUBLIC API (используется тестами и MainWindow)
+    # ------------------------------------------------------------------
+    def apply_registered_preset(self, preset_id: str) -> bool:
+        """Применить зарегистрированный пресет панели по идентификатору.
+
+        - Использует `PanelPresetManager` для применения патча в контроллер синхронизации
+        - Обновляет вкладки из текущего снапшота
+        - Эмитит `preset_applied` с полным состоянием панели
+        - Возвращает True при успехе
+        """
+        try:
+            definition = self.preset_manager.apply_registered_preset(preset_id)
+        except Exception as exc:  # pragma: no cover - предохранитель
+            self.logger.warning("Не удалось применить пресет %s: %s", preset_id, exc)
+            return False
+        if definition is None:
+            return False
+        # Применённый патч уже занесён в контроллер; синхронизируем UI
+        snapshot = self._sync_controller.snapshot()
+        try:
+            self._apply_state_to_tabs(snapshot)
+        except Exception:
+            # Продолжаем, даже если какая-то вкладка не готова
+            pass
+        full_state = self.collect_state()
+        self.preset_applied.emit(full_state)
+        return True
 
     # ------------------------------------------------------------------
     # UI Construction
@@ -200,26 +227,11 @@ class GraphicsPanel(QWidget):
     # ------------------------------------------------------------------
     # Handlers — только эмитим, без записи в файл
     # ------------------------------------------------------------------
-    def _log_state_changes(
-        self,
-        category: str,
-        previous_state: Mapping[str, Any] | None,
-        new_state: Mapping[str, Any],
-    ) -> None:
-        if not isinstance(new_state, Mapping):
-            return
-
-        if isinstance(previous_state, Mapping):
-            before_snapshot = {
-                key: deepcopy(value) for key, value in previous_state.items()
-            }
-        else:
-            before_snapshot = {}
-
-        for key, new_value in new_state.items():
-            old_value = before_snapshot.get(key)
-            if old_value != new_value:
-                self.event_logger.log_state_change(category, key, old_value, new_value)
+    def _log_state_changes(self, category: str, payload: Mapping[str, Any]) -> None:
+        try:
+            self.event_logger.log_state_change("graphics_panel", category, payload)
+        except Exception:
+            pass
 
     def _emit_with_logging(
         self, signal_name: str, payload: dict[str, Any], category: str
@@ -619,16 +631,6 @@ class GraphicsPanel(QWidget):
 
     def redo_last_change(self) -> bool:
         return self._sync_controller.redo() is not None
-
-    def apply_registered_preset(self, preset_id: str) -> bool:
-        definition = self.preset_manager.apply_registered_preset(preset_id)
-        if definition is None:
-            return False
-        state = self.collect_state()
-        self.preset_applied.emit(state)
-        self.event_logger.log_signal_emit("preset_applied", state)
-        self.logger.info("Applied registered preset %s", preset_id)
-        return True
 
     # Не сохраняем здесь — централизованно в MainWindow.closeEvent()
     def closeEvent(self, event) -> None:  # type: ignore[override]

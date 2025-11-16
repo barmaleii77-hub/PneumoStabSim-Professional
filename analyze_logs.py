@@ -742,9 +742,7 @@ class LogAnalyzer:
             f"   Изменений: {colored(str(total_changes), Colors.GREEN, bold=True)}"
         )
         if total_updates:
-            safe_print(
-                f"   Апдейтов: {colored(str(total_updates), Colors.CYAN)}"
-            )
+            safe_print(f"   Апдейтов: {colored(str(total_updates), Colors.CYAN)}")
         synced_str = f"{stats['synced']}/{total_changes}"
         safe_print(
             f"   Синхронизировано: {colored(synced_str, Colors.GREEN)} ({sync_rate:.1f}%)"
@@ -842,7 +840,9 @@ class LogAnalyzer:
             "generated_at": datetime.now(UTC).isoformat(),
             "source_log": str(analyzer.log_file),
             "sync_rate": analyzer.get_sync_rate(),
-            "total_changes": analyzer.stats.get("total_changes", analyzer.stats.get("total", 0)),
+            "total_changes": analyzer.stats.get(
+                "total_changes", analyzer.stats.get("total", 0)
+            ),
             "total_updates": analyzer.stats.get("total_updates", 0),
             "synced_updates": analyzer.stats.get("synced", 0),
             "unsynced_total": len(analyzer.unsynced_events),

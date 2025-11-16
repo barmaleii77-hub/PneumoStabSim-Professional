@@ -164,8 +164,9 @@ class SettingsSyncController:
         if command is None:
             return None
         self._state = deepcopy(command.before)
+        # Явно помечаем источник как "undo", перекрывая origin из метаданных
         context = dict(command.metadata)
-        context.setdefault("origin", "undo")
+        context["origin"] = "undo"
         context.setdefault("description", command.description)
         self._notify(context)
         return command
@@ -175,8 +176,9 @@ class SettingsSyncController:
         if command is None:
             return None
         self._state = deepcopy(command.after)
+        # Явно помечаем источник как "redo", перекрывая origin из метаданных
         context = dict(command.metadata)
-        context.setdefault("origin", "redo")
+        context["origin"] = "redo"
         context.setdefault("description", command.description)
         self._notify(context)
         return command

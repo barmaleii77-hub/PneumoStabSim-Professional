@@ -114,24 +114,28 @@ class MaterialsTab(QWidget):
             baseline = {}
 
         # Состояние активного материала как дефолтный шаблон (если baseline пустой)
-        active_state_template = self.get_current_material_state() if self._current_key else {
-            "base_color": "#ffffff",
-            "texture_path": "",
-            "metalness": 0.0,
-            "roughness": 0.5,
-            "opacity": 1.0,
-            "clearcoat": 0.0,
-            "clearcoat_roughness": 0.3,
-            "thickness": 0.0,
-            "attenuation_distance": 0.0,
-            "attenuation_color": "#ffffff",
-            "emissive_color": "#000000",
-            "emissive_intensity": 0.0,
-            "normal_strength": 1.0,
-            "occlusion_amount": 1.0,
-            "alpha_mode": "default",
-            "alpha_cutoff": 0.5,
-        }
+        active_state_template = (
+            self.get_current_material_state()
+            if self._current_key
+            else {
+                "base_color": "#ffffff",
+                "texture_path": "",
+                "metalness": 0.0,
+                "roughness": 0.5,
+                "opacity": 1.0,
+                "clearcoat": 0.0,
+                "clearcoat_roughness": 0.3,
+                "thickness": 0.0,
+                "attenuation_distance": 0.0,
+                "attenuation_color": "#ffffff",
+                "emissive_color": "#000000",
+                "emissive_intensity": 0.0,
+                "normal_strength": 1.0,
+                "occlusion_amount": 1.0,
+                "alpha_mode": "default",
+                "alpha_cutoff": 0.5,
+            }
+        )
 
         for key in self._material_labels.keys():
             if key in self._materials_state:
@@ -139,10 +143,18 @@ class MaterialsTab(QWidget):
                 if key in self._initial_texture_paths:
                     raw_path = self._initial_texture_paths[key]
                     # Сохраняем путь как есть, даже если файл missing
-                    self._materials_state[key]["texture_path"] = raw_path.replace("\\", "/") if raw_path else ""
+                    self._materials_state[key]["texture_path"] = (
+                        raw_path.replace("\\", "/") if raw_path else ""
+                    )
                 continue
-            source_bucket = existing.get(key) or baseline.get(key) or active_state_template
-            normed = self._coerce_material_state(dict(source_bucket)) if isinstance(source_bucket, dict) else {}
+            source_bucket = (
+                existing.get(key) or baseline.get(key) or active_state_template
+            )
+            normed = (
+                self._coerce_material_state(dict(source_bucket))
+                if isinstance(source_bucket, dict)
+                else {}
+            )
             # Всегда применяем сохранённый texture_path БЕЗ нормализации (сохраняем missing paths)
             if key in self._initial_texture_paths:
                 raw_path = self._initial_texture_paths[key]
@@ -305,6 +317,7 @@ class MaterialsTab(QWidget):
                         # Нормализованные значения [0.0, 1.0] → [0, 255]
                         # Логика: floor для всех кроме точного .5, который округляется вверх
                         import math
+
                         conv: list[int] = []
                         for c in comps:
                             c = max(0.0, min(1.0, c))
@@ -323,6 +336,7 @@ class MaterialsTab(QWidget):
                     return f"#{r:02x}{g:02x}{b:02x}"
             if isinstance(value, (int, float)):
                 import math
+
                 v = max(0.0, min(1.0, float(value)))
                 raw = v * 255.0
                 floor_val = math.floor(raw)
@@ -463,7 +477,9 @@ class MaterialsTab(QWidget):
             self._materials_state[cur_key] = full_state
         payload = {
             "current_material": cur_key,
-            cur_key: self._materials_state.get(cur_key, self.get_current_material_state()),
+            cur_key: self._materials_state.get(
+                cur_key, self.get_current_material_state()
+            ),
         }
         self.material_changed.emit(payload)
 
@@ -473,7 +489,7 @@ class MaterialsTab(QWidget):
 
     def get_current_material_state(self) -> dict[str, Any]:
         cur_key = self.get_current_material_key()
-        
+
         # Определяем актуальный texture_path:
         # 1. Если есть в кэше И ключ совпадает с текущим — используем кэш
         # 2. Иначе берём из виджета
@@ -482,12 +498,12 @@ class MaterialsTab(QWidget):
             cached_texture = self._materials_state[cur_key].get("texture_path", "")
             if cached_texture:
                 texture_path = cached_texture
-        
+
         # Если кэш пустой или отсутствует, берём из виджета
         if not texture_path:
             widget_path = self._controls["texture_path"].current_path()
             texture_path = widget_path.replace("\\", "/") if widget_path else ""
-        
+
         return {
             "base_color": self._controls["base_color"].color().name(),
             "texture_path": texture_path,

@@ -252,6 +252,10 @@ cipilot-env:
 	cd $(UV_PROJECT_DIR) && $(UV) sync
 	cd $(UV_PROJECT_DIR) && $(UV) run -- python -m tools.cipilot_environment --skip-uv-sync --probe-mode=python
 
+.PHONY: generate-qmllint-targets
+generate-qmllint-targets:
+	$(PYTHON) tools/generate_qmllint_targets.py --root assets/qml --output qmllint_targets.txt
+
 # -----------------------------------------------------------------------------
 # Containerised workflow helpers
 # -----------------------------------------------------------------------------

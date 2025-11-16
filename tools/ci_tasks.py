@@ -1,18 +1,8 @@
 """Command-line helpers for CI and local automation.
 
-This module provides a unified entry point for running the quality gates
-referenced by the renovation master plan.  It mirrors the behaviour
-described in ``docs/CI.md`` and powers the ``make lint``/``make typecheck``
-/``make test`` targets as well as GitHub Actions jobs.
-
-Example usage::
-
-    python -m tools.ci_tasks lint
-    python -m tools.ci_tasks typecheck
-    python -m tools.ci_tasks test
-
-The implementation keeps the runner intentionally small so it works in both
-local developer shells and headless CI agents.
+Добавлено: проверка минимального порога покрытия (COVERAGE_MIN_PERCENT), интеграция
+проверки HDR ассетов (verify-hdr-assets) и автогенерация целей qmllint при
+отсутствии явного списка.
 """
 
 from __future__ import annotations
@@ -30,17 +20,9 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from collections.abc import Iterable, MutableMapping, Sequence
-
 from defusedxml import ElementTree as ET
-
-from tools import env_profiles
-from tools import merge_conflict_scan
-from tools import pytest_skip_guard
-from tools.headless import (
-    apply_gpu_defaults,
-    apply_headless_defaults,
-    headless_requested,
-)
+from tools import env_profiles, merge_conflict_scan, pytest_skip_guard
+from tools.headless import apply_gpu_defaults, apply_headless_defaults, headless_requested
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
@@ -59,8 +41,13 @@ PYTEST_UNIT_TARGETS_FILE = "pytest_unit_targets.txt"
 PYTEST_INTEGRATION_TARGETS_FILE = "pytest_integration_targets.txt"
 PYTEST_UI_TARGETS_FILE = "pytest_ui_targets.txt"
 QML_LINT_TARGETS_FILE = "qmllint_targets.txt"
+QML_LINT_DISCOVERY_LOG = QUALITY_REPORT_ROOT / "qmllint_discovery.log"
 MYPY_CONFIG = "mypy.ini"
 DEFAULT_SECURITY_TARGETS: tuple[str, ...] = ("src", "tools")
+
+COVERAGE_MIN_ENV_VAR = "COVERAGE_MIN_PERCENT"
+HDR_VERIFY_ENABLED_ENV = "CI_TASKS_VERIFY_HDR_ASSETS"
+HDR_VERIFY_DEFAULT = True
 
 
 class TaskError(RuntimeError):
@@ -207,6 +194,16 @@ def _ensure_targets_exist(targets: Iterable[str]) -> list[str]:
     return valid
 
 
+def _read_float_env(name: str) -> float | None:
+    raw = os.environ.get(name)
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        raise TaskError(f"Environment variable {name} must be a float value: {raw!r}")
+
+
 @dataclass
 class PytestSuite:
     """Configuration for a pytest invocation."""
@@ -272,25 +269,7 @@ def _prepare_cross_platform_test_environment(
     *,
     platform_name: str | None = None,
 ) -> str:
-    """Apply platform-specific defaults required for test execution.
-
-    The renovation programme mandates that automated quality gates log the
-    detected platform and normalise the Qt environment so the same workflow can
-    run on Windows, macOS, and Linux hosts.  This helper performs those steps in
-    a single place and keeps ``task_test*`` implementations tidy.
-
-    Parameters
-    ----------
-    env:
-        Mapping to mutate.  ``os.environ`` is used when *env* is ``None``.
-    platform_name:
-        Optional override used by tests to emulate different hosts.
-
-    Returns
-    -------
-    str
-        Normalised platform key (``"linux"``, ``"windows"``, ``"darwin"``, …).
-    """
+    """Apply platform-specific defaults required for test execution."""
 
     target_env = env if env is not None else os.environ
     detected = (platform_name or platform.system() or "unknown").strip()
@@ -299,7 +278,6 @@ def _prepare_cross_platform_test_environment(
     banner = f"[ci_tasks] Preparing cross-platform test environment for {detected}\n"
     _safe_console_write(banner)
 
-    # Record the detected platform for downstream tooling (reports, logs).
     target_env.setdefault("PSS_DETECTED_PLATFORM", detected)
 
     if headless_requested(target_env):
@@ -311,21 +289,17 @@ def _prepare_cross_platform_test_environment(
         if normalised.startswith("linux"):
             target_env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
 
-    target_env.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
+    target_env["QT_QUICK_CONTROLS_STYLE"] = "Basic"
 
     _safe_console_write(f"[ci_tasks] Qt launch mode: {mode}\n")
-
     return normalised or "unknown"
 
 
 def _ensure_no_forbidden_pytest_skips(paths: Sequence[str] | None = None) -> None:
-    """Scan *paths* for stray pytest skip/xfail markers and fail when found."""
-
     search_paths = tuple(dict.fromkeys(paths or ["tests"]))
     violations = pytest_skip_guard.scan_paths(search_paths)
     if not violations:
         return
-
     lines = [
         "Forbidden pytest skip/xfail markers detected. Remove them or annotate",
         "the relevant lines with '# pytest-skip-ok' and document the rationale.",
@@ -336,7 +310,6 @@ def _ensure_no_forbidden_pytest_skips(paths: Sequence[str] | None = None) -> Non
         lines.append(
             f"  - {display}:{entry.line}:{entry.column} -> {entry.marker} :: {entry.source}"
         )
-
     raise TaskError("\n".join(lines))
 
 
@@ -355,14 +328,12 @@ def _run_command(
     log_path: Path | None = None
     file_exists = False
     mode = "w"
-
     if log_name is not None:
         QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
         log_path = QUALITY_REPORT_ROOT / log_name
         file_exists = log_path.exists()
         mode = "a" if append and file_exists else "w"
     elif header:
-        # Surface context in the console when no log artifact is produced.
         print(header, end="" if header.endswith("\n") else "\n")
 
     try:
@@ -375,23 +346,20 @@ def _run_command(
             errors="replace",
             env=(dict(os.environ) | dict(env)) if env is not None else None,
         )
-    except FileNotFoundError as exc:  # pragma: no cover - defensive
+    except FileNotFoundError as exc:
         raise TaskError(f"Executable not found for command: {command[0]}") from exc
 
-    assert process.stdout is not None  # for type checkers
+    assert process.stdout is not None
     captured_lines: list[str] = []
     for line in process.stdout:
         captured_lines.append(line)
         _safe_console_write(line)
-
     returncode = process.wait()
 
     if log_path is not None:
         with log_path.open(mode, encoding="utf-8") as handle:
             if mode == "w":
-                handle.write(
-                    f"# Log captured {datetime.now(timezone.utc).isoformat()}\n"
-                )
+                handle.write(f"# Log captured {datetime.now(timezone.utc).isoformat()}\n")
             elif file_exists:
                 handle.write("\n")
             if header:
@@ -437,7 +405,6 @@ def _pytest_suites() -> list[PytestSuite]:
             marker=None,
         ),
     ]
-
     extra_file = os.environ.get("PYTEST_TARGETS_FILE", PYTEST_TARGETS_FILE)
     extra_targets = _read_targets_file(extra_file)
     if extra_targets:
@@ -448,7 +415,6 @@ def _pytest_suites() -> list[PytestSuite]:
                 marker=None,
             )
         )
-
     return suites
 
 
@@ -462,21 +428,16 @@ def _run_pytest_suites(
         "ui",
         *[name for name in suites.keys() if name not in {"unit", "integration", "ui"}],
     ]
-
     if selected is not None:
         order = [name for name in order if name in selected]
-
     if not order:
         return
 
     common_flags = _split_env_list(os.environ.get("PYTEST_FLAGS"))
     os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
-
     PYTEST_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
-
     manual_targets = _split_env_list(os.environ.get("PYTEST_TARGETS"))
 
-    # Always clean coverage data up front when coverage is enabled
     coverage_log_name = "coverage.log"
     if use_coverage:
         _run_command(
@@ -488,7 +449,6 @@ def _run_pytest_suites(
     if manual_targets:
         existing = _ensure_targets_exist(manual_targets)
         junit_path = PYTEST_REPORT_ROOT / "manual.xml"
-        # Use coverage for manual suite if requested
         if use_coverage:
             runner = [
                 sys.executable,
@@ -501,12 +461,7 @@ def _run_pytest_suites(
             ]
         else:
             runner = [sys.executable, "-m", "pytest"]
-        command = [
-            *runner,
-            *common_flags,
-            f"--junitxml={junit_path}",
-            *existing,
-        ]
+        command = [*runner, *common_flags, f"--junitxml={junit_path}", *existing]
         header = "## Suite: manual\n"
         _run_command(
             command,
@@ -520,15 +475,9 @@ def _run_pytest_suites(
         suite = suites[name]
         targets = suite.resolve_targets()
         if not targets:
-            print(
-                f"[ci_tasks] No pytest targets configured for suite '{name}'; skipping."
-            )
+            print(f"[ci_tasks] No pytest targets configured for suite '{name}'; skipping.")
             continue
-
         existing_targets = _ensure_targets_exist(targets)
-
-        # IMPORTANT: run UI suite without coverage on Windows due to crashes in coverage+Qt
-        # Keep coverage for other suites to preserve metrics.
         use_cov_for_suite = bool(use_coverage and name != "ui")
         if use_cov_for_suite:
             runner = [
@@ -542,19 +491,15 @@ def _run_pytest_suites(
             ]
         else:
             runner = [sys.executable, "-m", "pytest"]
-
         command = [*runner, *common_flags]
         if suite.marker:
             command.extend(["-m", suite.marker])
         if suite.extra_args:
             command.extend(list(suite.extra_args))
-
         junit_path = PYTEST_REPORT_ROOT / f"{name}.xml"
         command.extend([f"--junitxml={junit_path}"])
         command.extend(existing_targets)
-
         header = f"## Suite: {name}\n"
-        # Headless overrides for UI suite to avoid driver issues
         env_override = None
         if name == "ui":
             env_override = dict(os.environ)
@@ -568,56 +513,57 @@ def _run_pytest_suites(
         )
 
 
-def _finalise_coverage_reports() -> Path | None:
-    """Combine per-suite coverage data and emit a JSON summary."""
+def _verify_hdr_assets() -> None:
+    if not _env_flag(HDR_VERIFY_ENABLED_ENV, default=HDR_VERIFY_DEFAULT):
+        print("[ci_tasks] HDR assets verification skipped by flag.")
+        return
+    script = PROJECT_ROOT / "tools" / "verify_hdr_assets.py"
+    if not script.exists():
+        print("[ci_tasks] HDR verification script not found; skipping.")
+        return
+    command = [
+        sys.executable,
+        str(script),
+        "--fetch-missing",
+        "--summary-json",
+        str(QUALITY_REPORT_ROOT / "hdr_assets_status.json"),
+    ]
+    try:
+        _run_command(command, task_name="hdr-verify", log_name="hdr_verify.log")
+    except TaskError as exc:
+        raise TaskError(f"HDR assets verification failed: {exc}")
 
+
+def _finalise_coverage_reports() -> Path | None:
     coverage_files = [
         path
         for path in PROJECT_ROOT.glob(".coverage*")
         if path.is_file() and not path.name.endswith(".json")
     ]
     if not coverage_files:
-        print(
-            "[ci_tasks] No coverage data files found; skipping coverage consolidation."
-        )
+        print("[ci_tasks] No coverage data files found; skipping coverage consolidation.")
         return None
-
     QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
     coverage_log = "coverage.log"
-
-    _run_command(
-        [sys.executable, "-m", "coverage", "combine"],
-        task_name="coverage:combine",
-        log_name=coverage_log,
-    )
-    _run_command(
-        [sys.executable, "-m", "coverage", "report"],
-        task_name="coverage:report",
-        log_name=coverage_log,
-        append=True,
-    )
-
-    json_command = [
-        sys.executable,
-        "-m",
-        "coverage",
-        "json",
-        "--pretty-print",
-        "-o",
-        str(COVERAGE_JSON_PATH),
-    ]
-    _run_command(
-        json_command,
-        task_name="coverage:json",
-        log_name=coverage_log,
-        append=True,
-    )
+    _run_command([sys.executable, "-m", "coverage", "combine"], task_name="coverage:combine", log_name=coverage_log)
+    _run_command([sys.executable, "-m", "coverage", "report"], task_name="coverage:report", log_name=coverage_log, append=True)
+    json_command = [sys.executable, "-m", "coverage", "json", "--pretty-print", "-o", str(COVERAGE_JSON_PATH)]
+    _run_command(json_command, task_name="coverage:json", log_name=coverage_log, append=True)
+    min_threshold = _read_float_env(COVERAGE_MIN_ENV_VAR)
+    if min_threshold is not None and COVERAGE_JSON_PATH.exists():
+        try:
+            data = json.loads(COVERAGE_JSON_PATH.read_text(encoding="utf-8"))
+            percent = float(data.get("totals", {}).get("percent_covered", 0.0))
+        except Exception as exc:
+            raise TaskError(f"Unable to parse coverage percent: {exc}")
+        if percent < min_threshold:
+            raise TaskError(
+                f"Coverage {percent:.2f}% below minimum threshold {min_threshold:.2f}% (COVERAGE_MIN_PERCENT)."
+            )
     return COVERAGE_JSON_PATH
 
 
 def _collect_skipped_tests() -> list[SkippedTestCase]:
-    """Parse JUnit reports and gather all skipped test cases."""
-
     skipped: list[SkippedTestCase] = []
     for xml_file in sorted(PYTEST_REPORT_ROOT.glob("*.xml")):
         try:
@@ -628,20 +574,14 @@ def _collect_skipped_tests() -> list[SkippedTestCase]:
                 f"{_relative_display(xml_file)}"
             )
             continue
-
         root = tree.getroot()
         for testcase in root.iterfind(".//testcase"):
             skipped_nodes = list(testcase.findall("skipped"))
             if not skipped_nodes:
                 continue
-
             classname = testcase.attrib.get("classname", "")
             name = testcase.attrib.get("name", "")
-            if classname and name:
-                test_id = f"{classname}.{name}"
-            else:
-                test_id = name or classname or "<unknown>"
-
+            test_id = f"{classname}.{name}" if classname and name else (name or classname or "<unknown>")
             for node in skipped_nodes:
                 message = (node.attrib.get("message") or node.text or "").strip()
                 skipped.append(
@@ -652,13 +592,10 @@ def _collect_skipped_tests() -> list[SkippedTestCase]:
                         source=xml_file,
                     )
                 )
-
     return skipped
 
 
 def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
-    """Persist a markdown summary of skipped tests for CI artefacts."""
-
     summary_path = PYTEST_REPORT_ROOT / "skipped_tests_summary.md"
     if not entries:
         if summary_path.exists():
@@ -667,7 +604,6 @@ def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
             except OSError:
                 pass
         return None
-
     lines = [
         "# Skipped pytest tests",
         "",
@@ -677,10 +613,8 @@ def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
     for entry in entries:
         reason = (entry.message or "—").replace("|", "\\|")
         lines.append(f"| {entry.suite} | `{entry.case}` | {reason} |")
-
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-
     step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
     if step_summary:
         try:
@@ -690,57 +624,43 @@ def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
                 handle.write("\n")
         except OSError:
             pass
-
     return summary_path
 
 
 def _enforce_ci_skip_policy(entries: list[SkippedTestCase]) -> None:
-    """Ensure CI jobs document intentional skips explicitly."""
-
     summary_path = _write_skipped_summary(entries)
     if not entries:
         return
-
     in_ci = _env_flag("CI", default=False) or bool(os.environ.get("GITHUB_ACTIONS"))
     if not in_ci:
         return
-
     allow_flag = _env_flag("PSS_ALLOW_SKIPPED_TESTS", default=False) or _env_flag(
         "CI_ALLOW_SKIPS", default=False
     )
     justification = os.environ.get("CI_SKIP_REASON", "").strip()
-
     count = len(entries)
     plural = "s" if count != 1 else ""
     location_hint = (
         f" See {_relative_display(summary_path)} for details." if summary_path else ""
     )
-    base_message = (
-        f"{count} skipped test{plural} detected across pytest suites." + location_hint
-    )
-
+    base_message = f"{count} skipped test{plural} detected across pytest suites." + location_hint
     if not allow_flag:
         raise TaskError(
             base_message
             + " Re-run the job with PSS_ALLOW_SKIPPED_TESTS=1 and provide CI_SKIP_REASON to acknowledge intentional skips."
         )
-
     if not justification:
         raise TaskError(
             base_message
             + " CI_SKIP_REASON must describe why skips are accepted when PSS_ALLOW_SKIPPED_TESTS=1 is set."
         )
-
     print(f"[ci_tasks] Skipped tests acknowledged: {justification}")
 
 
 def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
-    """Aggregate duration and case counts from pytest JUnit reports."""
-
     summaries: dict[str, dict[str, float | int]] = {}
     total_duration = 0.0
     total_cases = 0
-
     for xml_file in sorted(PYTEST_REPORT_ROOT.glob("*.xml")):
         try:
             tree = ET.parse(xml_file)
@@ -749,7 +669,6 @@ def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
                 f"[ci_tasks] Unable to parse JUnit report: {_relative_display(xml_file)}"
             )
             continue
-
         root = tree.getroot()
         suites: list[ET.Element] = []
         if root.tag == "testsuite":
@@ -758,7 +677,6 @@ def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
             suites = list(root.findall("testsuite")) or list(root)
         else:
             suites = list(root.findall("testsuite")) or [root]
-
         suite_duration = 0.0
         suite_cases = 0
         for suite in suites:
@@ -774,14 +692,11 @@ def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
                     suite_cases += int(float(count_attr))
                 except ValueError:
                     pass
-
         summaries[xml_file.stem] = {"duration": suite_duration, "tests": suite_cases}
         total_duration += suite_duration
         total_cases += suite_cases
-
     if summaries:
         summaries["total"] = {"duration": total_duration, "tests": total_cases}
-
     return summaries
 
 
@@ -789,24 +704,50 @@ def _format_seconds(value: float) -> str:
     return f"{value:.3f}"
 
 
+def _emit_quality_metrics_markdown(payload: dict[str, object]) -> None:
+    try:
+        QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
+        lines: list[str] = ["# Quality Metrics Summary", ""]
+        timestamp = payload.get("timestamp")
+        if timestamp:
+            lines.append(f"- Timestamp: {timestamp}")
+        coverage = payload.get("coverage")
+        if isinstance(coverage, dict):
+            lines.append("- Coverage: " + ", ".join(f"{k}={v}" for k, v in coverage.items()))
+        tests = payload.get("tests")
+        if isinstance(tests, dict):
+            lines.append(
+                "- Test totals: cases="
+                + tests.get("total_cases", "0")
+                + ", duration="
+                + tests.get("total_duration_seconds", "0")
+                + "s"
+            )
+            per_suite: list[tuple[str, str]] = []
+            for key, value in sorted(tests.items()):
+                if key.startswith("total_"):
+                    continue
+                if key.endswith("_cases") or key.endswith("_duration_seconds"):
+                    per_suite.append((key, str(value)))
+            if per_suite:
+                lines.append("\n## Suites")
+                for k, v in per_suite:
+                    lines.append(f"- {k}: {v}")
+        path = QUALITY_REPORT_ROOT / "quality_metrics_summary.md"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
+
 def _publish_quality_metrics(coverage_path: Path | None) -> None:
-    """Persist coverage and test runtime metrics to the quality dashboard."""
-
     summaries = _collect_test_summaries()
-    payload: dict[str, object] = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    }
-
+    payload: dict[str, object] = {"timestamp": datetime.now(timezone.utc).isoformat()}
     if coverage_path is not None and coverage_path.exists():
         try:
             coverage_payload = json.loads(coverage_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise TaskError(f"Invalid coverage JSON payload: {exc}") from exc
-        totals = (
-            coverage_payload.get("totals", {})
-            if isinstance(coverage_payload, dict)
-            else {}
-        )
+        totals = coverage_payload.get("totals", {}) if isinstance(coverage_payload, dict) else {}
         if totals:
             percent = totals.get("percent_covered")
             covered = totals.get("covered_lines")
@@ -822,36 +763,24 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
                 coverage_entry["lines_total"] = str(int(statements))
             if coverage_entry:
                 payload["coverage"] = coverage_entry
-
     if summaries:
         totals = summaries.pop("total", {"duration": 0.0, "tests": 0})
         tests_payload: dict[str, str] = {
-            "total_duration_seconds": _format_seconds(
-                float(totals.get("duration", 0.0))
-            ),
+            "total_duration_seconds": _format_seconds(float(totals.get("duration", 0.0))),
             "total_cases": str(int(float(totals.get("tests", 0)))),
         }
         for suite_name, data in summaries.items():
             duration_value = float(data.get("duration", 0.0))
             tests_value = int(float(data.get("tests", 0)))
-            tests_payload[f"{suite_name}_duration_seconds"] = _format_seconds(
-                duration_value
-            )
+            tests_payload[f"{suite_name}_duration_seconds"] = _format_seconds(duration_value)
             tests_payload[f"{suite_name}_cases"] = str(tests_value)
         payload["tests"] = tests_payload
-
     if len(payload) == 1:
-        print(
-            "[ci_tasks] No coverage or test metrics available; skipping dashboard update."
-        )
+        print("[ci_tasks] No coverage or test metrics available; skipping dashboard update.")
         return
-
     QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
-    LATEST_METRICS_PATH.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-
+    LATEST_METRICS_PATH.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    _emit_quality_metrics_markdown(payload)
     command = [
         sys.executable,
         "-m",
@@ -861,18 +790,13 @@ def _publish_quality_metrics(coverage_path: Path | None) -> None:
         "--output",
         str(QUALITY_REPORT_ROOT / "dashboard.csv"),
     ]
-    _run_command(
-        command,
-        task_name="metrics:dashboard",
-        log_name="quality_metrics.log",
-    )
+    _run_command(command, task_name="metrics:dashboard", log_name="quality_metrics.log")
 
 
 def task_lint() -> None:
     env_targets = _split_env_list(os.environ.get("PYTHON_LINT_PATHS"))
     targets = tuple(dict.fromkeys(env_targets or DEFAULT_LINT_TARGETS))
     existing_targets = _ensure_targets_exist(targets)
-
     format_cmd = [sys.executable, "-m", "ruff", "format", "--check", *existing_targets]
     check_cmd = [sys.executable, "-m", "ruff", "check", *existing_targets]
     flake8_cmd = [
@@ -883,20 +807,12 @@ def task_lint() -> None:
         "--format=%(path)s:%(row)d:%(col)d:%(code)s:%(text)s",
         *existing_targets,
     ]
-
     try:
         _run_command(format_cmd, task_name="ruff-format", log_name="ruff_format.log")
     except TaskError as exc:
-        raise TaskError(
-            "Ruff formatting violations detected; fix them before running lint"
-        ) from exc
+        raise TaskError("Ruff formatting violations detected; fix them before running lint") from exc
     _run_command(check_cmd, task_name="ruff-check", log_name="ruff_check.log")
-
-    _run_command(
-        flake8_cmd,
-        task_name="flake8",
-        log_name="flake8.log",
-    )
+    _run_command(flake8_cmd, task_name="flake8", log_name="flake8.log")
 
 
 def task_typecheck() -> None:
@@ -906,11 +822,8 @@ def task_typecheck() -> None:
     else:
         targets = _read_targets_file(MYPY_TARGETS_FILE)
     if not targets:
-        # Fallback to whole source tree when no explicit targets are defined
         targets = ["src"]
-
     targets = _ensure_targets_exist(targets)
-
     command = [
         sys.executable,
         "-m",
@@ -923,33 +836,25 @@ def task_typecheck() -> None:
 
 
 def _resolve_qml_linter() -> tuple[str, ...]:
-    """Return the command tuple that should be used to invoke ``qmllint``."""
-
     def _command_from_candidate(candidate: str) -> tuple[str, ...] | None:
         path_candidate = Path(candidate)
         if path_candidate.is_absolute():
             return (str(path_candidate),) if path_candidate.exists() else None
-
         resolved = shutil.which(candidate)
         if resolved:
             return (resolved,)
         return None
-
     candidates = _split_env_list(os.environ.get("QML_LINTER"))
     if candidates:
         for candidate in candidates:
             command = _command_from_candidate(candidate)
             if command is not None:
                 return command
-        raise TaskError(
-            "None of the QML linters specified in QML_LINTER are executable."
-        )
-
+        raise TaskError("None of the QML linters specified in QML_LINTER are executable.")
     for name in ("qmllint", "pyside6-qmllint"):
         command = _command_from_candidate(name)
         if command is not None:
             return command
-
     try:
         importlib.import_module("PySide6.scripts.qmllint")
     except ImportError as exc:
@@ -957,8 +862,26 @@ def _resolve_qml_linter() -> tuple[str, ...]:
             "qmllint or pyside6-qmllint is not installed and PySide6 is unavailable. "
             "Install Qt tooling (e.g. run 'python tools/setup_qt.py') or set QML_LINTER."
         ) from exc
-
     return (sys.executable, "-m", "PySide6.scripts.qmllint")
+
+
+def _auto_discover_qml_targets() -> list[str]:
+    roots: list[str] = []
+    candidates = ["assets/qml", "src/ui"]
+    for rel in candidates:
+        path = PROJECT_ROOT / rel
+        if path.exists() and path.is_dir():
+            has_qml = any(path.rglob("*.qml"))
+            if has_qml:
+                roots.append(rel)
+    if roots:
+        try:
+            QUALITY_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
+            with QML_LINT_DISCOVERY_LOG.open("a", encoding="utf-8") as handle:
+                handle.write(f"Auto-discovered QML roots: {', '.join(roots)}\n")
+        except Exception:
+            pass
+    return roots
 
 
 def _collect_qml_targets() -> list[Path]:
@@ -967,12 +890,13 @@ def _collect_qml_targets() -> list[Path]:
         configured = env_targets
     else:
         configured = _read_targets_file(QML_LINT_TARGETS_FILE)
-
     if not configured:
-        raise TaskError(
-            "No QML lint targets configured. Populate 'qmllint_targets.txt' or set QML_LINT_PATHS."
-        )
-
+        auto = _auto_discover_qml_targets()
+        if auto:
+            print(f"[ci_tasks] Auto-discovered QML lint roots: {', '.join(auto)}")
+            configured = auto
+        else:
+            raise TaskError("No QML lint targets configured and auto-discovery found none.")
     collected: list[Path] = []
     for relative in configured:
         candidate = PROJECT_ROOT / relative
@@ -982,8 +906,6 @@ def _collect_qml_targets() -> list[Path]:
             collected.append(candidate)
         else:
             raise TaskError(f"Configured QML lint target does not exist: {relative}")
-
-    # Remove duplicates while preserving order
     unique: list[Path] = []
     seen: set[Path] = set()
     for path in collected:
@@ -991,6 +913,132 @@ def _collect_qml_targets() -> list[Path]:
             unique.append(path)
             seen.add(path)
     return unique
+
+
+def task_qml_lint() -> None:
+    linter_command = _resolve_qml_linter()
+    targets = _collect_qml_targets()
+    if not targets:
+        print("[ci_tasks] No QML lint targets specified; skipping.")
+        return
+    capture_logs = _env_flag("CI_TASKS_QML_LOG_ARTIFACTS", default=True)
+    log_name = "qmllint.log" if capture_logs else None
+    for target in targets:
+        relative = _relative_display(target)
+        header = f"## Target: {relative}\n"
+        _run_command(
+            [*linter_command, str(target)],
+            task_name=f"qmllint:{relative}",
+            log_name=log_name,
+            append=capture_logs,
+            header=header,
+        )
+
+
+def task_security() -> None:
+    env_targets = _split_env_list(os.environ.get("BANDIT_TARGETS"))
+    if env_targets:
+        targets = tuple(dict.fromkeys(env_targets))
+    else:
+        targets = DEFAULT_SECURITY_TARGETS
+    existing_targets = _ensure_targets_exist(targets)
+    severity = os.environ.get("BANDIT_SEVERITY", "medium")
+    confidence = os.environ.get("BANDIT_CONFIDENCE", "medium")
+    extra_args = _split_env_list(os.environ.get("BANDIT_EXTRA_ARGS"))
+    command = [
+        sys.executable,
+        "-m",
+        "bandit",
+        "-r",
+        *existing_targets,
+        "--severity-level",
+        severity,
+        "--confidence-level",
+        confidence,
+        "--format",
+        os.environ.get("BANDIT_FORMAT", "txt"),
+    ]
+    if extra_args:
+        command.extend(extra_args)
+    _run_command(command, task_name="bandit", log_name="bandit.log")
+
+
+def task_shaders() -> None:
+    if _env_flag("CI_TASKS_SKIP_SHADERS", default=False):
+        print("[ci_tasks] Shader validation skipped (CI_TASKS_SKIP_SHADERS=1).")
+        return
+    qsb_path = shutil.which("qsb")
+    if qsb_path is None:
+        try:
+            from tools import validate_shaders as _vs  # type: ignore
+            qsb_env_name = getattr(_vs, "QSB_ENV_VARIABLE", "QSB_EXECUTABLE")
+        except Exception:
+            qsb_env_name = "QSB_EXECUTABLE"
+        if not os.environ.get(qsb_env_name):
+            print(
+                "[ci_tasks] Qt Shader Baker (qsb) not found; skipping shader step. "
+                f"Set {qsb_env_name} to an explicit qsb path or install Qt ShaderTools."
+            )
+            return
+    reports_dir = PROJECT_ROOT / "reports" / "shaders"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    validate_command = [
+        sys.executable,
+        "tools/validate_shaders.py",
+        "--emit-qsb",
+        "--reports-dir",
+        str(reports_dir),
+    ]
+    _run_command(
+        validate_command,
+        task_name="validate-shaders",
+        log_name="validate_shaders.log",
+    )
+    summary_path = PROJECT_ROOT / "reports" / "tests" / "shader_logs_summary.json"
+    log_command = [
+        sys.executable,
+        "tools/check_shader_logs.py",
+        str(reports_dir),
+        "--recursive",
+        "--output",
+        str(summary_path),
+        "--expect-fallback",
+    ]
+    if _env_flag("CI_FAIL_ON_SHADER_WARNINGS", default=False):
+        log_command.append("--fail-on-warnings")
+    _run_command(
+        log_command,
+        task_name="shader-log-audit",
+        log_name="shader_logs_audit.log",
+    )
+
+
+def task_migrate_settings() -> None:
+    """Apply JSON settings migrations to the working configuration.
+
+    Записывает подробный jsonl лог в reports/settings/migrations.jsonl через
+    расширенный раннер src.tools.settings_migrate. При указании переменной
+    окружения PSS_MIGRATIONS_LOG_DIR переопределяет каталог логов через --log-dir.
+    """
+    log_dir_override = os.environ.get("PSS_MIGRATIONS_LOG_DIR")
+    command = [
+        sys.executable,
+        "-m",
+        "tools.migrations.apply",
+        "--settings",
+        str(PROJECT_ROOT / "config" / "app_settings.json"),
+        "--migrations",
+        str(PROJECT_ROOT / "config" / "migrations"),
+        "--in-place",
+        "--verbose",
+    ]
+    if log_dir_override:
+        command.extend(["--log-dir", log_dir_override])
+    _run_command(
+        command,
+        task_name="settings-migrate",
+        log_name="settings_migrate.log",
+    )
 
 
 def task_test() -> None:
@@ -1003,7 +1051,6 @@ def task_test() -> None:
         _run_pytest_suites(use_coverage=use_coverage)
     except TaskError as exc:
         primary_error = exc
-
     skipped_cases = _collect_skipped_tests()
     try:
         _enforce_ci_skip_policy(skipped_cases)
@@ -1011,7 +1058,6 @@ def task_test() -> None:
         skip_error = exc
         if primary_error is not None:
             print(f"[ci_tasks] Skip policy violation detected: {exc}")
-
     coverage_path: Path | None = None
     if use_coverage:
         try:
@@ -1019,27 +1065,21 @@ def task_test() -> None:
         except TaskError as exc:
             if primary_error is None:
                 raise
-            print(
-                f"[ci_tasks] Coverage aggregation skipped due to earlier failure: {exc}"
-            )
-
+            print(f"[ci_tasks] Coverage aggregation skipped due to earlier failure: {exc}")
     try:
         _publish_quality_metrics(coverage_path if use_coverage else None)
     except TaskError as exc:
         if primary_error is None:
             raise
         print(f"[ci_tasks] Quality metrics skipped due to earlier failure: {exc}")
-
     try:
         task_analyze_logs()
     except TaskError as exc:
         if primary_error is None:
             raise
         print(f"[ci_tasks] log analysis skipped due to earlier failure: {exc}")
-
     if skip_error is not None and primary_error is None:
         raise skip_error
-
     if primary_error is not None:
         raise primary_error
 
@@ -1064,11 +1104,7 @@ def task_test_ui() -> None:
 
 def task_analyze_logs() -> None:
     command = [sys.executable, "tools/analyze_logs.py"]
-    _run_command(
-        command,
-        task_name="log-analysis",
-        log_name="log_analysis.log",
-    )
+    _run_command(command, task_name="log-analysis", log_name="log_analysis.log")
 
 
 def task_post_analysis() -> None:
@@ -1079,7 +1115,6 @@ def task_post_analysis() -> None:
         PROJECT_ROOT / "reports" / "performance",
         PROJECT_ROOT / "logs",
     ]
-
     command = [
         sys.executable,
         "-m",
@@ -1091,10 +1126,8 @@ def task_post_analysis() -> None:
         "--output-markdown",
         str(PROJECT_ROOT / "reports" / "tests" / "test_analysis_summary.md"),
     ]
-
     for input_path in default_inputs:
         command.extend(["--input", str(input_path)])
-
     _run_command(
         command,
         task_name="post-analysis",
@@ -1102,196 +1135,37 @@ def task_post_analysis() -> None:
     )
 
 
-def task_qml_lint() -> None:
-    linter_command = _resolve_qml_linter()
-    targets = _collect_qml_targets()
-    if not targets:
-        print("[ci_tasks] No QML lint targets specified; skipping.")
-        return
-
-    capture_logs = _env_flag("CI_TASKS_QML_LOG_ARTIFACTS", default=True)
-    log_name = "qmllint.log" if capture_logs else None
-
-    for target in targets:
-        relative = _relative_display(target)
-        header = f"## Target: {relative}\n"
-        _run_command(
-            [*linter_command, str(target)],
-            task_name=f"qmllint:{relative}",
-            log_name=log_name,
-            append=capture_logs,
-            header=header,
-        )
-
-
-def task_security() -> None:
-    env_targets = _split_env_list(os.environ.get("BANDIT_TARGETS"))
-    if env_targets:
-        targets = tuple(dict.fromkeys(env_targets))
-    else:
-        targets = DEFAULT_SECURITY_TARGETS
-
-    existing_targets = _ensure_targets_exist(targets)
-
-    severity = os.environ.get("BANDIT_SEVERITY", "medium")
-    confidence = os.environ.get("BANDIT_CONFIDENCE", "medium")
-    extra_args = _split_env_list(os.environ.get("BANDIT_EXTRA_ARGS"))
-
-    command = [
-        sys.executable,
-        "-m",
-        "bandit",
-        "-r",
-        *existing_targets,
-        "--severity-level",
-        severity,
-        "--confidence-level",
-        confidence,
-        "--format",
-        os.environ.get("BANDIT_FORMAT", "txt"),
-    ]
-    if extra_args:
-        command.extend(extra_args)
-
-    _run_command(
-        command,
-        task_name="bandit",
-        log_name="bandit.log",
-    )
-
-
-def task_shaders() -> None:
-    """Validate shader logs and optionally compile QSB artefacts.
-
-    На системах без установленного Qt Shader Baker (qsb) этап будет пропущен,
-    если включён флаг окружения CI_TASKS_SKIP_SHADERS=1. Дополнительно,
-    при отсутствии исполняемого файла qsb этот этап автоматически пропускается
-    с предупреждением, чтобы не блокировать локальные проверки на Windows.
-    """
-
-    # Условительное пропускание по флагу окружения
-    if _env_flag("CI_TASKS_SKIP_SHADERS", default=False):
-        print("[ci_tasks] Shader validation skipped (CI_TASKS_SKIP_SHADERS=1).")
-        return
-
-    # Авто‑пропуск при отсутствии qsb в PATH и не заданном явном пути
-    qsb_path = shutil.which("qsb")
-    if qsb_path is None:
-        try:
-            # Пытаемся выяснить переменную окружения, которую понимает валидатор
-            from tools import validate_shaders as _vs  # type: ignore
-
-            qsb_env_name = getattr(_vs, "QSB_ENV_VARIABLE", "QSB_EXECUTABLE")
-        except Exception:
-            qsb_env_name = "QSB_EXECUTABLE"
-
-        if not os.environ.get(qsb_env_name):
-            print(
-                "[ci_tasks] Qt Shader Baker (qsb) not found; skipping shader step. "
-                f"Set {qsb_env_name} to an explicit qsb path or install Qt ShaderTools."
-            )
-            return
-
-    reports_dir = PROJECT_ROOT / "reports" / "shaders"
-    reports_dir.mkdir(parents=True, exist_ok=True)
-
-    validate_command = [
-        sys.executable,
-        "tools/validate_shaders.py",
-        "--emit-qsb",
-        "--reports-dir",
-        str(reports_dir),
-    ]
-    _run_command(
-        validate_command,
-        task_name="validate-shaders",
-        log_name="validate_shaders.log",
-    )
-
-    summary_path = PROJECT_ROOT / "reports" / "tests" / "shader_logs_summary.json"
-    log_command = [
-        sys.executable,
-        "tools/check_shader_logs.py",
-        str(reports_dir),
-        "--recursive",
-        "--output",
-        str(summary_path),
-        "--expect-fallback",
-    ]
-    if _env_flag("CI_FAIL_ON_SHADER_WARNINGS", default=False):
-        log_command.append("--fail-on-warnings")
-
-    _run_command(
-        log_command,
-        task_name="shader-log-audit",
-        log_name="shader_logs_audit.log",
-    )
-
-
-def task_migrate_settings() -> None:
-    """Apply JSON settings migrations to the working configuration."""
-
-    command = [
-        sys.executable,
-        "-m",
-        "tools.migrations.apply",
-        "--settings",
-        str(PROJECT_ROOT / "config" / "app_settings.json"),
-        "--migrations",
-        str(PROJECT_ROOT / "config" / "migrations"),
-        "--in-place",
-    ]
-
-    _run_command(
-        command,
-        task_name="settings-migrate",
-        log_name="settings_migrate.log",
-    )
-
-
 def task_verify() -> None:
-    """Run linting, type-checking and tests sequentially."""
-
     task_migrate_settings()
     task_lint()
     task_typecheck()
     task_qml_lint()
     task_security()
     task_shaders()
+    _verify_hdr_assets()
     task_test()
     task_post_analysis()
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="CI task runner for PneumoStabSim Professional"
-    )
+    parser = argparse.ArgumentParser(description="CI task runner for PneumoStabSim Professional")
     subparsers = parser.add_subparsers(dest="command", required=True)
-
     subparsers.add_parser("lint", help="Run Ruff format check and lint")
     subparsers.add_parser("typecheck", help="Run mypy against configured targets")
-    subparsers.add_parser(
-        "test", help="Run pytest across unit, integration, and UI suites"
-    )
+    subparsers.add_parser("test", help="Run pytest across unit, integration, and UI suites")
     subparsers.add_parser("test-unit", help="Run the unit test suite")
     subparsers.add_parser("test-integration", help="Run the integration test suite")
     subparsers.add_parser("test-ui", help="Run the UI/QML test suite")
-    subparsers.add_parser(
-        "analyze-logs", help="Analyze application logs for recent runs"
-    )
+    subparsers.add_parser("analyze-logs", help="Analyze application logs for recent runs")
     subparsers.add_parser("qml-lint", help="Run qmllint against configured targets")
-    subparsers.add_parser(
-        "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
-    )
+    subparsers.add_parser("verify", help="Run lint, typecheck, qml-lint, and tests in sequence")
     subparsers.add_parser("security", help="Run bandit security scanner")
-
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
-
     task_map = {
         "lint": task_lint,
         "typecheck": task_typecheck,
@@ -1304,9 +1178,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "verify": task_verify,
         "security": task_security,
     }
-
     task = task_map[args.command]
-
     RECORDER.start(args.command)
     exit_code = 0
     unexpected_error: BaseException | None = None
@@ -1316,12 +1188,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     except TaskError as exc:
         print(f"[ci_tasks] ERROR: {exc}", file=sys.stderr)
         exit_code = 1
-    except BaseException as exc:  # pragma: no cover - defensive safety net
+    except BaseException as exc:
         unexpected_error = exc
         exit_code = 1
     finally:
         RECORDER.finalize(exit_code == 0)
-
     if unexpected_error is not None:
         raise unexpected_error
     if exit_code != 0:

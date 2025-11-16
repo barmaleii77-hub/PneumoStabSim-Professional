@@ -403,53 +403,53 @@ Item {
         ignoreUnknownSignals: true
 
         function onEffectsBypassChanged() {
-            if (!root.postEffects) return
+            if (!root.postEffects)
+                return
             try {
                 var bypass = !!root.postEffects.effectsBypass
-                var reason = root.postEffects.effectsBypassReason || ""
-                root.postProcessingBypassed = bypass
-                root.postProcessingBypassReason = reason
+                var reason = String(root.postEffects.effectsBypassReason || "")
+                if (root.postProcessingBypassed !== bypass)
+                    root.postProcessingBypassed = bypass
+                if (root.postProcessingBypassReason !== reason)
+                    root.postProcessingBypassReason = reason
 
                 if (bypass) {
-                    console.warn("[SimulationRoot] Post-processing bypassed:", reason)
-                    // Кэшируем текущие эффекты независимо от их JS-типа и очищаем список
-                    if (root.sceneView && root.sceneView.hasOwnProperty && root.sceneView.hasOwnProperty("effects")) {
+                    // Backup current effects and clear the chain on the view stub
+                    if (root.sceneView) {
                         var current = root.sceneView.effects
-                        try {
-                            root.postProcessingEffectBackup = (current && typeof current.slice === "function") ? current.slice() : (Array.isArray(current) ? current : (current ? [current] : []))
-                        } catch (e) {
+                        if (current && typeof current === "object" && typeof current.slice === "function")
+                            root.postProcessingEffectBackup = current.slice()
+                        else
                             root.postProcessingEffectBackup = []
-                        }
-                        root.sceneView.effects = []
+                        try { root.sceneView.effects = [] } catch (e) {}
                     }
+                    // Forward structured snapshot to Python for diagnostics
+                    try {
+                        var snapshot = root.postEffects.dumpShaderStatus(reason)
+                        root.shaderStatusDumpRequested(snapshot)
+                    } catch (e) {}
                 } else {
-                    console.log("[SimulationRoot] Post-processing bypass cleared")
-                    if (root.sceneView && root.postProcessingEffectBackup.length > 0) {
-                        root.sceneView.effects = root.postProcessingEffectBackup
-                        root.postProcessingEffectBackup = []
+                    // Restore effect list if we have a backup (and PostEffects still exposes effectList)
+                    if (root.sceneView && root.postProcessingEffectBackup && root.postProcessingEffectBackup.length > 0) {
+                        try { root.sceneView.effects = root.postProcessingEffectBackup } catch (e) {}
+                    } else if (root.sceneView && root.postEffects) {
+                        // Если бэкапа нет, но есть исходный список – восстановить его
+                        try {
+                            var effectList = root.postEffects.effectList
+                            if (effectList && typeof effectList === "object")
+                                root.sceneView.effects = effectList
+                        } catch (e) {}
                     }
+                    root.postProcessingEffectBackup = []
+                    // Emit a status snapshot to confirm recovery
+                    try {
+                        var snapshot2 = root.postEffects.dumpShaderStatus("")
+                        root.shaderStatusDumpRequested(snapshot2)
+                    } catch (e) {}
                 }
-                // Эмитим снапшот статуса шейдеров для тестов/диагностики
-                try {
-                    var snapshot = root.postEffects.dumpShaderStatus(reason)
-                    root.shaderStatusDumpRequested(snapshot)
-                } catch (e) {}
-            } catch (e) {
-                console.error("[SimulationRoot] effectsBypassChanged handler failed:", e)
+            } catch (err) {
+                console.error("[SimulationRoot] effectsBypassChanged handler failed:", err)
             }
-        }
-
-        function onEffectCompilationError(effectId, fallbackActive, errorLog) {
-            try {
-                if (root.sceneBridge && typeof root.sceneBridge.registerShaderWarning === "function")
-                    root.sceneBridge.registerShaderWarning(effectId, errorLog)
-            } catch (e) {}
-        }
-        function onEffectCompilationRecovered(effectId, fallbackActive) {
-            try {
-                if (root.sceneBridge && typeof root.sceneBridge.clearShaderWarning === "function")
-                    root.sceneBridge.clearShaderWarning(effectId)
-            } catch (e) {}
         }
     }
 

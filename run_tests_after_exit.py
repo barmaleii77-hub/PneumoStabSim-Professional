@@ -24,6 +24,8 @@ _QT_HEADLESS_DEFAULTS: dict[str, str] = {
     "QT_QUICK_BACKEND": "software",
     "QT_QUICK_CONTROLS_STYLE": "Basic",
 }
+
+
 def _normalise(value: str | None) -> str:
     return value.strip().lower() if value else ""
 

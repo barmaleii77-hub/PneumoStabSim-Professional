@@ -105,7 +105,10 @@ class FinalReadinessTest:
         # Проверка ключевых элементов
         checks = [
             ("primarySource", "property url primarySource" in content),
-            ("fallbackDescriptor", "readonly property string fallbackDescriptor" in content),
+            (
+                "fallbackDescriptor",
+                "readonly property string fallbackDescriptor" in content,
+            ),
             ("fallbackSource", "readonly property string fallbackSource" in content),
             ("ready property", "readonly property bool ready" in content),
             ("Texture", "Texture {" in content),

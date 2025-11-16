@@ -73,9 +73,15 @@ def apply_gpu_defaults(
         environment.pop("QT_QUICK_BACKEND", None)
 
     backend = _preferred_backend(platform_name)
+    # Не переопределяем, если уже задано извне
     environment.setdefault("QSG_RHI_BACKEND", backend)
-    if backend in {"d3d11", "metal", "opengl"}:
+
+    # Windows/macOS: явно используем RHI, Linux(OpenGL): позволяем Qt выбрать
+    if backend in {"d3d11", "metal"}:
         environment.setdefault("QT_QUICK_BACKEND", "rhi")
+    else:
+        # Убеждаемся, что не навязываем backend на Linux
+        environment.pop("QT_QUICK_BACKEND", None)
 
     # Очистка флагов и специфических headless-настроек
     environment.pop("QT_ANGLE_PLATFORM", None)

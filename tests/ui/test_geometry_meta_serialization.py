@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import pytest
-from PySide6.QtTest import QSignalSpy
 
 pytestmark = [pytest.mark.ui, pytest.mark.headless]
 

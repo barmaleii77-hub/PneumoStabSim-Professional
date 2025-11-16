@@ -73,14 +73,47 @@ def _get_constants_root(
     *,
     custom_path: str | None = None,
 ) -> Mapping[str, Any]:
-    """Return the constants section for the requested root key (current/defaults_snapshot)."""
+    """Return the constants section for the requested root key (current/defaults_snapshot).
+
+    Более устойчивый к неполным конфигам вариант: если в ``current`` отсутствует
+    раздел ``constants``, пробуем fallback в ``defaults_snapshot``. В крайнем
+    случае читаем baseline-пэйлоад через ``load_default_settings_payload`` и
+    снова ищем раздел.
+    """
+
     data = _load_settings(custom_path)
-    try:
-        root = data[root_key]
-    except KeyError as exc:
-        raise KeyError(f"Missing '{root_key}' section in app_settings.json") from exc
-    root_mapping = _ensure_mapping(root, root_key)
-    constants = _require_mapping_key(root_mapping, "constants", root_key)
+
+    def _try_from(data_root: Mapping[str, Any], key: str) -> Mapping[str, Any] | None:
+        root = data_root.get(key)
+        if not isinstance(root, Mapping):
+            return None
+        try:
+            root_mapping = _ensure_mapping(root, key)
+            return _require_mapping_key(root_mapping, "constants", key)
+        except (KeyError, TypeError):
+            return None
+
+    # 1) Основной источник
+    constants = _try_from(data, root_key)
+    if constants is None and root_key == "current":
+        # 2) Fallback к defaults_snapshot
+        constants = _try_from(data, "defaults_snapshot")
+
+    if constants is None:
+        # 3) Последний рубеж — baseline payload (repo defaults)
+        try:
+            from src.core.settings_defaults import load_default_settings_payload
+
+            baseline = load_default_settings_payload()
+            constants = _try_from(baseline, root_key) or _try_from(
+                baseline, "defaults_snapshot"
+            )
+        except Exception:
+            constants = None
+
+    if constants is None:
+        raise KeyError(f"Missing '{root_key}.constants' section in app_settings.json")
+
     return constants
 
 

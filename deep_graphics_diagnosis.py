@@ -200,10 +200,9 @@ def diagnose_graphics_panel(graphics_panel):
 
                 if meta_method and meta_method.isValid():
                     method_signature = bytes(meta_method.methodSignature()).decode()
-                    normalized_signature = (
-                        bytes(QMetaObject.normalizedSignature(method_signature.encode()))
-                        .decode()
-                    )
+                    normalized_signature = bytes(
+                        QMetaObject.normalizedSignature(method_signature.encode())
+                    ).decode()
                     try:
                         receivers_count = graphics_panel.receivers(
                             meta_method.methodSignature()

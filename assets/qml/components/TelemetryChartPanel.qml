@@ -12,14 +12,16 @@ pragma ComponentBehavior: Bound
 Item {
     id: root
 
-    required property var telemetryBridge
+    property var telemetryBridge: null
 
     property bool panelExpanded: true
     property var metricCatalog: telemetryBridge ? telemetryBridge.metricCatalog : []
+    property var metricDescriptorById: ({})
     property var metricInfoById: ({})
-    property var selectedMetrics: []
+    property var selectedMetrics: telemetryBridge ? telemetryBridge.activeMetrics : []
     property var seriesMap: ({})
     property var seriesBuffers: ({})
+    property var buffersJs: ({})
     property real timeWindow: 10
     property bool autoScroll: true
     property real manualScrollPosition: 1.0
@@ -34,7 +36,16 @@ Item {
 
     implicitWidth: 420
     implicitHeight: panelExpanded ? 520 : headerRow.implicitHeight + 24
-    visible: telemetryBridge !== null
+    visible: true
+
+    // Хелпер для безопасной работы с QVariantList/QJSValue как с JS-массивом
+    function asArray(value) {
+        var result = []
+        var n = value && value.length !== undefined ? Number(value.length) : 0
+        for (var i = 0; i < n; ++i)
+            result.push(value[i])
+        return result
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -44,9 +55,7 @@ Item {
         border.color: Qt.rgba(0.25, 0.65, 0.95, 0.4)
     }
 
-    ListModel {
-        id: metricsModel
-    }
+    ListModel { id: metricsModel }
 
     ColumnLayout {
         anchors.fill: parent
@@ -284,7 +293,7 @@ Item {
                                 return Number.isFinite(baseWidth) ? Math.round(baseWidth) : 0
                             }
                             text: label + " (" + unit + ")"
-                            checked: root.selectedMetrics.indexOf(metricId) !== -1
+                            checked: (function(){ var arr = root.asArray(root.selectedMetrics); return arr.indexOf(metricId) !== -1; })()
                             indicator: Rectangle {
                                 implicitWidth: 12
                                 implicitHeight: 12
@@ -344,31 +353,12 @@ Item {
         target: root.telemetryBridge
         enabled: root.telemetryBridge !== null
 
-        function onMetricsChanged() {
-            root.rebuildMetricCatalog()
-        }
-
-        function onActiveMetricsChanged() {
-            root.syncSelectionFromBridge()
-        }
-
-        function onPausedChanged() {
-            root.streamPaused = root.telemetryBridge.paused
-            streamSwitch.checked = !root.streamPaused
-        }
-
-        function onUpdateIntervalChanged() {
-            root.updateInterval = root.telemetryBridge.updateInterval
-            intervalCombo.syncToInterval(root.updateInterval)
-        }
-
-        function onSampleAppended(sample) {
-            root.handleSample(sample)
-        }
-
-        function onStreamReset() {
-            root.resetPanel()
-        }
+        function onMetricsChanged() { root.rebuildMetricCatalog() }
+        function onActiveMetricsChanged() { root.syncSelectionFromBridge() }
+        function onPausedChanged() { root.streamPaused = root.telemetryBridge.paused; streamSwitch.checked = !root.streamPaused }
+        function onUpdateIntervalChanged() { root.updateInterval = root.telemetryBridge.updateInterval; intervalCombo.syncToInterval(root.updateInterval) }
+        function onSampleAppended(sample) { root.handleSample(sample) }
+        function onStreamReset() { root.resetPanel() }
     }
 
     onTelemetryBridgeChanged: {
@@ -383,118 +373,99 @@ Item {
 
     function rebuildMetricCatalog() {
         metricsModel.clear()
-        metricInfoById = ({})
-        seriesBuffers = ({})
+        metricDescriptorById = ({})
         if (!root.metricCatalog)
             return
         for (var i = 0; i < root.metricCatalog.length; ++i) {
             var entry = root.metricCatalog[i]
-            metricInfoById[entry.id] = entry
-            metricsModel.append({
-                metricId: entry.id,
-                label: entry.label,
-                unit: entry.unit,
-                category: entry.category,
-                metricColor: entry.color,
-            })
+            metricDescriptorById[entry.id] = entry
+            metricsModel.append({ metricId: entry.id, label: entry.label, unit: entry.unit, category: entry.category, metricColor: entry.color })
         }
+        // вместо локальной JS-копии — сразу подтянуть series из моста, чтобы metricInfoById стал Python dict
+        if (root.telemetryBridge) root.refreshSeriesFromBridge()
     }
 
     function syncSelectionFromBridge() {
         if (!root.telemetryBridge)
             return
-        var active = root.telemetryBridge.activeMetrics || []
-        var changed = false
-        if (active.length !== root.selectedMetrics.length)
-            changed = true
-        else {
-            for (var i = 0; i < active.length; ++i) {
-                if (root.selectedMetrics[i] !== active[i]) {
-                    changed = true
-                    break
-                }
-            }
-        }
-        if (changed)
-            root.selectedMetrics = active.slice(0)
         root.streamPaused = root.telemetryBridge.paused
         root.updateInterval = root.telemetryBridge.updateInterval
-        intervalCombo.syncToInterval(root.updateInterval)
-        streamSwitch.checked = !root.streamPaused
+        if (intervalCombo) intervalCombo.syncToInterval(root.updateInterval)
+        if (streamSwitch) streamSwitch.checked = !root.streamPaused
         root.refreshSeriesFromBridge()
     }
 
     function addMetric(metricId) {
-        if (!metricId)
+        if (!metricId || !root.telemetryBridge)
             return
-        if (root.selectedMetrics.indexOf(metricId) !== -1)
-            return
-        var updated = root.selectedMetrics.slice(0)
-        updated.push(metricId)
-        root.selectedMetrics = updated
-        if (root.telemetryBridge)
-            root.telemetryBridge.setActiveMetrics(root.selectedMetrics)
-        root.refreshSeriesFromBridge()
+        var active = root.telemetryBridge ? root.telemetryBridge.activeMetrics : []
+        var arr = root.asArray(active)
+        if (arr.indexOf(metricId) === -1) arr.push(metricId)
+        root.telemetryBridge.setActiveMetrics(arr)
     }
 
     function removeMetric(metricId) {
-        var index = root.selectedMetrics.indexOf(metricId)
-        if (index === -1)
+        if (!root.telemetryBridge)
             return
-        var updated = root.selectedMetrics.slice(0)
-        updated.splice(index, 1)
-        root.selectedMetrics = updated
-        if (root.telemetryBridge)
-            root.telemetryBridge.setActiveMetrics(root.selectedMetrics)
-        root.refreshSeriesFromBridge()
+        var active = root.telemetryBridge ? root.telemetryBridge.activeMetrics : []
+        var curr = root.asArray(active)
+        var arr = []
+        for (var i = 0; i < curr.length; ++i) if (curr[i] !== metricId) arr.push(curr[i])
+        root.telemetryBridge.setActiveMetrics(arr)
     }
 
     function refreshSeriesFromBridge() {
-        if (!root.telemetryBridge) {
-            root.resetPanel()
-            return
-        }
-        var response = root.telemetryBridge.exportSeries(root.selectedMetrics)
+        if (!root.telemetryBridge) { root.resetPanel(); return }
+        var ids = root.asArray(root.telemetryBridge.activeMetrics || [])
+        var response = root.telemetryBridge.exportSeries(ids)
         root.oldestTimestamp = Number(response.oldestTimestamp || 0)
         root.latestTimestamp = Number(response.latestTimestamp || 0)
-        var payload = response.series || {}
-        root.seriesBuffers = ({})
+        var src = response.series || {}
 
-        for (var metric in payload) {
-            var entries = payload[metric]
-            var buffer = []
-            for (var i = 0; i < entries.length; ++i) {
-                var point = entries[i]
-                buffer.push([Number(point.timestamp), Number(point.value)])
+        // Публикуем исходный QVariantMap (dict на Python-стороне)
+        root.metricInfoById = src
+
+        // Конвертируем значения src[key] на месте в массивы пар [t, v]
+        for (var key in src) {
+            var entries = src[key] || []
+            var pairs = []
+            var n = entries.length || 0
+            for (var i = 0; i < n; ++i) {
+                var p = entries[i]
+                if (p && p.timestamp !== undefined) pairs.push([Number(p.timestamp), Number(p.value)])
+                else if (p && p.length === 2) pairs.push([Number(p[0]), Number(p[1])])
             }
-            root.seriesBuffers[metric] = buffer
+            if (entries.splice) entries.splice(0, entries.length)
+            for (var j = 0; j < pairs.length; ++j) entries.push(pairs[j])
+            src[key] = entries
         }
-        for (var j = 0; j < root.selectedMetrics.length; ++j) {
-            var selectedId = root.selectedMetrics[j]
-            if (!root.seriesBuffers[selectedId])
-                root.seriesBuffers[selectedId] = []
-        }
-        root.dropUnusedSeries()
-        for (var i = 0; i < root.selectedMetrics.length; ++i)
-            root.updateSeries(root.selectedMetrics[i])
-        if (root.selectedMetrics.length === 1) {
-            var descriptor = root.metricInfoById[root.selectedMetrics[0]]
+        for (var k = 0; k < ids.length; ++k) if (!src[ids[k]]) src[ids[k]] = []
+
+        // seriesBuffers — тот же map, уже с массивами пар
+        root.seriesBuffers = src
+
+        // buffersJs синхронизируем
+        root.buffersJs = ({})
+        for (var m in src) root.buffersJs[m] = src[m]
+
+        root.dropUnusedSeries(); for (var q = 0; q < ids.length; ++q) root.updateSeries(ids[q])
+        if (ids.length === 1) {
+            var descriptor = root.metricDescriptorById[ids[0]]
             if (descriptor && descriptor.rangeHint && descriptor.rangeHint.length === 2) {
                 root.manualMin = Number(descriptor.rangeHint[0])
                 root.manualMax = Number(descriptor.rangeHint[1])
-                if (minSpin)
-                    minSpin.value = root.manualMin
-                if (maxSpin)
-                    maxSpin.value = root.manualMax
+                if (minSpin) minSpin.value = Math.round(root.manualMin * minSpin.valueScale)
+                if (maxSpin) maxSpin.value = Math.round(root.manualMax * maxSpin.valueScale)
             }
         }
-        root.updateAxes()
-        root.updateValueAxis()
+        root.updateAxes(); root.updateValueAxis()
     }
 
     function dropUnusedSeries() {
+        var active = root.telemetryBridge ? root.telemetryBridge.activeMetrics : []
+        var idsArr = root.asArray(active)
         for (var metricId in root.seriesMap) {
-            if (root.selectedMetrics.indexOf(metricId) === -1) {
+            if (idsArr.indexOf(metricId) === -1) {
                 var obsolete = root.seriesMap[metricId]
                 chartView.removeSeries(obsolete)
                 delete root.seriesMap[metricId]
@@ -503,19 +474,12 @@ Item {
     }
 
     function ensureSeries(metricId) {
-        var descriptor = root.metricInfoById[metricId]
-        if (!descriptor)
-            return null
+        var descriptor = root.metricDescriptorById[metricId]
+        if (!descriptor) return null
         var existing = root.seriesMap[metricId]
-        if (existing)
-            return existing
+        if (existing) return existing
         var label = descriptor.label + " (" + descriptor.unit + ")"
-        var created = chartView.createSeries(
-            ChartView.SeriesTypeLine,
-            label,
-            timeAxis,
-            valueAxis,
-        )
+        var created = chartView.createSeries(ChartView.SeriesTypeLine, label, timeAxis, valueAxis)
         created.color = descriptor.color
         created.useOpenGL = true
         created.width = 2
@@ -524,149 +488,92 @@ Item {
     }
 
     function updateSeries(metricId) {
-        var buffer = root.seriesBuffers[metricId]
-        if (!buffer || buffer.length === 0) {
-            var emptySeries = root.seriesMap[metricId]
-            if (emptySeries)
-                emptySeries.clear()
-            return
-        }
+        var buffer = root.buffersJs[metricId]
         var series = root.ensureSeries(metricId)
-        if (!series)
-            return
+        if (!series) return
+        if (!buffer || buffer.length === 0) { if (series.clear) series.clear(); return }
         var points = []
-        for (var i = 0; i < buffer.length; ++i) {
-            points.push(Qt.point(buffer[i][0], buffer[i][1]))
+        for (var i = 0; i < buffer.length; ++i) points.push(Qt.point(buffer[i][0], buffer[i][1]))
+        if (series.clear) series.clear()
+        if (series.append) {
+            try { series.append(points) } catch (e) { for (var j = 0; j < points.length; ++j) series.append(points[j].x, points[j].y) }
         }
-        series.replace(points)
     }
 
     function handleSample(sample) {
-        if (!sample)
-            return
-        if (sample.latestTimestamp !== undefined)
-            root.latestTimestamp = Number(sample.latestTimestamp)
-        else
-            root.latestTimestamp = Number(sample.timestamp || root.latestTimestamp)
-        if (sample.oldestTimestamp !== undefined)
-            root.oldestTimestamp = Number(sample.oldestTimestamp)
-        var timestamp = Number(sample.timestamp || root.latestTimestamp)
+        if (!sample) return
+        if (sample.latestTimestamp !== undefined) root.latestTimestamp = Number(sample.latestTimestamp)
+        else if (sample.timestamp !== undefined) root.latestTimestamp = Number(sample.timestamp)
+        if (sample.oldestTimestamp !== undefined) root.oldestTimestamp = Number(sample.oldestTimestamp)
+        var timestamp = Number(sample.timestamp !== undefined ? sample.timestamp : root.latestTimestamp)
         var values = sample.values || {}
-        var updatedMetrics = []
+
+        var updated = []
         for (var metricId in values) {
-            if (root.selectedMetrics.indexOf(metricId) === -1)
-                continue
-            var buffer = root.seriesBuffers[metricId]
-            if (!buffer)
-                buffer = []
-            buffer.push([timestamp, Number(values[metricId])])
-            if (buffer.length > root.maxSamples)
-                buffer.splice(0, buffer.length - root.maxSamples)
-            root.seriesBuffers[metricId] = buffer
-            updatedMetrics.push(metricId)
+            var v = Number(values[metricId])
+            var buf = root.seriesBuffers[metricId]
+            if (!buf) { buf = []; root.seriesBuffers[metricId] = buf }
+            buf.push([timestamp, v])
+            if (buf.length > root.maxSamples) buf.splice(0, buf.length - root.maxSamples)
+
+            var rbuf = root.buffersJs[metricId] || []
+            rbuf.push([timestamp, v])
+            if (rbuf.length > root.maxSamples) rbuf.splice(0, rbuf.length - root.maxSamples)
+            root.buffersJs[metricId] = rbuf
+            updated.push(metricId)
         }
-        if (!root.panelExpanded)
-            return
-        for (var i = 0; i < updatedMetrics.length; ++i)
-            root.updateSeries(updatedMetrics[i])
-        root.updateAxes()
-        root.updateValueAxis()
+        if (!root.panelExpanded) return
+        for (var i = 0; i < updated.length; ++i) root.updateSeries(updated[i])
+        root.updateAxes(); root.updateValueAxis()
     }
 
     function updateAxes() {
         var windowSize = Math.max(1, root.timeWindow)
-        if (root.latestTimestamp <= 0 && root.oldestTimestamp <= 0) {
-            timeAxis.min = 0
-            timeAxis.max = windowSize
-            return
-        }
-        if (root.autoScroll) {
-            var end = Math.max(windowSize, root.latestTimestamp)
-            timeAxis.max = end
-            timeAxis.min = Math.max(0, end - windowSize)
-            root.manualScrollPosition = 1.0
-        } else {
-            var span = Math.max(0, root.latestTimestamp - root.oldestTimestamp)
-            if (span <= windowSize) {
-                var start = Math.max(0, root.oldestTimestamp)
-                timeAxis.min = start
-                timeAxis.max = start + windowSize
-            } else {
-                var offset = span - windowSize
-                var position = Math.min(1.0, Math.max(0.0, root.manualScrollPosition))
-                var startValue = root.oldestTimestamp + offset * position
-                timeAxis.min = startValue
-                timeAxis.max = startValue + windowSize
-            }
-        }
+        if (root.latestTimestamp <= 0 && root.oldestTimestamp <= 0) { timeAxis.min = 0; timeAxis.max = windowSize; return }
+        if (root.autoScroll) { var end = Math.max(windowSize, root.latestTimestamp); timeAxis.max = end; timeAxis.min = Math.max(0, end - windowSize); root.manualScrollPosition = 1.0 }
+        else { var span = Math.max(0, root.latestTimestamp - root.oldestTimestamp); if (span <= windowSize) { var start = Math.max(0, root.oldestTimestamp); timeAxis.min = start; timeAxis.max = start + windowSize } else { var offset = span - windowSize; var position = Math.min(1.0, Math.max(0.0, root.manualScrollPosition)); var startValue = root.oldestTimestamp + offset * position; timeAxis.min = startValue; timeAxis.max = startValue + windowSize } }
     }
 
-    function updateValueAxis() {
-        if (root.autoScale)
-            root.autoScaleAxis()
-        else
-            root.applyManualScale()
-    }
+    function updateValueAxis() { if (root.autoScale) root.autoScaleAxis(); else root.applyManualScale() }
 
     function autoScaleAxis() {
         var minValue = Number.POSITIVE_INFINITY
         var maxValue = Number.NEGATIVE_INFINITY
-        for (var i = 0; i < root.selectedMetrics.length; ++i) {
-            var metricId = root.selectedMetrics[i]
-            var buffer = root.seriesBuffers[metricId]
-            if (!buffer || buffer.length === 0)
-                continue
-            for (var j = 0; j < buffer.length; ++j) {
-                var value = buffer[j][1]
-                if (value < minValue)
-                    minValue = value
-                if (value > maxValue)
-                    maxValue = value
-            }
+        var active = root.telemetryBridge ? root.telemetryBridge.activeMetrics : []
+        var idsArr = root.asArray(active)
+        for (var i = 0; i < idsArr.length; ++i) {
+            var metricId = idsArr[i]
+            var buffer = root.buffersJs[metricId]
+            if (!buffer || buffer.length === 0) continue
+            for (var j = 0; j < buffer.length; ++j) { var value = buffer[j][1]; if (value < minValue) minValue = value; if (value > maxValue) maxValue = value }
         }
-        if (minValue === Number.POSITIVE_INFINITY) {
-            minValue = -1
-            maxValue = 1
-        }
-        if (minValue === maxValue) {
-            var delta = Math.abs(minValue) * 0.1 + 1e-6
-            minValue -= delta
-            maxValue += delta
-        }
+        if (minValue === Number.POSITIVE_INFINITY) { minValue = -1; maxValue = 1 }
+        if (minValue === maxValue) { var delta = Math.abs(minValue) * 0.1 + 1e-6; minValue -= delta; maxValue += delta }
         var margin = (maxValue - minValue) * 0.1
         valueAxis.min = minValue - margin
         valueAxis.max = maxValue + margin
     }
 
-    function applyManualScale() {
-        if (root.manualMax <= root.manualMin) {
-            root.manualMax = root.manualMin + 0.001
-        }
-        valueAxis.min = root.manualMin
-        valueAxis.max = root.manualMax
-    }
+    function applyManualScale() { if (root.manualMax <= root.manualMin) { root.manualMax = root.manualMin + 0.001 } valueAxis.min = root.manualMin; valueAxis.max = root.manualMax }
 
     function resetPanel() {
         root.oldestTimestamp = 0
         root.latestTimestamp = 0
-        root.seriesBuffers = ({})
-        for (var metricId in root.seriesMap) {
-            var series = root.seriesMap[metricId]
-            series.clear()
+        // Очищаем существующие массивы на месте, сохраняя map-объект
+        for (var k in root.seriesBuffers) {
+            var arr = root.seriesBuffers[k]
+            if (arr && arr.splice) arr.splice(0, arr.length)
+            else root.seriesBuffers[k] = []
         }
-        root.updateAxes()
-        root.updateValueAxis()
+        for (var b in root.buffersJs) {
+            var arr2 = root.buffersJs[b]
+            if (arr2 && arr2.splice) arr2.splice(0, arr2.length)
+            else root.buffersJs[b] = []
+        }
+        for (var metricId in root.seriesMap) { var series = root.seriesMap[metricId]; if (series && series.clear) series.clear() }
+        root.updateAxes(); root.updateValueAxis()
     }
 
-    Component.onCompleted: {
-        root.rebuildMetricCatalog()
-        root.syncSelectionFromBridge()
-        root.updateAxes()
-        root.updateValueAxis()
-    }
-
-    onPanelExpandedChanged: {
-        if (root.panelExpanded)
-            root.refreshSeriesFromBridge()
-    }
+    Component.onCompleted: { root.rebuildMetricCatalog(); root.syncSelectionFromBridge(); root.updateAxes(); root.updateValueAxis() }
+    onPanelExpandedChanged: { if (root.panelExpanded) root.refreshSeriesFromBridge() }
 }

@@ -29,7 +29,8 @@ class _TelemetryBridgeStub(QObject):
     activeMetricsChanged = Signal()
     pausedChanged = Signal()
     updateIntervalChanged = Signal()
-    sampleAppended = Signal(object)
+    # Важно: используем QVariantMap, чтобы QML получил читаемый объект
+    sampleAppended = Signal("QVariantMap")
     streamReset = Signal()
 
     def __init__(self) -> None:

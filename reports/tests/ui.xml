@@ -1,352 +1,416 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="11" skipped="0" tests="183" time="10.380" timestamp="2025-11-14T14:45:53.709519+03:00" hostname="CADPC-01"><testcase classname="tests.ui.camera.test_orbit_controller" name="test_orbit_controller_applies_preset_and_updates_settings" time="0.040" /><testcase classname="tests.ui.camera.test_orbit_controller" name="test_orbit_controller_refreshes_manifest" time="0.011" /><testcase classname="tests.ui.camera.test_orbit_controller" name="test_camera_widget_double_click_triggers_auto_fit" time="0.001" /><testcase classname="tests.ui.camera.test_orbit_controller" name="test_diagnostics_overlay_routes_service_signals" time="0.001" /><testcase classname="tests.ui.panels.test_geometry_panel" name="test_get_parameters_returns_copy" time="0.023" /><testcase classname="tests.ui.panels.test_geometry_panel" name="test_get_parameters_tracks_slider_updates[0.05]" time="0.388" /><testcase classname="tests.ui.panels.test_geometry_panel" name="test_get_parameters_tracks_slider_updates[-0.05]" time="0.375" /><testcase classname="tests.ui.panels.test_geometry_panel_payload" name="test_geometry_panel_queues_payload_matches_bridge_schema[0.05]" time="0.805" /><testcase classname="tests.ui.panels.test_geometry_panel_payload" name="test_geometry_panel_queues_payload_matches_bridge_schema[-0.07]" time="0.797" /><testcase classname="tests.ui.panels.test_graphics_panel_payload" name="test_graphics_panel_lighting_payload_hits_queue" time="0.575" /><testcase classname="tests.ui.panels.test_graphics_panel_payload" name="test_graphics_panel_get_parameters_tracks_state" time="0.514" /><testcase classname="tests.ui.panels.test_lighting_tab_defaults" name="test_point_light_attenuation_defaults_are_applied" time="0.011" /><testcase classname="tests.ui.panels.test_panel_history" name="test_settings_sync_controller_history_roundtrip" time="0.001" /><testcase classname="tests.ui.panels.test_panel_history" name="test_graphics_panel_undo_redo" time="0.244"><failure message="assert 128 != 128">tests\ui\panels\test_panel_history.py:41: in test_graphics_panel_undo_redo
-    assert (
-E   assert 128 != 128
-        initial_state = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'camera': {'auto_...e': True, ...}, 'environment': {'ao_bias': 0.025, 'ao_dither': True, 'ao_enabled': True, 'ao_radius': 0.008, ...}, ...}
-        panel      = &lt;src.ui.panels.graphics.panel_graphics.GraphicsPanel(0x1fea11f52c0) at 0x000001FEA22DA600&gt;
-        qtbot      = &lt;pytestqt.qtbot.QtBot object at 0x000001FEA26712B0&gt;
-        slider     = &lt;PySide6.QtWidgets.QDoubleSpinBox(0x1fea0ea3080) at 0x000001FEA253D740&gt;
-        updated_state = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'camera': {'auto_...e': True, ...}, 'environment': {'ao_bias': 0.025, 'ao_dither': True, 'ao_enabled': True, 'ao_radius': 0.008, ...}, ...}</failure></testcase><testcase classname="tests.ui.panels.test_panel_history" name="test_geometry_panel_registered_preset" time="0.262" /><testcase classname="tests.ui.panels.test_panel_history" name="test_pneumo_panel_tooltips_and_preset" time="0.277" /><testcase classname="tests.ui.panels.test_pneumo_panel_payload" name="test_pneumo_panel_emits_simulation_payload" time="0.627" /><testcase classname="tests.ui.panels.test_pneumo_panel_payload" name="test_pneumo_panel_get_parameters_tracks_state" time="0.464" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs0-0.5-0.2]" time="0.001" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs1--0.1--0.25]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs2-0.1-0.05]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs3-0.1-0.75]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs4-0.6-0.6]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_zero_delta_without_step" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_zero_delta_no_metadata" time="0.000" /><testcase classname="tests.ui.panels.test_stabilizer_panel" name="test_stabilizer_panel_get_parameters_reflects_spinbox" time="0.074" /><testcase classname="tests.ui.test_bridge_state_indicators" name="test_bridge_indicators_reflect_scene_bridge_snapshot" time="0.131" /><testcase classname="tests.ui.test_bridge_state_indicators" name="test_bridge_indicators_show_warning_when_bridge_missing" time="0.023" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_url_bindings[qml_file0]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_url_bindings[qml_file1]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file0]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file1]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file2]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file3]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file4]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file5]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file6]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file7]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file8]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file9]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file10]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file11]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file12]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file13]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file14]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file15]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file16]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file17]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file18]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file19]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file20]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file21]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file0]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file1]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file2]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file3]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file4]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file5]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file6]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file7]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file8]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file9]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file10]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file11]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file12]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file13]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file14]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file15]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file16]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file17]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file18]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file19]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file20]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file21]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_load_without_version_warning[qml_file0]" time="0.060" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_load_without_version_warning[qml_file1]" time="0.022" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shader_manifest_matches_filesystem" time="0.002" /><testcase classname="tests.ui.test_effect_shaders" name="test_profiler_toggle_available" time="0.001" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_environment_updates_propagate_to_scene_environment" time="0.049" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_reflection_probe_disabled_when_settings_false" time="0.033" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_reflection_probe_defaults_missing_keys_emits_warning" time="0.033" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_environment_defaults_disable_reflection_probe_visibility" time="0.034" /><testcase classname="tests.ui.test_environment_tab_ibl_dependencies" name="test_environment_tab_disables_dependent_controls_on_master_toggles" time="0.016" /><testcase classname="tests.ui.test_environment_tab_ibl_dependencies" name="test_environment_tab_missing_hdr_path_updates_status" time="0.029" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_missing_path_shows_indicator_and_warning" time="0.004" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_keeps_missing_selection_when_items_refresh" time="0.002" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_user_confirms_new_path_clears_warning" time="0.004" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_warning_resets_when_file_reappears" time="0.002"><failure message="assert False&#10; +  where False = is_missing()&#10; +    where is_missing = &lt;src.ui.panels.graphics.widgets.FileCyclerWidget(0x1fea33fa2c0) at 0x000001FEA4621440&gt;.is_missing">tests\ui\test_file_cycler_widget.py:162: in test_file_cycler_warning_resets_when_file_reappears
-    assert widget.is_missing()
-E   assert False
-E    +  where False = is_missing()
-E    +    where is_missing = &lt;src.ui.panels.graphics.widgets.FileCyclerWidget(0x1fea33fa2c0) at 0x000001FEA4621440&gt;.is_missing
-        caplog     = &lt;_pytest.logging.LogCaptureFixture object at 0x000001FEA45BA990&gt;
-        fake_warning = &lt;function test_file_cycler_warning_resets_when_file_reappears.&lt;locals&gt;.fake_warning at 0x000001FEA460B600&gt;
-        monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000001FEA1D12C10&gt;
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        qtbot      = &lt;pytestqt.qtbot.QtBot object at 0x000001FEA45F7330&gt;
-        target     = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/.tmp/pytest/test_file_cycler_warning_reset0/texture.png')
-        tmp_path   = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/.tmp/pytest/test_file_cycler_warning_reset0')
-        warnings   = []
-        widget     = &lt;src.ui.panels.graphics.widgets.FileCyclerWidget(0x1fea33fa2c0) at 0x000001FEA4621440&gt;
----------------------------- Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()</failure></testcase><testcase classname="tests.ui.test_flow_network_visualization" name="test_flow_network_exposes_scaled_flow_properties" time="0.069" /><testcase classname="tests.ui.test_flow_shader_fallback" name="test_flow_shader_requests_fallback_on_error" time="0.024" /><testcase classname="tests.ui.test_geometry_cylinder_tab" name="test_cylinder_tab_link_toggle_syncs_sliders" time="0.754" /><testcase classname="tests.ui.test_geometry_meta_serialization" name="test_geometry_meta_capture_and_collect" time="0.031" /><testcase classname="tests.ui.test_graphics_panel_legacy_fallback" name="test_graphics_panel_hydrates_missing_categories" time="0.064" /><testcase classname="tests.ui.test_graphics_panel_meta_integration" name="test_graphics_panel_collect_state_with_geometry_meta" time="0.110" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_quality_tab_shadow_resolution_numeric" time="0.004" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_environment_tab_discovers_hdr_relative_to_project_root" time="0.011" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_color_toggle_sync" time="0.061" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_preset_buttons_persist_state" time="0.083" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_apply_registered_preset" time="0.068" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_scene_tab_roundtrip_preserves_types" time="0.002" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_animation_tab_roundtrip_preserves_payload" time="0.003" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_animation_tab_smoothing_toggle_updates_controls" time="0.003" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_collect_state_includes_scene" time="0.072"><failure message="AssertionError: assert {'amplitude':...': False, ...} == {'amplitude':...': False, ...}&#10;  &#10;  Omitting 8 identical items, use -vv to show&#10;  Differing items:&#10;  {'frequency': 1.0} != {'frequency': 0.1}&#10;  {'smoothing_piston_snap_m': 0.05} != {'smoothing_piston_snap_m': 0.0}&#10;  {'smoothing_duration_ms': 120} != {'smoothing_duration_ms': 0.0}&#10;  {'smoothing_enabled': True} != {'smoothing_enabled': False}...&#10;  &#10;  ...Full output truncated (3 lines hidden), use '-vv' to show">tests\ui\test_graphics_scene_quality_tabs.py:280: in test_graphics_panel_collect_state_includes_scene
-    assert collected["animation"] == baseline_animation
-E   AssertionError: assert {'amplitude':...': False, ...} == {'amplitude':...': False, ...}
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="183" time="11.236" timestamp="2025-11-15T23:56:25.837239+05:00" hostname="Barmaleii"><testcase classname="tests.ui.camera.test_orbit_controller" name="test_orbit_controller_applies_preset_and_updates_settings" time="0.019" /><testcase classname="tests.ui.camera.test_orbit_controller" name="test_orbit_controller_refreshes_manifest" time="0.005" /><testcase classname="tests.ui.camera.test_orbit_controller" name="test_camera_widget_double_click_triggers_auto_fit" time="0.001" /><testcase classname="tests.ui.camera.test_orbit_controller" name="test_diagnostics_overlay_routes_service_signals" time="0.001" /><testcase classname="tests.ui.panels.test_geometry_panel" name="test_get_parameters_returns_copy" time="0.023" /><testcase classname="tests.ui.panels.test_geometry_panel" name="test_get_parameters_tracks_slider_updates[0.05]" time="0.377" /><testcase classname="tests.ui.panels.test_geometry_panel" name="test_get_parameters_tracks_slider_updates[-0.05]" time="0.371" /><testcase classname="tests.ui.panels.test_geometry_panel_payload" name="test_geometry_panel_queues_payload_matches_bridge_schema[0.05]" time="0.805" /><testcase classname="tests.ui.panels.test_geometry_panel_payload" name="test_geometry_panel_queues_payload_matches_bridge_schema[-0.07]" time="0.806" /><testcase classname="tests.ui.panels.test_graphics_panel_payload" name="test_graphics_panel_lighting_payload_hits_queue" time="0.589" /><testcase classname="tests.ui.panels.test_graphics_panel_payload" name="test_graphics_panel_get_parameters_tracks_state" time="0.547" /><testcase classname="tests.ui.panels.test_lighting_tab_defaults" name="test_point_light_attenuation_defaults_are_applied" time="0.012" /><testcase classname="tests.ui.panels.test_panel_history" name="test_settings_sync_controller_history_roundtrip" time="0.001" /><testcase classname="tests.ui.panels.test_panel_history" name="test_graphics_panel_undo_redo" time="0.359" /><testcase classname="tests.ui.panels.test_panel_history" name="test_geometry_panel_registered_preset" time="0.258" /><testcase classname="tests.ui.panels.test_panel_history" name="test_pneumo_panel_tooltips_and_preset" time="0.248" /><testcase classname="tests.ui.panels.test_pneumo_panel_payload" name="test_pneumo_panel_emits_simulation_payload" time="0.651" /><testcase classname="tests.ui.panels.test_pneumo_panel_payload" name="test_pneumo_panel_get_parameters_tracks_state" time="0.470" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs0-0.5-0.2]" time="0.001" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs1--0.1--0.25]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs2-0.1-0.05]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs3-0.1-0.75]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_fallbacks[slider_kwargs4-0.6-0.6]" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_zero_delta_without_step" time="0.000" /><testcase classname="tests.ui.panels.test_slider_utils_unit" name="test_resolve_slider_step_zero_delta_no_metadata" time="0.001" /><testcase classname="tests.ui.panels.test_stabilizer_panel" name="test_stabilizer_panel_get_parameters_reflects_spinbox" time="0.060" /><testcase classname="tests.ui.test_bridge_state_indicators" name="test_bridge_indicators_reflect_scene_bridge_snapshot" time="0.183" /><testcase classname="tests.ui.test_bridge_state_indicators" name="test_bridge_indicators_show_warning_when_bridge_missing" time="0.037" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_url_bindings[qml_file0]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_url_bindings[qml_file1]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file0]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file1]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file2]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file3]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file4]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file5]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file6]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file7]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file8]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file9]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file10]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file11]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file12]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file13]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file14]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file15]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file16]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file17]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file18]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file19]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file20]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_use_lf_line_endings[shader_file21]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file0]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file1]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file2]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file3]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file4]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file5]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file6]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file7]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file8]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file9]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file10]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file11]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file12]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file13]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file14]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file15]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file16]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file17]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file18]" time="0.001" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file19]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file20]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_start_with_version[shader_file21]" time="0.000" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_load_without_version_warning[qml_file0]" time="0.076" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shaders_load_without_version_warning[qml_file1]" time="0.027" /><testcase classname="tests.ui.test_effect_shaders" name="test_effect_shader_manifest_matches_filesystem" time="0.002" /><testcase classname="tests.ui.test_effect_shaders" name="test_profiler_toggle_available" time="0.001" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_environment_updates_propagate_to_scene_environment" time="0.083" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_reflection_probe_disabled_when_settings_false" time="0.071" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_reflection_probe_defaults_missing_keys_emits_warning" time="0.069" /><testcase classname="tests.ui.test_environment_qml_sync" name="test_environment_defaults_disable_reflection_probe_visibility" time="0.069" /><testcase classname="tests.ui.test_environment_tab_ibl_dependencies" name="test_environment_tab_disables_dependent_controls_on_master_toggles" time="0.017" /><testcase classname="tests.ui.test_environment_tab_ibl_dependencies" name="test_environment_tab_missing_hdr_path_updates_status" time="0.034" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_missing_path_shows_indicator_and_warning" time="0.005" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_keeps_missing_selection_when_items_refresh" time="0.003" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_user_confirms_new_path_clears_warning" time="0.005" /><testcase classname="tests.ui.test_file_cycler_widget" name="test_file_cycler_warning_resets_when_file_reappears" time="0.006" /><testcase classname="tests.ui.test_flow_network_visualization" name="test_flow_network_exposes_scaled_flow_properties" time="0.079" /><testcase classname="tests.ui.test_flow_shader_fallback" name="test_flow_shader_requests_fallback_on_error" time="0.021" /><testcase classname="tests.ui.test_geometry_cylinder_tab" name="test_cylinder_tab_link_toggle_syncs_sliders" time="0.802" /><testcase classname="tests.ui.test_geometry_meta_serialization" name="test_geometry_meta_capture_and_collect" time="0.038" /><testcase classname="tests.ui.test_graphics_panel_legacy_fallback" name="test_graphics_panel_hydrates_missing_categories" time="0.087"><failure message="AssertionError: assert {'auto_fit': ...: -100.0, ...} == {'auto_fit': ..._x': 0.0, ...}&#10;  &#10;  Omitting 2 identical items, use -vv to show&#10;  Differing items:&#10;  {'orbit_pan_smoothing': 0.0} != {'orbit_pan_smoothing': 0.5}&#10;  {'orbit_inertia_enabled': False} != {'orbit_inertia_enabled': True}&#10;  {'auto_rotate_speed': 0.0} != {'auto_rotate_speed': 8.0}&#10;  {'far': 0.1} != {'far': 150.0}...&#10;  &#10;  ...Full output truncated (28 lines hidden), use '-vv' to show">tests\ui\test_graphics_panel_legacy_fallback.py:41: in test_graphics_panel_hydrates_missing_categories
+    assert panel.state["camera"] == baseline_graphics["camera"]
+E   AssertionError: assert {'auto_fit': ...: -100.0, ...} == {'auto_fit': ..._x': 0.0, ...}
 E     
-E     Omitting 8 identical items, use -vv to show
+E     Omitting 2 identical items, use -vv to show
 E     Differing items:
-E     {'frequency': 1.0} != {'frequency': 0.1}
-E     {'smoothing_piston_snap_m': 0.05} != {'smoothing_piston_snap_m': 0.0}
-E     {'smoothing_duration_ms': 120} != {'smoothing_duration_ms': 0.0}
-E     {'smoothing_enabled': True} != {'smoothing_enabled': False}...
+E     {'orbit_pan_smoothing': 0.0} != {'orbit_pan_smoothing': 0.5}
+E     {'orbit_inertia_enabled': False} != {'orbit_inertia_enabled': True}
+E     {'auto_rotate_speed': 0.0} != {'auto_rotate_speed': 8.0}
+E     {'far': 0.1} != {'far': 150.0}...
 E     
-E     ...Full output truncated (3 lines hidden), use '-vv' to show
-        baseline_animation = {'amplitude': 0.0, 'animation_time': 0.0, 'frequency': 0.1, 'is_running': False, ...}
-        baseline_scene = {'default_clear_color': '#1b1f27', 'exposure': 1.0, 'model_base_color': '#9da3aa', 'model_metalness': 0.82, ...}
-        collected  = {'animation': {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}, 'camera': {'auto_...e': True, ...}, 'environment': {'ao_bias': 0.025, 'ao_dither': True, 'ao_enabled': True, 'ao_radius': 0.008, ...}, ...}
-        panel      = &lt;src.ui.panels.graphics.panel_graphics.GraphicsPanel(0x1fea8e77660) at 0x000001FEA5036E00&gt;
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;</failure></testcase><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_camera_controls_signals" time="0.065" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_effects_tab_color_adjustments_toggle" time="0.007" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_quality_presets_emit_without_qt_warnings" time="0.004" /><testcase classname="tests.ui.test_initial_full_sync_invocations" name="test_initial_full_sync_invokes_all_apply_methods" time="0.001" /><testcase classname="tests.ui.test_main_qml_screenshots" name="test_main_scene_matches_default_baseline" time="0.293"><failure message="AssertionError: Captured frame deviates from baseline by RMS=132.46, tolerance=4.00">tests\ui\test_main_qml_screenshots.py:41: in test_main_scene_matches_default_baseline
+E     ...Full output truncated (28 lines hidden), use '-vv' to show
+        baseline_animation = {'amplitude': 8.0, 'animation_time': 0.0, 'frequency': 1.0, 'is_running': False, ...}
+        baseline_graphics = {'camera': {'auto_fit': True, 'auto_rotate': False, 'auto_rotate_speed': 8.0, 'camera_pos_x': 0.0, ...}, 'effects': {'...o_softness': {'max': 50.0, 'min': 0.0, 'step': 1.0}, 'ao_strength': {'max': 100.0, 'min': 0.0, 'step': 1.0}, ...}, ...}
+        graphics_section = {'effects': {'adjustment_brightness': 0.0, 'adjustment_contrast': 0.0, 'adjustment_saturation': 0.0, 'bloom_bicubic_up... '#fff7e0', ...}, 'rim': {'angle_x': 30.0, 'angle_y': -135.0, 'angle_z': 0.0, 'bind_to_camera': False, ...}, ...}, ...}
+        monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x000002570DC7C1A0&gt;
+        panel      = &lt;src.ui.panels.graphics.panel_graphics.GraphicsPanel(0x2570f578fd0) at 0x00000257116DF280&gt;
+        payload    = {'current': {'constants': {'geometry': {'cylinder': {'body_length_m': 0.25, 'dead_zone_head_m3': 0.001, 'dead_zone_rod...': 1.0}, ...}, 'last_migration': '0002_remove_geometry_mesh_extras', 'last_modified': '2025-11-15T18:56:31.691Z', ...}}
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        section    = 'defaults_snapshot'
+        settings_path = WindowsPath('C:/Users/Алексей/AppData/Local/Temp/pytest-of-Алексей/pytest-63/test_graphics_panel_hydrates_m0/app_settings.json')
+        tmp_path   = WindowsPath('C:/Users/Алексей/AppData/Local/Temp/pytest-of-Алексей/pytest-63/test_graphics_panel_hydrates_m0')</failure></testcase><testcase classname="tests.ui.test_graphics_panel_meta_integration" name="test_graphics_panel_collect_state_with_geometry_meta" time="0.142" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_quality_tab_shadow_resolution_numeric" time="0.005" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_environment_tab_discovers_hdr_relative_to_project_root" time="0.010" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_color_toggle_sync" time="0.146" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_preset_buttons_persist_state" time="0.113" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_apply_registered_preset" time="0.092"><failure message="AssertionError: assert 'ssaa' == 'taa'&#10;  &#10;  - taa&#10;  + ssaa">tests\ui\test_graphics_scene_quality_tabs.py:173: in test_graphics_panel_apply_registered_preset
+    assert antialiasing.get("primary") == "taa"
+E   AssertionError: assert 'ssaa' == 'taa'
+E     
+E     - taa
+E     + ssaa
+        antialiasing = {'post': 'taa', 'primary': 'ssaa', 'quality': 'high'}
+        baseline   = {'animation': {'amplitude': 0.0, 'animation_time': 0.0, 'frequency': 0.1, 'is_running': False, ...}, 'camera': {'auto_...': False, ...}, 'environment': {'ao_bias': 0.025, 'ao_dither': True, 'ao_enabled': True, 'ao_radius': 0.008, ...}, ...}
+        listener   = &lt;tests.helpers.signal_listeners.SignalListener object at 0x0000025712248D10&gt;
+        panel      = &lt;src.ui.panels.graphics.panel_graphics.GraphicsPanel(0x2571588d530) at 0x0000025710F96540&gt;
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        quality    = {'antialiasing': {'post': 'taa', 'primary': 'ssaa', 'quality': 'high'}, 'dithering': True, 'frame_rate_limit': 144.0, 'fxaa_enabled': False, ...}
+        state      = {'animation': {'amplitude': 0.0, 'animation_time': 0.0, 'frequency': 0.1, 'is_running': False, ...}, 'camera': {'auto_...': False, ...}, 'environment': {'ao_bias': 0.025, 'ao_dither': True, 'ao_enabled': True, 'ao_radius': 0.008, ...}, ...}</failure></testcase><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_scene_tab_roundtrip_preserves_types" time="0.003" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_animation_tab_roundtrip_preserves_payload" time="0.004" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_animation_tab_smoothing_toggle_updates_controls" time="0.004" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_graphics_panel_collect_state_includes_scene" time="0.083" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_camera_controls_signals" time="0.074" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_effects_tab_color_adjustments_toggle" time="0.009" /><testcase classname="tests.ui.test_graphics_scene_quality_tabs" name="test_quality_presets_emit_without_qt_warnings" time="0.005" /><testcase classname="tests.ui.test_initial_full_sync_invocations" name="test_initial_full_sync_invokes_all_apply_methods" time="0.001" /><testcase classname="tests.ui.test_main_qml_screenshots" name="test_main_scene_matches_default_baseline" time="0.469"><failure message="AssertionError: Unsupported scaling ratio 0.6667; baseline (960, 540) vs captured (640, 360)">tests\ui\test_main_qml_screenshots.py:41: in test_main_scene_matches_default_baseline
     compare_with_baseline(
-        image      = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA4593E10&gt;
-        integration_reports_dir = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration')
-        output_dir = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots')
-        png_artifact = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_default.png')
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        scene      = QMLScene(view=&lt;PySide6.QtQuick.QQuickView(0x1fea9816190 active exposed, visibility=QWindow::Hidden, flags=QFlags&lt;Qt::W...640x360 #x1F5BC) at 0x000001FEA5269C80&gt;, scene_bridge=&lt;src.ui.scene_bridge.SceneBridge(0x1fea9d59040) at 0x000001FEA52A9580&gt;)
-tests\ui\utils\screenshot.py:401: in compare_with_baseline
+        image      = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x2571160DE00&gt;
+        integration_reports_dir = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration')
+        output_dir = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots')
+        png_artifact = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_default.png')
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        scene      = QMLScene(view=&lt;PySide6.QtQuick.QQuickView(0x2571ace2610 active exposed, visibility=QWindow::Hidden, flags=QFlags&lt;Qt::W...640x360 #x1F5BC) at 0x00000257122BCDC0&gt;, scene_bridge=&lt;src.ui.scene_bridge.SceneBridge(0x2571ad7ea20) at 0x0000025710D41B40&gt;)
+tests\ui\utils\screenshot.py:383: in compare_with_baseline
     raise AssertionError(
-E   AssertionError: Captured frame deviates from baseline by RMS=132.46, tolerance=4.00
-        baseline   = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA52B1810&gt;
+E   AssertionError: Unsupported scaling ratio 0.6667; baseline (960, 540) vs captured (640, 360)
+        baseline   = &lt;PIL.Image.Image image mode=RGBA size=960x540 at 0x25714ED5350&gt;
         baseline_path = WindowsPath('tests/ui/baselines/main_default.json')
-        captured   = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA4593E10&gt;
-        captured_rgba = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA7DCD5B0&gt;
-        diff       = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA52FD590&gt;
-        diff_output = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_default.diff.png')
-        overall    = 132.45600953450756
-        rms_values = [43.55456612152992, 36.52402563771855, 43.84487619326548, 255.0]
-        stats      = &lt;PIL.ImageStat.Stat object at 0x000001FEA5314AD0&gt;
+        bh         = 540
+        bw         = 960
+        captured   = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x2571160DE00&gt;
+        captured_rgba = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x2575CE99370&gt;
+        ch         = 360
+        cw         = 640
+        diff_output = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_default.diff.png')
+        ratio      = 0.6666666666666666
+        ratio_h    = 0.6666666666666666
+        ratio_w    = 0.6666666666666666
         target     = WindowsPath('tests/ui/baselines/main_default.json')
         tolerance  = 4.0
 ---------------------------- Captured Qt messages -----------------------------
 QtWarningMsg: Failed to create D3D11 swapchain: COM error 0x80070005: �������� � �������. (Width=640 Height=360 Format=28 SampleCount=1 BufferCount=2 Scaling=1 SwapEffect=4 Stereo=0)
 QtWarningMsg: Failed to create swapchain. Retrying by requesting a software rasterizer, if applicable for the 3D API implementation.
-QtWarningMsg: Failed to create readback staging texture: COM error 0x80070057: �������� ����� �������.
-QtWarningMsg: Failed to create readback staging texture: COM error 0x80070057: �������� ����� �������.
+QtWarningMsg: DXGI_FORMAT -1 cannot be read back
+QtWarningMsg: DXGI_FORMAT -1 cannot be read back
 QtWarningMsg: Failed to create D3D11 swapchain: COM error 0x80070005: �������� � �������. (Width=640 Height=360 Format=28 SampleCount=1 BufferCount=2 Scaling=1 SwapEffect=4 Stereo=0)
-QtWarningMsg: Failed to build or resize swapchain</failure></testcase><testcase classname="tests.ui.test_main_qml_screenshots" name="test_main_scene_animation_running_baseline" time="0.032"><failure message="AssertionError: Captured frame deviates from baseline by RMS=133.21, tolerance=4.50">tests\ui\test_main_qml_screenshots.py:75: in test_main_scene_animation_running_baseline
+QtWarningMsg: Failed to build or resize swapchain</failure></testcase><testcase classname="tests.ui.test_main_qml_screenshots" name="test_main_scene_animation_running_baseline" time="0.041"><failure message="AssertionError: Unsupported scaling ratio 0.6667; baseline (960, 540) vs captured (640, 360)">tests\ui\test_main_qml_screenshots.py:75: in test_main_scene_animation_running_baseline
     compare_with_baseline(
-        image      = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA7DDBA70&gt;
-        integration_reports_dir = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration')
-        output_dir = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots')
-        panel      = &lt;PySide6.QtQuick.QQuickItem(0x1fead107310, id="simulationPanel", name="simulationPanel", parent=0x1fead107a10, geometry=110,20 420x320) at 0x000001FEA52730C0&gt;
-        png_artifact = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_animation_running.png')
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        scene      = QMLScene(view=&lt;PySide6.QtQuick.QQuickView(0x1fea9dd3760 active exposed, visibility=QWindow::Hidden, flags=QFlags&lt;Qt::W...640x360 #x1F5BC) at 0x000001FEA521E380&gt;, scene_bridge=&lt;src.ui.scene_bridge.SceneBridge(0x1feaa08b630) at 0x000001FEA5272740&gt;)
-tests\ui\utils\screenshot.py:401: in compare_with_baseline
+        image      = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x25714EF8E50&gt;
+        integration_reports_dir = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration')
+        output_dir = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots')
+        panel      = &lt;PySide6.QtQuick.QQuickItem(0x2571af53f20, id="simulationPanel", name="simulationPanel", parent=0x2571af51ec0, geometry=110,20 420x320) at 0x0000025714F37A00&gt;
+        png_artifact = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_animation_running.png')
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        scene      = QMLScene(view=&lt;PySide6.QtQuick.QQuickView(0x2571ace3ca0 active exposed, visibility=QWindow::Hidden, flags=QFlags&lt;Qt::W...640x360 #x1F5BC) at 0x000002570F254600&gt;, scene_bridge=&lt;src.ui.scene_bridge.SceneBridge(0x2571afe6200) at 0x00000257123F7A40&gt;)
+tests\ui\utils\screenshot.py:383: in compare_with_baseline
     raise AssertionError(
-E   AssertionError: Captured frame deviates from baseline by RMS=133.21, tolerance=4.50
-        baseline   = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA7DDBC50&gt;
+E   AssertionError: Unsupported scaling ratio 0.6667; baseline (960, 540) vs captured (640, 360)
+        baseline   = &lt;PIL.Image.Image image mode=RGBA size=960x540 at 0x25714EF66C0&gt;
         baseline_path = WindowsPath('tests/ui/baselines/main_animation_running.json')
-        captured   = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA7DDBA70&gt;
-        captured_rgba = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA4F07D90&gt;
-        diff       = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x1FEA4F07CB0&gt;
-        diff_output = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_animation_running.diff.png')
-        overall    = 133.2141605358616
-        rms_values = [32.68929534850735, 52.861354991737585, 45.783592990860576, 255.0]
-        stats      = &lt;PIL.ImageStat.Stat object at 0x000001FEA530D810&gt;
+        bh         = 540
+        bw         = 960
+        captured   = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x25714EF8E50&gt;
+        captured_rgba = &lt;PIL.Image.Image image mode=RGBA size=640x360 at 0x25714EF65D0&gt;
+        ch         = 360
+        cw         = 640
+        diff_output = WindowsPath('C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/reports/tests/integration/ui_screenshots/main_animation_running.diff.png')
+        ratio      = 0.6666666666666666
+        ratio_h    = 0.6666666666666666
+        ratio_w    = 0.6666666666666666
         target     = WindowsPath('tests/ui/baselines/main_animation_running.json')
         tolerance  = 4.5
 ---------------------------- Captured Qt messages -----------------------------
 QtWarningMsg: Failed to create D3D11 swapchain: COM error 0x80070005: �������� � �������. (Width=640 Height=360 Format=28 SampleCount=1 BufferCount=2 Scaling=1 SwapEffect=4 Stereo=0)
 QtWarningMsg: Failed to build or resize swapchain
 QtWarningMsg: Failed to present: IDXGISwapChain is unavailable
-QtWarningMsg: Failed to end frame</failure></testcase><testcase classname="tests.ui.test_main_qml_structure" name="test_main_qml_contains_required_elements" time="0.001" /><testcase classname="tests.ui.test_main_qml_structure" name="test_accessibility_attributes" time="0.001" /><testcase classname="tests.ui.test_parameter_validation" name="test_geometry_validation_success" time="0.000" /><testcase classname="tests.ui.test_parameter_validation" name="test_geometry_validation_failure" time="0.000" /><testcase classname="tests.ui.test_parameter_validation" name="test_indicator_updates_with_pytest_qt" time="0.001" /><testcase classname="tests.ui.test_parameter_validation" name="test_user_flow_simulation" time="0.001" /><testcase classname="tests.ui.test_post_effects_bypass_fail_safe" name="test_post_effects_bypass_triggers_view_effects_reset" time="0.044"><failure message="assert False&#10; +  where False = isinstance(&lt;PySide6.QtQml.QJSValue object at 0x000001FEA4254280&gt;, list)">tests\ui\test_post_effects_bypass_fail_safe.py:95: in test_post_effects_bypass_triggers_view_effects_reset
-    assert isinstance(initial_effects, list)
+QtWarningMsg: Failed to end frame</failure></testcase><testcase classname="tests.ui.test_main_qml_structure" name="test_main_qml_contains_required_elements" time="0.001" /><testcase classname="tests.ui.test_main_qml_structure" name="test_accessibility_attributes" time="0.001" /><testcase classname="tests.ui.test_parameter_validation" name="test_geometry_validation_success" time="0.000" /><testcase classname="tests.ui.test_parameter_validation" name="test_geometry_validation_failure" time="0.000" /><testcase classname="tests.ui.test_parameter_validation" name="test_indicator_updates_with_pytest_qt" time="0.001" /><testcase classname="tests.ui.test_parameter_validation" name="test_user_flow_simulation" time="0.001" /><testcase classname="tests.ui.test_post_effects_bypass_fail_safe" name="test_post_effects_bypass_triggers_view_effects_reset" time="0.080"><failure message="assert False&#10; +  where False = isinstance(&lt;PySide6.QtQml.QJSValue object at 0x0000025714FCF7C0&gt;, dict)">tests\ui\test_post_effects_bypass_fail_safe.py:131: in test_post_effects_bypass_triggers_view_effects_reset
+    assert isinstance(latest_snapshot, dict)
 E   assert False
-E    +  where False = isinstance(&lt;PySide6.QtQml.QJSValue object at 0x000001FEA4254280&gt;, list)
+E    +  where False = isinstance(&lt;PySide6.QtQml.QJSValue object at 0x0000025714FCF7C0&gt;, dict)
         baseline_bypass = False
-        engine     = &lt;PySide6.QtQml.QQmlEngine(0x1feaa076180) at 0x000001FEA7EA0C40&gt;
+        bypassed_effects = []
+        effect_list = [&lt;PySide6.QtCore.QObject(0x257100e0160) at 0x0000025714FCC0C0&gt;, &lt;PySide6.QtCore.QObject(0x257100e11a0) at 0x0000025714...e6.QtCore.QObject(0x257100e1a90) at 0x0000025714FCF840&gt;, &lt;PySide6.QtCore.QObject(0x257100e0230) at 0x0000025714FCF800&gt;]
+        engine     = &lt;PySide6.QtQml.QQmlEngine(0x2571aed09b0) at 0x0000025714FCC880&gt;
         failure_keys = []
-        failure_payload = &lt;PySide6.QtQml.QJSValue object at 0x000001FEA7EA2C40&gt;
-        initial_effects = &lt;PySide6.QtQml.QJSValue object at 0x000001FEA4254280&gt;
-        post_effects = &lt;PySide6.QtQuick.QQuickItem(0x1feaa1f9ac0, id="root", parent=0x0, geometry=0,0 0x0) at 0x000001FEA51F2580&gt;
-        post_effects_component = &lt;PySide6.QtQml.QQmlComponent(0x1fea9e25930) at 0x000001FEA7EA0E80&gt;
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        scene_view = &lt;PySide6.QtCore.QObject(0x1fea384fa10) at 0x000001FEA7EA2BC0&gt;
-        simulation_component = &lt;PySide6.QtQml.QQmlComponent(0x1fea9e29d00) at 0x000001FEA45BD600&gt;
-        simulation_root = &lt;PySide6.QtQuick.QQuickItem(0x1feaa1fb7a0, id="root", parent=0x0, geometry=0,0 0x0) at 0x000001FEA7EA2C00&gt;
-        status_spy = &lt;tests.helpers.signal_listeners.SignalListener object at 0x000001FEA7EA2B50&gt;
-        view_stub_component = &lt;PySide6.QtQml.QQmlComponent(0x1fea9e2d5e0) at 0x000001FEA7EA3140&gt;
+        failure_payload = &lt;PySide6.QtQml.QJSValue object at 0x0000025712477440&gt;
+        initial_effects = [&lt;PySide6.QtCore.QObject(0x257100e0160) at 0x0000025714FCC0C0&gt;, &lt;PySide6.QtCore.QObject(0x257100e11a0) at 0x0000025714...e6.QtCore.QObject(0x257100e1a90) at 0x0000025714FCF840&gt;, &lt;PySide6.QtCore.QObject(0x257100e0230) at 0x0000025714FCF800&gt;]
+        latest_snapshot = &lt;PySide6.QtQml.QJSValue object at 0x0000025714FCF7C0&gt;
+        post_effects = &lt;PySide6.QtQuick.QQuickItem(0x2571af565a0, id="root", parent=0x0, geometry=0,0 0x0) at 0x0000025714FCFD00&gt;
+        post_effects_component = &lt;PySide6.QtQml.QQmlComponent(0x2571afbf4f0) at 0x0000025714FCFE80&gt;
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        scene_view = &lt;PySide6.QtCore.QObject(0x2570c9573a0) at 0x0000025714FCF4C0&gt;
+        simulation_component = &lt;PySide6.QtQml.QQmlComponent(0x2571afc4e30) at 0x0000025710F34D00&gt;
+        simulation_root = &lt;PySide6.QtQuick.QQuickItem(0x2571af563e0, id="root", parent=0x0, geometry=0,0 0x0) at 0x0000025714FCF500&gt;
+        status_spy = &lt;tests.helpers.signal_listeners.SignalListener object at 0x0000025714FCF650&gt;
+        view_stub_component = &lt;PySide6.QtQml.QQmlComponent(0x2571afc6fe0) at 0x0000025714FCFD80&gt;
 ---------------------------- Captured Qt messages -----------------------------
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed motion_blur_fallback_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'motion_blur_fallback.frag' -&gt; 'motion_blur_fallback_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed motion_blur_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'motion_blur.frag' -&gt; 'motion_blur_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed dof_fallback_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'dof_fallback.frag' -&gt; 'dof_fallback_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed dof_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'dof.frag' -&gt; 'dof_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed ssao_fallback_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'ssao_fallback.frag' -&gt; 'ssao_fallback_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed ssao_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'ssao.frag' -&gt; 'ssao_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed bloom_fallback_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'bloom_fallback.frag' -&gt; 'bloom_fallback_glsl450.frag'
 QtWarningMsg: XMLHttpRequest: Unsupported method used on a local file
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:610:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:checkAvailability:611:
 
 QtDebugMsg: PostEffects: shader availability check failed bloom_glsl450.frag HEAD Error: Invalid state
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:766:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:shaderPath:767:
 
 QtDebugMsg: #x1F310 PostEffects: resolved Desktop shader 'bloom.frag' -&gt; 'bloom_glsl450.frag'
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1641:
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1642:
 
-QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1641:9: QML Binding: Property 'enabled' does not exist on Effect.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1493:
+QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1642:9: QML Binding: Property 'enabled' does not exist on Effect.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1494:
 
-QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1493:9: QML Binding: Property 'enabled' does not exist on Effect.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1336:
+QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1494:9: QML Binding: Property 'enabled' does not exist on Effect.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1337:
 
-QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1336:9: QML Binding: Property 'enabled' does not exist on Effect.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1224:
+QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1337:9: QML Binding: Property 'enabled' does not exist on Effect.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:None:1225:
 
-QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1224:9: QML Binding: Property 'enabled' does not exist on Effect.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1134:
+QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:1225:9: QML Binding: Property 'enabled' does not exist on Effect.
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1135:
 
 QtDebugMsg: #x1F3A8 Post Effects Collection loaded
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1135:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1136:
 
 QtDebugMsg:    Graphics API: unknown
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1137:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1138:
 
 QtDebugMsg:    Normalized API: unknown
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1138:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1139:
 
 QtDebugMsg:    Shader profile: Desktop (GLSL 450 core)
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1144:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1145:
 
 QtDebugMsg:    Profile decision flags -&gt; preferDesktop: false reportedGles: false forceDesktopOverride: false
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1150:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1151:
 
 QtDebugMsg:    Available effects: Bloom, SSAO, DOF, Motion Blur
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:246:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:247:
 
-QtDebugMsg: ⚠️ QQuick3DEffect_QML_81(0x1feaa4ef6c0) property assignment failed for requiresVelocityTexture
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1122:
+QtDebugMsg: ⚠️ QQuick3DEffect_QML_80(0x2571b2915a0) property assignment failed for requiresVelocityTexture
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1123:
 
 QtDebugMsg: ✅ Motion Blur: velocity texture support enabled
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1754:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1755:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for motion_blur_fallback.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1736:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1737:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for motion_blur.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:246:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:247:
 
-QtDebugMsg: ⚠️ QQuick3DEffect_QML_77(0x1feaa4ecd50) property assignment failed for requiresDepthTexture
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1122:
+QtDebugMsg: ⚠️ QQuick3DEffect_QML_76(0x2571b294790) property assignment failed for requiresDepthTexture
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1123:
 
 QtDebugMsg: ✅ Depth of Field: depth texture support enabled
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1615:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1616:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for dof_fallback.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1597:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1598:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for dof.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:246:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:247:
 
-QtDebugMsg: ⚠️ QQuick3DEffect_QML_73(0x1feaa4eb4e0) property assignment failed for requiresDepthTexture
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1122:
+QtDebugMsg: ⚠️ QQuick3DEffect_QML_72(0x2571b291160) property assignment failed for requiresDepthTexture
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1123:
 
 QtDebugMsg: ✅ SSAO: depth texture support enabled
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:246:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:trySetEffectProperty:247:
 
-QtDebugMsg: ⚠️ QQuick3DEffect_QML_73(0x1feaa4eb4e0) property assignment failed for requiresNormalTexture
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1122:
+QtDebugMsg: ⚠️ QQuick3DEffect_QML_72(0x2571b291160) property assignment failed for requiresNormalTexture
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:ensureEffectRequirement:1123:
 
 QtDebugMsg: ✅ SSAO: normal texture support enabled
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1467:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1468:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for ssao_fallback.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1449:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1450:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for ssao.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1312:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1313:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for bloom_fallback.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1294:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onCompleted:1295:
 
 QtDebugMsg: PostEffects: shader log handler unavailable for bloom.frag
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:expression for onCompleted:422:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:expression for onCompleted:458:
 
-QtDebugMsg: [SimulationRoot] Component completed; sceneBridge: missing</failure></testcase><testcase classname="tests.ui.test_qml_bridge" name="test_prepare_for_qml_adds_camel_case_aliases" time="0.001" /><testcase classname="tests.ui.test_qml_bridge" name="test_prepare_for_qml_does_not_override_existing_camel_case" time="0.000" /><testcase classname="tests.ui.test_qml_bridge" name="test_settings_manager_loads_orbit_presets" time="0.002" /><testcase classname="tests.ui.test_qml_bridge" name="test_camera_hud_context" time="0.005" /><testcase classname="tests.ui.test_qml_bridge" name="test_scene_bridge_initial_graphics_payload" time="0.005" /><testcase classname="tests.ui.test_qml_bridge" name="test_scene_bridge_augments_camera_updates" time="0.008" /><testcase classname="tests.ui.test_qml_bridge" name="test_scene_bridge_refresh_orbit_presets_emits_updates" time="0.007" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_update_methods_have_matching_qml_proxies" time="0.004" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_qml_signals_declared_in_main_qml" time="0.000" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_batch_ack_emission_present_in_simulation_root" time="0.001" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_qml_signal_handlers_exist_in_main_window" time="0.004" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_register_qml_signals_links_handlers" time="0.001" /><testcase classname="tests.ui.test_qml_signals" name="test_batch_updates_signal_exposed[assets/qml/main.qml]" time="0.298"><failure message="AssertionError: assets/qml/main.qml should produce a root object&#10;assert []&#10; +  where [] = &lt;built-in method rootObjects of PySide6.QtQml.QQmlApplicationEngine object at 0x000001FE814FB300&gt;()&#10; +    where &lt;built-in method rootObjects of PySide6.QtQml.QQmlApplicationEngine object at 0x000001FE814FB300&gt; = &lt;PySide6.QtQml.QQmlApplicationEngine(0x1feaa07abc0) at 0x000001FE814FB300&gt;.rootObjects">tests\ui\test_qml_signals.py:64: in test_batch_updates_signal_exposed
-    assert engine.rootObjects(), f"{qml_file} should produce a root object"
-E   AssertionError: assets/qml/main.qml should produce a root object
-E   assert []
-E    +  where [] = &lt;built-in method rootObjects of PySide6.QtQml.QQmlApplicationEngine object at 0x000001FE814FB300&gt;()
-E    +    where &lt;built-in method rootObjects of PySide6.QtQml.QQmlApplicationEngine object at 0x000001FE814FB300&gt; = &lt;PySide6.QtQml.QQmlApplicationEngine(0x1feaa07abc0) at 0x000001FE814FB300&gt;.rootObjects
-        engine     = &lt;PySide6.QtQml.QQmlApplicationEngine(0x1feaa07abc0) at 0x000001FE814FB300&gt;
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        qml_file   = 'assets/qml/main.qml'
-        qml_path   = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml')
----------------------------- Captured Qt messages -----------------------------
-QtWarningMsg: QQmlApplicationEngine failed to load component
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:None:200:
+QtDebugMsg: [SimulationRoot] Component completed; sceneBridge: missing
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:expression for onEffectsBypassChanged:44:
 
-QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/main.qml:200:9: Cannot assign to non-existent property "depthOfFieldAutoFocus"</failure></testcase><testcase classname="tests.ui.test_qml_signals" name="test_batch_updates_signal_exposed[assets/qml/main_v2_realism.qml]" time="0.090" /><testcase classname="tests.ui.test_qml_signals" name="test_batch_updates_signal_exposed[assets/qml/main_fallback.qml]" time="0.049" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[Width-]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[\u0428\u0438\u0440\u0438\u043d\u0430-]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[Width-\u043c\u043c]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[\u0428\u0438\u0440\u0438\u043d\u0430-\u043c\u043c]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestDebounce" name="test_value_edited_stability_with_long_debounce" time="0.491" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestExtremeStep" name="test_quantization_with_extreme_small_step" time="0.023" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestBulkUpdates" name="test_mass_set_range_and_value_no_extra_signals" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestStepSize" name="test_step_size_updates_spinboxes_and_keyboard" time="0.008"><failure message="assert False&#10; +  where False = &lt;built-in function isclose&gt;(5.0, (5.0 + 1.0))&#10; +    where &lt;built-in function isclose&gt; = math.isclose&#10; +    and   5.0 = value()&#10; +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x1fea994a130) at 0x000001FEA51B5600&gt;.value">tests\ui\test_range_slider_plan_regressions.py:123: in test_step_size_updates_spinboxes_and_keyboard
+QtWarningMsg: ⚠️ PostEffects: bypassing post-processing due to persistent shader errors bloom: forced failure
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/PneumoStabSim/SimulationRoot.qml:onEffectsBypassChanged:414:
+
+QtWarningMsg: [SimulationRoot] Post-processing bypassed: bloom: forced failure
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/effects/PostEffects.qml:updateSimplifiedFallbackState:187:
+
+QtWarningMsg: ⚠️ PostEffects: requesting simplified rendering fallback -&gt; bloom: forced failure</failure></testcase><testcase classname="tests.ui.test_qml_bridge" name="test_prepare_for_qml_adds_camel_case_aliases" time="0.001" /><testcase classname="tests.ui.test_qml_bridge" name="test_prepare_for_qml_does_not_override_existing_camel_case" time="0.000" /><testcase classname="tests.ui.test_qml_bridge" name="test_settings_manager_loads_orbit_presets" time="0.003" /><testcase classname="tests.ui.test_qml_bridge" name="test_camera_hud_context" time="0.006"><failure message="assert -100.0 == 0.5 ± 5.0e-04&#10;  &#10;  comparison failed&#10;  Obtained: -100.0&#10;  Expected: 0.5 ± 5.0e-04">tests\ui\test_qml_bridge.py:86: in test_camera_hud_context
+    assert telemetry["pivot"]["z"] == pytest.approx(0.5, rel=1e-3)
+E   assert -100.0 == 0.5 ± 5.0e-04
+E     
+E     comparison failed
+E     Obtained: -100.0
+E     Expected: 0.5 ± 5.0e-04
+        bridge     = &lt;src.ui.scene_bridge.SceneBridge(0x2571afe9450) at 0x00000257120A1C80&gt;
+        camera_payload = {'_access': {'actor': 'system', 'canEdit': True, 'description': 'Полный доступ ко всем настройкам, включая администрат...ации данных.', 'editablePrefixes': ['*'], ...}, 'auto_fit': False, 'auto_rotate': False, 'auto_rotate_speed': 0.0, ...}
+        manager    = &lt;src.common.settings_manager.SettingsManager object at 0x0000025714EDA580&gt;
+        presets    = {'default': 'baseline', 'index': {'baseline': {'category': 'desktop', 'description': {'en': 'Default desktop profile m...в с минимальным дрейфом.'}, 'devices': ['vr_controller', 'controller'], 'id': 'vr_precision', ...}, ...], 'version': 1}
+        telemetry  = {'autoRotate': False, 'autoRotateSpeed': 0.0, 'distance': 0.0, 'distanceDampingMs': 0.0, ...}</failure></testcase><testcase classname="tests.ui.test_qml_bridge" name="test_scene_bridge_initial_graphics_payload" time="0.008" /><testcase classname="tests.ui.test_qml_bridge" name="test_scene_bridge_augments_camera_updates" time="0.007" /><testcase classname="tests.ui.test_qml_bridge" name="test_scene_bridge_refresh_orbit_presets_emits_updates" time="0.008" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_update_methods_have_matching_qml_proxies" time="0.005" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_qml_signals_declared_in_main_qml" time="0.001" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_batch_ack_emission_present_in_simulation_root" time="0.001" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_qml_signal_handlers_exist_in_main_window" time="0.004" /><testcase classname="tests.ui.test_qml_signal_contract" name="test_register_qml_signals_links_handlers" time="0.002" /><testcase classname="tests.ui.test_qml_signals" name="test_batch_updates_signal_exposed[assets/qml/main.qml]" time="0.262" /><testcase classname="tests.ui.test_qml_signals" name="test_batch_updates_signal_exposed[assets/qml/main_v2_realism.qml]" time="0.102" /><testcase classname="tests.ui.test_qml_signals" name="test_batch_updates_signal_exposed[assets/qml/main_fallback.qml]" time="0.043" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[Width-]" time="0.005" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[\u0428\u0438\u0440\u0438\u043d\u0430-]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[Width-\u043c\u043c]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestLocales" name="test_accessibility_labels_in_locales[\u0428\u0438\u0440\u0438\u043d\u0430-\u043c\u043c]" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestDebounce" name="test_value_edited_stability_with_long_debounce" time="0.503" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestExtremeStep" name="test_quantization_with_extreme_small_step" time="0.030" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestBulkUpdates" name="test_mass_set_range_and_value_no_extra_signals" time="0.005" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestStepSize" name="test_step_size_updates_spinboxes_and_keyboard" time="0.010"><failure message="assert False&#10; +  where False = &lt;built-in function isclose&gt;(5.0, (5.0 + 1.0))&#10; +    where &lt;built-in function isclose&gt; = math.isclose&#10; +    and   5.0 = value()&#10; +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x25716374f50) at 0x00000257123DF800&gt;.value">tests\ui\test_range_slider_plan_regressions.py:123: in test_step_size_updates_spinboxes_and_keyboard
     assert math.isclose(w.value(), old + 1.0)
 E   assert False
 E    +  where False = &lt;built-in function isclose&gt;(5.0, (5.0 + 1.0))
 E    +    where &lt;built-in function isclose&gt; = math.isclose
 E    +    and   5.0 = value()
-E    +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x1fea994a130) at 0x000001FEA51B5600&gt;.value
+E    +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x25716374f50) at 0x00000257123DF800&gt;.value
         old        = 5.0
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        qtbot      = &lt;pytestqt.qtbot.QtBot object at 0x000001FE81539650&gt;
-        self       = &lt;tests.ui.test_range_slider_plan_regressions.TestStepSize object at 0x000001FEA247C410&gt;
-        w          = &lt;src.ui.widgets.range_slider.RangeSlider(0x1fea994a130) at 0x000001FEA51B5600&gt;
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        qtbot      = &lt;tests.conftest.qtbot.&lt;locals&gt;._FallbackQtBot object at 0x00000257116AA7B0&gt;
+        self       = &lt;tests.ui.test_range_slider_plan_regressions.TestStepSize object at 0x000002570DE81090&gt;
+        w          = &lt;src.ui.widgets.range_slider.RangeSlider(0x25716374f50) at 0x00000257123DF800&gt;
 ---------------------------- Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()</failure></testcase><testcase classname="tests.ui.test_range_slider_plan_regressions.TestUnitsPropagation" name="test_units_update_reflected_everywhere" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestEditingFinishedDebounce" name="test_editing_finished_emits_value_edited" time="0.095" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestTitleUpdates" name="test_set_title_updates_accessibility_and_labels" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestNegativeAndZeroStep" name="test_zero_and_negative_step_normalization" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestTitleFallback" name="test_empty_title_fallbacks_to_default_label" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestEnableDisable" name="test_set_enabled_propagates_to_children" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestShortcutsMetadata" name="test_accessibility_shortcuts_metadata_present" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestUnitsToggle" name="test_units_toggle_clears_suffix" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_initialization_and_units_label" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_set_range_guard_and_emit" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_slider_quantization_by_step" time="0.013" /><testcase classname="tests.ui.test_range_slider_widget" name="test_slider_without_quantization_when_step_is_zero" time="0.012" /><testcase classname="tests.ui.test_range_slider_widget" name="test_value_signals_with_debounce" time="0.196" /><testcase classname="tests.ui.test_range_slider_widget" name="test_min_max_spinboxes_inversion_guard" time="0.023" /><testcase classname="tests.ui.test_range_slider_widget" name="test_keyboard_shortcuts_nudge_and_focus" time="0.013"><failure message="assert False&#10; +  where False = &lt;built-in function isclose&gt;(5.0, (5.0 + 0.5))&#10; +    where &lt;built-in function isclose&gt; = math.isclose&#10; +    and   5.0 = value()&#10; +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x1fea9926be0) at 0x000001FEA5170080&gt;.value">tests\ui\test_range_slider_widget.py:198: in test_keyboard_shortcuts_nudge_and_focus
+QtWarningMsg: This plugin does not support propagateSizeHints()</failure></testcase><testcase classname="tests.ui.test_range_slider_plan_regressions.TestUnitsPropagation" name="test_units_update_reflected_everywhere" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestEditingFinishedDebounce" name="test_editing_finished_emits_value_edited" time="0.101" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestTitleUpdates" name="test_set_title_updates_accessibility_and_labels" time="0.004" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestNegativeAndZeroStep" name="test_zero_and_negative_step_normalization" time="0.005" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestTitleFallback" name="test_empty_title_fallbacks_to_default_label" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestEnableDisable" name="test_set_enabled_propagates_to_children" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestShortcutsMetadata" name="test_accessibility_shortcuts_metadata_present" time="0.003" /><testcase classname="tests.ui.test_range_slider_plan_regressions.TestUnitsToggle" name="test_units_toggle_clears_suffix" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_initialization_and_units_label" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_set_range_guard_and_emit" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_slider_quantization_by_step" time="0.016" /><testcase classname="tests.ui.test_range_slider_widget" name="test_slider_without_quantization_when_step_is_zero" time="0.015" /><testcase classname="tests.ui.test_range_slider_widget" name="test_value_signals_with_debounce" time="0.197" /><testcase classname="tests.ui.test_range_slider_widget" name="test_min_max_spinboxes_inversion_guard" time="0.036" /><testcase classname="tests.ui.test_range_slider_widget" name="test_keyboard_shortcuts_nudge_and_focus" time="0.030"><failure message="assert False&#10; +  where False = &lt;built-in function isclose&gt;(5.0, (5.0 + 0.5))&#10; +    where &lt;built-in function isclose&gt; = math.isclose&#10; +    and   5.0 = value()&#10; +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x25716388ff0) at 0x00000257124C7A80&gt;.value">tests\ui\test_range_slider_widget.py:197: in test_keyboard_shortcuts_nudge_and_focus
     assert math.isclose(w.value(), old + 0.5)
 E   assert False
 E    +  where False = &lt;built-in function isclose&gt;(5.0, (5.0 + 0.5))
 E    +    where &lt;built-in function isclose&gt; = math.isclose
 E    +    and   5.0 = value()
-E    +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x1fea9926be0) at 0x000001FEA5170080&gt;.value
+E    +      where value = &lt;src.ui.widgets.range_slider.RangeSlider(0x25716388ff0) at 0x00000257124C7A80&gt;.value
         Qt         = &lt;class 'PySide6.QtCore.Qt'&gt;
         RangeSlider = &lt;class 'src.ui.widgets.range_slider.RangeSlider'&gt;
         old        = 5.0
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        qtbot      = &lt;pytestqt.qtbot.QtBot object at 0x000001FE8153BB70&gt;
-        w          = &lt;src.ui.widgets.range_slider.RangeSlider(0x1fea9926be0) at 0x000001FEA5170080&gt;
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        qtbot      = &lt;tests.conftest.qtbot.&lt;locals&gt;._FallbackQtBot object at 0x00000257116A8440&gt;
+        w          = &lt;src.ui.widgets.range_slider.RangeSlider(0x25716388ff0) at 0x00000257124C7A80&gt;
 ---------------------------- Captured Qt messages -----------------------------
-QtWarningMsg: This plugin does not support propagateSizeHints()</failure></testcase><testcase classname="tests.ui.test_range_slider_widget" name="test_accessibility_descriptions_and_decimals" time="0.012" /><testcase classname="tests.ui.test_range_slider_widget" name="test_accessibility_shortcuts_metadata" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_set_enabled_propagates_to_children" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_range_changed_via_spinboxes_emits_and_clamps" time="0.024" /><testcase classname="tests.ui.test_range_slider_widget" name="test_position_indicator_boundaries" time="0.013" /><testcase classname="tests.ui.test_range_slider_widget" name="test_decimals_affect_spinboxes_and_indicator" time="0.013" /><testcase classname="tests.ui.test_range_slider_widget" name="test_set_range_equal_min_max_is_corrected" time="0.019" /><testcase classname="tests.ui.test_range_slider_widget" name="test_keyboard_nudge_respects_clamping" time="0.028" /><testcase classname="tests.ui.test_realism_environment_settings" name="test_warn_records_undefined_fallback" time="0.024" /><testcase classname="tests.ui.test_realism_environment_settings" name="test_number_missing_value_uses_fallback" time="0.017" /><testcase classname="tests.ui.test_realism_environment_settings" name="test_number_invalid_fallback_logs_error_and_uses_safe_value" time="0.017" /><testcase classname="tests.ui.test_safe_mode_startup" name="test_parse_safe_alias_sets_test_mode" time="0.002" /><testcase classname="tests.ui.test_safe_mode_startup" name="test_parse_test_mode_does_not_mark_safe_alias" time="0.001" /><testcase classname="tests.ui.test_safe_mode_startup" name="test_safe_mode_exits_without_loading_main_window" time="0.030" /><testcase classname="tests.ui.test_scene_bridge_orbit_manifest" name="test_scene_bridge_refresh_orbit_presets_manifest_version_increment" time="0.013" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_post_effects_prefers_fallback_when_gles_variant_missing" time="0.022" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_post_effects_disables_pass_shaders_when_effects_off" time="0.016" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_fog_effect_prefers_fallback_when_gles_variant_missing" time="0.023" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_fog_effect_activates_depth_fallback_when_forced" time="0.016" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_fog_effect_desktop_backend_avoids_fallback" time="0.016" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_depth_of_field_primary_pipeline_active" time="0.013" /><testcase classname="tests.ui.test_shared_materials_fallback" name="test_assets_loader_switches_to_fallback_when_source_missing" time="0.028"><failure message="AssertionError: Expected frame texture instance&#10;assert None is not None">tests\ui\test_shared_materials_fallback.py:61: in test_assets_loader_switches_to_fallback_when_source_missing
-    assert texture is not None, "Expected frame texture instance"
-E   AssertionError: Expected frame texture instance
-E   assert None is not None
+QtWarningMsg: This plugin does not support propagateSizeHints()</failure></testcase><testcase classname="tests.ui.test_range_slider_widget" name="test_accessibility_descriptions_and_decimals" time="0.026" /><testcase classname="tests.ui.test_range_slider_widget" name="test_accessibility_shortcuts_metadata" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_set_enabled_propagates_to_children" time="0.003" /><testcase classname="tests.ui.test_range_slider_widget" name="test_range_changed_via_spinboxes_emits_and_clamps" time="0.039" /><testcase classname="tests.ui.test_range_slider_widget" name="test_position_indicator_boundaries" time="0.030" /><testcase classname="tests.ui.test_range_slider_widget" name="test_decimals_affect_spinboxes_and_indicator" time="0.015" /><testcase classname="tests.ui.test_range_slider_widget" name="test_set_range_equal_min_max_is_corrected" time="0.031" /><testcase classname="tests.ui.test_range_slider_widget" name="test_keyboard_nudge_respects_clamping" time="0.062" /><testcase classname="tests.ui.test_realism_environment_settings" name="test_warn_records_undefined_fallback" time="0.027" /><testcase classname="tests.ui.test_realism_environment_settings" name="test_number_missing_value_uses_fallback" time="0.026" /><testcase classname="tests.ui.test_realism_environment_settings" name="test_number_invalid_fallback_logs_error_and_uses_safe_value" time="0.024" /><testcase classname="tests.ui.test_safe_mode_startup" name="test_parse_safe_alias_sets_test_mode" time="0.001" /><testcase classname="tests.ui.test_safe_mode_startup" name="test_parse_test_mode_does_not_mark_safe_alias" time="0.001" /><testcase classname="tests.ui.test_safe_mode_startup" name="test_safe_mode_exits_without_loading_main_window" time="0.027" /><testcase classname="tests.ui.test_scene_bridge_orbit_manifest" name="test_scene_bridge_refresh_orbit_presets_manifest_version_increment" time="0.007" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_post_effects_prefers_fallback_when_gles_variant_missing" time="0.022" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_post_effects_disables_pass_shaders_when_effects_off" time="0.020" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_fog_effect_prefers_fallback_when_gles_variant_missing" time="0.024" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_fog_effect_activates_depth_fallback_when_forced" time="0.026" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_fog_effect_desktop_backend_avoids_fallback" time="0.029" /><testcase classname="tests.ui.test_shader_fallback_selection" name="test_depth_of_field_primary_pipeline_active" time="0.019" /><testcase classname="tests.ui.test_shared_materials_fallback" name="test_assets_loader_switches_to_fallback_when_source_missing" time="0.047"><failure message="AssertionError: assert False is True&#10; +  where False = bool(False)&#10; +    where False = &lt;built-in method property of PySide6.QtQuick3D.QQuick3DObject object at 0x000002575D38BBC0&gt;('fallbackActive')&#10; +      where &lt;built-in method property of PySide6.QtQuick3D.QQuick3DObject object at 0x000002575D38BBC0&gt; = &lt;PySide6.QtQuick3D.QQuick3DObject(0x2571636a180) at 0x000002575D38BBC0&gt;.property">tests\ui\test_shared_materials_fallback.py:62: in test_assets_loader_switches_to_fallback_when_source_missing
+    assert bool(texture.property("fallbackActive")) is True
+E   AssertionError: assert False is True
+E    +  where False = bool(False)
+E    +    where False = &lt;built-in method property of PySide6.QtQuick3D.QQuick3DObject object at 0x000002575D38BBC0&gt;('fallbackActive')
+E    +      where &lt;built-in method property of PySide6.QtQuick3D.QQuick3DObject object at 0x000002575D38BBC0&gt; = &lt;PySide6.QtQuick3D.QQuick3DObject(0x2571636a180) at 0x000002575D38BBC0&gt;.property
         _          = 4
-        _message_handler = &lt;function test_assets_loader_switches_to_fallback_when_source_missing.&lt;locals&gt;._message_handler at 0x000001FEA4FFB420&gt;
+        _message_handler = &lt;function test_assets_loader_switches_to_fallback_when_source_missing.&lt;locals&gt;._message_handler at 0x00000257120C8C20&gt;
         captured_messages = []
-        component  = &lt;PySide6.QtQml.QQmlComponent(0x1fea9c9e4d0) at 0x000001FEA4EF6280&gt;
-        previous_handler = &lt;bound method _QtMessageCapture._handle_with_context of &lt;pytestqt.logging._QtMessageCapture object at 0x000001FE815462D0&gt;&gt;
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-        qml_engine = &lt;PySide6.QtQml.QQmlEngine(0x1fea90e9e10) at 0x000001FEA4EF6440&gt;
-        shared_materials = &lt;PySide6.QtCore.QObject(0x1feacaae0f0) at 0x000001FEA4EF4F80&gt;
-        texture    = None
+        component  = &lt;PySide6.QtQml.QQmlComponent(0x257102c6cb0) at 0x000002575D389900&gt;
+        previous_handler = &lt;bound method _QtMessageCapture._handle_with_context of &lt;pytestqt.logging._QtMessageCapture object at 0x000002571506BD70&gt;&gt;
+        qapp       = &lt;PySide6.QtWidgets.QApplication(0x2575c86b2a0) at 0x000002570DF56580&gt;
+        qml_engine = &lt;PySide6.QtQml.QQmlEngine(0x2571ab24230) at 0x000002575D3894C0&gt;
+        shared_materials = &lt;PySide6.QtCore.QObject(0x257208ea260) at 0x000002575D389A00&gt;
+        texture    = &lt;PySide6.QtQuick3D.QQuick3DObject(0x2571636a180) at 0x000002575D38BBC0&gt;
 ---------------------------- Captured Qt messages -----------------------------
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/scene/SharedMaterials.qml:expression for onCompleted:357:
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:144:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:144:5: QML Connections: Detected function "onStatusChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/scene/SharedMaterials.qml:expression for onCompleted:412:
 
     QtDebugMsg: SharedMaterials initialized (минимизированный слой Qt 6.10 + MaterialCompat)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
-QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)</failure></testcase><testcase classname="tests.ui.test_signals_router_connections" name="test_simulation_signals_use_queued_connection" time="0.001" /><testcase classname="tests.ui.test_simulation_root_shader_warnings" name="test_shader_warning_handlers_route_through_bridge" time="0.033" /><testcase classname="tests.ui.test_telemetry_chart_panel_integration" name="test_telemetry_chart_panel_syncs_metrics_and_samples" time="0.025"><failure message="assert None is not None">tests\ui\test_telemetry_chart_panel_integration.py:142: in test_telemetry_chart_panel_syncs_metrics_and_samples
-    engine, component, root = _create_telemetry_panel()
-                              ^^^^^^^^^^^^^^^^^^^^^^^^^
-        qapp       = &lt;PySide6.QtWidgets.QApplication(0x1fea0b1bd10) at 0x000001FEA225E700&gt;
-tests\ui\test_telemetry_chart_panel_integration.py:135: in _create_telemetry_panel
-    assert root is not None
-E   assert None is not None
-        component  = &lt;PySide6.QtQml.QQmlComponent(0x1fea9ca3e10) at 0x000001FEA4D6E500&gt;
-        engine     = &lt;PySide6.QtQml.QQmlEngine(0x1fea90ddff0) at 0x000001FEA4D6DD40&gt;
-        panel_path = WindowsPath('C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml')
-        root       = None
----------------------------- Captured Qt messages -----------------------------
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:None:343:
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
 
-    QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:343:5: QML Connections: Detected function "onMetricsChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:None:343:
+    QtWarningMsg: [AssetsLoader:frame] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
 
-    QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:343:5: QML Connections: Detected function "onActiveMetricsChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:None:343:
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
 
-    QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:343:5: QML Connections: Detected function "onPausedChanged" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:None:343:
+    QtWarningMsg: [AssetsLoader:lever] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
 
-    QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:343:5: QML Connections: Detected function "onSampleAppended" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:None:343:
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
 
-    QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:343:5: QML Connections: Detected function "onStreamReset" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.
-file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:None:344:
+    QtWarningMsg: [AssetsLoader:tail_rod] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
 
-    QtWarningMsg: file:///C:/Users/CADuser/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/TelemetryChartPanel.qml:344:9: Unable to assign [undefined] to QObject*</failure></testcase><testcase classname="tests.ui.test_telemetry_data_bridge" name="test_push_snapshot_emits_active_metrics" time="0.001" /><testcase classname="tests.ui.test_telemetry_data_bridge" name="test_update_interval_throttles_samples" time="0.001" /><testcase classname="tests.ui.test_telemetry_data_bridge" name="test_pause_and_reset_behaviour" time="0.001" /><testcase classname="tests.ui.test_training_panel_integration" name="test_training_panel_loads_presets" time="0.044" /></testsuite></testsuites>
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
+
+    QtWarningMsg: [AssetsLoader:cylinder] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
+
+    QtWarningMsg: [AssetsLoader:piston_body] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
+
+    QtWarningMsg: [AssetsLoader:piston_rod] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
+
+    QtWarningMsg: [AssetsLoader:joint_tail] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
+
+    QtWarningMsg: [AssetsLoader:joint_arm] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:_logWarn:84:
+
+    QtWarningMsg: [AssetsLoader:joint_rod] Primary source not provided; using 
+file:///C:/Users/???????/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:None:118:
+
+    QtWarningMsg: file:///C:/Users/Алексей/source/repos/barmaleii77-hub/PneumoStabSim-Professional/assets/qml/components/AssetsLoader.qml:118: Error: Cannot assign [undefined] to int
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)
+QtWarningMsg: Could not find any constructor for value type QQuickVector3DValueType to call with value QVariant(double, 0)</failure></testcase><testcase classname="tests.ui.test_signals_router_connections" name="test_simulation_signals_use_queued_connection" time="0.001" /><testcase classname="tests.ui.test_simulation_root_shader_warnings" name="test_shader_warning_handlers_route_through_bridge" time="0.060" /><testcase classname="tests.ui.test_telemetry_chart_panel_integration" name="test_telemetry_chart_panel_syncs_metrics_and_samples" time="0.038" /><testcase classname="tests.ui.test_telemetry_data_bridge" name="test_push_snapshot_emits_active_metrics" time="0.001" /><testcase classname="tests.ui.test_telemetry_data_bridge" name="test_update_interval_throttles_samples" time="0.001" /><testcase classname="tests.ui.test_telemetry_data_bridge" name="test_pause_and_reset_behaviour" time="0.001" /><testcase classname="tests.ui.test_training_panel_integration" name="test_training_panel_loads_presets" time="0.051" /></testsuite></testsuites>

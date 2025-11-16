@@ -215,7 +215,9 @@ def main():
     file_path = Path("assets/qml/scene/SharedMaterials.qml")
     print(f"📝 Обновление {file_path} (минимальный набор Qt 6.10)...")
     file_path.write_text(SHARED_MATERIALS_CONTENT, encoding="utf-8")
-    print("✅ SharedMaterials.qml обновлён: legacy поля удалены, jointRodMaterial добавлен")
+    print(
+        "✅ SharedMaterials.qml обновлён: legacy поля удалены, jointRodMaterial добавлен"
+    )
 
 
 if __name__ == "__main__":

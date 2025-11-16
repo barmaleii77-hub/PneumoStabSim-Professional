@@ -69,6 +69,14 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
         simulation_root.setProperty("postEffects", post_effects)
         qapp.processEvents()
 
+        # Synchronize stub view's effects with PostEffects effect list
+        effect_list = post_effects.property("effectList")
+        if hasattr(effect_list, "toVariant"):
+            effect_list = effect_list.toVariant()
+        if isinstance(effect_list, list):
+            scene_view.setProperty("effects", effect_list)
+        qapp.processEvents()
+
         baseline_bypass = bool(post_effects.property("effectsBypass"))
         failure_payload = post_effects.property("persistentEffectFailures")
         if isinstance(failure_payload, Mapping):
@@ -92,15 +100,27 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
             )
 
         initial_effects = scene_view.property("effects")
+        # Convert QJSValue to Python list if needed
+        if hasattr(initial_effects, "toVariant"):
+            initial_effects = initial_effects.toVariant()
+        effect_list = post_effects.property("effectList")
+        if hasattr(effect_list, "toVariant"):
+            effect_list = effect_list.toVariant()
         assert isinstance(initial_effects, list)
-        assert len(initial_effects) == len(post_effects.property("effectList"))
+        assert len(initial_effects) == len(effect_list)
 
         post_effects.setEffectPersistentFailure("bloom", True, "forced failure")
         qapp.processEvents()
 
         assert post_effects.property("effectsBypass") is True
         assert simulation_root.property("postProcessingBypassed") is True
-        assert scene_view.property("effects") == []
+
+        # Convert QJSValue to Python list for comparison
+        bypassed_effects = scene_view.property("effects")
+        if hasattr(bypassed_effects, "toVariant"):
+            bypassed_effects = bypassed_effects.toVariant()
+        assert bypassed_effects == []
+
         assert (
             simulation_root.property("postProcessingBypassReason")
             == "bloom: forced failure"
@@ -118,8 +138,14 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
         assert post_effects.property("effectsBypass") is False
         assert simulation_root.property("postProcessingBypassed") is False
         restored_effects = scene_view.property("effects")
+        # Convert QJSValue to Python list if needed
+        if hasattr(restored_effects, "toVariant"):
+            restored_effects = restored_effects.toVariant()
+        effect_list_final = post_effects.property("effectList")
+        if hasattr(effect_list_final, "toVariant"):
+            effect_list_final = effect_list_final.toVariant()
         assert isinstance(restored_effects, list)
-        assert len(restored_effects) == len(post_effects.property("effectList"))
+        assert len(restored_effects) == len(effect_list_final)
         for restored, original in zip(restored_effects, initial_effects):
             assert restored is original
     finally:

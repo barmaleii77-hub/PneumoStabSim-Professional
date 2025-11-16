@@ -785,20 +785,36 @@ class PhysicsWorker(QObject):
             self.pneumatic_system = None
             self.gas_network = None
 
-            self.logger.info("Принудительная очистка PhysicsWorker завершена")
+            try:
+                self.logger.info("Принудительная очистка PhysicsWorker завершена")
+            except Exception:
+                # Во время завершения интерпретатора/pytest-coverage потоки логгера могут быть уже закрыты
+                pass
 
         except Exception as e:
-            self.logger.error(
-                "ERROR: physics worker force_cleanup failed",
-                error=str(e),
-                exc_info=True,
-            )
+            try:
+                self.logger.error(
+                    "ERROR: physics worker force_cleanup failed",
+                    error=str(e),
+                    exc_info=True,
+                )
+            except Exception:
+                pass
 
     def __del__(self):
-        """Деструктор - финальная очистка"""
+        """Деструктор — ничего не делаем.
+
+        В контексте завершения интерпретатора/coverage/pytest вызовы Qt API
+        (deleteLater, QTimer.stop и т.п.) из __del__ могут приводить к крэшу
+        рантайма. Очистка выполняется явными методами stop()/force_cleanup()
+        в управляющем коде (
+        см. SimulationManager.stop/cleanup).
+        """
         try:
-            self.force_cleanup()
+            # Намеренно не трогаем Qt-объекты и логгеры
+            return
         except Exception:
+            # Никогда не поднимать исключения из деструктора
             pass
 
     @Slot()

@@ -6,6 +6,36 @@
 
 ---
 
+## 🗂 ЖУРНАЛ МИГРАЦИЙ (JSONL)
+
+Лог миграций хранится в `reports/settings/migrations.jsonl` (или каталоге, указанном через `--log-dir` / `PSS_MIGRATIONS_LOG_DIR`). Каждая строка — валидный JSON объект.
+
+Пример события миграции:
+```json
+{"timestamp":"2025-11-16T06:12:04.123456+00:00","migration":"001_add_profile_flag","description":"Add debug profile flag","operations":[{"op":"ensure","path":"metadata.profile","changed":true}],"changed":true}
+```
+
+Пример итогового события прогона:
+```json
+{"timestamp":"2025-11-16T06:12:04.456789+00:00","event":"migration-run-complete","settings_file":"config/app_settings.json","migrations_dir":"config/migrations","executed":["001_add_profile_flag"],"executed_count":1,"payload_hash_before":"<sha256>","payload_hash_after":"<sha256>"}
+```
+
+Поля:
+- `timestamp` — ISO8601 UTC
+- `migration` — идентификатор миграции (нет в агрегатном событии)
+- `description` — описание миграции
+- `operations[]` — список операций (`op`, `path`, `changed`)
+- `changed` — хотя бы одна операция модифицировала payload
+- `event=migration-run-complete` — агрегатный итог прогона
+- `executed[]` / `executed_count` — применённые миграции в текущем прогоне
+- `payload_hash_before` / `payload_hash_after` — SHA256 хэши состояния до и после применения (заменили устаревшее поле `payload_hash`) для дифф‑анализа и аудита
+
+Идемпотентность: повторный запуск, когда все миграции уже применены, добавляет ТОЛЬКО новое агрегатное событие `migration-run-complete` (без повторных `migration` событий). Покрыто тестами:
+- `tests/unit/core/test_settings_migration_log_idempotent.py`
+- `tests/unit/core/test_settings_migration_logging.py`
+
+---
+
 ## 🎯 ПРИНЦИПЫ АРХИТЕКТУРЫ
 
 ### **ГЛАВНОЕ ПРАВИЛО:**

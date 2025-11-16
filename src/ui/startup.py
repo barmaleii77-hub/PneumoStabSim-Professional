@@ -10,11 +10,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Mapping, MutableMapping
-from typing import Any
-
-from PySide6.QtQuick import QQuickWindow  # type: ignore
 
 _TRUTHY_VALUES = {"1", "true", "yes", "on"}
+
+# Type alias for window to avoid heavy import at module import time
+try:  # pragma: no cover - optional runtime import
+    from PySide6.QtQuick import QQuickWindow as _QQuickWindowType  # type: ignore
+except Exception:  # pragma: no cover
+
+    class _QQuickWindowType:  # minimal stub type for type checkers
+        def width(self) -> int: ...
+        def height(self) -> int: ...
+        def setWidth(self, w: int) -> None: ...
+        def setHeight(self, h: int) -> None: ...
 
 
 def _is_truthy(value: str | None) -> bool:
@@ -54,7 +62,8 @@ def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str
         reasons.append("ci-flag")
 
     if _is_truthy(env.get("PSS_HEADLESS")):
-        reasons.append("flag:pss-headless")
+        # Явный флаг headless имеет приоритет и не смешивается с прочими причинами
+        return True, ("flag:pss-headless",)
 
     qt_qpa_raw = env.get("QT_QPA_PLATFORM")
     qt_qpa = (qt_qpa_raw or "").strip().lower()
@@ -116,12 +125,12 @@ def bootstrap_graphics_environment(
 
 
 def enforce_fixed_window_metrics(
-    window: QQuickWindow, width: int = 640, height: int = 360
+    window: _QQuickWindowType, width: int = 640, height: int = 360
 ) -> None:
     """Принудительно применить фиксированные размеры окна для детерминированных скриншотов.
 
-    Отключает HiDPI масштабирование (если переменные окружения не выставлены) и
-    гарантирует точные значения width/height до захвата кадра.
+    Принимает абстрактный тип _QQuickWindowType (реальный QQuickWindow или заглушку),
+    что устраняет F821 и позволяет headless тестам импортировать модуль.
     """
     try:
         import os

@@ -1323,20 +1323,7 @@ _settings_event_bus: SettingsEventBus | None = None
 def get_settings_manager(settings_file: Path | str | None = None) -> SettingsManager:
     global _settings_manager
     if _settings_manager is None or settings_file is not None:
-        self = SettingsManager(settings_file)
-        # Нормализуем материалы немедленно, чтобы убрать legacy-ключи даже при прямом доступе
-        try:
-            graphics = (
-                self._data.get("graphics") if isinstance(self._data, dict) else None
-            )
-            if isinstance(graphics, dict):
-                mats = graphics.get("materials")
-                if isinstance(mats, dict) and self._strip_legacy_material_keys(mats):
-                    self._dirty = True
-                    self.save_if_dirty()
-        except Exception:
-            pass
-        _settings_manager = self
+        _settings_manager = SettingsManager(settings_file)
     return _settings_manager
 
 

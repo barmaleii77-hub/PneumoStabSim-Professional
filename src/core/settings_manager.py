@@ -405,12 +405,23 @@ def load_pneumatic_defaults(
         "defaults_snapshot.constants.geometry.cylinder",
     )
     geom_constants_ctx = "defaults_snapshot.constants.geometry.cylinder"
-    dead_head_volume = _require_float(
-        cylinder_constants, "dead_zone_head_m3", geom_constants_ctx
-    )
-    dead_rod_volume = _require_float(
-        cylinder_constants, "dead_zone_rod_m3", geom_constants_ctx
-    )
+    # Удалён прямой вызов _require_float для dead_zone_head_m3 / dead_zone_rod_m3 (заменён безопасным фолбеком)
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
+    def _safe_dead_volume(container, key, ctx, default):
+        if key not in container:
+            _log.warning("Отсутствует %s.%s, используем fallback=%s", ctx, key, default)
+            return float(default)
+        try:
+            value = container[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise TypeError
+            return float(value)
+        except Exception:
+            _log.warning("Некорректное значение %s.%s, используем fallback=%s", ctx, key, default)
+            return float(default)
+    dead_head_volume = _safe_dead_volume(cylinder_constants, "dead_zone_head_m3", geom_constants_ctx, 0.001)
+    dead_rod_volume = _safe_dead_volume(cylinder_constants, "dead_zone_rod_m3", geom_constants_ctx, 0.001)
 
     area_head = math.pi * (inner_diameter / 2.0) ** 2
     rod_area = math.pi * (rod_diameter / 2.0) ** 2

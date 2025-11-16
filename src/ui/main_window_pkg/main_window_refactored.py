@@ -2,20 +2,6 @@
 
 Главное окно приложения - модульная версия v4.9.9.
 Тонкий координатор, делегирующий работу специализированным модулям.
-
-**Coordinator Pattern:**
-- Минимум логики в главном классе
-- Делегирование специализированным модулям
-- Четкое разделение ответственности
-
-**Delegation:**
-- UI construction → UISetup
-- Python↔QML → QMLBridge
-- Signal routing → SignalsRouter
-- State sync → StateSync
-- Menu actions → MenuActions
-
-Russian UI / English code.
 """
 
 from __future__ import annotations
@@ -24,12 +10,12 @@ import copy
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Protocol, TypedDict, Optional
+from typing import Any, Protocol, TypedDict
 
 from PySide6.QtWidgets import QMainWindow, QLabel
 from PySide6.QtCore import Qt, QTimer, Slot, QUrl
 from PySide6.QtQuickWidgets import QQuickWidget
-from PySide6.QtGui import QCloseEvent  # add near top
+from PySide6.QtGui import QCloseEvent
 from pathlib import Path
 
 # Локальные модули
@@ -46,6 +32,19 @@ from src.core.settings_manager import ProfileSettingsManager
 from src.services import FeedbackService
 from src.ui.feedback import FeedbackController
 from src.ui.bridge.telemetry_bridge import TelemetryDataBridge
+
+
+def _import_state_snapshot_type() -> Any:
+    """Ленивый импорт типа StateSnapshot для аннотаций (исключает F821)."""
+    try:
+        from src.runtime.state import StateSnapshot  # noqa: WPS433 (runtime import)
+
+        return StateSnapshot
+    except Exception:
+        return object
+
+
+STATE_SNAPSHOT_TYPE = _import_state_snapshot_type()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SHADER_STATUS_LOG_PATH = (
@@ -1023,11 +1022,9 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_sim_control(self, command)
 
     @Slot(object)
-    def _on_state_update(self, snapshot: "StateSnapshot") -> None:
-        from ...runtime import StateSnapshot as _StateSnapshot
-
-        if isinstance(snapshot, _StateSnapshot):
-            SignalsRouter.handle_state_update(self, snapshot)
+    def _on_state_update(self, snapshot: object) -> None:  # Используем object тип
+        if isinstance(snapshot, STATE_SNAPSHOT_TYPE):
+            SignalsRouter.handle_state_update(self, snapshot)  # type: ignore[arg-type]
         else:
             self.logger.debug("Ignored non-StateSnapshot payload in _on_state_update")
 

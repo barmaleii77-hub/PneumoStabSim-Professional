@@ -5,7 +5,6 @@ output, and stores artefacts under ``reports/quality/launch_traces``.  The
 resulting logs provide traceability for environment provisioning issues without
 requiring a full GUI session on headless agents.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -28,6 +27,17 @@ QT_REQUIRED_VARS: tuple[str, ...] = (
     "QML2_IMPORT_PATH",
     "QT_QUICK_CONTROLS_STYLE",
 )
+
+try:  # Ленивая загрузка реестра переменных окружения
+    from tools.env_registry import (
+        validate_environment,
+        format_matrix_markdown,
+        CRITICAL_VARS as _CRITICAL_ENV_VARS,
+    )
+except Exception:  # pragma: no cover - реестр может отсутствовать в старых ветках
+    _CRITICAL_ENV_VARS = ()
+    validate_environment = None  # type: ignore
+    format_matrix_markdown = None  # type: ignore
 
 
 def _ensure_trace_dir() -> None:
@@ -183,6 +193,15 @@ def _safe_print(text: str, *, stream: TextIO | None = None) -> None:
         print(sanitized, file=target)
 
 
+def _validate_env(environment: dict[str, str]) -> dict[str, object]:
+    """Сформировать отчёт проверки переменных окружения (пустой при отсутствии реестра)."""
+    if validate_environment is None:  # реестр недоступен
+        return {"matrix_markdown": "", "report": {}}
+    report = validate_environment(environment)
+    md = format_matrix_markdown(report)
+    return {"matrix_markdown": md, "report": report}
+
+
 def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     _ensure_trace_dir()
 
@@ -192,6 +211,12 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     )
     command = _build_command(report_path, passthrough)
     environment = _compose_environment()
+
+    # Валидация переменных окружения до запуска
+    env_validation = _validate_env(environment)
+    env_report = env_validation.get("report", {})
+    missing_vars = list(env_report.get("missing", [])) if env_report else []
+    empty_vars = list(env_report.get("empty", [])) if env_report else []
 
     start = time.perf_counter()
     completed = subprocess.run(
@@ -219,6 +244,19 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     ]
     for var in QT_REQUIRED_VARS:
         log_sections.append(f"  - {var}={environment.get(var, '')}")
+
+    if env_validation.get("matrix_markdown"):
+        log_sections.append("\n## Environment Variables Matrix")
+        log_sections.append(env_validation["matrix_markdown"])
+        if missing_vars:
+            log_sections.append(
+                f"\n⚠ Отсутствуют критичные переменные: {', '.join(sorted(missing_vars))}"
+            )
+        if empty_vars:
+            log_sections.append(
+                f"\n⚠ Пустые переменные: {', '.join(sorted(empty_vars))}"
+            )
+
     log_sections.extend(_render_log_block(log_body))
     log_text = "\n".join(log_sections)
 
@@ -234,6 +272,8 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
         "environment_report": str(report_path.relative_to(PROJECT_ROOT)),
         "success": completed.returncode == 0,
         "duration": duration,
+        "env_missing": missing_vars,
+        "env_empty": empty_vars,
     }
     _status_path().write_text(
         json.dumps(status_payload, indent=2, ensure_ascii=False) + "\n",
@@ -254,6 +294,14 @@ def run_launch_trace(passthrough: Sequence[str], history_limit: int) -> int:
     missing_qt = [var for var in QT_REQUIRED_VARS if not environment.get(var)]
     if missing_qt:
         summary_lines.append(" Missing Qt variables: " + ", ".join(sorted(missing_qt)))
+    if missing_vars:
+        summary_lines.append(
+            " Missing critical env vars: " + ", ".join(sorted(missing_vars))
+        )
+    if empty_vars:
+        summary_lines.append(
+            " Empty critical env vars: " + ", ".join(sorted(empty_vars))
+        )
     _safe_print("\n".join(summary_lines))
 
     return completed.returncode
@@ -281,18 +329,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _normalise_argv(argv: Sequence[str]) -> list[str]:
-    """Return an argv list compatible with ``argparse`` expectations."""
-
     if not argv:
         return []
-
     normalised: list[str] = []
     flag = "--history-limit"
     for token in argv:
         if token.startswith(flag) and token not in {flag, f"{flag}=", f"{flag}="}:
             suffix = token[len(flag) :]
-            # Accept PowerShell style ``--history-limit5`` while leaving
-            # ``--history-limit=5`` untouched for the default argparse behaviour.
             if suffix.isdigit():
                 normalised.extend([flag, suffix])
                 continue

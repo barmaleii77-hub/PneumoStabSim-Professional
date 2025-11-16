@@ -6,25 +6,54 @@ renovation master plan.  Migration descriptors are stored as JSON documents in
 applied to a settings payload.  The runner keeps track of executed migrations in
 ``metadata.migrations`` so upgrades are idempotent.
 
+Extended: записывает jsonl лог событий миграции в
+``reports/settings/migrations.jsonl`` для трассируемости.
+
 Example usage::
 
     python -m src.tools.settings_migrate --settings config/app_settings.json \
-        --migrations config/migrations --in-place
+        --migrations config/migrations --in-place --verbose
 """
-
 from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from datetime import datetime, timezone
 from collections.abc import Iterable, Sequence
+
+SETTINGS_REPORT_ROOT = Path("reports") / "settings"  # default root; can be overridden by CLI
+MIGRATIONS_LOG_PATH = SETTINGS_REPORT_ROOT / "migrations.jsonl"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _payload_hash(payload: dict[str, Any]) -> str:
+    try:
+        dumped = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+    except Exception:  # pragma: no cover
+        dumped = "{}"
+    return hashlib.sha256(dumped.encode("utf-8", "replace")).hexdigest()
+
+
+def _append_migration_event(event: dict[str, Any], *, log_root: Path | None = None) -> None:
+    root = log_root or SETTINGS_REPORT_ROOT
+    path = root / "migrations.jsonl"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception:  # pragma: no cover
+        pass
 
 
 def _deep_copy(value: Any) -> Any:
     """Return a JSON-compatible deep copy of *value*."""
-
     return json.loads(json.dumps(value))
 
 
@@ -146,22 +175,32 @@ class MigrationDescriptor:
     operations: list[dict[str, Any]]
     source: Path
 
-    def apply(self, payload: dict[str, Any]) -> bool:
+    def apply(self, payload: dict[str, Any], *, log_root: Path | None = None) -> bool:
         """Apply the migration to *payload* with basic logging.
 
         Returns ``True`` if any operation mutated the payload.
         """
-
         changed = False
+        op_results: list[dict[str, Any]] = []
         for operation in self.operations:
-            if _apply_operation(payload, operation):
+            mutated = _apply_operation(payload, operation)
+            if mutated:
                 changed = True
-                op_type = operation.get("op", "<unknown>")
-                path = operation.get("path")
-                if path:
-                    print(f"[migration:{self.identifier}] {op_type} {path}")
-                else:
-                    print(f"[migration:{self.identifier}] {op_type}")
+            op_type = operation.get("op", "<unknown>")
+            path = operation.get("path")
+            if path:
+                print(f"[migration:{self.identifier}] {op_type} {path}")
+            else:
+                print(f"[migration:{self.identifier}] {op_type}")
+            op_results.append({"op": op_type, "path": path, "changed": bool(mutated)})
+        _append_migration_event({
+            "timestamp": _utc_now(),
+            "migration": self.identifier,
+            "description": self.description,
+            "source": str(self.source),
+            "operations": op_results,
+            "changed": changed,
+        }, log_root=log_root)
         return changed
 
 
@@ -184,7 +223,6 @@ def _load_descriptor(path: Path) -> MigrationDescriptor:
 
 def load_migrations(directory: Path) -> list[MigrationDescriptor]:
     """Load migration descriptors from *directory* sorted by filename."""
-
     if not directory.exists():
         raise FileNotFoundError(f"Migrations directory does not exist: {directory}")
     descriptors: list[MigrationDescriptor] = []
@@ -204,18 +242,17 @@ def _ensure_metadata(payload: dict[str, Any]) -> tuple[dict[str, Any], list[str]
 
 
 def apply_migrations(
-    payload: dict[str, Any], migrations: Iterable[MigrationDescriptor]
+    payload: dict[str, Any], migrations: Iterable[MigrationDescriptor], *, log_root: Path | None = None
 ) -> list[str]:
     """Apply *migrations* to *payload*.
 
     Returns the identifiers of migrations executed during this run."""
-
     _, applied = _ensure_metadata(payload)
     executed: list[str] = []
     for descriptor in migrations:
         if descriptor.identifier in applied:
             continue
-        changed = descriptor.apply(payload)
+        changed = descriptor.apply(payload, log_root=log_root)
         applied.append(descriptor.identifier)
         if changed:
             executed.append(descriptor.identifier)
@@ -269,6 +306,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print applied migration identifiers",
     )
+    parser.add_argument("--log-dir", type=Path, help="Override migration log directory (default: reports/settings)")
     return parser
 
 
@@ -277,9 +315,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     payload = _load_settings(args.settings)
+    hash_before = _payload_hash(payload)
     migrations = load_migrations(args.migrations)
+    log_root = args.log_dir if args.log_dir else SETTINGS_REPORT_ROOT
 
-    executed = apply_migrations(payload, migrations)
+    executed = apply_migrations(payload, migrations, log_root=log_root)
+
+    _append_migration_event({
+        "timestamp": _utc_now(),
+        "event": "migration-run-complete",
+        "settings_file": str(args.settings),
+        "migrations_dir": str(args.migrations),
+        "executed": executed,
+        "executed_count": len(executed),
+        "payload_hash_before": hash_before,
+        "payload_hash_after": _payload_hash(payload),
+    }, log_root=log_root)
 
     if args.verbose:
         if executed:

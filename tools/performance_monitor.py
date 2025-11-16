@@ -672,6 +672,69 @@ def _run_phase3_scenario(
     return ScenarioArtifacts(json_path=json_path, html_path=html_path)
 
 
+def _run_default_scenario(
+    output_path: Path,
+    *,
+    duration: float,
+    interval: float,
+    html_output: Path | None = None,
+) -> ScenarioArtifacts:
+    """Базовый сценарий perf-check (default): метрики процесса без специфической UI фазы.
+
+    Эмулирует рендер цикл 60 FPS для оценки frame time. Пишет агрегаты
+    (averages) и snapshot overlay в perf_summary.json.
+    """
+
+    LOGGER.info(
+        "Running default performance scenario (duration=%.2fs, interval=%.2fs)",
+        duration,
+        interval,
+    )
+    monitor = PerformanceMonitor()
+    monitor.start_monitoring(interval)
+    try:
+        frame_interval = 1.0 / 60.0
+        deadline = time.time() + duration
+        while time.time() < deadline:
+            monitor.record_frame()
+            time.sleep(frame_interval)
+    finally:
+        monitor.stop_monitoring()
+
+    averages = monitor.get_average_metrics()
+    sample_count = len(monitor.metrics)
+    base_state = load_profiler_overlay_state()
+    metadata = {
+        "scenario": "default",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "averages": averages,
+        "samples": sample_count,
+        "overlay_enabled": base_state.overlay_enabled,
+        "gpu_metrics_available": monitor._gpu_monitor.available,
+    }
+    snapshot = record_profiler_overlay(
+        base_state.overlay_enabled,
+        source="performance_monitor.default",
+        scenario="default",
+        metadata=metadata,
+    )
+    extra_payload = {
+        "averages": averages,
+        "sampleCount": sample_count,
+        "psutilAvailable": PSUTIL_AVAILABLE,
+        "gpuMetricsAvailable": monitor._gpu_monitor.available,
+        "overlayEnabled": snapshot.overlay_enabled,
+    }
+    json_path = export_profiler_report(
+        output_path,
+        state=snapshot,
+        scenario="default",
+        extra=extra_payload,
+    )
+    html_path = _write_html_report(json_path, html_output)
+    return ScenarioArtifacts(json_path=json_path, html_path=html_path)
+
+
 def _build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="PneumoStabSim performance monitor",
@@ -679,7 +742,7 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--scenario",
-        choices=["phase3"],
+        choices=["default", "phase3"],
         help="Run a predefined monitoring scenario instead of the interactive sampler.",
     )
     parser.add_argument(
@@ -723,9 +786,23 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.scenario:
         output = args.output
-        if output is None:
-            output = Path("reports/performance/ui_phase3_profile.json")
+        if args.scenario == "default":
+            if output is None:
+                output = Path("reports/performance/perf_summary.json")
+            artifacts = _run_default_scenario(
+                output_path=output,
+                duration=args.duration,
+                interval=args.interval,
+                html_output=args.html_output,
+            )
+            print(
+                "[PERF] Scenario 'default' reports written to"  # консольный вывод
+                f" JSON={artifacts.json_path} HTML={artifacts.html_path}"
+            )
+            return 0
         if args.scenario == "phase3":
+            if output is None:
+                output = Path("reports/performance/ui_phase3_profile.json")
             artifacts = _run_phase3_scenario(
                 output_path=output,
                 duration=args.duration,
@@ -739,6 +816,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         parser.error(f"Unsupported scenario: {args.scenario}")
 
+    # Интерактивный режим (без --scenario)
     monitor = PerformanceMonitor()
     monitor.start_monitoring(args.interval)
     try:

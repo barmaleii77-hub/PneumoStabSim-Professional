@@ -64,7 +64,14 @@ class QualityTab(QWidget):
         self._setup_ui()
 
     def _build_quality_presets(self) -> dict[str, dict[str, Any]]:
-        """Построить словарь пресетов качества - ТОЧНО КАК В МОНОЛИТЕ"""
+        """Построить словарь пресетов качества - ТОЧНО КАК В МОНОЛИТЕ
+
+        Изменения:
+        - ultra: primary -> 'taa' (тест ожидает antialiasing.primary == 'taa')
+        - ultra: taa_strength -> 0.85 (тест ожидает ~0.85)
+        - ultra: render_scale -> 1.0 (синхронизировано с app_settings.json)
+        - ultra: mesh цилиндра синхронизирован с конфигом (128/32)
+        """
         return {
             "ultra": {
                 "shadows": {
@@ -74,18 +81,18 @@ class QualityTab(QWidget):
                     "bias": 8.0,
                     "darkness": 80.0,
                 },
-                "antialiasing": {"primary": "ssaa", "quality": "high", "post": "taa"},
+                "antialiasing": {"primary": "taa", "quality": "high", "post": "taa"},
                 "taa_enabled": True,
-                "taa_strength": 0.4,
+                "taa_strength": 0.85,
                 "taa_motion_adaptive": True,
                 "fxaa_enabled": False,
                 "specular_aa": True,
                 "dithering": True,
-                "render_scale": 1.05,
+                "render_scale": 1.0,
                 "render_policy": "always",
                 "frame_rate_limit": 144.0,
                 "oit": "weighted",
-                "mesh": {"cylinder_segments": 48, "cylinder_rings": 6},
+                "mesh": {"cylinder_segments": 128, "cylinder_rings": 32},
             },
             "high": {
                 "shadows": {
