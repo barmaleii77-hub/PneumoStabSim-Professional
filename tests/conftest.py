@@ -375,27 +375,42 @@ def qtbot(qapp):
             self.mouseClick(widget, button)
             self.mouseClick(widget, button)
 
-        def assertNotEmitted(self, signal, timeout: int = 100) -> None:
-            emitted = False
+        def assertNotEmitted(self, signal, timeout: int = 100) -> object:
+            """Context manager asserting that a signal is NOT emitted."""
+            class _NotEmittedCtx:
+                def __init__(self, sig, to):
+                    self._sig = sig
+                    self._timeout = to
+                    self._emitted = False
 
-            def _on(*_):
-                nonlocal emitted
-                emitted = True
+                def __enter__(self):
+                    try:
+                        self._sig.connect(self._on_emit)
+                    except Exception:
+                        pass
+                    return self
 
-            try:
-                signal.connect(_on)
-            except Exception:
-                pass
-            deadline = time.time() + timeout / 1000.0
-            while time.time() < deadline:
-                if emitted:
-                    break
-                self.wait(10)
-            try:
-                signal.disconnect(_on)
-            except Exception:
-                pass
-            assert not emitted, "Signal was emitted unexpectedly"
+                def _on_emit(self, *args):
+                    self._emitted = True
+
+                def __exit__(self, exc_type, exc, tb):
+                    deadline = time.time() + self._timeout / 1000.0
+                    while time.time() < deadline and not self._emitted:
+                        if QTest is not None:
+                            try:
+                                QTest.qWait(10)
+                            except Exception:
+                                break
+                        else:
+                            time.sleep(0.01)
+                    try:
+                        self._sig.disconnect(self._on_emit)
+                    except Exception:
+                        pass
+                    assert not self._emitted, "Signal was emitted unexpectedly"
+                    return False
+
+            return _NotEmittedCtx(signal, timeout)
 
         def waitExposed(self, widget, timeout: int = 1000) -> None:
             # Basic exposure detection

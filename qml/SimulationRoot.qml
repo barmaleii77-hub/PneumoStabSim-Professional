@@ -1,14 +1,13 @@
-pragma ComponentBehavior: Bound
+#pragma ComponentBehavior: Bound
 
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import "." as Local
 
 /**
- * Minimal root for the standalone simulation panel harness.
- * Provides stub handlers that mirror the desktop application's
- * SimulationRoot API surface so that qmllint does not report
- * missing bindings during local development.
+ * Минимальный корневой компонент для стенд‑запуска панели симуляции.
+ * Повторяет публичную поверхность API SimulationRoot рабочего приложения,
+ * чтобы qmllint/локальные инструменты не ругались на отсутствующие биндинги.
  */
 Pane {
     id: root
@@ -21,7 +20,7 @@ Pane {
     signal shaderWarningRegistered(string effectId, string message)
     signal shaderWarningCleared(string effectId)
 
-    /** Cached map of active shader warnings (effectId -> message). */
+    /** Кэш активных предупреждений шейдеров (effectId -> message). */
     property var shaderWarningState: ({})
 
     function _normalizeEffectId(value) {
@@ -63,8 +62,8 @@ Pane {
     }
 
     /**
-     * Accepts geometry updates emitted by the Python bridge in production.
-     * The stub simply re-emits the payload for tests or tooling to observe.
+     * Принимает обновления геометрии (имитация продакшн‑моста Python→QML).
+     * В заглушке просто ретранслируем полезную нагрузку наружу.
      */
     function applyGeometryUpdates(params) {
         var payload = params
@@ -74,7 +73,7 @@ Pane {
     }
 
     /**
-     * Mirrors the shader warning bridge used by the production scene.
+     * Интерфейс для регистрации предупреждений шейдеров, совместимый со сценой.
      */
     function registerShaderWarning(effectId, message) {
         var normalizedId = _normalizeEffectId(effectId)
@@ -119,6 +118,7 @@ Pane {
         }
     }
 
+    // Оформляем фон панели
     background: Rectangle {
         radius: 18
         color: Qt.rgba(0.06, 0.09, 0.13, 0.92)
@@ -126,8 +126,11 @@ Pane {
         border.width: 1
     }
 
+    // Основной контент — панель симуляции (как прямой потомок, чтобы findChild() находил её)
     contentItem: Local.SimulationPanel {
         id: simulationPanel
+        objectName: "simulationPanel"
         anchors.fill: parent
+        anchors.margins: 24
     }
 }

@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QLineEdit,
 )
-from PySide6.QtCore import Signal, Slot, QTimer, Qt
+from PySide6.QtCore import Signal, Slot, QTimer, Qt, QEvent
 from PySide6.QtGui import QFont, QPalette, QColor, QKeySequence, QShortcut, QKeyEvent
 
 
@@ -133,6 +133,15 @@ class RangeSlider(QWidget):
             focus_max_shortcut,
         )
         self._refresh_accessibility_descriptions()
+
+        # ДОПОЛНЕНО: перехват горячих клавиш через eventFilter для случаев,
+        # когда QShortcut не срабатыет (нестандартные диспетчеры событий).
+        self.installEventFilter(self)
+        for child in self.findChildren(QWidget):
+            try:
+                child.installEventFilter(self)
+            except Exception:
+                pass
 
     def _setup_ui(self, title: str) -> None:
         layout = QVBoxLayout(self)
@@ -884,41 +893,50 @@ class RangeSlider(QWidget):
     # =========================================================================
     # KEYBOARD HANDLING (fallback in addition to QShortcut)
     # =========================================================================
+    def eventFilter(self, obj, event):  # type: ignore[override]
+        if event and event.type() == QEvent.Type.KeyPress:
+            if self._handle_nudge_key(event):
+                return True
+        return super().eventFilter(obj, event)
+
     def keyPressEvent(self, event: QKeyEvent) -> None:  # noqa: D401
         """Обработка горячих клавиш (нудж и фокус) прямо на виджете.
 
         Ctrl+Alt+Right / Ctrl+Alt+Left: изменение значения на текущий step.
         Ctrl+Alt+1 / 2 / 3: фокус на min/value/max spinbox.
         """
-        if not event:  # pragma: no cover - защитный случай
-            return super().keyPressEvent(event)
+        if self._handle_nudge_key(event):
+            event.accept()
+            return
+        return super().keyPressEvent(event)
+
+    def _handle_nudge_key(self, event: QKeyEvent) -> bool:
+        if not event:
+            return False
         mods = event.modifiers()
         is_combo = bool(mods & Qt.KeyboardModifier.ControlModifier) and bool(
             mods & Qt.KeyboardModifier.AltModifier
         )
-        handled = False
-        if is_combo:
-            key = event.key()
-            step = self.stepSize()
-            if key == Qt.Key_Right:
-                self.setValue(self._quantize_value(self.value() + step))
-                handled = True
-            elif key == Qt.Key_Left:
-                self.setValue(self._quantize_value(self.value() - step))
-                handled = True
-            elif key == Qt.Key_1:
-                self.min_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
-                handled = True
-            elif key == Qt.Key_2:
-                self.value_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
-                handled = True
-            elif key == Qt.Key_3:
-                self.max_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
-                handled = True
-        if handled:
-            event.accept()
-            return
-        return super().keyPressEvent(event)
+        if not is_combo:
+            return False
+        key = event.key()
+        step = self.stepSize()
+        if key == Qt.Key_Right:
+            self.setValue(self._quantize_value(self.value() + step))
+            return True
+        if key == Qt.Key_Left:
+            self.setValue(self._quantize_value(self.value() - step))
+            return True
+        if key == Qt.Key_1:
+            self.min_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
+            return True
+        if key == Qt.Key_2:
+            self.value_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
+            return True
+        if key == Qt.Key_3:
+            self.max_spinbox.setFocus(Qt.FocusReason.ShortcutFocusReason)
+            return True
+        return False
 
     def _quantize_value(self, value: float) -> float:
         """Квантизация значения по шагу (если step > 0)."""

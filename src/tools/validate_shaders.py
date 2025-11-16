@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import codecs
+import locale
 import os
 import shlex
 import shutil
@@ -530,6 +531,51 @@ def _probe_qsb(command: Sequence[str]) -> None:
         raise ShaderValidationEnvironmentError(message)
 
 
+def _wrap_python_qsb_if_needed(command: Sequence[str]) -> list[str]:
+    """On Windows with non-ASCII temp paths, test qsb stubs may be written using
+    the current ANSI code page, causing Python to fail decoding the source as UTF-8.
+
+    To make execution robust, detect `python.exe <script.py>` commands and, if the
+    target script contains non-ASCII bytes and lacks an encoding cookie, generate a
+    temporary wrapper that prepends an explicit coding header matching the preferred
+    system encoding. The original bytes are preserved, so string literals remain valid.
+    """
+    cmd = list(command)
+    if len(cmd) < 2:
+        return cmd
+    exe_name = Path(cmd[0]).name.lower()
+    if "python" not in exe_name:
+        return cmd
+    script_path = Path(cmd[1])
+    if script_path.suffix.lower() != ".py":
+        return cmd
+    try:
+        data = script_path.read_bytes()
+    except OSError:
+        return cmd
+
+    # Fast path: ASCII-only source is safe with any decoder
+    if all(b < 0x80 for b in data):
+        return cmd
+
+    # If file already declares encoding, keep original
+    head = data.splitlines()[:2]
+    if any(line.strip().startswith(b"# -*- coding:") or line.strip().startswith(b"# coding=") for line in head):
+        return cmd
+
+    enc = locale.getpreferredencoding(False) or "cp1252"
+    header = f"# -*- coding: {enc} -*-\n".encode("ascii")
+    wrapper_bytes = header + data
+    try:
+        wrapper_path = script_path.with_name(script_path.stem + "_enc.py")
+        wrapper_path.write_bytes(wrapper_bytes)
+        cmd[1] = str(wrapper_path)
+    except OSError:
+        # Fall back to original command if we cannot write wrapper
+        return list(command)
+    return cmd
+
+
 def _run_qsb(
     shader: ShaderFile,
     shader_root: Path,
@@ -546,6 +592,9 @@ def _run_qsb(
         return
 
     output_path, log_path = _shader_reports_paths(reports_dir, shader, shader_root)
+
+    # Wrap python-based qsb stubs to ensure source encoding is declared explicitly
+    qsb_command = _wrap_python_qsb_if_needed(qsb_command)
 
     command = [*qsb_command, *QSB_PROFILE_ARGUMENTS]
 
@@ -647,6 +696,9 @@ def validate_shaders(
         )
     except (FileNotFoundError, RuntimeError) as exc:
         return ShaderValidationReport(errors=[str(exc)], warnings=warnings)
+
+    # Ensure python-based stubs are robust to non-ASCII paths during probe
+    command = _wrap_python_qsb_if_needed(command)
 
     try:
         _probe_qsb(command)

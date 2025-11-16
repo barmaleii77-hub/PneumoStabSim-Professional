@@ -216,33 +216,28 @@ class VisualizationService(VisualizationServiceProtocol):
 
         telemetry = self._camera_telemetry.build(base)
         if telemetry:
-            # ВАЖНО: orbit_target в world space сохраняется as-is,
-            # но hudTelemetry.pivot нормализуется для camera space (z >= 0)
-            # так как HUD отображает расстояние от камеры, а не мировую координату
+            # Нормализация HUD: pivot.z
+            # - отрицательные значения → abs(z)
+            # - почти ноль (|z| < 0.01) или нечисло → 0.5
+            # - положительные значения остаются без изменений
             try:
-                pivot = (
-                    telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
-                )
+                pivot = telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
                 if isinstance(pivot, Mapping):
                     z_val = pivot.get("z")
-                    if z_val is None or not isinstance(z_val, (int, float)):
-                        # Отсутствует или невалидный тип → дефолт
-                        pivot = dict(pivot)
-                        pivot["z"] = 0.5
-                        telemetry = dict(telemetry)
-                        telemetry["pivot"] = pivot
-                    elif z_val < 0.0:
-                        # Нормализация: отрицательный Z в world → позитивное расстояние в camera space
-                        pivot = dict(pivot)
-                        pivot["z"] = abs(z_val) if abs(z_val) > 0.01 else 0.5
-                        telemetry = dict(telemetry)
-                        telemetry["pivot"] = pivot
-                    elif abs(z_val) < 0.01:
-                        # Почти ноль (на плоскости камеры) → небольшой дефолт для видимости
-                        pivot = dict(pivot)
-                        pivot["z"] = 0.5
-                        telemetry = dict(telemetry)
-                        telemetry["pivot"] = pivot
+                    new_z: float
+                    try:
+                        new_z = float(z_val)  # type: ignore[arg-type]
+                    except Exception:
+                        new_z = 0.5
+                    if abs(new_z) < 0.01:
+                        new_z = 0.5
+                    elif new_z < 0.0:
+                        new_z = abs(new_z)
+                    # иначе положительное и значимое → оставить как есть
+                    pivot = dict(pivot)
+                    pivot["z"] = new_z
+                    telemetry = dict(telemetry)
+                    telemetry["pivot"] = pivot
             except Exception:
                 pass
             base["hudTelemetry"] = telemetry

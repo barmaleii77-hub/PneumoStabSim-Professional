@@ -445,10 +445,7 @@ Item {
             bottom: parent.bottom
             bottomMargin: 8
         }
-        text: qsTr("Давление: %1 Па").arg(Number(root.pressure).toLocaleString(Qt.locale(), {
-            maximumFractionDigits: 0,
-            minimumFractionDigits: 0
-        }))
+        text: qsTr("Давление: %1 Па").arg(Qt.locale().toString(Number(root.pressure), "f", 0))
         horizontalAlignment: Text.AlignHCenter
         color: "#d7dee7"
         font.pixelSize: 14

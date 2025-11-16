@@ -8,6 +8,7 @@ import "components" as Components
 
 Item {
     id: root
+    objectName: "simulationPanel"
 
     implicitWidth: layout.implicitWidth
     implicitHeight: layout.implicitHeight
@@ -98,9 +99,13 @@ Item {
     signal cylinderSettingsChanged(var payload)
 
     ListModel { id: presetModel }
-    ListModel { id: flowArrowsModel }
-    ListModel { id: lineValveModel }
-    ListModel { id: reliefValveModel }
+    ListModel { id: flowModel }
+    ListModel { id: lineValveListModel }
+    ListModel { id: reliefValveListModel }
+    // Экспорт внутренних моделей как свойства для доступа из тестов
+    property alias flowArrowsModel: flowModelProxy
+    property alias lineValveModel: lineValveListModel
+    property alias reliefValveModel: reliefValveListModel
 
     Component.onCompleted: {
         _refreshContextSnapshots()
@@ -392,10 +397,7 @@ Item {
         var fractionDigits = Number(decimals)
         if (!Number.isFinite(fractionDigits))
             fractionDigits = 2
-        return numeric.toLocaleString(Qt.locale(), {
-            maximumFractionDigits: fractionDigits,
-            minimumFractionDigits: fractionDigits
-        })
+        return Qt.locale().toString(numeric, "f", fractionDigits)
     }
 
     function _findOptionIndex(options, value) {
@@ -509,9 +511,9 @@ Item {
     }
 
     function _rebuildFlowModels() {
-        _clearModel(flowArrowsModel)
-        _clearModel(lineValveModel)
-        _clearModel(reliefValveModel)
+        _clearModel(flowModel)
+        _clearModel(lineValveListModel)
+        _clearModel(reliefValveListModel)
         var payload = flowTelemetry || {}
         if (!_isPlainObject(payload))
             return
@@ -569,7 +571,7 @@ Item {
                 animationSpeed = 0.0
             else if (animationSpeed > 1.0)
                 animationSpeed = 1.0
-            flowArrowsModel.append({
+            flowModel.append({
                 label: label,
                 direction: direction,
                 flow: netNumeric,
@@ -591,14 +593,14 @@ Item {
                 atmosphereOpen: !!valves.atmosphereOpen,
                 tankOpen: !!valves.tankOpen
             }
-            _appendValveEntry(lineValveModel, {
+            _appendValveEntry(lineValveListModel, {
                 label: label + " • " + qsTr("Атмосфера"),
                 open: !!valves.atmosphereOpen,
                 direction: "intake",
                 flowValue: flowAtmo,
                 hint: qsTr("Подача из внешней среды")
             })
-            _appendValveEntry(lineValveModel, {
+            _appendValveEntry(lineValveListModel, {
                 label: label + " • " + qsTr("Танк"),
                 open: !!valves.tankOpen,
                 direction: "exhaust",
@@ -616,7 +618,7 @@ Item {
             var flow = Number(reliefEntry.flow || 0.0)
             if (!Number.isFinite(flow))
                 flow = 0.0
-            _appendValveEntry(reliefValveModel, {
+            _appendValveEntry(reliefValveListModel, {
                 label: qsTr("Клапан %1").arg(reliefKey.toUpperCase()),
                 open: !!reliefEntry.open,
                 direction: reliefEntry.direction || (flow >= 0 ? "exhaust" : "intake"),
@@ -1037,7 +1039,7 @@ Item {
                             spacing: 4
 
                             Repeater {
-                                model: flowArrowsModel
+                                model: flowModel
                                 delegate: Components.FlowArrow {
                                     required property var modelData
 
@@ -1054,7 +1056,7 @@ Item {
                             }
 
                             Label {
-                                visible: flowArrowsModel.count === 0
+                                visible: flowModel.count === 0
                                 text: qsTr("Нет активных потоков")
                                 color: "#95a1b5"
                                 font.pixelSize: 12
@@ -1095,7 +1097,7 @@ Item {
                         }
 
                         Repeater {
-                            model: lineValveModel
+                            model: lineValveListModel
                             delegate: Components.ValveIndicator {
                                 required property var modelData
 
@@ -1109,7 +1111,7 @@ Item {
                         }
 
                         Repeater {
-                            model: reliefValveModel
+                            model: reliefValveListModel
                             delegate: Components.ValveIndicator {
                                 required property var modelData
 
@@ -1135,8 +1137,8 @@ Item {
                 if (!root.hasValidRange)
                     return qsTr("Недостаточно данных для нормализации")
                 var locale = Qt.locale()
-                var minText = Number(root.effectiveMinimum).toLocaleString(locale, { maximumFractionDigits: 0, minimumFractionDigits: 0 })
-                var maxText = Number(root.effectiveMaximum).toLocaleString(locale, { maximumFractionDigits: 0, minimumFractionDigits: 0 })
+                var minText = locale.toString(Number(root.effectiveMinimum), "f", 0)
+                var maxText = locale.toString(Number(root.effectiveMaximum), "f", 0)
                 return qsTr("Диапазон: %1 – %2 Па").arg(minText).arg(maxText)
             }
         }

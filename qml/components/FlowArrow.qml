@@ -106,10 +106,8 @@ Item {
         var numeric = Number(value)
         if (!Number.isFinite(numeric))
             numeric = 0.0
-        return numeric.toLocaleString(Qt.locale(), {
-            maximumFractionDigits: 4,
-            minimumFractionDigits: 2
-        })
+        var loc = Qt.locale()
+        return loc.toString(numeric, "f", 2)
     }
 
     function _mixColor(colorA, colorB, ratio) {
@@ -165,10 +163,7 @@ Item {
         if (!Number.isFinite(delta))
             delta = 0.0
         var locale = Qt.locale()
-        var absolute = Math.abs(delta).toLocaleString(locale, {
-            maximumFractionDigits: 0,
-            minimumFractionDigits: 0
-        })
+        var absolute = locale.toString(Math.abs(delta), "f", 0)
         var prefix = delta >= 0 ? qsTr("ΔP +") : qsTr("ΔP -")
         return prefix + absolute + qsTr(" Па")
     }

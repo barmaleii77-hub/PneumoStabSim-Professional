@@ -45,10 +45,9 @@ Item {
         var numeric = Number(value)
         if (!Number.isFinite(numeric))
             numeric = 0.0
-        return numeric.toLocaleString(Qt.locale(), {
-            maximumFractionDigits: 4,
-            minimumFractionDigits: 2
-        })
+        var loc = Qt.locale()
+        // Формат с фиксированным числом знаков после запятой
+        return loc.toString(numeric, "f", 2)
     }
 
     Rectangle {
