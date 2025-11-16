@@ -5,6 +5,8 @@
 Qt Quick 3D, включая пути к QML-модулям и плагинам.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from ctypes.util import find_library
@@ -133,9 +135,20 @@ def configure_qt_environment(
     emitter = log if log is not None else _default_emitter
 
     # Уважаем .env, но задаём дефолты при отсутствии значений
-    backend_default = "opengl"
+    is_windows = sys.platform.startswith("win")
+    backend_default = "d3d11" if is_windows else "opengl"
     removed_backend: str | None = None
     removed_safe_mode_keys: list[str] = []
+
+    # Блокируем offscreen на Windows, если не запрошен headless
+    if is_windows:
+        qpa = (os.environ.get("QT_QPA_PLATFORM") or "").strip().lower()
+        headless = (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
+        if not headless and qpa in {"offscreen", "minimal", "minimal:tools=auto"}:
+            os.environ["QT_QPA_PLATFORM"] = "windows"
+        # В интерактивном режиме программный backend не нужен
+        if (os.environ.get("QT_QUICK_BACKEND") or "").strip().lower() == "software" and not headless:
+            os.environ.pop("QT_QUICK_BACKEND", None)
 
     if safe_mode:
         removed_backend = os.environ.pop("QSG_RHI_BACKEND", None)
@@ -145,7 +158,9 @@ def configure_qt_environment(
             removed_safe_mode_keys.append("QSG_OPENGL_VERSION")
         backend = os.environ.get("QSG_RHI_BACKEND")
     else:
+        # Не переопределяем, если уже задано извне
         backend = os.environ.setdefault("QSG_RHI_BACKEND", backend_default)
+
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Fusion")
     os.environ.setdefault("QSG_INFO", "0")
     os.environ.setdefault("QT_LOGGING_RULES", "*.debug=false;*.info=false")
@@ -156,19 +171,12 @@ def configure_qt_environment(
     os.environ.setdefault("PSS_DIAG", "1")
     os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
-    # OpenGL остаётся дефолтом на Windows, Linux и macOS — Qt подберёт нужный драйвер.
-    # На Windows это означает использование штатного desktop OpenGL (или ANGLE, если
-    # пользователь явно включит его через QT_OPENGL). На Linux сохраняем 3.3 для Mesa
-    # и проприетарных драйверов, чтобы сцена создавалась на одинаковом профиле.
+    # OpenGL по умолчанию для не-Windows; для Windows оставляем d3d11
     if (backend or "").lower() == "opengl":
         os.environ.setdefault("QSG_OPENGL_VERSION", "3.3")
         os.environ.setdefault("QT_OPENGL", "desktop")
 
-    # В Linux контейнерах или на CI переменная DISPLAY часто отсутствует.
-    # В этом случае переключаемся на offscreen/софтварный backend. Windows и
-    # macOS при этом продолжают использовать нативные плагины (windows/cocoa),
-    # поэтому платформу не переопределяем, чтобы Qt автоматически выбрал
-    # подходящий back-end ввода и рендеринга.
+    # Только Linux: если нет дисплея — offscreen/software
     if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
         os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         os.environ.setdefault("QT_QUICK_BACKEND", "software")
@@ -177,8 +185,6 @@ def configure_qt_environment(
     if missing_gl:
         emitter(f"⚠️ {missing_gl}")
 
-    # Если заданы стартовые параметры окружения для IBL/skybox через .env — передадим в QML через context props
-    # Сохранение в окружении, а чтение/установка произойдёт в MainWindow при создании QML Engine
     for env_var in (
         "START_IBL_SOURCE",
         "START_IBL_FALLBACK",
@@ -187,7 +193,6 @@ def configure_qt_environment(
         "START_IBL_ENABLED",
     ):
         if env_var in os.environ:
-            # просто убедимся, что значение строковое (оставляем как есть)
             os.environ[env_var] = str(os.environ.get(env_var))
 
     backend_value = os.environ.get("QSG_RHI_BACKEND")

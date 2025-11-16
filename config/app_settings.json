@@ -2,7 +2,7 @@
   "metadata": {
     "version": "5.0.0",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-16T15:08:54.696Z",
+    "last_modified": "2025-11-16T16:20:57.111Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults",
@@ -184,7 +184,7 @@
       "cylinder_length": 0.457,
       "cyl_diam_m": 0.11,
       "stroke_m": 0.5,
-      "dead_gap_m": 0.02,
+      "dead_gap_m": 0.009,
       "rod_diameter_m": 0.035,
       "rod_diameter_rear_m": 0.035,
       "piston_rod_length_m": 0.32,
@@ -203,8 +203,8 @@
           "units": "м"
         }
       },
-      "active_preset": "custom",
-      "max_susp_travel": 1.5
+      "max_susp_travel": 1.5,
+      "active_preset": "custom"
     },
     "pneumatic": {
       "pressure_units": "Па",
@@ -222,7 +222,7 @@
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
       "diagonal_coupling_dia": 0.0028,
-      "atmo_temp": 20.0,
+      "atmo_temp": 80.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 0.0,
       "polytropic_exchange_area": 0.0,
@@ -267,7 +267,7 @@
           "brightness": 1.0,
           "color": "#ffffff",
           "angle_x": 25.0,
-          "angle_y": -33.0,
+          "angle_y": 62.5,
           "angle_z": -50.5,
           "position_x": 0.0,
           "position_y": 0.0,

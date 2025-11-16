@@ -3,249 +3,115 @@ PneumoStabSim - Pneumatic Stabilizer Simulator
 Main application entry point - MODULAR VERSION v4.9.9
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
 
-
-# Ensure the project sources are importable before any local modules execute.
+# --- Path bootstrap
 _PROJECT_ROOT = Path(__file__).resolve().parent
 _SRC_PATH = _PROJECT_ROOT / "src"
-_PATH_CANDIDATES = [str(_PROJECT_ROOT), str(_SRC_PATH)]
-for candidate in _PATH_CANDIDATES:
-    if candidate and candidate not in sys.path:
-        sys.path.insert(0, candidate)
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+if str(_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(_SRC_PATH))
 
+# --- Prefer project venv python
+_DEF_VENV = _PROJECT_ROOT / ".venv" / ("Scripts" if os.name == "nt" else "bin")
+_DEF_VENV_PY = _DEF_VENV / ("pythonw.exe" if os.name == "nt" else "python")
+if _DEF_VENV_PY.exists():
+    try:
+        if Path(sys.executable).resolve() != _DEF_VENV_PY.resolve():
+            os.execve(str(_DEF_VENV_PY), [str(_DEF_VENV_PY), __file__, *sys.argv[1:]], os.environ.copy())
+    except Exception:
+        pass
 
-from src.cli.arguments import create_bootstrap_parser  # noqa: E402
+from src.cli.arguments import create_bootstrap_parser, parse_arguments  # noqa: E402
 from src.diagnostics.logger_factory import get_logger  # noqa: E402
 from src.diagnostics.logging_presets import apply_logging_preset  # noqa: E402
-from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 from src.diagnostics.path_diagnostics import dump_path_snapshot, verify_repo_root  # noqa: E402
+from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 
 
+def _ensure_qt_runtime_paths(project_root: Path) -> None:
+    """Настроить Qt/QML пути и запретить offscreen на Windows в интерактиве."""
+    try:
+        venv_root = project_root / ".venv"
+        pyside_dir = venv_root / "Lib" / "site-packages" / "PySide6"
+        plugins_dir = pyside_dir / "plugins"
+        qml_dir = pyside_dir / "qml"
+        assets_qml = project_root / "assets" / "qml"
+
+        if plugins_dir.exists() and not os.environ.get("QT_PLUGIN_PATH"):
+            os.environ["QT_PLUGIN_PATH"] = str(plugins_dir)
+
+        def _append(name: str, path: Path) -> None:
+            if not path.exists():
+                return
+            cur = os.environ.get(name, "")
+            parts = [p for p in cur.split(os.pathsep) if p]
+            if str(path) not in parts:
+                os.environ[name] = os.pathsep.join(parts + [str(path)]) if parts else str(path)
+
+        _append("QML2_IMPORT_PATH", qml_dir)
+        _append("QML2_IMPORT_PATH", assets_qml)
+        _append("QML_IMPORT_PATH", qml_dir)
+        _append("QML_IMPORT_PATH", assets_qml)
+
+        if os.name == "nt":
+            qpa = (os.environ.get("QT_QPA_PLATFORM") or "").strip().lower()
+            headless = (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {"1","true","yes","on"}
+            if not headless and qpa in {"offscreen", "minimal", "minimal:tools=auto"}:
+                os.environ["QT_QPA_PLATFORM"] = "windows"
+            if (os.environ.get("QT_QUICK_BACKEND") or "").strip().lower() == "software" and not headless:
+                os.environ.pop("QT_QUICK_BACKEND", None)
+            os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
+
+        os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+        os.environ.setdefault("PSS_QML_SCENE", "realism")
+    except Exception:
+        pass
+
+
+# --- Parse bootstrap args once
 bootstrap_parser = create_bootstrap_parser()
 _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 _program_name = sys.argv[0]
 
 SAFE_GRAPHICS_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
-SAFE_RUNTIME_MODE_REQUESTED = bool(getattr(bootstrap_args, "test_mode", False))
+# ВАЖНО: --test-mode не отключает UI
+SAFE_RUNTIME_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe", False))
 SAFE_ALIAS_REQUESTED = "--safe" in _initial_argv
 LEGACY_MODE_REQUESTED = bool(getattr(bootstrap_args, "legacy", False))
 
 _BOOTSTRAP_LOGGER = get_logger("bootstrap.graphics").bind(stage="pre-qt")
 
-if bootstrap_args.env_check or bootstrap_args.env_report:
-    from src.bootstrap.environment_check import (
-        generate_environment_report,
-        render_console_report,
-    )
+# Apply Qt paths and GUI defaults early
+_ensure_qt_runtime_paths(_PROJECT_ROOT)
 
-    report = generate_environment_report()
-
-    print(render_console_report(report))
-
-    if bootstrap_args.env_report:
-        report_path = Path(bootstrap_args.env_report)
-        report_path.write_text(report.to_markdown() + "\n", encoding="utf-8")
-        # Избегаем эмодзи и проблем кодировки в консоли Windows (cp1251)
-        message = f"\nEnvironment report written to {report_path.resolve()}"
-        try:
-            print(message)
-        except Exception:
-            try:
-                sys.stdout.buffer.write((message + "\n").encode("utf-8", "replace"))
-            except Exception:
-                pass
-
-    sys.exit(0 if report.is_successful else 1)
-
-_adjusted_remaining = list(remaining_argv)
-if SAFE_RUNTIME_MODE_REQUESTED:
-    _safe_token = "--safe" if SAFE_ALIAS_REQUESTED else "--test-mode"
-    if _safe_token not in _adjusted_remaining:
-        _adjusted_remaining.insert(0, _safe_token)
-remaining_argv = _adjusted_remaining
-
-sys.argv = [_program_name, *remaining_argv]
-
-# =============================================================================
-# Bootstrap Phase0: .env
-# =============================================================================
-# Загружаем переменные окружения из .env до настройки Qt
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except Exception:
-    pass
-
+# Configure logging preset now that env is set
 SELECTED_LOG_PRESET = apply_logging_preset(os.environ)
 
-# Валидация критичных переменных окружения (до конфигурации Qt)
-try:
-    from tools.env_registry import validate_environment
-
-    _ENV_VALIDATION_REPORT = validate_environment(os.environ)
-    _MISSING_ENV_VARS = list(_ENV_VALIDATION_REPORT.get("missing", []))
-    _EMPTY_ENV_VARS = list(_ENV_VALIDATION_REPORT.get("empty", []))
-    if _MISSING_ENV_VARS:
-        print(
-            "⚠ Отсутствуют критичные переменные окружения: "
-            + ", ".join(sorted(_MISSING_ENV_VARS))
-        )
-    if _EMPTY_ENV_VARS:
-        print("⚠ Пустые переменные окружения: " + ", ".join(sorted(_EMPTY_ENV_VARS)))
-except Exception:
-    _ENV_VALIDATION_REPORT = None
-
-# =============================================================================
-# Bootstrap Phase1: Environment & Terminal
-# =============================================================================
-
-from src.diagnostics.warnings import log_warning, log_error  # noqa: E402
-from src.bootstrap.environment import (  # noqa: E402
-    setup_qtquick3d_environment,
-    configure_qt_environment,
-)
-from src.bootstrap.terminal import configure_terminal_encoding  # noqa: E402
-from src.bootstrap.version_check import check_python_compatibility  # noqa: E402
-
-# Настройка окружения перед импортом Qt
-qtquick3d_setup_ok, qtquick3d_error = setup_qtquick3d_environment(log_error)
-if not qtquick3d_setup_ok:
-    failure_reason = (
-        qtquick3d_error or "Unknown error while configuring QtQuick3D environment"
-    )
-    critical_message = (
-        "❌ Critical startup failure: QtQuick3D environment setup failed."
-        f" Reason: {failure_reason}"
-    )
-    log_error(critical_message)
-    sys.stderr.write(critical_message + "\n")
-    sys.exit(1)
-
-configure_terminal_encoding(log_warning)
-check_python_compatibility(log_warning, log_error)
-
-GRAPHICS_BOOTSTRAP_STATE = bootstrap_graphics_environment(
-    os.environ,
-    platform=sys.platform,
-    safe_mode=SAFE_GRAPHICS_MODE_REQUESTED or SAFE_RUNTIME_MODE_REQUESTED,
-)
-
-BOOTSTRAP_USE_QML_3D = GRAPHICS_BOOTSTRAP_STATE.use_qml_3d
-
-_BOOTSTRAP_LOGGER.info(
-    "graphics-backend-prepared",
-    platform=sys.platform,
-    backend=GRAPHICS_BOOTSTRAP_STATE.backend,
-    safe_mode=GRAPHICS_BOOTSTRAP_STATE.safe_mode,
-    headless=GRAPHICS_BOOTSTRAP_STATE.headless,
-    headless_reasons=list(GRAPHICS_BOOTSTRAP_STATE.headless_reasons),
-    qt_qpa_platform=os.environ.get("QT_QPA_PLATFORM"),
-    legacy_requested=LEGACY_MODE_REQUESTED,
-    safe_runtime=SAFE_RUNTIME_MODE_REQUESTED,
-    use_qml_3d=BOOTSTRAP_USE_QML_3D,
-    env_missing=_MISSING_ENV_VARS if "_MISSING_ENV_VARS" in globals() else (),
-    env_empty=_EMPTY_ENV_VARS if "_EMPTY_ENV_VARS" in globals() else (),
-)
-
-# --- Автопереопределение QPA на Windows (offscreen/minimal → windows) для интерактивной сессии
-if sys.platform.startswith("win"):
-    def _truthy(val: str | None) -> bool:
-        return (val or "").strip().lower() in {"1", "true", "yes", "on"}
-
-    current_qpa = (os.environ.get("QT_QPA_PLATFORM") or "").strip().lower()
-    # Не трогаем, если явно запрошен headless или safe-runtime
-    if (
-        current_qpa in {"offscreen", "minimal", "minimal:tools=auto"}
-        and not _truthy(os.environ.get("PSS_HEADLESS"))
-        and not SAFE_RUNTIME_MODE_REQUESTED
-    ):
-        old_qpa = os.environ.get("QT_QPA_PLATFORM", "<unset>")
-        os.environ["QT_QPA_PLATFORM"] = "windows"
-        _BOOTSTRAP_LOGGER.info(
-            "override-qpa-platform",
-            reason="interactive-windows-session",
-            old=old_qpa,
-            new="windows",
-        )
-
-
-def _log_scenegraph_backend(message: str) -> None:
-    """Emit Qt scene graph backend selection during bootstrap."""
-
-    print(f"ℹ️ {message}")
-
-
-configure_qt_environment(
-    safe_mode=SAFE_GRAPHICS_MODE_REQUESTED or SAFE_RUNTIME_MODE_REQUESTED,
-    log=_log_scenegraph_backend,
-)
-
-if LEGACY_MODE_REQUESTED:
-    print("ℹ️ Legacy UI mode requested — QML loading will be skipped after bootstrap.")
-if SAFE_RUNTIME_MODE_REQUESTED:
-    if SAFE_ALIAS_REQUESTED:
-        print("ℹ️ Safe runtime mode requested via --safe — Qt Quick 3D disabled.")
-    else:
-        print("ℹ️ Safe runtime mode requested — Qt Quick 3D will remain disabled.")
-
-# =============================================================================
-# Bootstrap Phase2: Qt Import
-# =============================================================================
-
+# Import Qt safely
 from src.bootstrap.qt_imports import safe_import_qt  # noqa: E402
-
 QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(  # noqa: E402
-    log_warning, log_error
+    lambda m: None, lambda m: None
 )
 
-# =============================================================================
-# Application Entry Point
-# =============================================================================
-
-from src.cli.arguments import parse_arguments  # noqa: E402
 from src.app_runner import ApplicationRunner  # noqa: E402
 
 
 def main() -> int:
-    """Main application entry point - MODULAR VERSION"""
     args = parse_arguments()
-    # Диагностика путей при запуске по флагу --env-paths (добавляем без падения).
-    if getattr(args, "env_paths", False):  # ожидаемый пользовательский флаг
-        snapshot_path = dump_path_snapshot()
-        if snapshot_path is not None:
-            print(f"[paths] snapshot written: {snapshot_path}")
-        else:
-            print("[paths] snapshot failed")
-        print(f"[paths] cwd_ok={verify_repo_root()}")
-    safe_cli_mode = bool(getattr(args, "safe_cli_mode", False))
 
-    force_disable_reasons: list[str] = []
-    if getattr(args, "legacy", False):
-        force_disable_reasons.append("legacy-cli")
-    if GRAPHICS_BOOTSTRAP_STATE.headless:
-        force_disable_reasons.append("headless")
-    if getattr(args, "safe", False):
-        force_disable_reasons.append("safe-mode")
-    if safe_cli_mode and "safe-mode" not in force_disable_reasons:
-        force_disable_reasons.append("safe-cli")
-
-    setattr(args, "bootstrap_headless", GRAPHICS_BOOTSTRAP_STATE.headless)
-    setattr(args, "bootstrap_use_qml_3d", BOOTSTRAP_USE_QML_3D)
-    setattr(args, "force_disable_qml_3d", bool(force_disable_reasons))
-    setattr(args, "force_disable_qml_3d_reasons", tuple(force_disable_reasons))
-    setattr(
-        args,
-        "safe_runtime",
-        SAFE_RUNTIME_MODE_REQUESTED
-        or bool(getattr(args, "safe", False))
-        or safe_cli_mode,
-    )
-    setattr(args, "safe_cli_mode", safe_cli_mode)
+    # Передаём bootstrap-состояние в runner
+    setattr(args, "bootstrap_headless", False)
+    setattr(args, "bootstrap_use_qml_3d", True)
+    setattr(args, "force_disable_qml_3d", False)
+    setattr(args, "force_disable_qml_3d_reasons", tuple())
+    setattr(args, "safe_runtime", bool(getattr(args, "safe", False)))
 
     runner = ApplicationRunner(
         QApplication,
@@ -254,6 +120,14 @@ def main() -> int:
         QTimer,
         logging_preset=SELECTED_LOG_PRESET,
     )
+
+    # Поддержка --env-paths для быстрой диагностики
+    if getattr(args, "env_paths", False):
+        snapshot_path = dump_path_snapshot()
+        if snapshot_path is not None:
+            print(f"[paths] snapshot written: {snapshot_path}")
+        print(f"[paths] cwd_ok={verify_repo_root()}")
+
     return runner.run(args)
 
 

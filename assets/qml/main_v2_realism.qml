@@ -45,7 +45,7 @@ Item {
     property vector3d pivot: Qt.vector3d(0, userBeamSize/2, userFrameLength/2)   // === FIXED: Center of bottom beam
     property real panX: 0               // === ADDED: Pan offset in rig's local X
     property real panY: 0               // === ADDED: Pan offset in rig's local Y
-    property bool autoRotate: false
+    property bool autoRotate: true
     property real autoRotateSpeed: 0.5
     property real cameraFov: 50.0
     property real cameraNear: 5.0       // === CHANGED: Better near clip
@@ -180,7 +180,7 @@ Item {
     property real userRodDiameter: 35
     property real userPistonThickness: 25
     property real userPistonRodLength: 200
-    property bool isRunning: false
+    property bool isRunning: true
     property real animationTime: 0.0
     property real userAmplitude: 8.0
     property real userFrequency: 1.0

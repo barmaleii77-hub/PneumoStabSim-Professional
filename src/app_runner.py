@@ -877,7 +877,7 @@ class ApplicationRunner:
 
     # ---------------------- Settings auto-migrations ----------------------
     def _auto_migrate_legacy_animation(self, cfg_path: Path) -> None:
-        """Переместить legacy 'graphics.animation' в 'current.animation' и
+        """Перемостить legacy 'graphics.animation' в 'current.animation' и
         'defaults_snapshot.animation' при необходимости.
 
         Выполняется до строгой валидации. Любые ошибки чтения/записи
@@ -1212,7 +1212,7 @@ class ApplicationRunner:
             elif self.use_legacy_ui:
                 self._log_with_fallback(
                     "info",
-                    "INFO: legacy UI mode requested — QML will be skipped",
+                    "INFO: legacy UI moderequested — QML will be skipped",
                 )
             elif force_disable_qml_3d:
                 reason_label = ", ".join(disable_reasons) or "bootstrap"
@@ -1224,7 +1224,7 @@ class ApplicationRunner:
                 if self.safe_cli_mode and not getattr(args, "safe", False):
                     self._log_with_fallback(
                         "info",
-                        "INFO: safe CLI mode enabled — graphical scene will not be initialised",
+                        "INFO: safe CLI mode enabled — графическая сцена не будет инициализирована",
                     )
                 else:
                     self._log_with_fallback(
@@ -1423,17 +1423,45 @@ class ApplicationRunner:
         return "QML engine reported an error without details."
 
     def _check_qml_initialization(self, window: Any) -> None:
-        """Проверяет корректность инициализации QML сцены."""
+        """Проверяет корректность инициализации QML сцены.
 
+        Поддерживает несколько вариантов контейнера:
+        - QQuickWidget (имеет status()/errors())
+        - QWidget.createWindowContainer(QQuickView) — проксируемые status()/errors()
+        - Диагностические фолбеки (QLabel) — пытаемся найти исходный виджет.
+        """
+
+        # Предпочтительно используем явно заданные поля современного окна
         widget = getattr(window, "_qquick_widget", None)
+        # Если контейнер отсутствует, но есть QQuickView — используем его
+        if (widget is None or not hasattr(widget, "status")) and hasattr(window, "_qquick_view"):
+            widget = getattr(window, "_qquick_view")
+
+        # Если всё ещё нет контейнера — это явный сбой инициализации
         if widget is None:
             self._report_qml_issue(
                 "missing-widget",
-                "MainWindow does not expose _qquick_widget; QML scene is unavailable.",
+                "MainWindow does not expose _qquick_widget/_qquick_view; QML scene is unavailable.",
             )
             return
 
+        # Если это QLabel или любой виджет без status() — пробуем извлечь первопричину
         status_fn = getattr(widget, "status", None)
+        if not callable(status_fn):
+            # Попробуем найти спрятанный QQuickWidget в центральном виджете
+            try:
+                central = getattr(window, "centralWidget", None)
+                central = central() if callable(central) else central
+                if central is not None and central is not widget and hasattr(central, "findChildren"):
+                    candidates = central.findChildren(type(widget))  # type: ignore[arg-type]
+                    for c in candidates:
+                        if callable(getattr(c, "status", None)):
+                            widget = c
+                            status_fn = getattr(widget, "status")
+                            break
+            except Exception:
+                pass
+
         if not callable(status_fn):
             self._report_qml_issue(
                 "status-missing",
@@ -1441,6 +1469,7 @@ class ApplicationRunner:
             )
             return
 
+        # Нормальный путь: получаем статус и при ошибке логируем детали и import paths
         try:
             status_value = status_fn()
         except Exception as exc:  # pragma: no cover - защитный путь
@@ -1451,13 +1480,27 @@ class ApplicationRunner:
             return
 
         if self._status_matches(widget, status_value, "Error"):
-            self._report_qml_issue("qml-engine-error", self._format_qml_errors(widget))
+            details = self._format_qml_errors(widget)
+            # Попробуем дописать import paths из движка
+            try:
+                engine = None
+                if hasattr(widget, "engine"):
+                    engine = widget.engine()  # QQuickWidget
+                elif hasattr(widget, "qmlEngine"):
+                    engine = widget.qmlEngine()  # QQuickView
+                if engine is not None and hasattr(engine, "importPathList"):
+                    paths = [str(p) for p in engine.importPathList()]
+                    details += f" | importPaths={paths}"
+            except Exception:
+                pass
+
+            self._report_qml_issue("qml-engine-error", details)
             return
 
         if self._status_matches(widget, status_value, "Null"):
             self._report_qml_issue(
                 "qml-null-status",
-                "QQuickWidget returned a Null status after initialisation.",
+                "QML view returned a Null status after initialisation.",
             )
             return
 

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping
 
 from PySide6.QtCore import Qt, QSettings, QUrl, qVersion
-from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface, QQuickView
 from PySide6.QtWidgets import (
     QLabel,
     QScrollArea,
@@ -67,7 +67,8 @@ class UISetup:
         "realism": QML_ABSOLUTE_ROOT / "main_v2_realism.qml",
         "fallback": QML_ABSOLUTE_ROOT / "main_fallback.qml",
     }
-    _SCENE_LOAD_ORDER: tuple[str, ...] = ("main", "realism", "fallback")
+    # Предпочитаем реалистичную сцену по умолчанию, чтобы избежать пустого канваса
+    _SCENE_LOAD_ORDER: tuple[str, ...] = ("realism", "main", "fallback")
     _SCENE_ENV_VAR = "PSS_QML_SCENE"
     _POST_DIAG_ENV = "PSS_POST_DIAG_TRACE"
 
@@ -755,113 +756,69 @@ class UISetup:
         UISetup.logger.info("    [QML] Загрузка main.qml...")
 
         try:
-            window._qquick_widget = QQuickWidget(window)
-            window._qquick_widget.setResizeMode(
-                QQuickWidget.ResizeMode.SizeRootObjectToView
-            )
-            window._qquick_widget.setClearColor(Qt.transparent)
-            window._qquick_widget.setAttribute(
-                Qt.WidgetAttribute.WA_TranslucentBackground
-            )
-            window._qquick_widget.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
-            window._qquick_widget.setAttribute(
-                Qt.WidgetAttribute.WA_OpaquePaintEvent,
-                False,
-            )
-            window._qquick_widget.setAutoFillBackground(False)
-            window._qquick_widget.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            # На Windows принудительно используем Direct3D 11 для Qt Quick (устранение пустого канваса)
+            try:
+                if os.name == "nt":
+                    QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.Direct3D11)
+                    UISetup.logger.info("    [QML] Forcing GraphicsApi=Direct3D11 on Windows")
+            except Exception as force_exc:
+                UISetup.logger.debug("    ⚠️ Unable to force D3D11 GraphicsApi: %s", force_exc)
 
-            # Get QML engine
-            engine = window._qquick_widget.engine()
+            # Используем QQuickView вместо QQuickWidget для стабильного Qt Quick 3D
+            quick_view = QQuickView()
+            quick_view.setColor(Qt.black)
+            quick_view.setResizeMode(QQuickView.SizeRootObjectToView)
 
-            # ✅ КРИТИЧЕСКОЕ: Устанавливаем контекст ДО загрузки QML
-            context = engine.rootContext()
+            engine = quick_view.engine()
+            context = quick_view.rootContext()
             context.setContextProperty("window", window)
+            # Импорт пути, как и ранее
+            from PySide6.QtCore import QLibraryInfo
+            qml_import_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
+            engine.addImportPath(str(qml_import_path))
+            engine.addImportPath(QML_RELATIVE_ROOT.as_posix())
+            if QML_ABSOLUTE_ROOT.exists():
+                engine.addImportPath(str(QML_ABSOLUTE_ROOT.resolve()))
 
+            # Выбор сцены
+            qml_file = UISetup._resolve_supported_qml_scene()
+            if not qml_file.exists():
+                UISetup._register_postmortem_reason(f"qml-file-missing:{qml_file}")
+                raise FileNotFoundError(f"QML file not found: {qml_file}")
+            quick_view.setSource(QUrl.fromLocalFile(str(qml_file.absolute())))
+
+            status = quick_view.status()
+            if status == QQuickView.Error:
+                errors = quick_view.errors()
+                UISetup.logger.error("    ❌ QML status=Error: %s", UISetup._format_qml_errors(errors))
+                raise RuntimeError("QML load failed")
+
+            # Контейнер для встраивания в QWidget layout
+            window_container = QWidget.createWindowContainer(quick_view, window)
+            window_container.setFocusPolicy(Qt.StrongFocus)
+            window_container.setAutoFillBackground(True)
+
+            # Проксируем статус и ошибки QML в контейнер, чтобы диагностика в runner работала
             try:
-                graphics_api = QQuickWindow.graphicsApi()
-            except Exception as api_exc:  # pragma: no cover - diagnostic logging
-                UISetup.logger.debug(
-                    "    ⚠️ Unable to query QQuickWindow graphics API: %s", api_exc
-                )
-                graphics_api = QSGRendererInterface.GraphicsApi.Unknown
+                window_container.status = lambda: quick_view.status()  # type: ignore[attr-defined]
+                window_container.errors = lambda: quick_view.errors()  # type: ignore[attr-defined]
+            except Exception:
+                pass
 
-            graphics_api_label = UISetup._graphics_api_to_string(graphics_api)
-            requires_desktop_shaders = UISetup._graphics_api_requires_desktop_shaders(
-                graphics_api
-            )
+            # Сохраняем ссылки
+            window._qquick_view = quick_view  # type: ignore[attr-defined]
+            window._qquick_widget = window_container
+            window._qml_root_object = quick_view.rootObject()
+            quick_window = quick_view
 
+            # Диагностика путей импорта и статуса
             try:
-                surface_format = window._qquick_widget.format()
-                renderable_type = surface_format.renderableType()
-            except Exception as format_exc:  # pragma: no cover - diagnostic logging
-                UISetup.logger.debug(
-                    "    ⚠️ Unable to query QQuickWidget surface format: %s", format_exc
-                )
-            else:
-                if renderable_type == QSurfaceFormat.OpenGLES:
-                    graphics_api_label = "opengl-es"
-                    requires_desktop_shaders = False
-                    UISetup.logger.info(
-                        "    [QML] Detected OpenGL ES surface format; forcing GLES shaders"
-                    )
-
-            context.setContextProperty("qtGraphicsApiName", graphics_api_label)
-            context.setContextProperty(
-                "qtGraphicsApiRequiresDesktopShaders", requires_desktop_shaders
-            )
-            context.setContextProperty(
-                "effectShaderManifest",
-                UISetup._build_effect_shader_manifest(),
-            )
-            try:
-                context.setContextProperty("qtRuntimeVersion", qVersion())
-                UISetup.logger.info(
-                    "    ✅ Qt runtime version exposed to QML context (%s)",
-                    qVersion(),
-                )
-            except Exception as qt_version_exc:
-                UISetup.logger.warning(
-                    "    ⚠️ Failed to expose qtRuntimeVersion: %s",
-                    qt_version_exc,
-                )
-            UISetup.logger.info("    [QML] Renderer API: %s", graphics_api_label)
-
-            try:
-                feedback_controller = getattr(window, "feedback_controller", None)
-                if feedback_controller is not None:
-                    context.setContextProperty(
-                        "feedbackController", feedback_controller
-                    )
-                    UISetup.logger.info(
-                        "    ✅ Feedback controller exposed to QML context"
-                    )
-            except Exception as feedback_exc:
-                UISetup.logger.warning(
-                    "    ⚠️ Failed to expose feedback controller: %s",
-                    feedback_exc,
-                )
-
-            window._scene_bridge = None
-            try:
-                context.setContextProperty("pythonSceneBridge", None)
-            except Exception as bridge_ctx_exc:
-                UISetup.logger.debug(
-                    "    ⚠️ Unable to seed pythonSceneBridge context: %s",
-                    bridge_ctx_exc,
-                )
-
-            try:
-                from src.ui.scene_bridge import SceneBridge
-
-                window._scene_bridge = SceneBridge(window)
-                context.setContextProperty("pythonSceneBridge", window._scene_bridge)
-                UISetup.logger.info("    ✅ SceneBridge exposed to QML context")
-            except Exception as bridge_exc:
-                window._scene_bridge = None
-                UISetup.logger.error(
-                    "    ❌ Failed to initialise SceneBridge: %s", bridge_exc
-                )
+                engine_paths = [str(p) for p in engine.importPathList()]  # type: ignore[attr-defined]
+                UISetup.logger.info("    [QML] Engine import paths: %s", engine_paths)
+                if quick_view.status() == QQuickView.Error:
+                    UISetup.logger.error("    ❌ QML status=Error: %s", UISetup._format_qml_errors(quick_view.errors()))
+            except Exception:
+                pass
 
             # Новые контексты: события настроек и трассировка сигналов
             try:
@@ -991,21 +948,6 @@ class UISetup:
                     "    ⚠️ Failed to refresh profile list: %s", refresh_exc
                 )
 
-            # Import paths
-            from PySide6.QtCore import QLibraryInfo
-
-            qml_import_path = QLibraryInfo.path(
-                QLibraryInfo.LibraryPath.Qml2ImportsPath
-            )
-            engine.addImportPath(str(qml_import_path))
-
-            # Ensure the relative path is registered for qmlimportscanner parity
-            engine.addImportPath(QML_RELATIVE_ROOT.as_posix())
-
-            local_qml_path = QML_ABSOLUTE_ROOT
-            if local_qml_path.exists():
-                engine.addImportPath(str(local_qml_path.resolve()))
-
             # Load QML file
             qml_file = UISetup._resolve_supported_qml_scene()
             if not qml_file.exists():
@@ -1013,26 +955,44 @@ class UISetup:
                 raise FileNotFoundError(f"QML file not found: {qml_file}")
 
             qml_url = QUrl.fromLocalFile(str(qml_file.absolute()))
-            window._qquick_widget.setSource(qml_url)
+            quick_view.setSource(qml_url)
+
+            # Extra diagnostics: log errors and engine import paths when canvas looks empty
+            try:
+                status_now = quick_view.status()
+                if status_now == QQuickView.Error:
+                    errors = quick_view.errors()
+                    UISetup.logger.error("    ❌ QML status=Error: %s", UISetup._format_qml_errors(errors))
+                engine_paths = [str(p) for p in engine.importPathList()]  # type: ignore[attr-defined]
+                UISetup.logger.info("    [QML] Engine import paths: %s", engine_paths)
+            except Exception as diag_exc:
+                UISetup.logger.debug("    ⚠️ Unable to dump QML diagnostics: %s", diag_exc)
 
             # Check status
-            status = window._qquick_widget.status()
-            if status == QQuickWidget.Status.Error:
-                errors = window._qquick_widget.errors()
+            status = quick_view.status()
+            if status == QQuickView.Error:
+                errors = quick_view.errors()
                 error_msg = UISetup._format_qml_errors(errors)
                 UISetup._register_postmortem_reason(f"qml-engine-error:{error_msg}")
                 raise RuntimeError(f"QML load errors:\n{error_msg}")
 
-            # Get root object
-            window._qml_root_object = window._qquick_widget.rootObject()
+            # Get root object (may be null while QML is still loading). Do not fail hard.
+            window._qml_root_object = quick_view.rootObject()
             if not window._qml_root_object:
-                raise RuntimeError("Failed to get QML root object")
+                try:
+                    UISetup.logger.warning(
+                        "    ⚠️ QML root object is not yet available (loading). Proceeding without fallback."
+                    )
+                except Exception:
+                    pass
 
-            quick_window = window._qquick_widget.quickWindow()
+            quick_window = quick_view.quickWindow()
             if quick_window is not None:
                 try:
-                    quick_window.setColor(Qt.transparent)
-                    quick_window.setClearColor(Qt.transparent)
+                    # Для виджета с непрозрачным фоном цвет окна Qt Quick роли не играет,
+                    # но приведём к единому фону
+                    quick_window.setColor(Qt.black)
+                    quick_window.setClearColor(Qt.black)
                 except Exception:
                     pass
 
@@ -1048,9 +1008,6 @@ class UISetup:
                 UISetup.logger.warning(
                     "    ⚠️ Failed to assign SceneBridge to QML root: %s", assign_exc
                 )
-
-            # Store base directory
-            window._qml_base_dir = qml_file.parent.resolve()
 
             UISetup.logger.info("    ✅ %s loaded successfully", qml_file.name)
 
