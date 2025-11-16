@@ -292,7 +292,7 @@ class SettingsService:
             )
 
         # РАННИЙ ПРЕДОХРАНИТЕЛЬ: отклоняем payload с устаревшими mesh‑полями в geometry
-        # Важно выполнять ДО миграций, иначе _apply_migrations() удалит поля и тесты не увидят ошибку
+        # КРИТИЧНО: выполнять ДО миграций, иначе _apply_migrations() удалит поля и тест не увидит ошибку
         self._guard_legacy_geometry_mesh_extras(payload)
 
         # Apply structural migrations before any normalisation/validation
@@ -301,8 +301,8 @@ class SettingsService:
         except Exception as mig_exc:  # pragma: no cover - migration best-effort
             logger.warning("settings_migration_failed: %s", mig_exc)
 
-        # Теперь, после миграций, запускаем предохранитель на легаси mesh‑поля (повторно, на всякий случай)
-        self._guard_legacy_geometry_mesh_extras(payload)
+        # Теперь, после миграций, снова проверяем geometry keys (на всякий случай)
+        self._guard_unknown_geometry_keys(payload)
         self._normalise_fog_depth_aliases(payload)
         self._normalise_hdr_paths(payload)
 
@@ -1061,7 +1061,7 @@ class SettingsService:
         """Проверить payload по JSON Schema и выбросить ошибку при несовпадении."""
 
         # Предварительные проверки до JSON Schema
-        # self._guard_legacy_geometry_mesh_extras(payload)
+        self._guard_legacy_geometry_mesh_extras(payload)
         self._guard_legacy_material_aliases(payload)
         self._guard_unknown_geometry_keys(payload)
 

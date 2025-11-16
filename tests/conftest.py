@@ -69,6 +69,70 @@ def qapp():
         pass
 
 
+@pytest.fixture(scope="session")
+def qt_runtime_ready(qapp):
+    """Ensure Qt runtime is available for tests requiring QML/QtQuick3D."""
+    try:
+        from tests.helpers.qt import ensure_qt_runtime
+
+        ensure_qt_runtime()
+    except Exception as exc:
+        pytest.skip(f"Qt runtime not available: {exc}")
+    yield
+
+
+@pytest.fixture
+def settings_manager(tmp_path, monkeypatch):
+    """Provide a SettingsManager instance with temp config for tests."""
+    import json
+    from src.common.settings_manager import SettingsManager
+
+    settings_path = tmp_path / "app_settings.json"
+    # Load baseline config from project
+    try:
+        baseline = json.loads((PROJECT_ROOT / "config" / "app_settings.json").read_text(encoding="utf-8"))
+    except Exception:
+        baseline = {
+            "metadata": {"units_version": "si_v2"},
+            "current": {},
+            "defaults_snapshot": {},
+        }
+
+    settings_path.write_text(json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8")
+    manager = SettingsManager(settings_path)
+    yield manager
+
+
+@pytest.fixture
+def integration_reports_dir(tmp_path):
+    """Provide a temporary directory for integration test reports."""
+    reports_dir = tmp_path / "reports" / "integration"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    return reports_dir
+
+
+@pytest.fixture
+def structlog_logger_config():
+    """Provide basic structlog config for diagnostic tests."""
+    from src.diagnostics.logger_factory import LoggerConfig, DEFAULT_LOG_LEVEL
+    return LoggerConfig(name="test.logger", level=DEFAULT_LOG_LEVEL)
+
+
+@pytest.fixture
+def reference_suspension_linkage():
+    """Provide reference suspension linkage geometry for tests."""
+    # Minimal reference geometry from baseline config
+    from src.mechanics.geometry import SuspensionLinkage, LinkagePoint
+    # Baseline geometry parameters
+    linkage = SuspensionLinkage(
+        frame_to_pivot=0.3,
+        lever_length=0.4,
+        cylinder_length=0.5,
+        track_width=2.5,
+    )
+    return linkage
+
+
 # Enhanced qtbot fallback implementing required methods used by tests
 @pytest.fixture
 def qtbot(qapp):

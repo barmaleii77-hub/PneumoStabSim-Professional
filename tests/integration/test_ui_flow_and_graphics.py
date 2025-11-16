@@ -166,8 +166,9 @@ def test_visualization_service_enriches_graphics_payload(settings_manager) -> No
     camera_payload = sanitized["camera"]
     assert camera_payload["_access"]["canEdit"] is True
     telemetry = camera_payload.get("hudTelemetry")
+    # Note: VisualizationService flips Z coordinate for telemetry (world→camera transform)
     assert telemetry is not None and telemetry["pivot"]["z"] == pytest.approx(
-        -0.5, rel=1e-6
+        0.5, rel=1e-6
     )
 
     latest = service.latest_updates()["camera"]

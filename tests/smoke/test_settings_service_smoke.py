@@ -32,9 +32,10 @@ def test_settings_service_rejects_geometry_mesh_fields(tmp_path: Path) -> None:
     copy = tmp_path / "app_settings.json"
 
     # Inject legacy fields into the geometry block.
+    # Use a field that definitely exists in current.geometry
     patched = payload.replace(
-        '"frame_mass"',
-        '"cylinder_segments": 18, "cylinder_rings": 8, "frame_mass"',
+        '"frame_beam_size_m"',
+        '"cylinder_segments": 18, "cylinder_rings": 8, "frame_beam_size_m"',
         1,
     )
     copy.write_text(patched, encoding="utf-8")
