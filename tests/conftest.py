@@ -297,6 +297,12 @@ def qtbot(qapp):
         def keyClick(self, widget, key, modifier=None, delay: int = 0) -> None:
             if QTest is not None and Qt is not None:
                 try:
+                    if hasattr(widget, "isWindow") and callable(widget.isWindow):
+                        try:
+                            if widget.isWindow():
+                                QTest.qWaitForWindowExposed(widget)
+                        except Exception:
+                            pass
                     QTest.keyClick(widget, key, modifier or Qt.NoModifier, delay)
                     return
                 except Exception:
