@@ -851,7 +851,9 @@ class SettingsService:
         if isinstance(payload, AppSettings):
             payload_dict = dump_settings(payload)
         else:
-            payload_dict = json.loads(json.dumps(payload))
+            # Ранее здесь выполнялся json.dumps(payload) что падало для _LooseAppSettings.
+            # Унифицированный путь: используем dump_settings() (поддерживает BaseModel, loose модели и dict).
+            payload_dict = dump_settings(payload)
             self._prune_slider_metadata_nulls(payload_dict)
         # Миграции и нормализации ДО валидации
         try:
