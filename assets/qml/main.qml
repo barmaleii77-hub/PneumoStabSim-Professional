@@ -37,6 +37,13 @@ Item {
     property bool simpleFallbackActive: false
     property string simpleFallbackReason: ""
 
+    // Небольшой фон, чтобы канвас не был полностью прозрачным при отсутствии контента
+    Rectangle {
+        anchors.fill: parent
+        z: -1000
+        color: "#1b1f27"
+    }
+
     // ---------------------------------------------------------
     // Environment defaults mirrored from SceneEnvironmentController
     // ---------------------------------------------------------
@@ -516,6 +523,27 @@ Item {
             if (status === Loader.Ready) {
                 if (item)
                     item.visible = !simpleFallbackActive
+                // Если у SimulationRoot нет визуального представления (нет sceneView/потомков), переключаемся на fallback
+                try {
+                    var hasVisual = false
+                    if (item) {
+                        // Признак: наличие публичного узла sceneView или хоть одного видимого дочернего элемента
+                        hasVisual = (item.sceneView !== undefined && item.sceneView !== null)
+                        if (!hasVisual) {
+                            for (var i = 0; i < item.children.length; ++i) {
+                                var ch = item.children[i]
+                                if (ch && ch.visible !== false && ch.width !== 0 && ch.height !== 0) { hasVisual = true; break }
+                            }
+                        }
+                    }
+                    if (!hasVisual) {
+                        simpleFallbackReason = "no-visual-content"
+                        if (!simpleFallbackActive)
+                            console.warn("[main.qml] SimulationRoot has no visual content; activating fallback")
+                        simpleFallbackActive = true
+                        if (item) item.visible = false
+                    }
+                } catch (e) {}
                 _flushQueuedBatches()
             }
         }
