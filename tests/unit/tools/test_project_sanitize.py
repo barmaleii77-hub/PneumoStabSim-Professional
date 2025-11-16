@@ -29,4 +29,10 @@ def test_main_parses_compact_report_history_flag(monkeypatch) -> None:
 
     project_sanitize.main(["--report-history5"])
 
-    assert captured == {"dry_run": False, "verbose": False, "report_history": 5}
+    # Updated: tests_history was added as a new parameter
+    assert captured == {
+        "dry_run": False,
+        "verbose": False,
+        "report_history": 5,
+        "tests_history": 2,  # default value
+    }

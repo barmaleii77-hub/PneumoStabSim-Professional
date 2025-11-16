@@ -115,7 +115,11 @@ def integration_reports_dir(tmp_path):
 def structlog_logger_config():
     """Provide basic structlog config for diagnostic tests."""
     from src.diagnostics.logger_factory import LoggerConfig, DEFAULT_LOG_LEVEL
-    return LoggerConfig(name="test.logger", level=DEFAULT_LOG_LEVEL)
+    return LoggerConfig(
+        name="test.logger",
+        level=DEFAULT_LOG_LEVEL,
+        context=(("subsystem", "diagnostics"), ("component", "logger"))
+    )
 
 
 @pytest.fixture
