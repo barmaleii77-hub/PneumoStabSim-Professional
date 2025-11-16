@@ -219,6 +219,7 @@ class VisualizationService(VisualizationServiceProtocol):
             # Нормализация HUD: pivot.z
             # - отрицательные значения → abs(z)
             # - почти ноль (|z| < 0.01) или нечисло → 0.5
+            # - значения с «заглушками» из app_settings (|z| >= 99) → 0.5
             # - положительные значения остаются без изменений
             try:
                 pivot = telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
@@ -230,6 +231,8 @@ class VisualizationService(VisualizationServiceProtocol):
                     except Exception:
                         new_z = 0.5
                     if abs(new_z) < 0.01:
+                        new_z = 0.5
+                    elif abs(new_z) >= 99.0:
                         new_z = 0.5
                     elif new_z < 0.0:
                         new_z = abs(new_z)
