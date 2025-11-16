@@ -69,9 +69,6 @@ from src.runtime.steps.context import LeverDynamicsConfig
 
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
 
-# Settings manager (используем абсолютный импорт, т.к. общий модуль)
-from src.common.settings_manager import get_settings_manager
-
 
 class PhysicsWorker(QObject):
     """Physics simulation worker running in dedicated thread
@@ -93,6 +90,9 @@ class PhysicsWorker(QObject):
         self.logger: LoggerProtocol = get_logger("runtime.physics").bind(
             component="PhysicsWorker"
         )
+        # Локальный импорт для разрыва циклической зависимости с src.common.settings_manager
+        from src.common.settings_manager import get_settings_manager
+
         self.settings_manager = get_settings_manager()
 
         # Physics configuration (loaded from settings file)
