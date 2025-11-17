@@ -15,7 +15,11 @@ from PySide6.QtWidgets import (
 )
 
 from .widgets import ColorButton, LabeledSlider
-from src.ui.environment_schema import validate_scene_settings
+from src.ui.environment_schema import (
+    SCENE_PARAMETERS,
+    SCENE_SUSPENSION_PARAMETERS,
+    validate_scene_settings,
+)
 
 
 class SceneTab(QWidget):
@@ -47,7 +51,10 @@ class SceneTab(QWidget):
 
         row = 0
 
-        scale_slider = LabeledSlider("Масштаб модели", 0.01, 5.0, 0.01, decimals=2)
+        scale_min, scale_max = self._range_for("scale_factor", 0.01, 5.0)
+        scale_slider = LabeledSlider(
+            "Масштаб модели", scale_min, scale_max, 0.01, decimals=2
+        )
         scale_slider.valueChanged.connect(
             lambda value: self._on_control_changed("scale_factor", value)
         )
@@ -55,7 +62,10 @@ class SceneTab(QWidget):
         grid.addWidget(scale_slider, row, 0, 1, 2)
         row += 1
 
-        exposure_slider = LabeledSlider("Экспозиция", 0.0, 32.0, 0.1, decimals=2)
+        exposure_min, exposure_max = self._range_for("exposure", 0.0, 32.0)
+        exposure_slider = LabeledSlider(
+            "Экспозиция", exposure_min, exposure_max, 0.1, decimals=2
+        )
         exposure_slider.valueChanged.connect(
             lambda value: self._on_control_changed("exposure", value)
         )
@@ -107,8 +117,15 @@ class SceneTab(QWidget):
         grid.addWidget(metalness_slider, row, 0, 1, 2)
         row += 1
 
+        suspension_min, suspension_max = self._range_for(
+            "suspension.rod_warning_threshold_m", 0.0001, 0.02
+        )
         suspension_slider = LabeledSlider(
-            "Порог предупреждения штока (м)", 0.0001, 0.02, 0.0001, decimals=4
+            "Порог предупреждения штока (м)",
+            suspension_min,
+            suspension_max,
+            0.0001,
+            decimals=4,
         )
         suspension_slider.set_value(0.001)
         suspension_slider.valueChanged.connect(
@@ -132,6 +149,35 @@ class SceneTab(QWidget):
             return self._controls[key]
         except KeyError as exc:  # pragma: no cover - defensive
             raise KeyError(f"Control '{key}' is not registered") from exc
+
+    def _range_for(self, key: str, fallback_min: float, fallback_max: float) -> tuple[float, float]:
+        if key.startswith("suspension."):
+            raw_key = key.split(".", maxsplit=1)[1]
+            return self._range_from_definitions(
+                raw_key, SCENE_SUSPENSION_PARAMETERS, fallback_min, fallback_max
+            )
+
+        return self._range_from_definitions(
+            key, SCENE_PARAMETERS, fallback_min, fallback_max
+        )
+
+    @staticmethod
+    def _range_from_definitions(
+        key: str,
+        definitions: tuple,
+        fallback_min: float,
+        fallback_max: float,
+    ) -> tuple[float, float]:
+        for definition in definitions:
+            if getattr(definition, "key", None) != key:
+                continue
+            min_value = definition.min_value
+            max_value = definition.max_value
+            return (
+                fallback_min if min_value is None else float(min_value),
+                fallback_max if max_value is None else float(max_value),
+            )
+        return fallback_min, fallback_max
 
     # ------------------------------------------------------------------ state API
     def get_state(self) -> dict[str, Any]:

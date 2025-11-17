@@ -222,7 +222,17 @@ def test_settings_manager_overwrites_existing_extra_section(
 def test_settings_manager_preserves_current_structure(legacy_settings: Path) -> None:
     manager = SettingsManager(settings_file=legacy_settings)
 
-    new_graphics = {"scene": {"exposure": 2.0}}
+    new_graphics = {
+        "scene": {
+            "scale_factor": 1.0,
+            "exposure": 2.0,
+            "default_clear_color": "#1b1f27",
+            "model_base_color": "#9da3aa",
+            "model_roughness": 0.42,
+            "model_metalness": 0.82,
+            "suspension": {"rod_warning_threshold_m": 0.001},
+        }
+    }
     manager.set("graphics", new_graphics)
 
     assert manager.get("current.graphics.scene.exposure") == 2.0
