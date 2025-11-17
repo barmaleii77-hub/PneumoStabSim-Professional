@@ -60,6 +60,9 @@ Item {
     property var lineIntensityMap: ({})
     property var pressureGradientStops: []
     property bool _hasTelemetryGradient: false
+    property bool _hasTelemetryMarkers: false
+    property real _telemetryAtmosphere: NaN
+    readonly property var _defaultMarker: ({ color: Qt.rgba(0.7, 0.85, 1.0, 0.95), label: "" })
     readonly property var _simTypeOptions: [
         { value: "KINEMATICS", label: qsTr("Кинематика") },
         { value: "DYNAMICS", label: qsTr("Динамика") }
@@ -110,7 +113,7 @@ Item {
     ListModel { id: lineValveListModel }
     ListModel { id: reliefValveListModel }
     // Экспорт внутренних моделей как свойства для доступа из тестов
-    property alias flowArrowsModel: flowModelProxy
+    property alias flowArrowsModel: flowModel
     property alias lineValveModel: lineValveListModel
     property alias reliefValveModel: reliefValveListModel
 
@@ -214,6 +217,8 @@ Item {
         _animationDefaults = _cloneObject(contextAnimation)
         _animationState = _cloneObject(_animationDefaults)
         _flowState = {}
+        _telemetryAtmosphere = NaN
+        _hasTelemetryMarkers = false
     }
 
     onPressureMarkersChanged: _updatePressureGradientScale()
@@ -255,6 +260,9 @@ Item {
         var userMax = _pneumaticNumber([["receiver"], ["user_max_pressure_pa", "userMaxPressurePa"]], maxCandidate)
         var atmosphere = _sceneEnvironmentNumber([["atmosphere"], ["pressure", "pressurePa"]], 101325.0)
         atmosphere = Number.isFinite(atmosphere) ? atmosphere : 101325.0
+        var telemetryAtmosphere = Number(_telemetryAtmosphere)
+        if (Number.isFinite(telemetryAtmosphere))
+            atmosphere = telemetryAtmosphere
         var receiver = _pneumaticNumber([["receiver", "tank"], ["initial_pressure_pa", "pressure_pa", "pressurePa", "initialPressurePa"]], pressure)
 
         minPressure = minCandidate
@@ -265,12 +273,14 @@ Item {
         reservoirPressure = Number.isFinite(receiver) ? receiver : minCandidate
         if (!Number.isFinite(pressure) || Math.abs(pressure - reservoirPressure) < 0.001)
             pressure = reservoirPressure
-        pressureMarkers = [
+        var defaultMarkers = [
             { value: minCandidate, color: Qt.rgba(0.46, 0.86, 0.52, 0.95), label: qsTr("Мин") },
             { value: maxCandidate, color: Qt.rgba(0.95, 0.55, 0.4, 0.95), label: qsTr("Макс") },
             { value: atmosphere, color: Qt.rgba(0.42, 0.72, 0.96, 0.95), label: qsTr("Атм") },
             { value: reservoirPressure, color: Qt.rgba(0.99, 0.83, 0.43, 0.95), label: qsTr("Рез") }
         ]
+        if (!_hasTelemetryMarkers || !(Array.isArray(pressureMarkers) && pressureMarkers.length))
+            pressureMarkers = defaultMarkers
         _updatePressureGradientScale()
     }
 
@@ -298,6 +308,49 @@ Item {
             ]
         }
         pressureGradientStops = stops
+    }
+
+    function _normalizeTelemetryMarkers(list) {
+        var normalized = []
+        var source = []
+        if (Array.isArray(list))
+            source = list
+        else if (list && typeof list.length === "number")
+            for (var i = 0; i < list.length; ++i) source.push(list[i])
+        for (var j = 0; j < source.length; ++j) {
+            var entry = source[j] || {}
+            var value = Number(entry.value)
+            if (!Number.isFinite(value))
+                continue
+            normalized.push({
+                value: value,
+                color: entry.color !== undefined ? entry.color : _defaultMarker.color,
+                label: entry.label !== undefined ? entry.label : _defaultMarker.label
+            })
+        }
+        return normalized
+    }
+
+    function _normalizeGradientStops(list) {
+        var normalized = []
+        var source = []
+        if (Array.isArray(list))
+            source = list
+        else if (list && typeof list.length === "number")
+            for (var i = 0; i < list.length; ++i) source.push(list[i])
+        for (var j = 0; j < source.length; ++j) {
+            var entry = source[j] || {}
+            var thresholdValue = entry.value !== undefined ? entry.value : entry.position || entry.level
+            var numericValue = Number(thresholdValue)
+            if (!Number.isFinite(numericValue))
+                continue
+            normalized.push({
+                value: numericValue,
+                color: entry.color !== undefined ? entry.color : Qt.rgba(0.28, 0.5, 0.82, 0.7),
+                label: entry.label !== undefined ? entry.label : String(entry.name || (qsTr("Порог") + " " + (normalized.length + 1)))
+            })
+        }
+        return normalized
     }
 
     function _parameterRange(name) {
@@ -579,10 +632,12 @@ Item {
         _clearModel(flowModel)
         _clearModel(lineValveListModel)
         _clearModel(reliefValveListModel)
+        _hasTelemetryMarkers = false
         var payload = flowTelemetry || {}
         if (!_isPlainObject(payload))
             return
         _hasTelemetryGradient = false
+        _telemetryAtmosphere = NaN
         _flowState = payload
         _applyFlowTelemetryState(payload)
         var linesNode = payload.lines || payload.Lines || {}
@@ -716,25 +771,28 @@ Item {
                 maxPressure = maxP
             }
             var thresholds = receiver.thresholds || receiver.pressureThresholds || receiver.gradientStops
-            if (Array.isArray(thresholds) && thresholds.length) {
-                var resolvedStops = []
-                for (var j = 0; j < thresholds.length; ++j) {
-                    var thresholdEntry = thresholds[j] || {}
-                    var thresholdValue = thresholdEntry.value !== undefined ? thresholdEntry.value : thresholdEntry.position || thresholdEntry.level
-                    var numericValue = Number(thresholdValue)
-                    if (!Number.isFinite(numericValue))
-                        continue
-                    resolvedStops.push({
-                        value: numericValue,
-                        color: thresholdEntry.color !== undefined ? thresholdEntry.color : Qt.rgba(0.25 + 0.12 * j, 0.55, 0.92, 0.7),
-                        label: thresholdEntry.label !== undefined ? thresholdEntry.label : String(thresholdEntry.name || (qsTr("Порог") + " " + (j + 1)))
-                    })
-                }
-                if (resolvedStops.length >= 2) {
-                    _hasTelemetryGradient = true
-                    pressureGradientStops = resolvedStops
-                }
+            var resolvedStops = _normalizeGradientStops(thresholds)
+            if (resolvedStops.length >= 2) {
+                _hasTelemetryGradient = true
+                pressureGradientStops = resolvedStops
             }
+        }
+        var telemetryGradients = payload.gradientStops || payload.pressureGradientStops
+        var telemetryStops = _normalizeGradientStops(telemetryGradients)
+        if (telemetryStops.length >= 2) {
+            _hasTelemetryGradient = true
+            pressureGradientStops = telemetryStops
+        }
+        var externalMarkers = payload.pressureMarkers || payload.markers
+        var normalizedMarkers = _normalizeTelemetryMarkers(externalMarkers)
+        if (normalizedMarkers.length) {
+            _hasTelemetryMarkers = true
+            pressureMarkers = normalizedMarkers
+        }
+        var atmosphereValue = Number(payload.atmosphericPressure !== undefined ? payload.atmosphericPressure : payload.atmospherePressure || payload.environmentPressure)
+        if (Number.isFinite(atmosphereValue)) {
+            _telemetryAtmosphere = atmosphereValue
+            atmosphericPressure = atmosphereValue
         }
         var tank = payload.tank
         if (_isPlainObject(tank)) {
