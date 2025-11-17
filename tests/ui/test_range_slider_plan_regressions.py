@@ -2,12 +2,23 @@ import math
 import locale
 
 import pytest
-from PySide6.QtTest import QSignalSpy
 from PySide6.QtCore import Qt
 
+from tests.helpers.signal_listeners import SignalListener
 from src.ui.widgets.range_slider import RangeSlider
 
 pytestmark = [pytest.mark.ui, pytest.mark.headless]
+
+
+def _step_property_value(slider: RangeSlider) -> float | None:
+    try:
+        step_attr = getattr(slider, "step")
+    except Exception:
+        return None
+    try:
+        return float(step_attr)
+    except (TypeError, ValueError):
+        return None
 
 
 class TestLocales:
@@ -44,7 +55,7 @@ class TestDebounce:
         w.show()
 
         monkeypatch.setattr(w, "_debounce_delay", 500)
-        spy = QSignalSpy(w.valueEdited)
+        spy = SignalListener(w.valueEdited)
 
         for v in (1.2, 1.8, 2.6, 3.4, 4.2):
             w.setValue(v)
@@ -79,8 +90,8 @@ class TestBulkUpdates:
         w = RangeSlider(minimum=0.0, maximum=10.0, value=5.0, step=0.5)
         w.show()
 
-        spy_range = QSignalSpy(w.rangeChanged)
-        spy_changed = QSignalSpy(w.valueChanged)
+        spy_range = SignalListener(w.rangeChanged)
+        spy_changed = SignalListener(w.valueChanged)
 
         for _ in range(5):
             w.setRange(0.0, 10.0)
@@ -112,6 +123,12 @@ class TestStepSize:
         w.show()
         w.setFocus(Qt.FocusReason.OtherFocusReason)
 
+        initial_step = _step_property_value(w)
+        if initial_step is not None:
+            assert math.isclose(initial_step, 1.0, rel_tol=1e-9, abs_tol=1e-9)
+        else:
+            assert math.isclose(w.value_spinbox.singleStep(), 1.0, rel_tol=1e-9, abs_tol=1e-9)
+
         # По умолчанию шаг 1.0
         old = w.value()
         qtbot.keyClick(
@@ -124,6 +141,12 @@ class TestStepSize:
 
         # Изменяем шаг на 0.2 — клавиатурный нудж должен соответствовать
         w.setStepSize(0.2)
+        updated_step = _step_property_value(w)
+        if updated_step is not None:
+            assert math.isclose(updated_step, 0.2, rel_tol=1e-9, abs_tol=1e-9)
+        else:
+            assert math.isclose(w.value_spinbox.singleStep(), 0.2, rel_tol=1e-9, abs_tol=1e-9)
+        change_probe = SignalListener(w.valueChanged)
         old = w.value()
         qtbot.keyClick(
             w,
@@ -132,6 +155,7 @@ class TestStepSize:
         )
         qtbot.wait(5)
         assert math.isclose(w.value(), old + 0.2)
+        assert change_probe.count() >= 1
 
 
 class TestUnitsPropagation:
@@ -155,7 +179,7 @@ class TestEditingFinishedDebounce:
         w.show()
         # Уменьшим задержку для теста
         monkeypatch.setattr(w, "_debounce_delay", 80)
-        spy = QSignalSpy(w.valueEdited)
+        spy = SignalListener(w.valueEdited)
 
         # Имитация окончания редактирования в спинбоксе
         w.value_spinbox.setValue(4.4)
@@ -190,12 +214,18 @@ class TestNegativeAndZeroStep:
         # Нулевой шаг нормализуется к 0.001
         w0 = RangeSlider(minimum=0.0, maximum=1.0, value=0.5, step=0.0)
         w0.show()
+        normalized_step = _step_property_value(w0)
+        if normalized_step is not None:
+            assert normalized_step > 0.0
         assert w0.stepSize() > 0.0
         assert math.isclose(w0.min_spinbox.singleStep(), w0.stepSize())
 
         # Отрицательный шаг становится положительным
         w1 = RangeSlider(minimum=0.0, maximum=1.0, value=0.5, step=-0.2)
         w1.show()
+        normalized_negative = _step_property_value(w1)
+        if normalized_negative is not None:
+            assert normalized_negative > 0.0
         assert w1.stepSize() > 0.0
         assert math.isclose(w1.value_spinbox.singleStep(), w1.stepSize())
 
