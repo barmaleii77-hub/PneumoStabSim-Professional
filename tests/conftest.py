@@ -19,6 +19,15 @@ os.environ.setdefault("PYTHONHASHSEED", "0")
 os.environ.setdefault("PSS_FORCE_NONBLOCKING_DIALOGS", "1")
 os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
+_EXPECTED_SKIP_TOKEN = "pytest-skip-ok"
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 _MARKERS = [
     "unit: Unit tests",
     "integration: Integration tests",
@@ -38,6 +47,18 @@ _MARKERS = [
 def pytest_configure(config: pytest.Config) -> None:
     for marker in _MARKERS:
         config.addinivalue_line("markers", marker)
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--allow-skips",
+        action="store_true",
+        default=False,
+        help=(
+            "Allow skipped tests without failing the run. "
+            "Use only when paired with CI_SKIP_REASON for traceability."
+        ),
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -82,6 +103,53 @@ def qt_runtime_ready(qapp):
     except Exception as exc:
         pytest.skip(f"Qt runtime not available: {exc}")  # pytest-skip-ok
     yield
+
+
+def _extract_skip_reason(report: pytest.TestReport) -> str:
+    message = getattr(report, "longrepr", "")
+    if isinstance(message, tuple) and len(message) == 3:
+        return str(message[2])
+    if hasattr(message, "reprcrash") and getattr(message.reprcrash, "message", None):
+        return str(message.reprcrash.message)
+    if hasattr(message, "message"):
+        return str(message.message)
+    return str(message)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:  # noqa: ARG001
+    config = session.config
+    allow_skips = bool(config.getoption("--allow-skips"))
+    env_allow = _env_flag("PSS_ALLOW_SKIPPED_TESTS") or _env_flag("CI_ALLOW_SKIPS")
+    justification = os.environ.get("CI_SKIP_REASON", "").strip()
+    if env_allow and not justification:
+        pytest.exit(
+            "CI_SKIP_REASON is required when allowing skipped tests via environment",
+            returncode=1,
+        )
+    if allow_skips or env_allow:
+        return
+
+    terminal_reporter = config.pluginmanager.get_plugin("terminalreporter")
+    if terminal_reporter is None:
+        return
+
+    skipped_reports = list(terminal_reporter.stats.get("skipped", []))
+    unexpected: list[tuple[str, str]] = []
+    for report in skipped_reports:
+        reason = _extract_skip_reason(report)
+        if _EXPECTED_SKIP_TOKEN in reason:
+            continue
+        unexpected.append((report.nodeid, reason))
+
+    if not unexpected:
+        return
+
+    header = f"{len(unexpected)} unexpected skipped test(s) detected"
+    terminal_reporter.write_sep("=", header, red=True)
+    for nodeid, reason in unexpected:
+        terminal_reporter.line(f"- {nodeid}: {reason}")
+    session.exitstatus = pytest.ExitCode.TESTS_FAILED
 
 
 @pytest.fixture
