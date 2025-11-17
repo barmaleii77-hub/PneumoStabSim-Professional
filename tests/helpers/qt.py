@@ -88,4 +88,38 @@ def require_qt_modules(*module_names: str):
     return tuple(loaded)
 
 
-__all__ = ["ensure_qt_runtime", "require_qt_modules"]
+def enforce_importorskip(module_name: str, *, reason: str | None = None):
+    """Fail the test suite when a requested dependency is unavailable.
+
+    This replaces ``pytest.importorskip`` semantics with a hard failure so that
+    missing Qt bindings or plugins are surfaced immediately instead of being
+    silently acknowledged as skips.
+    """
+
+    missing: list[str] = []
+
+    spec = importlib.util.find_spec(module_name)
+    if spec is None:
+        missing.append(f"{module_name}: module not found")
+    else:
+        try:
+            return importlib.import_module(module_name)
+        except Exception as exc:  # pragma: no cover - platform dependent
+            missing.append(f"{module_name}: {exc}")
+
+    header = reason or f"{module_name} is required for Qt-dependent tests"
+    _fail_missing_runtime(header, missing)
+
+
+def require_pytest_qt() -> None:
+    """Ensure the pytest-qt plugin is importable before running Qt suites."""
+
+    enforce_importorskip("pytestqt.plugin", reason="pytest-qt plugin is required")
+
+
+__all__ = [
+    "ensure_qt_runtime",
+    "enforce_importorskip",
+    "require_pytest_qt",
+    "require_qt_modules",
+]

@@ -8,6 +8,8 @@ from pathlib import Path
 from collections.abc import Callable
 import pytest
 
+from tests.helpers.qt import ensure_qt_runtime, enforce_importorskip
+
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -18,6 +20,8 @@ if str(SRC_PATH) not in sys.path:
 os.environ.setdefault("PYTHONHASHSEED", "0")
 os.environ.setdefault("PSS_FORCE_NONBLOCKING_DIALOGS", "1")
 os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
+
+pytest.importorskip = enforce_importorskip
 
 _MARKERS = [
     "unit: Unit tests",
@@ -75,12 +79,7 @@ def qapp():
 @pytest.fixture(scope="session")
 def qt_runtime_ready(qapp):
     """Ensure Qt runtime is available for tests requiring QML/QtQuick3D."""
-    try:
-        from tests.helpers.qt import ensure_qt_runtime
-
-        ensure_qt_runtime()
-    except Exception as exc:
-        pytest.skip(f"Qt runtime not available: {exc}")  # pytest-skip-ok
+    ensure_qt_runtime()
     yield
 
 

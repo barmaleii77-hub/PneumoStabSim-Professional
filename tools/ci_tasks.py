@@ -52,6 +52,7 @@ DEFAULT_SECURITY_TARGETS: tuple[str, ...] = ("src", "tools")
 COVERAGE_MIN_ENV_VAR = "COVERAGE_MIN_PERCENT"
 HDR_VERIFY_ENABLED_ENV = "CI_TASKS_VERIFY_HDR_ASSETS"
 HDR_VERIFY_DEFAULT = True
+ALLOWED_SKIP_TOKEN = "pytest-skip-ok"
 
 
 class TaskError(RuntimeError):
@@ -617,6 +618,8 @@ def _collect_skipped_tests() -> list[SkippedTestCase]:
             )
             for node in skipped_nodes:
                 message = (node.attrib.get("message") or node.text or "").strip()
+                if ALLOWED_SKIP_TOKEN in message:
+                    continue
                 skipped.append(
                     SkippedTestCase(
                         suite=xml_file.stem,
@@ -690,6 +693,34 @@ def _enforce_ci_skip_policy(entries: list[SkippedTestCase]) -> None:
             + " CI_SKIP_REASON must describe why skips are accepted when PSS_ALLOW_SKIPPED_TESTS=1 is set."
         )
     print(f"[ci_tasks] Skipped tests acknowledged: {justification}")
+
+
+def _run_pytest_with_skip_guard(
+    selected: Sequence[str] | None = None, *, use_coverage: bool = True
+) -> tuple[TaskError | None, TaskError | None]:
+    primary_error: TaskError | None = None
+    skip_error: TaskError | None = None
+    try:
+        _run_pytest_suites(selected, use_coverage=use_coverage)
+    except TaskError as exc:
+        primary_error = exc
+    skipped_cases = _collect_skipped_tests()
+    try:
+        _enforce_ci_skip_policy(skipped_cases)
+    except TaskError as exc:
+        skip_error = exc
+        if primary_error is not None:
+            print(f"[ci_tasks] Skip policy violation detected: {exc}")
+    return primary_error, skip_error
+
+
+def _raise_pytest_errors(
+    primary_error: TaskError | None, skip_error: TaskError | None
+) -> None:
+    if skip_error is not None and primary_error is None:
+        raise skip_error
+    if primary_error is not None:
+        raise primary_error
 
 
 def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
@@ -1102,19 +1133,7 @@ def task_test() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips()
     use_coverage = _coverage_enabled()
-    primary_error: TaskError | None = None
-    skip_error: TaskError | None = None
-    try:
-        _run_pytest_suites(use_coverage=use_coverage)
-    except TaskError as exc:
-        primary_error = exc
-    skipped_cases = _collect_skipped_tests()
-    try:
-        _enforce_ci_skip_policy(skipped_cases)
-    except TaskError as exc:
-        skip_error = exc
-        if primary_error is not None:
-            print(f"[ci_tasks] Skip policy violation detected: {exc}")
+    primary_error, skip_error = _run_pytest_with_skip_guard(use_coverage=use_coverage)
     coverage_path: Path | None = None
     if use_coverage:
         try:
@@ -1146,19 +1165,24 @@ def task_test() -> None:
 def task_test_unit() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips(["tests/unit"])
-    _run_pytest_suites(["unit"], use_coverage=False)
+    primary_error, skip_error = _run_pytest_with_skip_guard(["unit"], use_coverage=False)
+    _raise_pytest_errors(primary_error, skip_error)
 
 
 def task_test_integration() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips(["tests/integration"])
-    _run_pytest_suites(["integration"], use_coverage=False)
+    primary_error, skip_error = _run_pytest_with_skip_guard(
+        ["integration"], use_coverage=False
+    )
+    _raise_pytest_errors(primary_error, skip_error)
 
 
 def task_test_ui() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips(["tests/ui"])
-    _run_pytest_suites(["ui"], use_coverage=False)
+    primary_error, skip_error = _run_pytest_with_skip_guard(["ui"], use_coverage=False)
+    _raise_pytest_errors(primary_error, skip_error)
 
 
 def task_analyze_logs() -> None:
