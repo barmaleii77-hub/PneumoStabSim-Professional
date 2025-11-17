@@ -85,7 +85,7 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     expected_pressure = receiver_state.p * ((receiver_state.V / new_volume) ** 1.4)
     expected_temperature = receiver_state.T * ((receiver_state.V / new_volume) ** 0.4)
 
-    update = worker.set_receiver_volume(new_volume, "geometric")
+    update = worker.set_receiver_volume(new_volume, ReceiverVolumeMode.ADIABATIC_RECALC)
 
     assert isinstance(update, ReceiverVolumeUpdate)
     assert update.volume == pytest.approx(new_volume)
