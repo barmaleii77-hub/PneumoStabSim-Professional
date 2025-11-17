@@ -91,6 +91,18 @@ class LeverGeom:
         return self._attached_geom
 
     @property
+    def attached_geometry(self) -> "CylinderGeom | None":
+        """Legacy alias preserved for downstream compatibility."""
+
+        return self._attached_geom
+
+    @property
+    def cylinder_geometry(self) -> "CylinderGeom | None":
+        """Alias mirroring historical attribute naming for the cylinder."""
+
+        return self._cylinder_geom
+
+    @property
     def neutral_length(self) -> float | None:
         """Return the neutral rod length computed from the attached cylinder."""
 
@@ -99,6 +111,12 @@ class LeverGeom:
     @property
     def axis_unit(self) -> tuple[float, float, float] | None:
         """Return unit vector of the cylinder axis in lever coordinates."""
+
+        return self._axis_unit
+
+    @property
+    def axis_unit_vec(self) -> tuple[float, float, float] | None:
+        """Legacy alias for :pyattr:`axis_unit`."""
 
         return self._axis_unit
 

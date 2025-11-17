@@ -184,28 +184,39 @@ class ReceiverState:
             temperature=self.T,
             mode=self.mode,
         )
+        previous_mode = self.mode
 
         if not (self.spec.V_min <= new_volume <= self.spec.V_max):
-            raise ThermoError(
-                f"New volume {new_volume} outside valid range"
-                f" [{self.spec.V_min}, {self.spec.V_max}]"
-            ) if recompute else ModelConfigError(
-                "Volume {0} outside valid range [{1}, {2}]".format(
-                    new_volume, self.spec.V_min, self.spec.V_max
+            raise (
+                ThermoError(
+                    f"New volume {new_volume} outside valid range"
+                    f" [{self.spec.V_min}, {self.spec.V_max}]"
+                )
+                if recompute
+                else ModelConfigError(
+                    "Volume {0} outside valid range [{1}, {2}]".format(
+                        new_volume, self.spec.V_min, self.spec.V_max
+                    )
                 )
             )
 
         try:
-            self.mode = resolved_mode
             if recompute:
+                self.mode = resolved_mode
                 self.apply_instant_volume_change(new_volume)
             else:
+                # Only update the stored mode when the caller explicitly
+                # requests it; recompute=False callers may simply want to
+                # track a geometric volume without altering thermodynamic
+                # behaviour.
+                if mode is not None:
+                    self.mode = resolved_mode
                 self.V = new_volume
         except Exception:
             self.V = previous_state.volume
             self.p = previous_state.pressure
             self.T = previous_state.temperature
-            self.mode = previous_state.mode
+            self.mode = previous_mode
             raise
 
         return ReceiverVolumeUpdate(
