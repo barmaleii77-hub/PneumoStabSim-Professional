@@ -491,9 +491,8 @@ class GeometryPanel(QWidget):
     def get_parameters(self) -> dict[str, Any]:
         """Return a snapshot of the current geometry parameters as a mapping."""
         snapshot = self._collect_state_snapshot()
-        settings = self.get_geometry_settings()
-        snapshot.update(settings.to_config_dict())
-        return snapshot
+        settings = _build_geometry_settings(snapshot, self.logger)
+        return settings.to_config_dict()
 
     def set_parameters(self, params: dict):
         """Set geometry parameters
