@@ -18,6 +18,8 @@ import math
 
 import pytest
 
+from tests.helpers.signal_listeners import SignalListener
+
 pytestmark = [pytest.mark.ui, pytest.mark.headless]
 
 
@@ -67,7 +69,6 @@ def _set_slider_by_value(widget, target: float) -> None:
 
 
 def test_initialization_and_units_label(qapp):  # noqa: D401
-    from PySide6.QtTest import QSignalSpy
     from src.ui.widgets.range_slider import RangeSlider
 
     w = RangeSlider(minimum=0.0, maximum=10.0, value=5.0, step=0.5, title="Тест")
@@ -83,20 +84,19 @@ def test_initialization_and_units_label(qapp):  # noqa: D401
     assert "Единицы: мм" in w.units_label.text()
 
     # Проверим, что valueChanged как минимум один раз эмитится при setValue
-    spy_changed = QSignalSpy(w.valueChanged)
+    spy_changed = SignalListener(w.valueChanged)
     w.setValue(6.0)
     qapp.processEvents()
     assert _spy_count(spy_changed) >= 1
 
 
 def test_set_range_guard_and_emit(qapp):  # noqa: D401
-    from PySide6.QtTest import QSignalSpy
     from src.ui.widgets.range_slider import RangeSlider
 
     w = RangeSlider(minimum=0.0, maximum=5.0, value=2.0, step=0.5)
     w.show()
 
-    spy_range = QSignalSpy(w.rangeChanged)
+    spy_range = SignalListener(w.rangeChanged)
 
     # min >= max должен скорректировать max = min + step
     w.setRange(10.0, 9.0)
@@ -137,14 +137,13 @@ def test_slider_without_quantization_when_step_is_zero(qapp, qtbot):  # noqa: D4
 
 
 def test_value_signals_with_debounce(qapp, qtbot):  # noqa: D401
-    from PySide6.QtTest import QSignalSpy
     from src.ui.widgets.range_slider import RangeSlider
 
     w = RangeSlider(minimum=0.0, maximum=1.0, value=0.2, step=0.1)
     w.show()
 
-    spy_changed = QSignalSpy(w.valueChanged)
-    spy_edited = QSignalSpy(w.valueEdited)
+    spy_changed = SignalListener(w.valueChanged)
+    spy_edited = SignalListener(w.valueEdited)
 
     # Несколько последовательных изменений
     w.setValue(0.3)
@@ -289,13 +288,12 @@ def test_set_enabled_propagates_to_children(qapp):  # noqa: D401
 
 
 def test_range_changed_via_spinboxes_emits_and_clamps(qapp, qtbot):  # noqa: D401
-    from PySide6.QtTest import QSignalSpy
     from src.ui.widgets.range_slider import RangeSlider
 
     w = RangeSlider(minimum=0.0, maximum=2.0, value=1.0, step=0.2)
     w.show()
 
-    spy_range = QSignalSpy(w.rangeChanged)
+    spy_range = SignalListener(w.rangeChanged)
 
     # 1) Поднимаем min до > max -> должно скорректироваться к max - step
     w.min_spinbox.setValue(3.0)

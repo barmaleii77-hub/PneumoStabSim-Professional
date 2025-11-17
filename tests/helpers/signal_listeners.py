@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from PySide6.QtCore import QEventLoop, QTimer
+
 
 class SignalListener:
     """Lightweight replacement for :class:`PySide6.QtTest.QSignalSpy`.
@@ -50,6 +52,29 @@ class SignalListener:
         """Reset the captured history while keeping the connection active."""
 
         self._records.clear()
+
+    def wait(self, timeout_ms: int = 500) -> bool:
+        """Block until the next emission or until ``timeout_ms`` expires."""
+
+        initial_count = len(self._records)
+        loop = QEventLoop()
+        timer = QTimer()
+        timer.setSingleShot(True)
+        timer.timeout.connect(loop.quit)
+
+        def _quit_on_emit(*_: Any) -> None:
+            loop.quit()
+
+        self._signal.connect(_quit_on_emit)
+        try:
+            timer.start(int(timeout_ms))
+            loop.exec()
+        finally:
+            try:
+                self._signal.disconnect(_quit_on_emit)
+            except Exception:
+                pass
+        return len(self._records) > initial_count
 
 
 __all__ = ["SignalListener"]
