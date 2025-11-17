@@ -65,7 +65,7 @@ class SignalTracer:
         log: LoggerProtocol | None = None,
     ) -> None:
         self._records: deque[SignalTraceRecord] = deque(maxlen=max_records)
-        self._log = log or logger
+        self._log = (log or logger).bind(event="signal_trace_event")
         self._lock = RLock()
         self._sinks: list[Callable[[SignalTraceRecord], None]] = []
         self._reset_hooks: list[Callable[[], None]] = []
@@ -152,7 +152,7 @@ class SignalTracer:
 
             payload = record.as_payload()
 
-            self._log.info("signal_trace_event", **payload)
+            self._log.bind(**payload).info("signal_trace_event")
 
             for sink in sinks_snapshot:
                 try:
