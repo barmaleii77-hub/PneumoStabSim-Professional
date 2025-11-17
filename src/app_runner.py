@@ -1121,10 +1121,8 @@ class ApplicationRunner:
 
     def run(self, args: Any) -> int:
         """Запустить приложение согласно аргументам CLI."""
-        # Локальный контекст диагностики и флаг запуска пост-диагностики
         diagnostics_context: list[str] = []
         run_post_diagnostics: bool = False
-        # Принудительный запуск диагностики по флагу/окружению
         env_trace = (os.environ.get("PSS_POST_DIAG_TRACE", "") or "").strip().lower()
         force_post_diag: bool = bool(getattr(args, "diag", False)) or env_trace in {
             "auto",
@@ -1134,59 +1132,36 @@ class ApplicationRunner:
             "yes",
             "on",
         }
-        # --- Начало существующей логики run() ---
         try:
-            # Инициализация логирования: сначала пробуем через именованный аргумент
+            # Логирование
             try:
                 self.app_logger = self.setup_logging(
                     verbose_console=bool(getattr(args, "verbose", False))
                 )
             except TypeError:
-                # Fallback для monkeypatch-стабов без keyword-поддержки
                 self.app_logger = self.setup_logging(
                     bool(getattr(args, "verbose", False))
                 )
-        except Exception as exc:
-            print(
-                f"\n❌ FATAL ERROR: {exc}",
-                flush=True,
-            )
-            # Принудительная пост-диагностика логов, если доступна
-            try:
-                os.environ.setdefault("PSS_POST_DIAG_TRACE", "fatal-error")
-                from tools import analyze_logs as _alog  # type: ignore
 
-                _alog.main([])  # best-effort; не важно если не установлен
-            except Exception:
-                pass
-            return 1
-
-        try:
-            # ✅ Печать заголовка
+            # Заголовок
             self._print_header()
 
+            # Флаги режимов
             self.safe_mode_requested = bool(getattr(args, "safe_mode", False))
             self.safe_cli_mode = bool(getattr(args, "safe_cli_mode", False))
             self.safe_runtime_requested = bool(
                 getattr(args, "safe_runtime", False) or getattr(args, "safe", False)
             )
-            if self.safe_cli_mode:
-                self.safe_runtime_requested = True
             self.use_legacy_ui = bool(getattr(args, "legacy", False))
-            force_disable_qml_3d = bool(getattr(args, "force_disable_qml_3d", False))
-            disable_reasons = tuple(getattr(args, "force_disable_qml_3d_reasons", ()))
+            no_qml_requested = bool(getattr(args, "no_qml", False))
 
-            if (
-                self.use_legacy_ui
-                or force_disable_qml_3d
-                or self.safe_runtime_requested
-                or self.safe_cli_mode
-            ):
+            # Применяем --no-qml отдельно от safe
+            if self.use_legacy_ui or no_qml_requested:
                 self.use_qml_3d_schema = False
 
             if self.app_logger:
                 self.app_logger.info("Logging initialized successfully")
-                if args.verbose:
+                if getattr(args, "verbose", False):
                     self.app_logger.info("Verbose mode enabled")
                 if self.safe_mode_requested:
                     self.app_logger.info(
@@ -1204,40 +1179,19 @@ class ApplicationRunner:
                         )
                 if self.use_legacy_ui:
                     self.app_logger.info("Legacy UI mode requested from CLI")
-                if force_disable_qml_3d and not self.use_legacy_ui:
+                if no_qml_requested and not self.use_legacy_ui:
                     self.app_logger.warning(
-                        "Qt Quick 3D disabled by bootstrap",
-                        extra={"reasons": list(disable_reasons) or None},
-                    )
-            elif self.use_legacy_ui:
-                self._log_with_fallback(
-                    "info",
-                    "INFO: legacy UI moderequested — QML will be skipped",
-                )
-            elif force_disable_qml_3d:
-                reason_label = ", ".join(disable_reasons) or "bootstrap"
-                self._log_with_fallback(
-                    "warning",
-                    f"WARNING: Qt Quick 3D disabled ({reason_label})",
-                )
-            elif self.safe_runtime_requested:
-                if self.safe_cli_mode and not getattr(args, "safe", False):
-                    self._log_with_fallback(
-                        "info",
-                        "INFO: safe CLI mode enabled — графическая сцена не будет инициализирована",
-                    )
-                else:
-                    self._log_with_fallback(
-                        "info",
-                        "INFO: safe runtime mode enabled — graphical scene disabled",
+                        "Qt Quick 3D disabled by --no-qml",
+                        extra={"reasons": ["cli:no-qml"]},
                     )
 
             self._log_startup_environment()
 
             self.setup_high_dpi()
             self.create_application()
-            # Строгая валидация конфигурации до создания окна
+            # Валидация конфига
             self._validate_settings_file()
+
             if not self.safe_runtime_requested:
                 self.create_main_window()
             else:
@@ -1262,7 +1216,6 @@ class ApplicationRunner:
             if not self.safe_runtime_requested:
                 self.setup_test_mode(args.test_mode)
 
-            # ✅ Запуск event loop
             if self.app_instance is None:
                 raise RuntimeError("QApplication instance is not initialised.")
 
@@ -1272,11 +1225,11 @@ class ApplicationRunner:
                 self.app_logger.info(f"Application closed with code: {result}")
                 self.app_logger.info("=" * 60)
 
-            # ✅ Вывод warnings/errors
+            # Warnings/Errors
+            from src.diagnostics.warnings import print_warnings_errors
+
             print_warnings_errors()
-
             print(f"\n✅ Application closed (code: {result})\n")
-
             return int(result)
 
         except Exception as e:
@@ -1284,18 +1237,16 @@ class ApplicationRunner:
             import traceback
 
             traceback.print_exc()
-
             if self.app_logger:
                 self.app_logger.critical(f"FATAL ERROR: {e}")
                 self.app_logger.critical(traceback.format_exc())
 
-            print_warnings_errors()
+            from src.diagnostics.warnings import print_warnings_errors
 
+            print_warnings_errors()
             diagnostics_context.append("fatal-error")
             run_post_diagnostics = True
-
             return 1
-
         finally:
             try:
                 diagnostics_context.append("exit")
@@ -1309,9 +1260,6 @@ class ApplicationRunner:
                             print(f"   • {entry}")
                     print("\n🔁 Запуск обязательной пост-диагностики логов...\n")
                     self._run_post_diagnostics()
-                else:
-                    # Ничего не делаем — диагностика не запрошена
-                    pass
             except Exception as diag_exc:
                 self._log_with_fallback(
                     "warning",

@@ -1,0 +1,21 @@
+FEAT: CLI/Qt — флаг --no-qml, безопасная трассировка и Quick3D‑проверки
+
+Добавлен отдельный флаг `--no-qml` для отключения загрузки QML/Qt Quick 3D без выключения QApplication. Расширены smoke‑проверки Qt: явная верификация плагинов Quick3D и QML‑модуля. Устойчивость трассировки запуска улучшена: автоматический `--safe`, дефолтный D3D11 (Windows), ранний `--env-check/--env-report` без импорта Qt, выбор `python.exe` в headless/trace режимах.
+
+CHANGES:
+1. CLI: новый флаг `--no-qml` (bootstrap + основной парсер); логика отключения QML перенесена в `ApplicationRunner` отдельно от `--safe`.
+2. Tools(trace): `tools/trace_launch.py` автоматически добавляет `--safe` и на Windows задаёт `QSG_RHI_BACKEND=d3d11`.
+3. App bootstrap: `app.py` выполняет ранний `--env-check/--env-report` (без импорта Qt) и на Windows в headless/trace использует `python.exe` вместо `pythonw.exe`.
+4. Env verify: `tools/environment/verify_qt_setup.py` проверяет наличие `plugins/renderplugins`, `plugins/assetimporters`, QML‑модуля `QtQuick3D` и импорт `PySide6.QtQuick3D`.
+
+RESULT:
+✅ QML/3D можно выключать адресно (без глобального safe‑режима)
+✅ Трассировка запуска стабильна на headless/Windows
+✅ Быстрая диагностика Quick3D плагинов и QML путей
+
+Files changed:
+- src/cli/arguments.py
+- src/app_runner.py
+- tools/trace_launch.py
+- tools/environment/verify_qt_setup.py
+- app.py

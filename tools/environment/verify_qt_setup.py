@@ -354,7 +354,7 @@ def _check_environment_paths(var_name: str) -> None:
 def _check_qlibraryinfo() -> Path:
     try:
         from PySide6.QtCore import QLibraryInfo
-    except ImportError as exc:  # pragma: no cover - defensive path
+    except ImportError as exc:  # pragma: no cover - defensive
         raise ProbeError(
             "Unable to import PySide6.QtCore. Is PySide6 installed?"
         ) from exc
@@ -422,6 +422,84 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
         return platform_name
     finally:
         app.quit()
+
+
+# --- Новые проверки наличия Quick3D плагинов и QML модулей ---
+
+def _check_quick3d_plugins() -> list[ProbeResult]:
+    """Проверить наличие ключевых Quick3D плагинов и QML модулей.
+
+    Проверяем:
+      - наличие каталога plugins/renderplugins (динамические плагины)
+      - наличие каталога plugins/assetimporters (импортеры ресурсов)
+      - наличие QML модулей QtQuick3D в пути QLibraryInfo/Qml2ImportsPath
+    """
+    results: list[ProbeResult] = []
+    try:
+        from PySide6.QtCore import QLibraryInfo
+    except Exception as exc:
+        results.append(ProbeResult(False, f"QLibraryInfo import failed: {exc}"))
+        return results
+
+    plugins_dir = Path(
+        QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)  # type: ignore[attr-defined]
+    )
+    qml_dir = Path(
+        QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)  # type: ignore[attr-defined]
+    )
+
+    # 1) renderplugins
+    render_plugins = plugins_dir / "renderplugins"
+    if render_plugins.exists():
+        # Наличие хотя бы одного плагина (scene2d, metalrhi, d3d11rhi и т. п.)
+        has_any = any(render_plugins.glob("*.dll")) or any(render_plugins.glob("*.so"))
+        if has_any:
+            results.append(
+                ProbeResult(True, f"Render plugins found: {render_plugins}")
+            )
+        else:
+            results.append(
+                ProbeResult(False, f"Render plugins directory is empty: {render_plugins}")
+            )
+    else:
+        results.append(
+            ProbeResult(False, f"Render plugins directory not found: {render_plugins}")
+        )
+
+    # 2) assetimporters (опционально, но полезно)
+    asset_importers = plugins_dir / "assetimporters"
+    if asset_importers.exists():
+        has_any = any(asset_importers.glob("*.*"))
+        results.append(
+            ProbeResult(True if has_any else False,
+                        f"Asset importers {'found' if has_any else 'directory is empty'}: {asset_importers}",
+                        fatal=False)
+        )
+    else:
+        results.append(
+            ProbeResult(False, f"Asset importers directory not found: {asset_importers}", fatal=False)
+        )
+
+    # 3) QML модули QtQuick3D
+    quick3d_qml = qml_dir / "QtQuick3D"
+    if quick3d_qml.exists():
+        results.append(ProbeResult(True, f"QtQuick3D QML module found: {quick3d_qml}"))
+    else:
+        results.append(
+            ProbeResult(False, f"QtQuick3D QML module not found under: {qml_dir}")
+        )
+
+    # 4) Python-импорт QtQuick3D
+    try:
+        import PySide6.QtQuick3D as _qq3d  # noqa: F401
+    except Exception as exc:
+        results.append(
+            ProbeResult(False, f"PySide6.QtQuick3D import failed: {exc}")
+        )
+    else:
+        results.append(ProbeResult(True, "PySide6.QtQuick3D imported successfully."))
+
+    return results
 
 
 def _check_opengl_runtime() -> ProbeResult:
@@ -578,6 +656,10 @@ def run_smoke_check(
                 ProbeResult(True, f"Qt platform plugin '{platform_name}' initialised.")
             )
 
+    # Новые проверки Quick3D плагинов
+    if runtime_ready:
+        results.extend(_check_quick3d_plugins())
+
     if runtime_ready:
         # На Windows проверка QT_PLUGIN_PATH ненадёжна (кодировки/сессии);
         # используем QLibraryInfo как источник истины и пропускаем проверку переменной.
@@ -591,7 +673,6 @@ def run_smoke_check(
             try:
                 _check_environment_paths(var_name)
             except ProbeError as exc:
-                # Для headless допускаем предупреждение, чтобы не валить CI
                 results.append(
                     ProbeResult(False, str(exc), fatal=fatal_on_missing_runtime)
                 )
@@ -612,7 +693,6 @@ def run_smoke_check(
             )
 
     successes, warnings, failures = _format_results(results)
-    # Failure list already encodes fatal vs non-fatal via ProbeResult.fatal
     exit_code = 1 if failures else 0
 
     if report_dir is not None:

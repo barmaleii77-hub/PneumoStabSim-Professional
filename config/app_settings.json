@@ -2,7 +2,7 @@
   "metadata": {
     "version": "5.0.0",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-17T09:12:00.295Z",
+    "last_modified": "2025-11-17T10:26:42.765Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults",
@@ -200,7 +200,7 @@
       "frame_height_m": 0.65,
       "frame_beam_size_m": 0.12,
       "frame_length_m": 3.4,
-      "cylinder_body_length_m": 0.46,
+      "cylinder_body_length_m": 0.457,
       "tail_rod_length_m": 0.18,
       "meta": {
         "wheelbase": {
@@ -349,7 +349,7 @@
         "skybox_brightness": 1.0,
         "probe_horizon": 0.0,
         "ibl_rotation": 21.0,
-        "ibl_source": "c:/users/алексей/source/repos/barmaleii77-hub/hdr/aerodynamics_workshop_16k.exr",
+        "ibl_source": "c:/users/caduser/source/repos/barmaleii77-hub/hdr/abandoned_factory_canteen_01_8k.exr",
         "skybox_blur": 0.08,
         "ibl_offset_x": 0.0,
         "ibl_offset_y": 0.0,

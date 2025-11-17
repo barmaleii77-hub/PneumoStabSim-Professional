@@ -50,6 +50,11 @@ def _add_bootstrap_arguments(parser: argparse.ArgumentParser) -> None:
         metavar="PATH",
         help="Write environment diagnostics to PATH and exit before Qt starts",
     )
+    parser.add_argument(
+        "--no-qml",
+        action="store_true",
+        help="Disable Qt Quick 3D scene (skip QML loading, use diagnostics/placeholder view)",
+    )
     _add_test_mode_argument(parser)
     _add_mode_arguments(parser)
 
@@ -95,6 +100,7 @@ Examples:
   py app.py --safe-mode        # Allow Qt to choose the graphics backend
   py app.py --legacy           # Launch legacy Qt Widgets UI (no QML)
   py app.py --safe             # Headless-safe mode (no Qt Quick 3D scene)
+  py app.py --no-qml           # Disable QML/Qt Quick 3D (UI placeholder only)
         """,
     )
 

@@ -88,11 +88,17 @@ def _prune_old_traces(limit: int) -> None:
 
 
 def _build_command(env_report: Path, passthrough: Sequence[str]) -> list[str]:
+    # Во время трассировки отключаем загрузку QML/3D сцены безопасным флагом --safe
+    # (его поддерживает парсер аргументов app.py как алиас test-mode)
+    extra: list[str] = []
+    if "--safe" not in passthrough and "--test-mode" not in passthrough:
+        extra.append("--safe")
     command = [
         sys.executable,
         "app.py",
         "--env-report",
         str(env_report),
+        *extra,
         *passthrough,
     ]
     return command
@@ -136,6 +142,9 @@ def _ensure_qt_defaults(environment: dict[str, str]) -> None:
         if default_platform is not None:
             environment["QT_QPA_PLATFORM"] = default_platform
     environment.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+    # На Windows предпочитаем D3D11 для стабильной инициализации (UI отключён --safe, но фикс не помешает)
+    if sys.platform.startswith("win"):
+        environment.setdefault("QSG_RHI_BACKEND", "d3d11")
 
 
 def _compose_environment() -> dict[str, str]:
@@ -335,7 +344,7 @@ def _normalise_argv(argv: Sequence[str]) -> list[str]:
     normalised: list[str] = []
     flag = "--history-limit"
     for token in argv:
-        if token.startswith(flag) and token not in {flag, f"{flag}=", f"{flag}="}:
+        if token.startswith(flag) and token not in {flag, f"{flag}", f"{flag}="}:
             suffix = token[len(flag) :]
             if suffix.isdigit():
                 normalised.extend([flag, suffix])

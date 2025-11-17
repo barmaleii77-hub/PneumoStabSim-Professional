@@ -17,15 +17,32 @@ if str(_PROJECT_ROOT) not in sys.path:
 if str(_SRC_PATH) not in sys.path:
     sys.path.insert(0, str(_SRC_PATH))
 
-# --- Prefer project venv python
+# --- Prefer project venv python (console/python.exe in headless/trace modes)
 _DEF_VENV = _PROJECT_ROOT / ".venv" / ("Scripts" if os.name == "nt" else "bin")
-_DEF_VENV_PY = _DEF_VENV / ("pythonw.exe" if os.name == "nt" else "python")
-if _DEF_VENV_PY.exists():
+_VENV_PY_CONSOLE = _DEF_VENV / ("python.exe" if os.name == "nt" else "python")
+_VENV_PY_GUI = _DEF_VENV / ("pythonw.exe" if os.name == "nt" else "python")
+
+# Heuristic headless/trace detection from argv/env to avoid pythonw in CI/offscreen
+_headless_argv_tokens = {"--env-check", "--env-report", "--safe", "--test-mode"}
+_headless_hint = any(token in sys.argv[1:] for token in _headless_argv_tokens) or (
+    (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
+)
+_target_executable = None
+if _DEF_VENV.exists():
+    if os.name == "nt":
+        # On Windows prefer console python for headless/trace; GUI python otherwise
+        preferred = _VENV_PY_CONSOLE if _headless_hint else _VENV_PY_GUI
+    else:
+        preferred = _VENV_PY_CONSOLE
+    if preferred.exists():
+        _target_executable = preferred
+
+if _target_executable is not None:
     try:
-        if Path(sys.executable).resolve() != _DEF_VENV_PY.resolve():
+        if Path(sys.executable).resolve() != _target_executable.resolve():
             os.execve(
-                str(_DEF_VENV_PY),
-                [str(_DEF_VENV_PY), __file__, *sys.argv[1:]],
+                str(_target_executable),
+                [str(_target_executable), __file__, *sys.argv[1:]],
                 os.environ.copy(),
             )
     except Exception:
@@ -34,7 +51,10 @@ if _DEF_VENV_PY.exists():
 from src.cli.arguments import create_bootstrap_parser, parse_arguments  # noqa: E402
 from src.diagnostics.logger_factory import get_logger  # noqa: E402
 from src.diagnostics.logging_presets import apply_logging_preset  # noqa: E402
-from src.diagnostics.path_diagnostics import dump_path_snapshot, verify_repo_root  # noqa: E402
+from src.diagnostics.path_diagnostics import (  # noqa: E402
+    dump_path_snapshot,
+    verify_repo_root,
+)
 from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 
 
@@ -93,6 +113,38 @@ _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 _program_name = sys.argv[0]
 
+# Early environment diagnostics path: do NOT import Qt when --env-check/--env-report are requested
+if getattr(bootstrap_args, "env_check", False) or getattr(bootstrap_args, "env_report", None):
+    try:
+        from src.bootstrap.environment_check import (
+            generate_environment_report,
+            render_console_report,
+        )
+    except Exception:
+        # If diagnostics modules are unavailable, exit gracefully
+        sys.exit(0)
+
+    report = generate_environment_report()
+    target = getattr(bootstrap_args, "env_report", None)
+    if isinstance(target, str) and target.strip():
+        try:
+            out_path = Path(target)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(report.to_markdown(), encoding="utf-8")
+        except Exception:
+            # Fallback to console on write failure
+            try:
+                print(render_console_report(report))
+            except Exception:
+                pass
+    else:
+        try:
+            print(render_console_report(report))
+        except Exception:
+            pass
+    # Exit before any Qt imports happen
+    sys.exit(0)
+
 SAFE_GRAPHICS_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe_mode", False))
 # ВАЖНО: --test-mode не отключает UI
 SAFE_RUNTIME_MODE_REQUESTED = bool(getattr(bootstrap_args, "safe", False))
@@ -107,7 +159,7 @@ _ensure_qt_runtime_paths(_PROJECT_ROOT)
 # Configure logging preset now that env is set
 SELECTED_LOG_PRESET = apply_logging_preset(os.environ)
 
-# Import Qt safely
+# Import Qt safely (deferred until after env-check early exit)
 from src.bootstrap.qt_imports import safe_import_qt  # noqa: E402
 
 QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(  # noqa: E402
