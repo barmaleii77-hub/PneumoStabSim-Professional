@@ -440,9 +440,7 @@ def configure_logging(
         return
 
     json_renderer = structlog.processors.JSONRenderer(
-        serializer=lambda payload, **kwargs: _json_dumps(
-            payload, ensure_ascii=False, **kwargs
-        ),
+        serializer=_json_dumps,
         event_key="event",
     )
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger

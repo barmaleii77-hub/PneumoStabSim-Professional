@@ -902,7 +902,7 @@ wheels = [
 
 [[package]]
 name = "pneumo-stab-sim-professional"
-version = "2.0.1"
+version = "2.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "jsonschema" },

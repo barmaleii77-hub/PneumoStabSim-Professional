@@ -8,7 +8,7 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging
+from src.diagnostics.logger_factory import configure_logging, _flatten_event_payload
 
 
 def _extract_payload(raw: str) -> dict[str, object]:
@@ -20,22 +20,27 @@ def _extract_payload(raw: str) -> dict[str, object]:
     return json.loads(raw[start:])
 
 
+def _normalise_payload(raw: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    flattened = _flatten_event_payload(payload)
+    rendered = json.dumps(flattened, ensure_ascii=False)
+    return rendered, flattened
+
+
 def _extract_structlog_output(caplog: Any, capsys: Any) -> tuple[str, dict[str, Any]]:
     for record in caplog.records:
         message = getattr(record, "message", None) or record.getMessage()
         if isinstance(message, dict):
-            serialised = json.dumps(message, ensure_ascii=False)
-            return serialised, message
+            return _normalise_payload(json.dumps(message, ensure_ascii=False), message)
         if isinstance(message, str) and message.strip():
             try:
-                return message, _extract_payload(message)
+                return _normalise_payload(message, _extract_payload(message))
             except AssertionError:
                 continue
     captured = capsys.readouterr()
     for stream in (captured.err, captured.out):
         if stream.strip():
             try:
-                return stream, _extract_payload(stream)
+                return _normalise_payload(stream, _extract_payload(stream))
             except AssertionError:
                 continue
     raise AssertionError("No structured log output captured")

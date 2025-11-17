@@ -6,7 +6,15 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging
+from src.diagnostics.logger_factory import configure_logging, _flatten_event_payload
+
+
+def _normalise_payload(raw: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Flatten nested events and render with UTF-8 output for assertions."""
+
+    flattened = _flatten_event_payload(payload)
+    rendered = json.dumps(flattened, ensure_ascii=False)
+    return rendered, flattened
 
 
 def _extract_structlog_payload(caplog: Any, capsys: Any) -> tuple[str, dict[str, Any]]:
@@ -25,13 +33,12 @@ def _extract_structlog_payload(caplog: Any, capsys: Any) -> tuple[str, dict[str,
             payload = json.loads(text[start:])
         except json.JSONDecodeError:
             return None
-        return text, payload
+        return _normalise_payload(text, payload)
 
     for record in caplog.records:
         message = getattr(record, "message", None) or record.getMessage()
         if isinstance(message, dict):
-            serialised = json.dumps(message, ensure_ascii=False)
-            return serialised, message
+            return _normalise_payload(json.dumps(message, ensure_ascii=False), message)
         if isinstance(message, str):
             parsed = _from_text(message)
             if parsed is not None:
