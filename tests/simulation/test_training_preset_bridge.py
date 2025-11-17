@@ -142,3 +142,27 @@ def test_training_bridge_extended_runtime_performance(
     assert metrics.get("frames_dropped", 0) >= 0
     assert metrics.get("integration_failures", 0) == 0
     assert metrics.get("efficiency", 0.0) >= 0.8
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_training_bridge_prolonged_runtime_resilience(
+    simulation_harness, training_preset_bridge
+) -> None:
+    """A multi-second simulation run should remain stable and report healthy metrics."""
+
+    preset_id = training_preset_bridge.defaultPresetId()
+    assert training_preset_bridge.applyPreset(preset_id)
+
+    metrics = simulation_harness(runtime_ms=2000)
+    assert metrics, "Expected metrics payload from simulation harness"
+
+    duration = metrics.get("duration_ms", metrics.get("runtime_ms", 0))
+    assert duration >= 1500
+    assert metrics.get("steps", 0) > 0
+    assert metrics.get("avg_step_time_ms", 0.0) > 0.0
+    assert metrics.get("fps_actual", 0.0) > 0.0
+    assert metrics.get("realtime_factor", 0.0) > 0.0
+    assert metrics.get("frames_dropped", 0) >= 0
+    assert metrics.get("integration_failures", 0) == 0
+    assert metrics.get("efficiency", 0.0) >= 0.75
