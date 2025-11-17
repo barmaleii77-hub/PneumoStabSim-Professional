@@ -2,6 +2,13 @@
 QML Host for full suspension 3D visualization
 Embeds UFrameScene.qml with all 4 corners (FL/FR/RL/RR) into PySide6 application
 Uses geometry_bridge.py for correct coordinate calculation
+
+This host participates in the QML bridge consolidation tracked in the
+renovation blueprint (see `docs/RENOVATION_MASTER_PLAN.md`, Section 3, item 3
+«Signal/Slot Registry») and the Phase 3 plan checkpoints covering bridge
+payload validation (`docs/RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md`, entries
+dated 2025-11-05 and 2025-11-30). Keep changes aligned with those bridge
+checklists to preserve diagnostics coverage.
 """
 
 import logging
