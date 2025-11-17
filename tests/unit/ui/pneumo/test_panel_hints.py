@@ -55,3 +55,46 @@ def test_pressures_tab_reports_relief_adjustments(
     tab.update_from_state()
 
     assert not tab.hint_label.isVisible()
+
+
+@pytest.mark.gui
+def test_pressures_tab_updates_knobs_after_clamp(
+    qtbot: pytestqt.qtbot.QtBot,
+) -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+    tab = PressuresTab(manager)
+    qtbot.addWidget(tab)
+
+    tab._on_relief_changed("relief_min_pressure", 120.0)
+
+    assert tab.relief_min_knob.value() == pytest.approx(
+        manager.get_relief_pressure("relief_min_pressure"), rel=1e-9
+    )
+    assert tab.hint_label.isVisible()
+
+    tab._on_relief_changed("relief_safety_pressure", 1.0)
+    assert tab.relief_safety_knob.value() == pytest.approx(
+        manager.get_relief_pressure("relief_safety_pressure"), rel=1e-9
+    )
+
+
+@pytest.mark.gui
+def test_receiver_tab_respects_dynamic_limits(
+    qtbot: pytestqt.qtbot.QtBot,
+) -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+    tab = ReceiverTab(manager)
+    qtbot.addWidget(tab)
+
+    manager.update_from({"receiver_volume_limits": {"min_m3": 0.1, "max_m3": 0.15}})
+    tab.update_from_state()
+
+    assert tab.manual_volume_knob.minimum() == pytest.approx(0.1, rel=1e-9)
+    assert tab.manual_volume_knob.maximum() == pytest.approx(0.15, rel=1e-9)
+
+    tab._on_manual_volume_changed(0.5)
+
+    assert tab.manual_volume_knob.value() == pytest.approx(
+        manager.get_manual_volume(), rel=1e-9
+    )
+    assert manager.get_manual_volume() <= tab.manual_volume_knob.maximum()

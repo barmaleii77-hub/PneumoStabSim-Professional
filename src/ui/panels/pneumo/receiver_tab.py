@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QWidget,
@@ -120,6 +122,16 @@ class ReceiverTab(QWidget):
     def _load_from_state(self) -> None:
         mode = self.state_manager.get_volume_mode()
         self.volume_mode_combo.setCurrentIndex(0 if mode == "MANUAL" else 1)
+        limits = self.state_manager.get_volume_limits()
+        try:
+            self.manual_volume_knob.setRange(
+                limits["min_m3"],
+                limits["max_m3"],
+                RECEIVER_MANUAL_LIMITS["step"],
+            )
+        except ValueError:
+            # Некорректный диапазон будет подсвечен валидатором; не рушим UI.
+            pass
         # Блокируем сигналы при программном обновлении значения, иначе
         # повторный вызов set_manual_volume(клампированное) очистит hint.
         self.manual_volume_knob.blockSignals(True)
@@ -179,6 +191,12 @@ class ReceiverTab(QWidget):
     def _on_manual_volume_changed(self, value: float) -> None:
         self.state_manager.set_manual_volume(value)
         actual = self.state_manager.get_manual_volume()
+        if not math.isclose(actual, value, rel_tol=1e-9, abs_tol=1e-9):
+            self.manual_volume_knob.blockSignals(True)
+            try:
+                self.manual_volume_knob.setValue(actual)
+            finally:
+                self.manual_volume_knob.blockSignals(False)
         if self.state_manager.get_volume_mode() == "MANUAL":
             self.parameter_changed.emit("receiver_volume", actual)
             self.receiver_volume_changed.emit(actual, "MANUAL")

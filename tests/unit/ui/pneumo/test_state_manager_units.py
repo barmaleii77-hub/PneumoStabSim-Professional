@@ -307,3 +307,55 @@ def test_relief_pressure_hint_exposes_reason() -> None:
     assert hint is not None
     assert "скорректирован" in hint
     assert "Сброс жёсткости" in hint or "Мин." in hint
+
+
+def test_invariants_clamp_loaded_payloads() -> None:
+    settings = DummySettings(
+        {
+            "current.pneumatic": {
+                "receiver_volume_limits": {"min_m3": -2.0, "max_m3": 0.0},
+                "receiver_volume": -5.0,
+                "cv_atmo_dp": -3.0,
+                "cv_tank_dp": -4.0,
+                "relief_min_pressure": 90.0,
+                "relief_stiff_pressure": 5.0,
+                "relief_safety_pressure": 4.0,
+                "polytropic_heat_transfer_coeff": -10.0,
+                "polytropic_exchange_area": -0.1,
+                "leak_coefficient": -0.2,
+                "leak_reference_area": -0.3,
+            }
+        }
+    )
+
+    manager = PneumoStateManager(settings_manager=settings)
+
+    limits = manager.get_volume_limits()
+    assert limits["min_m3"] > 0
+    assert limits["max_m3"] > limits["min_m3"]
+    assert manager.get_manual_volume() >= limits["min_m3"]
+
+    assert manager.get_pressure_drop("cv_atmo_dp") >= PRESSURE_DROP_LIMITS["min"]
+    assert manager.get_pressure_drop("cv_tank_dp") >= PRESSURE_DROP_LIMITS["min"]
+
+    p_min = manager.get_relief_pressure("relief_min_pressure")
+    p_stiff = manager.get_relief_pressure("relief_stiff_pressure")
+    p_safe = manager.get_relief_pressure("relief_safety_pressure")
+    assert p_min <= p_stiff <= p_safe
+
+    assert manager.get_polytropic_heat_transfer() >= 0
+    assert manager.get_polytropic_exchange_area() >= 0
+    assert manager.get_leak_coefficient() >= 0
+    assert manager.get_leak_reference_area() >= 0
+
+
+def test_validate_reports_invalid_volume_limits() -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+    manager._state["receiver_volume_limits"] = {"min_m3": -1.0, "max_m3": -0.5}
+    manager._state["receiver_volume"] = -2.0
+
+    errors, warnings = manager.validate_pneumatic()
+
+    assert warnings == []
+    assert any("Минимальный объём" in message for message in errors)
+    assert any("Максимальный объём" in message for message in errors)
