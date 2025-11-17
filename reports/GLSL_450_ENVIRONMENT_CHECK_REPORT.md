@@ -355,4 +355,4 @@ python -m tools.autonomous_check --sanitize --launch-trace
 
 **Отчёт сгенерирован:** 2025-11-03 18:50  
 **Инструмент:** GitHub Copilot + autonomous_check  
-**Версия:** 4.9.5
+**Версия:** 4.9.8
