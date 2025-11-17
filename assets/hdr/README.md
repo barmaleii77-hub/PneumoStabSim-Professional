@@ -3,7 +3,9 @@
 This directory stores the canonical high dynamic range (HDR) environment maps that feed
 image-based lighting for PneumoStabSim Professional. Keeping the authoritative copies
 here ensures that lighting presets stay consistent between the editor, automated tests
-and packaged builds.
+and packaged builds. The HDR pipeline is already in production use: manifests, settings
+persistence, and path normalisation are all wired end-to-end, so avoid phrasing such as
+“HDR planned” in downstream docs.
 
 ## Required production HDRIs
 
@@ -152,6 +154,9 @@ uv run python app.py --safe --ibl ../hdr/studio_small_09_2k.hdr
   rescale incoming radiance between `1.0` and `5.0` (step `0.1`). The Python
   panel serialises these values as `bloom_hdr_max` and `bloom_hdr_scale`, while
   `SceneEnvironmentController.qml` applies them to the Qt Quick 3D scene.
+- `HDR Minimum (glowHDRMinimumValue)` remains available for fine-grained
+  thresholding (`0.0–4.0`, шаг `0.05`). All three sliders persist through the
+  graphics settings payload and are restored automatically when the app starts.
 - When QA captures regression screenshots, log `bloom.hdr_max` and
   `bloom.hdr_scale` events from `logs/graphics/session_*.jsonl` alongside the
   HDR filename. This ensures bloom behaviour can be reproduced even after the
@@ -164,6 +169,10 @@ uv run python app.py --safe --ibl ../hdr/studio_small_09_2k.hdr
   `config/app_settings.json`, so a valid relative path (`../hdr/*.hdr`) will be
   restored on the next launch even if the project moves to a different
   workspace.
+- Material textures configured through `FileCyclerWidget` reuse the same
+  persistence flow (`texture_path`, `texture_normal`, etc.), which means both
+  environment HDRs and per-material textures survive restarts and relocations
+  as long as the files stay inside the indexed asset roots.
 - The `EnvironmentTab` reads the stored value, checks it against the discovered
   HDR catalogue, and updates the UI status label. Missing files trigger the
   fallback workflow (`normalizeHdrPath` warning + FileCyclerWidget indicator)
