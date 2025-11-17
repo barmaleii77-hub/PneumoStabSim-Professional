@@ -142,6 +142,7 @@ class ReceiverState:
     def set_volume(
         self,
         new_volume: float,
+        *,
         mode: ReceiverVolumeMode | str | None = None,
         recompute: bool = True,
     ) -> ReceiverVolumeUpdate:

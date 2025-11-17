@@ -158,7 +158,7 @@ def test_receiver_state_set_volume_returns_updated_state() -> None:
         mode=ReceiverVolumeMode.NO_RECALC,
     )
 
-    update = state.set_volume(0.03, ReceiverVolumeMode.ADIABATIC_RECALC)
+    update = state.set_volume(0.03, mode=ReceiverVolumeMode.ADIABATIC_RECALC)
     assert isinstance(update, ReceiverVolumeUpdate)
     assert update.volume == pytest.approx(0.03)
     assert update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
@@ -199,7 +199,7 @@ def test_receiver_state_set_volume_does_not_mutate_on_error() -> None:
     )
 
     with pytest.raises(ModelConfigError):
-        state.set_volume(0.005, ReceiverVolumeMode.ADIABATIC_RECALC, recompute=False)
+        state.set_volume(0.005, mode=ReceiverVolumeMode.ADIABATIC_RECALC, recompute=False)
 
     assert state.V == pytest.approx(0.02)
     assert state.p == pytest.approx(101325.0)
@@ -218,7 +218,7 @@ def test_receiver_state_set_volume_recompute_error_restores_mode() -> None:
     )
 
     with pytest.raises(ThermoError):
-        state.set_volume(0.8, ReceiverVolumeMode.ADIABATIC_RECALC)
+        state.set_volume(0.8, mode=ReceiverVolumeMode.ADIABATIC_RECALC)
 
     assert state.mode is ReceiverVolumeMode.NO_RECALC
     assert state.V == pytest.approx(0.02)
