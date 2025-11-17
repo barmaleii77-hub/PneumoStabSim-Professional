@@ -106,7 +106,9 @@ def patch_main_windows(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.gui
-def test_application_runner_disables_qml_when_flag_passed(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_application_runner_disables_qml_when_flag_passed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from src.app_runner import ApplicationRunner
 
     # Фейки для QApplication и Qt
@@ -134,7 +136,9 @@ def test_application_runner_disables_qml_when_flag_passed(monkeypatch: pytest.Mo
 
 
 @pytest.mark.gui
-def test_application_runner_legacy_overrides_qml(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_application_runner_legacy_overrides_qml(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     from src.app_runner import ApplicationRunner
 
     QApplication = _DummyApp

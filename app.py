@@ -114,7 +114,9 @@ bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv
 _program_name = sys.argv[0]
 
 # Early environment diagnostics path: do NOT import Qt when --env-check/--env-report are requested
-if getattr(bootstrap_args, "env_check", False) or getattr(bootstrap_args, "env_report", None):
+if getattr(bootstrap_args, "env_check", False) or getattr(
+    bootstrap_args, "env_report", None
+):
     try:
         from src.bootstrap.environment_check import (
             generate_environment_report,

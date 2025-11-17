@@ -152,7 +152,7 @@ class SignalTracer:
 
             payload = record.as_payload()
 
-            self._log.bind(**payload).info("signal_trace_event")
+            self._log.info("signal_trace_event", **payload)
 
             for sink in sinks_snapshot:
                 try:

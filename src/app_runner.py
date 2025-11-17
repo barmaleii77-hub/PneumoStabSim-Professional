@@ -1154,10 +1154,24 @@ class ApplicationRunner:
             )
             self.use_legacy_ui = bool(getattr(args, "legacy", False))
             no_qml_requested = bool(getattr(args, "no_qml", False))
+            force_disable_qml_3d = bool(getattr(args, "force_disable_qml_3d", False))
+            force_disable_qml_3d_reasons = tuple(
+                getattr(args, "force_disable_qml_3d_reasons", ()) or ()
+            )
 
             # Применяем --no-qml отдельно от safe
-            if self.use_legacy_ui or no_qml_requested:
+            if self.use_legacy_ui or no_qml_requested or force_disable_qml_3d:
                 self.use_qml_3d_schema = False
+
+            if force_disable_qml_3d:
+                message = "Qt Quick 3D disabled by runtime policy"
+                if self.app_logger:
+                    self.app_logger.warning(
+                        message,
+                        extra={"reasons": list(force_disable_qml_3d_reasons)},
+                    )
+                else:
+                    self._log_with_fallback("warning", message)
 
             if self.app_logger:
                 self.app_logger.info("Logging initialized successfully")
