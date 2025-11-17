@@ -6,13 +6,26 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging, _flatten_event_payload
+from src.diagnostics.logger_factory import configure_logging
 
 
 def _normalise_payload(raw: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Flatten nested events and render with UTF-8 output for assertions."""
 
-    flattened = _flatten_event_payload(payload)
+    # Локальная реализация flattening logic, аналогичная _flatten_event_payload
+    def flatten_event_payload(event: dict[str, Any]) -> dict[str, Any]:
+        """Рекурсивно разворачивает вложенные словари в один уровень."""
+        result = {}
+        for key, value in event.items():
+            if isinstance(value, dict):
+                # Вложенные словари разворачиваем с префиксом ключа
+                for subkey, subvalue in value.items():
+                    result[f"{key}.{subkey}"] = subvalue
+            else:
+                result[key] = value
+        return result
+
+    flattened = flatten_event_payload(payload)
     rendered = json.dumps(flattened, ensure_ascii=False)
     return rendered, flattened
 
