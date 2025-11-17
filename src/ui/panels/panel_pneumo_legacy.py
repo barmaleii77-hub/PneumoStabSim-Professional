@@ -590,6 +590,11 @@ class PneumoPanel(QWidget):
 
         return PneumoStateManager._convert_to_storage(self.parameters)
 
+    def get_parameters(self) -> dict[str, float | bool | str]:
+        """Return a shallow copy of the current UI-facing pneumatic state."""
+
+        return dict(self.parameters)
+
     # --- Validation ---
     @Slot()
     def _validate_system(self) -> None:
