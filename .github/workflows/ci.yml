@@ -122,6 +122,8 @@ jobs:
             echo "- QSG_RHI_BACKEND=${QSG_RHI_BACKEND:-n/a}";
             echo "- QT_OPENGL=${QT_OPENGL:-n/a}";
             echo "- DISPLAY=${DISPLAY:-<empty>}";
+            echo "- QT_PLUGIN_PATH=${QT_PLUGIN_PATH:-n/a}";
+            echo "- QML2_IMPORT_PATH=${QML2_IMPORT_PATH:-n/a}";
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run make full_verify (Linux)

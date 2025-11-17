@@ -146,6 +146,25 @@ if (-not $SkipQt) {
     Write-SetupLog "Skipping Qt runtime provisioning per flag"
 }
 
+if (-not $qtBin) {
+    $fallbackArch = 'win64_msvc2019_64'
+    $fallbackRoot = Join-Path (Join-Path (Get-Location) 'Qt') $QtVersion
+    $fallbackArchPath = Join-Path $fallbackRoot $fallbackArch
+    if (Test-Path $fallbackArchPath) {
+        Write-SetupLog "Reusing existing Qt runtime at $fallbackArchPath"
+        $qtBin = Join-Path $fallbackArchPath 'bin'
+        $qtPlugins = Join-Path $fallbackArchPath 'plugins'
+        $qtQml = Join-Path $fallbackArchPath 'qml'
+        if ($env:GITHUB_PATH -and (Test-Path $qtBin)) {
+            Write-SetupLog "Registering Qt bin path with GITHUB_PATH (fallback)"
+            Add-Content -Path $env:GITHUB_PATH -Value $qtBin
+        } elseif (Test-Path $qtBin) {
+            Write-SetupLog "Prepending Qt bin to current session PATH (fallback)"
+            $env:PATH = "$qtBin;$($env:PATH)"
+        }
+    }
+}
+
 Write-SetupLog "Exporting headless Qt defaults"
 $envContent = @(
     'QT_QPA_PLATFORM=offscreen',
