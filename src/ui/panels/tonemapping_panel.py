@@ -259,6 +259,29 @@ class TonemappingPanel(QWidget):
                 break
         self._set_selection(preset_id)
 
+    def get_parameters(self) -> dict[str, Any]:
+        """Return the active preset and current effects snapshot."""
+
+        effects = self._settings_manager.get("current.graphics.effects", {})
+        if not isinstance(effects, Mapping):
+            effects = {}
+
+        selected_preset = ""
+        if self._combo is not None:
+            selected_preset = str(self._combo.currentData() or "")
+
+        active_preset = (
+            selected_preset
+            or self._active_preset
+            or self._facade.resolve_active_tonemap_preset()
+            or ""
+        )
+
+        return {
+            "active_preset": active_preset,
+            "effects": dict(effects),
+        }
+
     # ---------------------------------------------------------------- lifecycle
     def deleteLater(self) -> None:  # pragma: no cover - Qt lifecycle
         try:
