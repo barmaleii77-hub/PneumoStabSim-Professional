@@ -11,8 +11,8 @@ headless-профилей.
 
 ### Linux (Ubuntu 22.04+/headless контейнеры)
 
-1. Обновите индекс пакетов и установите системные библиотеки Qt/X11/Xvfb. Скрипт
-   выполняет это автоматически, но команды перечислены для прозрачности:
+1. Обновите индекс пакетов и поставьте системные зависимости Qt/X11/GL (делает
+   и `setup_linux.sh`, список приведён для проверки окружения runner'ов):
 
    ```sh
    sudo apt-get update
@@ -23,81 +23,74 @@ headless-профилей.
      libegl1 libegl1-mesa-dev libgles2-mesa-dev libosmesa6 libosmesa6-dev libgbm1 libdrm2 \
      libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 \
      libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0 \
-     libvulkan1 mesa-vulkan-drivers vulkan-tools qt6-shader-baker
+     libvulkan1 mesa-vulkan-drivers vulkan-tools qt6-base-dev qt6-base-dev-tools qt6-shader-baker
    ```
 
-   * `qt6-base-dev`, `qt6-base-dev-tools` — ставят системные Qt-бинарники,
-     используемые плагинами, которые отсутствуют в wheels PySide6 (инструменты
-     qmlimportscanner, ассеты шейдеров и утилиты сборки).
-   * Пакеты Mesa (`libegl1`, `libosmesa6`, `mesa-utils-extra`) гарантируют
-     наличие программного OpenGL даже на headless runner'ах.
-   * `xvfb`, `xauth`, `dbus-x11` обязательны для Xvfb-сессий и тестов,
-     проверяющих интеграцию QtQuick3D.
+   Эти пакеты закрывают все headless-сценарии: Qt dev-бинарники дают доступ к
+   `qmlimportscanner`/shader baker, Mesa обеспечивает программный OpenGL, Xvfb
+   — корректную работу QtQuick3D тестов.
 
-2. Запустите автоматическую настройку (устанавливает Python-зависимости через
-   `uv`/`pip`, гарантирует наличие колёс PySide6/QtQuick3D и экспортирует
-   headless-переменные):
+2. Синхронизируйте окружение одной командой (устанавливает Python-зависимости,
+   `aqtinstall`, пропатченные колёса PySide6/QtQuick3D и экспортирует headless
+   переменные, включая `QT_QPA_PLATFORM=offscreen`, `QT_OPENGL=desktop`,
+   `QT_QUICK_BACKEND=software`, `QSG_RHI_BACKEND=opengl`):
 
    ```sh
-   ./scripts/setup_linux.sh --qt-version 6.10.0
+   ./scripts/setup_linux.sh --qt-version 6.10.0 --skip-qt  # в CI Qt скачивается отдельным шагом
    ```
 
-   Параметры `--skip-system`, `--skip-python`, `--skip-qt` позволяют пропустить
-   отдельные этапы (APT, Python-зависимости или офлайновую установку Qt), а
-   `--qt-version` задаёт версию Qt, совпадающую с используемой в CI. Скрипт
-   дополнительно устанавливает `aqtinstall`, вызывает `tools/setup_qt.py` и
-   экспортирует `QT_PLUGIN_PATH`/`QML2_IMPORT_PATH` вместе с headless-настройками.
+   Для локальной установки Qt уберите `--skip-qt`. Флаги `--skip-system` и
+   `--skip-python` позволяют повторно прогонять скрипт без повторной установки
+   APT или `uv`-зависимостей.
 
-3. Для Xvfb-сессии запустите виртуальный дисплей и экспортируйте переменную
-   `DISPLAY` (по умолчанию скрипт оставляет её пустой, чтобы Qt перешёл в
-   offscreen-режим):
+3. При необходимости откройте Xvfb до вызова скрипта — тогда `DISPLAY` будет
+   сохранён в exported окружении, иначе останется пустым и Qt уйдёт в offscreen:
 
    ```sh
    Xvfb :99 -screen 0 1920x1080x24 &
    export DISPLAY=:99
+   ./scripts/setup_linux.sh --qt-version 6.10.0 --skip-system --skip-qt
    ```
 
-   Проверить корректность установки можно командой `xvfb-run --auto-servernum
-   --server-args='-screen 0 1920x1080x24' glxinfo | grep "OpenGL version"`, она
-   покажет использованный software backend Mesa.
+   Проверить backend можно через `xvfb-run --auto-servernum glxinfo | grep "OpenGL version"`.
 
-4. Выполните тесты. В контейнере достаточно `pytest`, в локальном окружении
-   предпочтительно `make full_verify`.
+4. Выполните тесты: `pytest` в контейнере или `make full_verify` локально. Базовый
+   сценарий без ручных шагов: `./scripts/setup_linux.sh && pytest`.
 
 ### Windows 10+/Windows Server 2022
 
-1. Убедитесь, что PowerShell запущен от имени администратора и разрешено
-   выполнение скриптов: `Set-ExecutionPolicy RemoteSigned -Scope Process`.
+1. Запустите PowerShell от имени администратора и разрешите выполнение скриптов:
+   `Set-ExecutionPolicy RemoteSigned -Scope Process -Force`.
 
-2. Установите системные компоненты (DirectX runtime, VC++ Redistributable и
-   инструменты Qt) через Chocolatey. Скрипт делает это автоматически, но команды
-   приведены для контроля:
+2. Установите системные компоненты для Qt RHI/DirectX (автоматически делает
+   `setup_windows.ps1`, команды приведены для контроля runner'ов):
 
    ```powershell
    choco install directx --no-progress -y
    choco install vcredist140 --no-progress -y
    ```
 
-   После установки запустите `dxdiag /whql:off` и убедитесь, что в разделе
-   **DirectX Features** все подпункты включены. Это гарантирует доступность
-   d3d11 backend для Qt RHI в headless-режиме.
+   После этого проверьте `dxdiag /whql:off` — все пункты **DirectX Features**
+   должны быть включены, чтобы Qt мог использовать `d3d11` backend.
 
-3. Выполните автоматическую настройку. Она синхронизирует `uv`-окружение (или
-   использует `pip`), ставит PySide6/QtQuick3D, устанавливает `aqtinstall`
-   и скачивает указанный runtime Qt через `tools/setup_qt.py`, после чего
-   прописывает переменные Qt для headless-тестов:
+3. Выполните автоматическую настройку, указав путь до Python (из
+   `actions/setup-python` в CI или системный путь локально). Скрипт ставит
+   зависимости через `uv`/`pip`, PySide6/QtQuick3D, `pytest-qt`, настраивает
+   headless-переменные (`QT_QPA_PLATFORM=offscreen`, `QSG_RHI_BACKEND=d3d11`,
+   `QT_OPENGL=software`, стиль Fusion и HiDPI параметры) и при необходимости
+   скачивает Qt через `tools/setup_qt.py`:
 
    ```powershell
-   powershell -File scripts/setup_windows.ps1 -QtVersion 6.10.0
+   powershell -File scripts/setup_windows.ps1 -QtVersion 6.10.0 -PythonPath C:\\hostedtoolcache\\windows\\Python\\3.13\\x64\\python.exe -SkipQt:$true
    ```
 
-   Флаги `-SkipSystem`, `-SkipUvSync`, `-SkipQt` доступны для CI, где
-   зависимости уже закэшированы. Скрипт автоматически добавляет `QT_PLUGIN_PATH`
-   и `QML2_IMPORT_PATH` в среду и регистрирует каталоги Qt в `$GITHUB_PATH`.
+   Снимите `-SkipQt` для локальной офлайновой установки Qt. Флаги `-SkipUvSync`
+   и `-SkipSystem` позволяют пропустить соответствующие стадии на предварительно
+   настроенных машинах.
 
-4. Для DirectX/headless-тестов убедитесь, что `QT_QPA_PLATFORM=offscreen` и
-   `QSG_RHI_BACKEND=d3d11`. Запуск `pytest` или `make full_verify` после скрипта
-   не требует дополнительных шагов.
+4. Перед тестами убедитесь, что выставлены `QT_QPA_PLATFORM=offscreen` и
+   `QSG_RHI_BACKEND=d3d11` (скрипт делает это автоматически). Для smoke-прогона
+   достаточно `pytest`; полный профиль — `make full_verify`.
 
 ## 1. Поддерживаемые профили Python/Qt
 
@@ -132,6 +125,12 @@ headless-профилей.
 | `PSS_HEADLESS` | `1` (Windows) | Упрощает выбор headless-настроек в тестах. |
 | `PSS_DIAG` | `1` | Включение диагностического канала симулятора. |
 | `DISPLAY` | пусто (offscreen) или `:99` при Xvfb | Используется только на Linux. Экспортируется вручную после запуска Xvfb. |
+
+> GitHub Actions (`.github/workflows/ci.yml`) вызывает `scripts/setup_linux.sh --skip-qt`
+> и `scripts/setup_windows.ps1 -SkipQt:$true`, после чего в summary публикуются
+> активные значения `QT_QPA_PLATFORM`, `QSG_RHI_BACKEND`, `QT_OPENGL` и `DISPLAY`.
+> При локальной разработке придерживайтесь тех же значений, чтобы исключить
+> расхождения между CI и контейнером.
 
 ## 3. Headless и Vulkan сценарии
 
@@ -226,13 +225,17 @@ Baker.
   системные пакеты (`libGL`, `libxkbcommon`, Xvfb, Mesa, Shader Baker),
   синхронизирует Python-зависимости через `uv` (либо `pip`) и экспортирует
   headless-переменные `QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`,
+  `QT_OPENGL=desktop`, `QT_QUICK_CONTROLS_STYLE=Fusion`, HiDPI-настройки и
   `QSG_RHI_BACKEND=opengl`. Флаги `--skip-system`/`--skip-python` ускоряют
-  повторные прогонки.
-- `powershell -File scripts/setup_windows.ps1` — выполняет `uv sync`
-  (опционально пропускается `-SkipUvSync`), устанавливает DirectX runtime и VC++
-  зависимости через Chocolatey (отключается `-SkipSystem`), гарантирует наличие
-  колёс PySide6/`PyOpenGL` и активирует headless-профиль (`QT_QPA_PLATFORM=offscreen`,
-  `QT_QUICK_BACKEND=rhi`, `QT_OPENGL=software`, `QSG_RHI_BACKEND=d3d11`).
+  повторные прогонки, `--skip-qt` позволяет делегировать скачивание Qt отдельному
+  шагу в CI.
+- `powershell -File scripts/setup_windows.ps1 -PythonPath <путь до python.exe>` —
+  выполняет `uv sync` (опционально пропускается `-SkipUvSync`), устанавливает
+  DirectX runtime и VC++ зависимости через Chocolatey (отключается `-SkipSystem`),
+  гарантирует наличие колёс PySide6/`PyOpenGL`/`pytest-qt` и активирует
+  headless-профиль (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=rhi`,
+  `QT_OPENGL=software`, `QSG_RHI_BACKEND=d3d11`, стиль Fusion, HiDPI переменные).
+  Добавьте `-SkipQt:$true` в CI, если Qt скачивается отдельным шагом.
 
 Оба скрипта записывают переменные в `GITHUB_ENV`, если он определён (GitHub
 Actions), или применяют их к текущей сессии.
@@ -257,21 +260,23 @@ Actions), или применяют их к текущей сессии.
 
 ## 6. Скрипты быстрой установки зависимостей
 
-- **Linux**: `sudo ./scripts/setup_linux.sh`
+- **Linux**: `sudo ./scripts/setup_linux.sh --qt-version 6.10.0 --skip-qt`
 
-  Устанавливает полный набор библиотек для Qt Quick 3D (включая `libGL`, Mesa,
-  `libxkbcommon`, `qt6-shader-baker`) и обновляет Python-зависимости
-  (`PySide6`, Qt Quick 3D модули). Если wheel `PySide6-QtQuick3D` временно недоступен
-  в PyPI, скрипт оставляет предупреждение и полагается на установленный Qt SDK.
-  Скрипт автоматически включает headless-настройки (`QT_QPA_PLATFORM=offscreen`,
-  `QT_QUICK_BACKEND=software`).
+  Полностью повторяет окружение CI: устанавливает Qt dev пакеты, Mesa/Xvfb,
+  синхронизирует Python-зависимости (`PySide6`, `pytest-qt`, `aqtinstall`),
+  экспортирует headless-переменные (`QT_QPA_PLATFORM=offscreen`,
+  `QT_QUICK_BACKEND=software`, `QT_OPENGL=desktop`, HiDPI настройки). Для
+  офлайновой установки Qt уберите `--skip-qt`.
 
-- **Windows**: `pwsh ./scripts/setup_windows.ps1`
+- **Windows**: `pwsh ./scripts/setup_windows.ps1 -QtVersion 6.10.0 -PythonPath <python.exe> -SkipQt:$true`
 
-  Проверяет наличие Chocolatey и при необходимости ставит `make`, Qt SDK и
-  Visual C++ runtime, затем устанавливает `PySide6`, `PySide6-QtQuick3D` и
-  активирует headless-профиль (`QT_QPA_PLATFORM=offscreen`, `QSG_RHI_BACKEND=d3d11`).
+  Проверяет Chocolatey, ставит DirectX runtime и VC++ Redistributable (если не
+  отключено `-SkipSystem`), синхронизирует `uv` окружение и колёса
+  `PySide6`/`PyOpenGL`/`pytest-qt`, настраивает headless-профиль
+  (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=rhi`, `QSG_RHI_BACKEND=d3d11`,
+  HiDPI/стиль Fusion). Для установки Qt из `tools/setup_qt.py` уберите флаг
+  `-SkipQt`.
 
-Оба скрипта предназначены для подготовки окружения перед запуском тестов и
-используются в CI-конвейерах, чтобы исключить пропуски из-за отсутствующих
-библиотек.
+Оба скрипта используются в CI-конвейерах перед сборкой, поэтому ручные действия
+не требуются: `./scripts/setup_linux.sh && pytest` в контейнере и
+`pwsh ./scripts/setup_windows.ps1; pytest` на Windows полностью готовят среду.

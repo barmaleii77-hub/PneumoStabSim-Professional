@@ -3,7 +3,8 @@ param(
     [switch]$SkipUvSync,
     [switch]$SkipSystem,
     [switch]$SkipQt,
-    [string]$QtVersion
+    [string]$QtVersion,
+    [string]$PythonPath
 )
 
 Set-StrictMode -Version Latest
@@ -46,7 +47,16 @@ function Invoke-ChocoInstall {
     }
 }
 
-function Ensure-PythonCommand {
+function Resolve-PythonCommand {
+    param([string]$PreferredPath)
+
+    if ($PreferredPath) {
+        if (-not (Test-Path $PreferredPath)) {
+            throw "Provided PythonPath '$PreferredPath' does not exist"
+        }
+        return $PreferredPath
+    }
+
     $python = Get-Command python -ErrorAction SilentlyContinue
     if (-not $python) {
         throw "Python must be installed before running setup_windows.ps1"
@@ -54,7 +64,7 @@ function Ensure-PythonCommand {
     return $python.Source
 }
 
-$pythonPath = Ensure-PythonCommand()
+$pythonPath = Resolve-PythonCommand -PreferredPath $PythonPath
 Write-SetupLog "Using Python from $pythonPath"
 
 if (-not $SkipSystem) {
@@ -86,7 +96,8 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
         'shiboken6>=6.10,<7' `
         'PyOpenGL==3.1.10' `
         'PyOpenGL-accelerate==3.1.10' `
-        'aqtinstall>=3.2.1,<3.3'
+        'aqtinstall>=3.2.1,<3.3' `
+        'pytest-qt'
 } else {
     & $pythonPath -m pip install --upgrade --no-cache-dir `
         'PySide6>=6.10,<7' `
@@ -95,7 +106,8 @@ if (Get-Command uv -ErrorAction SilentlyContinue) {
         'shiboken6>=6.10,<7' `
         'PyOpenGL==3.1.10' `
         'PyOpenGL-accelerate==3.1.10' `
-        'aqtinstall>=3.2.1,<3.3'
+        'aqtinstall>=3.2.1,<3.3' `
+        'pytest-qt'
 }
 
 Write-SetupLog "Provisioning Qt runtime (version $QtVersion)"
@@ -141,6 +153,11 @@ $envContent = @(
     'QSG_RHI_BACKEND=d3d11',
     'QT_OPENGL=software',
     'QT_LOGGING_RULES=*.debug=false;qt.scenegraph.general=false',
+    'QT_QUICK_CONTROLS_STYLE=Fusion',
+    'QT_AUTO_SCREEN_SCALE_FACTOR=1',
+    'QT_ENABLE_HIGHDPI_SCALING=1',
+    'QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough',
+    'QT_ASSUME_STDERR_HAS_CONSOLE=1',
     'PSS_HEADLESS=1',
     "QT_VERSION=$QtVersion"
 )
