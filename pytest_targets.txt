@@ -1,1 +1,1 @@
-# Intentionally empty: default pytest testpaths cover the full suite.
+# Intentionally empty so pytest uses default testpaths.

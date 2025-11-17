@@ -34,6 +34,15 @@ Item {
     property real latestTimestamp: 0
     property int maxSamples: telemetryBridge ? telemetryBridge.maxSamples : 2048
 
+    readonly property alias metricsModelItem: metricsModel
+    readonly property alias intervalComboControl: intervalCombo
+    readonly property alias streamSwitchControl: streamSwitch
+    readonly property alias minSpinControl: minSpin
+    readonly property alias maxSpinControl: maxSpin
+    readonly property alias chartViewItem: chartView
+    readonly property alias timeAxisItem: timeAxis
+    readonly property alias valueAxisItem: valueAxis
+
     implicitWidth: 420
     implicitHeight: panelExpanded ? 520 : headerRow.implicitHeight + 24
     visible: true
@@ -357,8 +366,8 @@ Item {
 
         function onMetricsChanged() { root.rebuildMetricCatalog() }
         function onActiveMetricsChanged() { root.syncSelectionFromBridge() }
-        function onPausedChanged() { root.streamPaused = root.telemetryBridge.paused; streamSwitch.checked = !root.streamPaused }
-        function onUpdateIntervalChanged() { root.updateInterval = root.telemetryBridge.updateInterval; intervalCombo.syncToInterval(root.updateInterval) }
+        function onPausedChanged() { root.streamPaused = root.telemetryBridge.paused; root.streamSwitchControl.checked = !root.streamPaused }
+        function onUpdateIntervalChanged() { root.updateInterval = root.telemetryBridge.updateInterval; root.intervalComboControl.syncToInterval(root.updateInterval) }
         function onSampleAppended(sample) { root.handleSample(sample) }
         function onStreamReset() { root.resetPanel() }
     }
@@ -366,22 +375,22 @@ Item {
     onTelemetryBridgeChanged: {
         root.rebuildMetricCatalog()
         root.syncSelectionFromBridge()
-        if (intervalCombo)
-            intervalCombo.syncToInterval(root.updateInterval)
+        if (root.intervalComboControl)
+            root.intervalComboControl.syncToInterval(root.updateInterval)
     }
 
     onAutoScaleChanged: root.updateValueAxis()
     onTimeWindowChanged: root.updateAxes()
 
     function rebuildMetricCatalog() {
-        metricsModel.clear()
-        metricDescriptorById = ({})
+        root.metricsModelItem.clear()
+        root.metricDescriptorById = ({})
         if (!root.metricCatalog)
             return
         for (var i = 0; i < root.metricCatalog.length; ++i) {
             var entry = root.metricCatalog[i]
-            metricDescriptorById[entry.id] = entry
-            metricsModel.append({ metricId: entry.id, label: entry.label, unit: entry.unit, category: entry.category, metricColor: entry.color })
+            root.metricDescriptorById[entry.id] = entry
+            root.metricsModelItem.append({ metricId: entry.id, label: entry.label, unit: entry.unit, category: entry.category, metricColor: entry.color })
         }
         // вместо локальной JS-копии — сразу подтянуть series из моста, чтобы metricInfoById стал Python dict
         if (root.telemetryBridge) root.refreshSeriesFromBridge()
@@ -392,8 +401,8 @@ Item {
             return
         root.streamPaused = root.telemetryBridge.paused
         root.updateInterval = root.telemetryBridge.updateInterval
-        if (intervalCombo) intervalCombo.syncToInterval(root.updateInterval)
-        if (streamSwitch) streamSwitch.checked = !root.streamPaused
+        if (root.intervalComboControl) root.intervalComboControl.syncToInterval(root.updateInterval)
+        if (root.streamSwitchControl) root.streamSwitchControl.checked = !root.streamPaused
         root.refreshSeriesFromBridge()
     }
 
@@ -456,8 +465,8 @@ Item {
             if (descriptor && descriptor.rangeHint && descriptor.rangeHint.length === 2) {
                 root.manualMin = Number(descriptor.rangeHint[0])
                 root.manualMax = Number(descriptor.rangeHint[1])
-                if (minSpin) minSpin.value = Math.round(root.manualMin * minSpin.valueScale)
-                if (maxSpin) maxSpin.value = Math.round(root.manualMax * maxSpin.valueScale)
+                if (root.minSpinControl) root.minSpinControl.value = Math.round(root.manualMin * root.minSpinControl.valueScale)
+                if (root.maxSpinControl) root.maxSpinControl.value = Math.round(root.manualMax * root.maxSpinControl.valueScale)
             }
         }
         root.updateAxes(); root.updateValueAxis()
@@ -469,7 +478,7 @@ Item {
         for (var metricId in root.seriesMap) {
             if (idsArr.indexOf(metricId) === -1) {
                 var obsolete = root.seriesMap[metricId]
-                chartView.removeSeries(obsolete)
+                root.chartViewItem.removeSeries(obsolete)
                 delete root.seriesMap[metricId]
             }
         }
@@ -481,7 +490,7 @@ Item {
         var existing = root.seriesMap[metricId]
         if (existing) return existing
         var label = descriptor.label + " (" + descriptor.unit + ")"
-        var created = chartView.createSeries(ChartView.SeriesTypeLine, label, timeAxis, valueAxis)
+        var created = root.chartViewItem.createSeries(ChartView.SeriesTypeLine, label, root.timeAxisItem, root.valueAxisItem)
         created.color = descriptor.color
         created.useOpenGL = true
         created.width = 2
@@ -531,9 +540,9 @@ Item {
 
     function updateAxes() {
         var windowSize = Math.max(1, root.timeWindow)
-        if (root.latestTimestamp <= 0 && root.oldestTimestamp <= 0) { timeAxis.min = 0; timeAxis.max = windowSize; return }
-        if (root.autoScroll) { var end = Math.max(windowSize, root.latestTimestamp); timeAxis.max = end; timeAxis.min = Math.max(0, end - windowSize); root.manualScrollPosition = 1.0 }
-        else { var span = Math.max(0, root.latestTimestamp - root.oldestTimestamp); if (span <= windowSize) { var start = Math.max(0, root.oldestTimestamp); timeAxis.min = start; timeAxis.max = start + windowSize } else { var offset = span - windowSize; var position = Math.min(1.0, Math.max(0.0, root.manualScrollPosition)); var startValue = root.oldestTimestamp + offset * position; timeAxis.min = startValue; timeAxis.max = startValue + windowSize } }
+        if (root.latestTimestamp <= 0 && root.oldestTimestamp <= 0) { root.timeAxisItem.min = 0; root.timeAxisItem.max = windowSize; return }
+        if (root.autoScroll) { var end = Math.max(windowSize, root.latestTimestamp); root.timeAxisItem.max = end; root.timeAxisItem.min = Math.max(0, end - windowSize); root.manualScrollPosition = 1.0 }
+        else { var span = Math.max(0, root.latestTimestamp - root.oldestTimestamp); if (span <= windowSize) { var start = Math.max(0, root.oldestTimestamp); root.timeAxisItem.min = start; root.timeAxisItem.max = start + windowSize } else { var offset = span - windowSize; var position = Math.min(1.0, Math.max(0.0, root.manualScrollPosition)); var startValue = root.oldestTimestamp + offset * position; root.timeAxisItem.min = startValue; root.timeAxisItem.max = startValue + windowSize } }
     }
 
     function updateValueAxis() { if (root.autoScale) root.autoScaleAxis(); else root.applyManualScale() }
@@ -552,11 +561,11 @@ Item {
         if (minValue === Number.POSITIVE_INFINITY) { minValue = -1; maxValue = 1 }
         if (minValue === maxValue) { var delta = Math.abs(minValue) * 0.1 + 1e-6; minValue -= delta; maxValue += delta }
         var margin = (maxValue - minValue) * 0.1
-        valueAxis.min = minValue - margin
-        valueAxis.max = maxValue + margin
+        root.valueAxisItem.min = minValue - margin
+        root.valueAxisItem.max = maxValue + margin
     }
 
-    function applyManualScale() { if (root.manualMax <= root.manualMin) { root.manualMax = root.manualMin + 0.001 } valueAxis.min = root.manualMin; valueAxis.max = root.manualMax }
+    function applyManualScale() { if (root.manualMax <= root.manualMin) { root.manualMax = root.manualMin + 0.001 } root.valueAxisItem.min = root.manualMin; root.valueAxisItem.max = root.manualMax }
 
     function resetPanel() {
         root.oldestTimestamp = 0

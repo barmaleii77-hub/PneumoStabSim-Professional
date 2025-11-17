@@ -42,7 +42,6 @@ Control {
 
     contentItem: RowLayout {
         spacing: 10
-        anchors.fill: parent
 
         Rectangle {
             id: indicator
