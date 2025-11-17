@@ -56,7 +56,7 @@ jobs:
             pyproject.toml
 
       - name: Provision Windows Qt runtime
-        run: pwsh ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe"
+        run: pwsh ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe" -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Set up uv
         # Pin to astral-sh/setup-uv v3 from the official astral-sh repository.
@@ -80,7 +80,7 @@ jobs:
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-          ./scripts/setup_windows.ps1 -SkipUvSync
+          ./scripts/setup_windows.ps1 -SkipUvSync -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Provision Qt ${{ env.QT_VERSION }}
         run: python tools/setup_qt.py --qt-version ${{ env.QT_VERSION }} --force --prune-archives

@@ -4,7 +4,8 @@ param(
     [switch]$SkipSystem,
     [switch]$SkipQt,
     [string]$QtVersion,
-    [string]$PythonPath
+    [string]$PythonPath,
+    [string]$SummaryPath
 )
 
 Set-StrictMode -Version Latest
@@ -22,6 +23,10 @@ if (-not $QtVersion) {
     } else {
         $QtVersion = '6.10.0'
     }
+}
+
+if (-not $SummaryPath -and $env:GITHUB_STEP_SUMMARY) {
+    $SummaryPath = $env:GITHUB_STEP_SUMMARY
 }
 
 function Write-SetupLog {
@@ -201,6 +206,58 @@ if (-not [string]::IsNullOrWhiteSpace($envFile)) {
         $parts = $line.Split('=')
         [System.Environment]::SetEnvironmentVariable($parts[0], $parts[1], 'Process')
     }
+}
+
+if ($SummaryPath) {
+    Write-SetupLog "Appending setup summary to $SummaryPath"
+
+    $pythonVersion = 'unavailable'
+    try {
+        $pythonVersion = (& $pythonPath - <<'PY').Trim()
+import sys
+print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+PY
+    } catch {
+        $pythonVersion = "unavailable ($($_.Exception.GetType().Name))"
+    }
+
+    $pysideVersion = 'missing'
+    try {
+        $pysideVersion = (& $pythonPath - <<'PY').Trim()
+try:
+    import PySide6  # noqa: F401
+except Exception as exc:  # pragma: no cover - runtime probe
+    print(f"unavailable ({exc.__class__.__name__})")
+else:
+    import PySide6
+    print(getattr(PySide6, '__version__', 'unknown'))
+PY
+    } catch {
+        $pysideVersion = "unavailable ($($_.Exception.GetType().Name))"
+    }
+
+    $uvVersion = 'unavailable'
+    try {
+        $uvVersion = (uv --version) -join ' '
+    } catch {
+        $uvVersion = "unavailable ($($_.Exception.GetType().Name))"
+    }
+
+    $systemPackages = $SkipSystem ? '<skipped>' : 'directx, vcredist140'
+    $summaryLines = @(
+        '### setup_windows.ps1 summary',
+        "- Platform: $platform ($([System.Environment]::OSVersion.VersionString))",
+        "- Qt version requested: $QtVersion (SkipQt=$SkipQt)",
+        "- System packages targeted: $systemPackages",
+        "- Python ($pythonPath): $pythonVersion",
+        "- uv: $uvVersion",
+        "- PySide6: $pysideVersion",
+        "- QT_PLUGIN_PATH: $($qtPlugins ?? '<empty>')",
+        "- QML2_IMPORT_PATH: $($qtQml ?? '<empty>')",
+        ""
+    )
+
+    Add-Content -Path $SummaryPath -Value $summaryLines -Encoding UTF8
 }
 
 Write-SetupLog "Windows environment bootstrap complete"
