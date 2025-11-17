@@ -300,6 +300,22 @@ def test_volume_limits_adjustment_clamps_and_warns(caplog) -> None:
     )
 
 
+def test_geometric_volume_clamped_into_limits() -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    manager.set_volume_mode("GEOMETRIC")
+    manager.set_receiver_diameter(0.05)
+    manager.set_receiver_length(0.1)
+
+    volume = manager.refresh_geometric_volume()
+    limits = manager.get_volume_limits()
+
+    assert volume == pytest.approx(limits["min_m3"], rel=1e-9)
+    hint = manager.get_hint("receiver_volume")
+    assert hint is not None
+    assert "скорректирован" in hint
+
+
 def test_relief_pressure_hint_exposes_reason() -> None:
     manager = PneumoStateManager(settings_manager=DummySettings())
     manager.set_relief_pressure("relief_min_pressure", 60.0)
@@ -359,3 +375,16 @@ def test_validate_reports_invalid_volume_limits() -> None:
     assert warnings == []
     assert any("Минимальный объём" in message for message in errors)
     assert any("Максимальный объём" in message for message in errors)
+
+
+def test_validate_allows_equal_relief_bounds_when_clamped() -> None:
+    manager = PneumoStateManager(settings_manager=DummySettings())
+
+    manager.set_relief_pressure(
+        "relief_stiff_pressure", manager.get_relief_pressure("relief_min_pressure")
+    )
+
+    errors, warnings = manager.validate_pneumatic()
+
+    assert warnings == []
+    assert not any("сброс" in message for message in errors)
