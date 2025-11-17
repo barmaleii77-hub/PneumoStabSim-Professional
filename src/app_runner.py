@@ -487,7 +487,7 @@ class ApplicationRunner:
             )
 
             logger.info("=" * 60)
-            logger.info("PneumoStabSim v2.0.2 - Application Started")
+            logger.info("PneumoStabSim v4.9.5 - Application Started")
             logger.info("=" * 60)
             logger.info(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
             if self.logging_preset is not None:
@@ -601,7 +601,7 @@ class ApplicationRunner:
                     )
 
         app.setApplicationName("PneumoStabSim")
-        app.setApplicationVersion("2.0.2")
+        app.setApplicationVersion("4.9.5")
         app.setOrganizationName("PneumoStabSim")
 
         if self.app_logger:
@@ -1333,7 +1333,7 @@ class ApplicationRunner:
     def _print_header(self) -> None:
         """Печать заголовка приложения в консоль."""
         print("=" * 60)
-        print("🚀 PNEUMOSTABSIM v2.0.2")
+        print("🚀 PNEUMOSTABSIM v4.9.5")
         print("=" * 60)
 
         try:
