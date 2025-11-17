@@ -64,7 +64,7 @@ class GraphicsLogger:
             "event_type": "session_start",
             "session_id": self.session_id,
             "timestamp": datetime.now().isoformat(),
-            "version": "2.0.2",
+            "version": "4.9.5",
         }
 
         with open(self.session_log_file, "a", encoding="utf-8") as f:
