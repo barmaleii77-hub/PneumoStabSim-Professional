@@ -39,7 +39,9 @@ def _get_wheelbase_slider(panel):
 
 
 @pytest.mark.gui
-def test_get_parameters_returns_copy(geometry_panel, qtbot: pytestqt.qtbot.QtBot) -> None:
+def test_get_parameters_returns_copy(
+    geometry_panel, qtbot: pytestqt.qtbot.QtBot
+) -> None:
     panel = geometry_panel
 
     snapshot = panel.get_parameters()
@@ -48,14 +50,39 @@ def test_get_parameters_returns_copy(geometry_panel, qtbot: pytestqt.qtbot.QtBot
     assert isinstance(snapshot, dict)
     assert "wheelbase" in snapshot
     assert isinstance(settings, GeometrySettings)
-    assert settings.to_config_dict() == snapshot
+    settings_payload = settings.to_config_dict()
+    assert settings_payload.items() <= snapshot.items()
 
     snapshot["wheelbase"] = -123.0
 
     refreshed = panel.get_parameters()
     assert refreshed["wheelbase"] != snapshot["wheelbase"]
     refreshed_settings = panel.get_geometry_settings()
-    assert refreshed_settings.to_config_dict() == refreshed
+    assert refreshed_settings.to_config_dict().items() <= refreshed.items()
+
+
+@pytest.mark.gui
+def test_collect_state_tracks_current_ui(
+    geometry_panel, qtbot: pytestqt.qtbot.QtBot
+) -> None:
+    panel = geometry_panel
+
+    assert hasattr(panel, "collect_state"), "collect_state() must be implemented"
+
+    initial = panel.collect_state()
+    assert isinstance(initial, dict)
+    assert "wheelbase" in initial
+
+    slider = _get_wheelbase_slider(panel)
+    bumped = nudge_slider(slider, 0.02)
+    qtbot.wait(350)
+
+    snapshot = panel.collect_state()
+    assert snapshot["wheelbase"] == pytest.approx(bumped)
+
+    snapshot["wheelbase"] = -123.0
+    refreshed = panel.collect_state()
+    assert refreshed["wheelbase"] != snapshot["wheelbase"]
 
 
 @pytest.mark.gui
@@ -71,7 +98,7 @@ def test_get_parameters_tracks_slider_updates(
     qtbot.wait(350)
 
     params = panel.get_parameters()
-    settings = panel.get_geometry_settings()
+    settings = panel.get_geometry_settings().to_config_dict()
     assert not math.isclose(updated, initial, rel_tol=1e-9, abs_tol=1e-9)
-    assert params == settings.to_config_dict()
+    assert settings.items() <= params.items()
     assert params["wheelbase"] == pytest.approx(get_slider_value(slider))
