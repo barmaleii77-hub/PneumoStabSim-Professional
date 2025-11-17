@@ -912,8 +912,14 @@ class PhysicsWorker(QObject):
                     getattr(logger_obj, level)(fallback_message)
 
         mode_token = str(mode).upper()
+        user_mode_token = mode_token
+        preserve_user_mode = bool(getattr(self, "preserve_user_volume_mode", False))
         mode_enum = self._resolve_receiver_mode(mode_token)
-        applied_mode_token = mode_enum.value
+        applied_mode_token = (
+            "GEOMETRIC"
+            if user_mode_token == "GEOMETRIC" and preserve_user_mode
+            else mode_enum.value
+        )
 
         receiver_update: ReceiverVolumeUpdate | None = None
 
@@ -927,7 +933,8 @@ class PhysicsWorker(QObject):
                     raise AttributeError("Pneumatic system missing receiver state")
                 receiver_update = receiver_state.set_volume(volume, mode_enum)
                 mode_enum = receiver_update.mode
-                applied_mode_token = receiver_update.mode.value
+                if not (preserve_user_mode and user_mode_token == "GEOMETRIC"):
+                    applied_mode_token = receiver_update.mode.value
                 receiver_pressure = receiver_update.pressure
                 receiver_temperature = receiver_update.temperature
 
