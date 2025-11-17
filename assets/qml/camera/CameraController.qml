@@ -226,7 +226,7 @@ Item {
             // Qt интерполирует правильно через SLERP - NO normalization!
             cameraState.yawDeg = cameraState.yawDeg + cameraState.autoRotateSpeed * 0.016 * 10
 
-            if (taaMotionAdaptive) {
+            if (controller.taaMotionAdaptive) {
                 cameraState.flagMotion()
             }
         }
@@ -553,30 +553,30 @@ Item {
     // BRIDGE INTEGRATION
     // ===============================================================
     function _applySceneBridgeState() {
-        if (!sceneBridge)
+        if (!controller.sceneBridge)
             return
 
-        if (sceneBridge.geometry && Object.keys(sceneBridge.geometry).length)
-            updateGeometry(sceneBridge.geometry)
+        if (controller.sceneBridge.geometry && Object.keys(controller.sceneBridge.geometry).length)
+            updateGeometry(controller.sceneBridge.geometry)
 
-        if (sceneBridge.camera && Object.keys(sceneBridge.camera).length)
-            applyCameraUpdates(sceneBridge.camera)
+        if (controller.sceneBridge.camera && Object.keys(controller.sceneBridge.camera).length)
+            applyCameraUpdates(controller.sceneBridge.camera)
     }
 
     onSceneBridgeChanged: _applySceneBridgeState()
 
     Connections {
-        target: sceneBridge
-        enabled: !!sceneBridge
+        target: controller.sceneBridge
+        enabled: !!controller.sceneBridge
 
         function onGeometryChanged(payload) {
             if (payload)
-                updateGeometry(payload)
+                controller.updateGeometry(payload)
         }
 
         function onCameraChanged(payload) {
             if (payload)
-                applyCameraUpdates(payload)
+                controller.applyCameraUpdates(payload)
         }
     }
 

@@ -1,6 +1,5 @@
 import QtQuick 6.10
-import QtQuick.Controls 6.10
-import "./Panels" as Panels
+import "../Panels" as Panels
 
 Item {
     id: root
@@ -58,6 +57,6 @@ Item {
 
     Panels.SimulationPanel {
         id: simulationPanel
-        anchors.centerIn: parent
+        anchors.centerIn: root
     }
 }
