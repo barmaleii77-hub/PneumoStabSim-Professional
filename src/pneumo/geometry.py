@@ -138,6 +138,24 @@ class LeverGeom:
 
         return self._neutral_joint_point
 
+    @property
+    def lever_arm(self) -> float:
+        """Return the absolute distance from the hinge to the rod joint."""
+
+        return self.rod_joint_frac * self.L_lever
+
+    @property
+    def frame_offset(self) -> float:
+        """Compatibility alias for the frame-to-hinge spacing."""
+
+        return self.d_frame_to_lever_hinge
+
+    @property
+    def attached_cylinder(self) -> "CylinderGeom | None":
+        """Alias for the currently attached cylinder geometry."""
+
+        return self._attached_geom
+
     def _validate_parameters(self) -> None:
         """Проверить параметры рычага."""
         if self.L_lever <= 0:

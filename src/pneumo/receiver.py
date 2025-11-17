@@ -72,6 +72,22 @@ class ReceiverState:
     def __post_init__(self) -> None:
         self._validate_state()
 
+    @property
+    def gamma(self) -> float:
+        """Return the adiabatic index used for recalculations."""
+
+        return self._gamma
+
+    @gamma.setter
+    def gamma(self, value: float) -> None:
+        """Update the adiabatic index with basic validation."""
+
+        if value <= 1.0:
+            raise ModelConfigError(
+                f"Adiabatic gamma must be greater than 1.0, got {value}"
+            )
+        self._gamma = float(value)
+
     def _validate_state(self) -> None:
         """Validate current state parameters"""
         if not (self.spec.V_min <= self.V <= self.spec.V_max):
