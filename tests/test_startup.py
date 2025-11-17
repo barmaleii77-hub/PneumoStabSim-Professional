@@ -163,10 +163,14 @@ class _DummyQtModule:
             return cls._instance
 
 
-def test_runner_bootstrap_records_headless_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_runner_bootstrap_records_headless_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(os, "environ", {})
 
-    runner = ApplicationRunner(object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer)
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer
+    )
     runner.platform_slug = "linux"
     runner.safe_mode_requested = False
 
@@ -183,7 +187,9 @@ def test_runner_bootstrap_records_headless_environment(monkeypatch: pytest.Monke
 def test_runner_bootstrap_respects_safe_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(os, "environ", {"QT_QPA_PLATFORM": "xcb"})
 
-    runner = ApplicationRunner(object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer)
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer
+    )
     runner.platform_slug = "darwin"
     runner.safe_mode_requested = True
 
@@ -207,7 +213,9 @@ def test_schedule_safe_exit_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> No
     qt_core.exit = _exit
     qt_core.quit = lambda: setattr(qt_core, "quit_called", True)
 
-    runner = ApplicationRunner(object, lambda *_, **__: None, _DummyQtModule, _DummyQTimer)
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, _DummyQtModule, _DummyQTimer
+    )
     runner.app_instance = types.SimpleNamespace()
 
     runner._schedule_safe_exit(

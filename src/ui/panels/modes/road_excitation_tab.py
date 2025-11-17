@@ -242,9 +242,7 @@ class RoadExcitationTab(QWidget):
         self.road_profile_combo = QComboBox()
         for value, label in ROAD_PROFILE_OPTIONS:
             self.road_profile_combo.addItem(label, value)
-        self.road_profile_combo.currentIndexChanged.connect(
-            self._on_profile_changed
-        )
+        self.road_profile_combo.currentIndexChanged.connect(self._on_profile_changed)
         layout.addWidget(self.road_profile_combo)
 
         self.custom_profile_field = QLineEdit()

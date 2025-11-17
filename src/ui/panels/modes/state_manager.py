@@ -40,7 +40,10 @@ class ModesStateManager:
         physics_defaults = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
 
         stored = self.settings_manager.get_category("modes", {}) or {}
-        self.parameters = {**defaults, **{k: v for k, v in stored.items() if k != "physics"}}
+        self.parameters = {
+            **defaults,
+            **{k: v for k, v in stored.items() if k != "physics"},
+        }
         self.physics_options = {**physics_defaults, **stored.get("physics", {})}
 
         preset_name = str(self.parameters.get("mode_preset", ""))
@@ -59,7 +62,9 @@ class ModesStateManager:
         if ambient_c is not None:
             pneumatic = self.settings_manager.get_category("pneumatic", {}) or {}
             pneumatic["atmo_temp"] = float(ambient_c)
-            self.settings_manager.set_category("pneumatic", pneumatic, auto_save=auto_save)
+            self.settings_manager.set_category(
+                "pneumatic", pneumatic, auto_save=auto_save
+            )
 
     def get_parameters(self) -> dict[str, Any]:
         """Получить копию параметров"""
