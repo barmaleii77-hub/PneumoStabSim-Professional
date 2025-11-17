@@ -25,6 +25,13 @@ Pane {
     // Shared integer scaling factor for spin boxes representing metre-based fractions
     readonly property int _floatScale: 10000
     readonly property var _defaultRanges: (modesMetadata && modesMetadata.parameterRanges) ? modesMetadata.parameterRanges : {}
+    readonly property var _roadProfiles: [
+        { text: qsTr("Гладкое шоссе"), value: "smooth_highway" },
+        { text: qsTr("Городские улицы"), value: "city_streets" },
+        { text: qsTr("Пересечённая местность"), value: "off_road" },
+        { text: qsTr("Горный серпантин"), value: "mountain_serpentine" },
+        { text: qsTr("Пользовательский"), value: "custom" }
+    ]
 
     function _tr(id, fallback) {
         const resolved = qsTrId(id)
@@ -257,6 +264,12 @@ Pane {
             smoothing_piston_snap_m: smoothingPistonSlider.value,
             smoothing_easing: smoothingCombo.model[smoothingCombo.currentIndex].value
         }
+        if (roadProfileCombo) {
+            payload.road_profile = roadProfileCombo.currentValue || roadProfileCombo.currentText
+        }
+        if (customProfileField) {
+            payload.custom_profile_path = customProfileField.text
+        }
         if (extra) {
             for (var key in extra) {
                 if (Object.prototype.hasOwnProperty.call(extra, key))
@@ -270,7 +283,9 @@ Pane {
         modesPhysicsChanged({
             include_springs: springsCheck.checked,
             include_dampers: dampersCheck.checked,
-            include_pneumatics: pneumaticsCheck.checked
+            include_pneumatics: pneumaticsCheck.checked,
+            include_springs_kinematics: kinematicSpringsCheck.checked,
+            include_dampers_kinematics: kinematicDampersCheck.checked
         })
     }
 
@@ -301,10 +316,26 @@ Pane {
             _setComboValue(simTypeCombo, data.sim_type, "KINEMATICS")
         if (data.thermo_mode !== undefined)
             _setComboValue(thermoCombo, data.thermo_mode, "ISOTHERMAL")
+        if (data.road_profile !== undefined)
+            _setComboValue(roadProfileCombo, data.road_profile, _roadProfiles[0].value)
+        if (Object.prototype.hasOwnProperty.call(data, "custom_profile_path"))
+            customProfileField.text = data.custom_profile_path || ""
+        if (Object.prototype.hasOwnProperty.call(data, "check_interference"))
+            _setCheckBox(interferenceCheck, data.check_interference, false)
         if (data.physics) {
             _setCheckBox(springsCheck, data.physics.include_springs, true)
             _setCheckBox(dampersCheck, data.physics.include_dampers, true)
             _setCheckBox(pneumaticsCheck, data.physics.include_pneumatics, true)
+            _setCheckBox(
+                kinematicSpringsCheck,
+                data.physics.include_springs_kinematics,
+                true
+            )
+            _setCheckBox(
+                kinematicDampersCheck,
+                data.physics.include_dampers_kinematics,
+                true
+            )
         }
         _updatingFromPython = false
         return true
@@ -338,6 +369,10 @@ Pane {
         var easing = data.smoothing_easing || data.smoothingEasing || data.smoothingEasingName
         if (easing !== undefined)
             _setComboValue(smoothingCombo, easing, smoothingCombo.model[0].value)
+        if (data.road_profile !== undefined)
+            _setComboValue(roadProfileCombo, data.road_profile, _roadProfiles[0].value)
+        if (Object.prototype.hasOwnProperty.call(data, "custom_profile_path"))
+            customProfileField.text = data.custom_profile_path || ""
         if (data.is_running !== undefined)
             simulationRunning = !!data.is_running
         _updatingFromPython = false
@@ -610,6 +645,37 @@ Pane {
                             _emitPhysicsOptions()
                         }
                     }
+                    CheckBox {
+                        id: kinematicSpringsCheck
+                        text: qsTr("Пружины в кинематике")
+                        onToggled: {
+                            if (root._updatingFromPython)
+                                return
+                            root._activePresetId = "custom"
+                            _emitPhysicsOptions()
+                        }
+                    }
+                    CheckBox {
+                        id: kinematicDampersCheck
+                        text: qsTr("Демпферы в кинематике")
+                        onToggled: {
+                            if (root._updatingFromPython)
+                                return
+                            root._activePresetId = "custom"
+                            _emitPhysicsOptions()
+                        }
+                    }
+                    CheckBox {
+                        id: interferenceCheck
+                        text: qsTr("Проверять пересечения")
+                        onToggled: {
+                            if (root._updatingFromPython)
+                                return
+                            root._activePresetId = "custom"
+                            _emitPhysicsOptions()
+                            modesModeChanged("check_interference", interferenceCheck.checked)
+                        }
+                    }
                 }
             }
 
@@ -620,6 +686,41 @@ Pane {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 10
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: qsTr("Профиль дороги")
+                            Layout.preferredWidth: 150
+                        }
+                        ComboBox {
+                            id: roadProfileCombo
+                            Layout.fillWidth: true
+                            model: _roadProfiles
+                            textRole: "text"
+                            valueRole: "value"
+                            onActivated: {
+                                if (root._updatingFromPython)
+                                    return
+                                root._activePresetId = "custom"
+                                customProfileField.enabled = currentValue === "custom"
+                                _emitAnimationPayload()
+                            }
+                        }
+                    }
+
+                    TextField {
+                        id: customProfileField
+                        Layout.fillWidth: true
+                        enabled: roadProfileCombo.currentValue === "custom"
+                        placeholderText: qsTr("Путь или идентификатор пользовательского профиля")
+                        onEditingFinished: {
+                            if (root._updatingFromPython)
+                                return
+                            root._activePresetId = "custom"
+                            _emitAnimationPayload()
+                        }
+                    }
 
                     RowLayout {
                         Layout.fillWidth: true

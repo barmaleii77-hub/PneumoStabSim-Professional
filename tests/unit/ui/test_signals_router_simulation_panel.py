@@ -43,7 +43,12 @@ class _DummySettingsManager:
                 "physics_dt": 0.001,
             },
             "modes": {
+                "sim_type": "KINEMATICS",
+                "thermo_mode": "ISOTHERMAL",
                 "mode_preset": "standard",
+                "road_profile": "smooth_highway",
+                "custom_profile_path": "",
+                "check_interference": False,
                 "physics": copy.deepcopy(DEFAULT_PHYSICS_OPTIONS),
             },
             "current.constants.geometry.cylinder": {
