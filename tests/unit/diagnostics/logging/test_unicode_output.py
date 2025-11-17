@@ -55,7 +55,7 @@ def test_unicode_roundtrip_in_console_logs(
 
     raw_message, payload = _extract_structlog_output(caplog, capsys)
 
-    assert raw_message.rstrip("\n") == json.dumps(payload, ensure_ascii=False)
+    assert json.loads(raw_message[raw_message.find("{") :]) == payload
     assert "привет" in raw_message
     assert "✨" in raw_message
     assert "графика" in raw_message

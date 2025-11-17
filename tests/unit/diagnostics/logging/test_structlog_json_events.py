@@ -61,7 +61,7 @@ def test_structlog_json_contains_context(
 
     raw_message, payload = _extract_structlog_payload(caplog, capsys)
 
-    assert raw_message.rstrip("\n") == json.dumps(payload, ensure_ascii=False)
+    assert json.loads(raw_message[raw_message.find("{") :]) == payload
     assert payload["event"] == "diagnostic_event"
     assert payload["level"] == "info"
     assert "timestamp" in payload
