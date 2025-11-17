@@ -444,6 +444,6 @@ except Exception as e:
 
 ---
 
-**Версия**: 2.0.1
+**Версия**: 4.9.5
 **Дата**: 2024
 **Автор**: PneumoStabSim Development Team

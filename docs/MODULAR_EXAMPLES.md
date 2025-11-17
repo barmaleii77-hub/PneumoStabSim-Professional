@@ -214,7 +214,7 @@ class MyCustomRunner(ApplicationRunner):
     def _print_header(self):
         """Кастомный заголовок."""
         print("=" * 60)
-        print("🎨 MY CUSTOM APP v2.0.1")
+        print("🎨 MY CUSTOM APP v4.9.5")
         print("=" * 60)
         print("⏳ Starting...")
 

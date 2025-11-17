@@ -53,7 +53,7 @@ removed immediately._
 - Audit cache: `.cache/hdr_assets/` хранит валидированные копии для офлайн-разработки;
   CI использует тот же каталог, поэтому держите его в актуальном состоянии после добавления новых карт.
 
-## ✅ Path Unification (v2.0.1)
+## ✅ Path Unification (v4.9.5)
 
 **All HDR paths are now normalized to `file://` URLs through centralized processing.**
 
