@@ -1,4 +1,1 @@
-# Additional pytest suites executed alongside the default unit/integration/UI runs.
-# Intentionally left empty so that the standard testpaths continue to cover the
-# full matrix. Populate this file only when specific ad-hoc suites must always
-# run in CI.
+# Intentionally empty: default pytest testpaths cover the full suite.

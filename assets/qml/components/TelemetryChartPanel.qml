@@ -4,7 +4,7 @@ import QtQuick.Layouts 6.10
 // PySide 6.7 reports mismatched revision metadata for QtCharts' qmllint types.
 // See https://bugreports.qt.io/browse/PYSIDE-2268 — suppress the noisy warning.
 // qmllint disable import
-import QtCharts
+import QtCharts 6.10
 // qmllint enable import
 
 pragma ComponentBehavior: Bound
@@ -288,7 +288,9 @@ Item {
                             required property color metricColor
                             implicitWidth: {
                                 const viewWidth = metricsView && metricsView.width !== undefined ? Number(metricsView.width) : NaN
-                                const fallbackWidth = parent && parent.width !== undefined ? Number(parent.width) : NaN
+                                const fallbackWidth = metricDelegate.parent && metricDelegate.parent.width !== undefined
+                                    ? Number(metricDelegate.parent.width)
+                                    : NaN
                                 const baseWidth = Number.isFinite(viewWidth) ? viewWidth : fallbackWidth
                                 return Number.isFinite(baseWidth) ? Math.round(baseWidth) : 0
                             }
