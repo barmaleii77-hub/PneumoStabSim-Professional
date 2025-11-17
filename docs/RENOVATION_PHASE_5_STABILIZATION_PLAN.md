@@ -79,8 +79,8 @@ Use this log for incident summaries, release retrospectives, and KPI snapshots.
 - Introduced `src/diagnostics/logger_factory.py` to enforce structlog JSON output across diagnostics/core modules and updated QML fallback logging to the same format via `assets/qml/diagnostics/LogBridge.js`.
 - Added `src/telemetry/` tracker that writes user and simulation events to `reports/telemetry/`, enabling downstream dashboards to rely on consistent JSONL feeds.
 
-### 2026-06-07 – Release 4.9.8 alignment
-- Обновлена целевая версия стабилизационного цикла до `v4.9.8`; мастер-план и README отражают актуальный номер релиза.
+### 2026-06-07 – Release 2.0.1 alignment
+- Целевая версия стабилизационного цикла обновлена до `v2.0.1` после интеграции HDR-ветки; мастер-план и README синхронизированы с релизной целью.
 - Юнит-тест `tests/unit/test_version_consistency.py` расширен проверкой мастер-плана, чтобы оперативные документы не расходились с настройками.
 
 ### 2025-10-10 – Telemetry pilot and on-call readiness

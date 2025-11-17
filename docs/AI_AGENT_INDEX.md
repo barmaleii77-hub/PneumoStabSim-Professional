@@ -10,7 +10,7 @@
 | `.github/copilot-instructions.md` | Конкретные указания для Copilot GPT и IDE | Команды запуска, структура проекта, версии | Свериться с `docs/ENVIRONMENT_SETUP.md` и `tests/README.md` для актуальных команд перед генерацией кода. |
 | `docs/CODEX_COPILOT_PROMPT.md` | Базовый prompt для Codex / Copilot | Логирование, конфиги, анти-магические числа | Вставить шаблон из раздела 7 в начало сессии. |
 | `docs/codex_prompt_container_setup.md` | Настройка контейнеров и CI | Docker, headless Qt, отчёты | Проверить, что `docs/ENVIRONMENT_SETUP.md` совпадает с описанными переменными; обновления вносить в оба документа. |
-| `docs/codex_prompt_hdr_assets_migration.md` | Миграция HDR ассетов | Пути, шейдеры, настройки сцены | Перед использованием убедиться, что версия проекта — `v4.9.8` (см. `config/app_settings.json`). |
+| `docs/codex_prompt_hdr_assets_migration.md` | Миграция HDR ассетов | Пути, шейдеры, настройки сцены | Перед использованием убедиться, что версия проекта — `v2.0.1` (см. `config/app_settings.json`). |
 | `docs/codex_prompt_qml_optimization.md` | Оптимизация QML | qmllint, pragma, требования к свойствам | Сначала выполнить `qmllint` из `make check`; применить правила из раздела «Lint policy». |
 | `docs/codex_prompt_units_normalisation.md` | Нормализация единиц измерения | Математика, физика, отображение в UI | Проверить, что настройки взяты из `config/app_settings.json`, а не из литералов. |
 
