@@ -53,6 +53,154 @@ LEGACY_GEOMETRY_MESH_EXTRAS: set[str] = {
 # но всё ещё могут встречаться в старых app_settings.json и тестовых фикстурах.
 LEGACY_GEOMETRY_ALLOWED_KEYS: set[str] = {"max_susp_travel_m", "max_susp_travel"}
 
+_CAMEL_BOUNDARY = re.compile(r"(?<!^)(?=[A-Z])")
+_MM_PER_M = 1000.0
+
+GEOMETRY_LINEAR_KEYS: set[str] = {
+    "wheelbase",
+    "track",
+    "frame_to_pivot",
+    "lever_length",
+    "cylinder_length",
+    "frame_height_m",
+    "frame_beam_size_m",
+    "frame_length_m",
+    "lever_length_m",
+    "cyl_diam_m",
+    "stroke_m",
+    "dead_gap_m",
+    "rod_diameter_m",
+    "rod_diameter_rear_m",
+    "piston_rod_length_m",
+    "piston_thickness_m",
+    "cylinder_body_length_m",
+    "tail_rod_length_m",
+}
+
+GEOMETRY_KEY_ALIASES: dict[str, str] = {
+    "frame_length_mm": "frame_length_m",
+    "frame_length": "frame_length_m",
+    "frame_height_mm": "frame_height_m",
+    "frame_height": "frame_height_m",
+    "frame_beam_size_mm": "frame_beam_size_m",
+    "frame_beam_size": "frame_beam_size_m",
+    "lever_length_mm": "lever_length_m",
+    "lever_length_visual_mm": "lever_length_m",
+    "lever_length_visual": "lever_length_m",
+    "cylinder_body_length_mm": "cylinder_body_length_m",
+    "cylinder_body_length": "cylinder_body_length_m",
+    "tail_rod_length_mm": "tail_rod_length_m",
+    "tail_rod_length": "tail_rod_length_m",
+    "track_width_mm": "track",
+    "track_width": "track",
+    "frame_to_pivot_mm": "frame_to_pivot",
+    "cyl_diam_mm": "cyl_diam_m",
+    "cyl_diam": "cyl_diam_m",
+    "stroke_mm": "stroke_m",
+    "stroke": "stroke_m",
+    "dead_gap_mm": "dead_gap_m",
+    "dead_gap": "dead_gap_m",
+    "rod_diameter_front_mm": "rod_diameter_m",
+    "rod_diameter_rear_mm": "rod_diameter_rear_m",
+    "rod_diameter_rear": "rod_diameter_rear_m",
+    "rod_diameter_mm": "rod_diameter_m",
+    "rod_diameter": "rod_diameter_m",
+    "piston_rod_length_mm": "piston_rod_length_m",
+    "piston_rod_length": "piston_rod_length_m",
+    "piston_thickness_mm": "piston_thickness_m",
+    "piston_thickness": "piston_thickness_m",
+    "wheelbase_mm": "wheelbase",
+    "wheel_base_mm": "wheelbase",
+    "wheel_base": "wheelbase",
+}
+
+GEOMETRY_MIRROR_KEYS: dict[str, str] = {"lever_length": "lever_length_m"}
+
+ENVIRONMENT_KEY_ALIASES: dict[str, str] = {
+    "ibl_background_enabled": "skybox_enabled",
+    "iblbackgroundenabled": "skybox_enabled",
+    "ibl_lighting_enabled": "ibl_enabled",
+    "ibllightingenabled": "ibl_enabled",
+    "probe_brightness": "skybox_brightness",
+}
+
+EFFECTS_KEY_ALIASES: dict[str, str] = {
+    "tonemap_active": "tonemap_enabled",
+    "tonemapenabled": "tonemap_enabled",
+    "tonemap_mode_name": "tonemap_mode",
+    "tonemapmodename": "tonemap_mode",
+    "depth_of_field_enabled": "depth_of_field",
+    "depthoffieldenabled": "depth_of_field",
+    "vignette_enabled": "vignette",
+    "vignetteenabled": "vignette",
+    "lens_flare_enabled": "lens_flare",
+    "lensflareenabled": "lens_flare",
+    "motion_blur_enabled": "motion_blur",
+    "motionblur_enabled": "motion_blur",
+    "color_brightness": "adjustment_brightness",
+    "color_contrast": "adjustment_contrast",
+    "color_saturation": "adjustment_saturation",
+    "bloom_hdr_maximum": "bloom_hdr_max",
+    "bloom_h_d_r_maximum": "bloom_hdr_max",
+}
+
+CAMERA_KEY_ALIASES: dict[str, str] = {"manual_mode": "manual_camera"}
+
+
+def _camel_to_snake(name: Any) -> Any:
+    if not isinstance(name, str):
+        return name
+    token = name.strip()
+    if not token:
+        return token
+    token = token.replace("-", "_")
+    snake = _CAMEL_BOUNDARY.sub("_", token)
+    while "__" in snake:
+        snake = snake.replace("__", "_")
+    snake = snake.lower()
+    for acronym_parts, fused in (
+        ("h_d_r", "hdr"),
+        ("i_b_l", "ibl"),
+        ("s_s_a_o", "ssao"),
+        ("t_o_n_e_m_a_p", "tonemap"),
+    ):
+        if acronym_parts in snake:
+            snake = snake.replace(acronym_parts, fused)
+    return snake
+
+
+def _scale_mm_value(value: Any) -> tuple[Any, bool]:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return value, False
+    converted = numeric / _MM_PER_M
+    return converted, True
+
+
+def _normalise_dict_keys(
+    payload: dict[str, Any],
+    aliases: dict[str, str],
+) -> bool:
+    changed = False
+    normalised: dict[str, Any] = {}
+
+    for raw_key, value in list(payload.items()):
+        canonical = _camel_to_snake(raw_key)
+        mapped = aliases.get(canonical, canonical)
+        if mapped != raw_key or mapped != canonical:
+            changed = True
+        if mapped in normalised:
+            continue
+        normalised[mapped] = value
+
+    if normalised != payload:
+        payload.clear()
+        payload.update(normalised)
+        changed = True
+
+    return changed
+
 
 class _RelaxedAppSettings(AppSettings):
     """Variant of :class:`AppSettings` that ignores unknown fields."""
@@ -311,6 +459,7 @@ class SettingsService:
         try:
             self._soft_fill_defaults(payload)
             self._soft_fill_constants(payload)
+            self._soft_fill_materials(payload)
         except Exception:
             pass
 
@@ -426,6 +575,61 @@ class SettingsService:
                 root[key] = node
             return node
 
+        def _normalise_geometry_aliases(section: MutableMapping[str, Any]) -> None:
+            geometry = section.get("geometry")
+            if not isinstance(geometry, MutableMapping):
+                return
+
+            normalised: dict[str, Any] = {}
+            for raw_key, raw_value in list(geometry.items()):
+                canonical = _camel_to_snake(raw_key)
+                mapped = GEOMETRY_KEY_ALIASES.get(canonical, canonical)
+                value = raw_value
+                mm_key = "_mm" in canonical or raw_key.lower().endswith("mm")
+                should_convert = (
+                    legacy_units and mm_key and mapped in GEOMETRY_LINEAR_KEYS
+                )
+                if should_convert:
+                    coerced, converted = _scale_mm_value(raw_value)
+                    value = coerced if converted else raw_value
+                if mapped not in normalised:
+                    normalised[mapped] = value
+            geometry.clear()
+            geometry.update(normalised)
+            for source, mirror in GEOMETRY_MIRROR_KEYS.items():
+                if source in geometry and mirror not in geometry:
+                    geometry[mirror] = geometry[source]
+                elif mirror in geometry and source not in geometry:
+                    geometry[source] = geometry[mirror]
+
+        def _normalise_graphics_sections(section: MutableMapping[str, Any]) -> None:
+            graphics = section.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+
+            environment = graphics.get("environment")
+            if isinstance(environment, MutableMapping):
+                _normalise_dict_keys(environment, ENVIRONMENT_KEY_ALIASES)
+                if (
+                    "skybox_brightness" not in environment
+                    and "probe_brightness" in environment
+                ):
+                    environment["skybox_brightness"] = environment.pop(
+                        "probe_brightness"
+                    )
+                else:
+                    environment.pop("probe_brightness", None)
+
+            effects = graphics.get("effects")
+            if isinstance(effects, MutableMapping):
+                _normalise_dict_keys(effects, EFFECTS_KEY_ALIASES)
+                if "bloom_hdr_max" not in effects and "bloom_hdr_maximum" in effects:
+                    effects["bloom_hdr_max"] = effects.pop("bloom_hdr_maximum")
+
+            camera = graphics.get("camera")
+            if isinstance(camera, MutableMapping):
+                _normalise_dict_keys(camera, CAMERA_KEY_ALIASES)
+
         def _migrate_reflection(section: MutableMapping[str, Any]) -> None:
             graphics = section.get("graphics")
             if not isinstance(graphics, MutableMapping):
@@ -469,7 +673,6 @@ class SettingsService:
                 geometry["lever_length"] = (
                     float(lever_m_value) if lever_m_value is not None else 0.0
                 )
-            geometry.pop("lever_length_m", None)
             # Новая миграция: max_susp_travel_m → max_susp_travel
             if "max_susp_travel" not in geometry and "max_susp_travel_m" in geometry:
                 max_travel_value = geometry.get("max_susp_travel_m")
@@ -585,6 +788,20 @@ class SettingsService:
         defaults = _ensure_dict(payload, "defaults_snapshot")
         metadata = _ensure_dict(payload, "metadata")
 
+        units_version_value = metadata.get("units_version")
+        legacy_units = (
+            isinstance(units_version_value, str)
+            and units_version_value.lower() != "si_v2"
+        )
+
+        # 0) Normalise legacy graphics/geometry keys before schema validation
+        _normalise_graphics_sections(current)
+        _normalise_graphics_sections(defaults)
+        _normalise_geometry_aliases(current)
+        _normalise_geometry_aliases(defaults)
+        if legacy_units:
+            metadata["units_version"] = "si_v2"
+
         # 1) Reflection probe unification
         _migrate_reflection(current)
         _migrate_reflection(defaults)
@@ -698,6 +915,10 @@ class SettingsService:
         elif lowered.startswith("file:/"):
             text = text[6:]
         text = text.replace("\\", "/")
+        if re.match(r"^[A-Za-z]/", text):
+            text = f"{text[0]}:/" + text[2:]
+        if re.match(r"^[A-Za-z]:[^/].*", text):
+            text = text[0:2] + "/" + text[2:]
         try:
             candidate = Path(text).expanduser()
         except Exception:
@@ -716,7 +937,7 @@ class SettingsService:
             else:
                 relative_override = relative.as_posix()
         if relative_override:
-            return relative_override
+            normalised = relative_override
         if re.match(r"^[a-zA-Z]:[\\/].*", text):
             windows_normalised = PureWindowsPath(text).as_posix().lower()
             if relative_override:
@@ -724,7 +945,14 @@ class SettingsService:
             else:
                 if windows_normalised and windows_normalised not in normalised.lower():
                     normalised = windows_normalised
-        return normalised.lower()
+        lowered = normalised.lower()
+        repo_marker = PROJECT_ROOT.name.lower()
+        marker_pos = lowered.rfind(repo_marker)
+        if marker_pos != -1:
+            tail = normalised[marker_pos + len(repo_marker) :].lstrip("/\\")
+            if tail:
+                return tail.lower()
+        return lowered
 
     def _normalise_hdr_paths(self, payload: MutableMapping[str, Any] | None) -> None:
         """Normalize HDR paths in graphics settings."""
@@ -847,8 +1075,8 @@ class SettingsService:
             if source is not None:
                 _ensure_mapping(current, "constants").update(deepcopy(source))
 
+        source2: Mapping[str, Any] | None = None
         if not defs_has:
-            source2: Mapping[str, Any] | None = None
             maybe2 = (
                 current.get("constants")
                 if isinstance(current, MutableMapping)
@@ -859,6 +1087,59 @@ class SettingsService:
                 source2 = baseline_constants
             if source2 is not None:
                 _ensure_mapping(defaults, "constants").update(deepcopy(source2))
+
+    def _soft_fill_materials(self, payload: MutableMapping[str, Any]) -> None:
+        """Мягко восстановить раздел materials для графики."""
+
+        if not isinstance(payload, MutableMapping):
+            return
+
+        current = payload.get("current")
+        defaults = payload.get("defaults_snapshot")
+        if not isinstance(current, MutableMapping) or not isinstance(
+            defaults, MutableMapping
+        ):
+            return
+
+        def _graphics(root: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+            graphics = root.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                graphics = {}
+                root["graphics"] = graphics
+            return graphics
+
+        def _materials(
+            root: MutableMapping[str, Any],
+        ) -> MutableMapping[str, Any] | None:
+            graphics = _graphics(root)
+            mats = graphics.get("materials")
+            return mats if isinstance(mats, MutableMapping) else None
+
+        baseline_materials: Mapping[str, Any] | None = None
+        try:
+            baseline_path = PROJECT_ROOT / "config" / "app_settings.json"
+            with baseline_path.open("r", encoding="utf-8") as stream:
+                baseline_payload = json.load(stream)
+            for section_name in ("current", "defaults_snapshot"):
+                node = baseline_payload.get(section_name)
+                if not isinstance(node, MappingABC):
+                    continue
+                graphics = node.get("graphics")
+                if not isinstance(graphics, MappingABC):
+                    continue
+                mats = graphics.get("materials")
+                if isinstance(mats, MappingABC):
+                    baseline_materials = mats
+                    break
+        except Exception:
+            baseline_materials = None
+
+        if _materials(current) is None and baseline_materials is not None:
+            _graphics(current)["materials"] = deepcopy(baseline_materials)
+        if _materials(defaults) is None:
+            source = _materials(current) or baseline_materials
+            if source is not None:
+                _graphics(defaults)["materials"] = deepcopy(source)
 
     def save(
         self,
@@ -882,6 +1163,7 @@ class SettingsService:
         # Мягкая реконструкция defaults_snapshot до validate()
         self._soft_fill_defaults(payload_dict)
         self._soft_fill_constants(payload_dict)
+        self._soft_fill_materials(payload_dict)
         self._normalise_fog_depth_aliases(payload_dict)
         self._normalise_hdr_paths(payload_dict)
         self._strip_null_slider_metadata(payload_dict)
@@ -1074,7 +1356,13 @@ class SettingsService:
         self._guard_unknown_geometry_keys(payload)
 
         validator = self._get_validator()
-        errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
+        payload_for_validation = json.loads(json.dumps(payload))
+        if isinstance(payload_for_validation, dict):
+            payload_for_validation.pop("legacy", None)
+
+        errors = sorted(
+            validator.iter_errors(payload_for_validation), key=lambda err: err.path
+        )
         if not errors:
             # Безошибочная схема — дополнительно сверяем материалы и выходим.
             self._validate_graphics_materials(payload)

@@ -24,7 +24,7 @@ def test_get_parameters_tracks_active_preset(qtbot: pytestqt.qtbot.QtBot) -> Non
 
     combo = panel._combo  # noqa: SLF001 - test helper access
     if combo is None or combo.count() <= 1:
-        pytest.skip("No tonemapping presets available for selection")
+        pytest.skip("No tonemapping presets available for selection")  # pytest-skip-ok
 
     combo.setCurrentIndex(1)
     qtbot.wait(50)
