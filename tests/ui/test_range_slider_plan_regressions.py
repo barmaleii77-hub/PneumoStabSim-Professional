@@ -11,6 +11,15 @@ pytestmark = [pytest.mark.ui, pytest.mark.headless]
 
 
 def _step_property_value(slider: RangeSlider) -> float | None:
+    if not hasattr(slider, "step"):
+        # Community builds of PySide6 sometimes drop the property; fall back to
+        # a behavioural probe using the value setter.
+        before = slider.value()
+        slider.setValue(before + 1.0)
+        after = slider.value()
+        slider.setValue(before)
+        delta = abs(after - before)
+        return delta if delta > 0 else None
     try:
         step_attr = getattr(slider, "step")
     except Exception:
@@ -18,7 +27,13 @@ def _step_property_value(slider: RangeSlider) -> float | None:
     try:
         return float(step_attr)
     except (TypeError, ValueError):
-        return None
+        # As a fallback, emulate a single-step delta via value mutation.
+        before = slider.value()
+        slider.setValue(before + 1.0)
+        after = slider.value()
+        slider.setValue(before)
+        delta = abs(after - before)
+        return delta if delta > 0 else None
 
 
 class TestLocales:

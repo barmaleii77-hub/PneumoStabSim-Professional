@@ -77,4 +77,15 @@ class SignalListener:
         return len(self._records) > initial_count
 
 
-__all__ = ["SignalListener"]
+class SignalSpy(SignalListener):
+    """Minimal drop-in alternative to :class:`QSignalSpy`.
+
+    PySide6 community wheels occasionally omit ``QtTest``; this wrapper mirrors
+    the subset of behaviour relied upon in the suite while keeping the public
+    name aligned with upstream documentation.
+    """
+
+    __slots__ = ()
+
+
+__all__ = ["SignalListener", "SignalSpy"]
