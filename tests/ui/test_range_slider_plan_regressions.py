@@ -5,6 +5,7 @@ import pytest
 from PySide6.QtCore import Qt
 
 from tests.helpers.signal_listeners import SignalListener
+from tests.ui.panels._slider_utils import resolve_slider_step
 from src.ui.widgets.range_slider import RangeSlider
 
 pytestmark = [pytest.mark.ui, pytest.mark.headless]
@@ -12,14 +13,6 @@ pytestmark = [pytest.mark.ui, pytest.mark.headless]
 
 def _step_property_value(slider: RangeSlider) -> float | None:
     """Read ``RangeSlider.step`` defensively and emulate when absent."""
-
-    def _probe_step_via_value() -> float | None:
-        before = slider.value()
-        slider.setValue(before + 1.0)
-        after = slider.value()
-        slider.setValue(before)
-        delta = abs(after - before)
-        return delta if delta > 0 else None
 
     if hasattr(slider, "step"):
         step_attr = getattr(slider, "step")
@@ -36,7 +29,8 @@ def _step_property_value(slider: RangeSlider) -> float | None:
     except (TypeError, ValueError):
         pass
 
-    return _probe_step_via_value()
+    # Fall back to a manual resolution strategy shared with panel utilities.
+    return resolve_slider_step(slider, 0.0)
 
 
 class TestLocales:
