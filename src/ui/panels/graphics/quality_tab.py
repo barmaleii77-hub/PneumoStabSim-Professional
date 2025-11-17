@@ -284,7 +284,12 @@ class QualityTab(QWidget):
 
         # Primary AA ComboBox
         primary_combo = QComboBox(self)
-        for label, value in [("Выкл.", "off"), ("MSAA", "msaa"), ("SSAA", "ssaa")]:
+        for label, value in [
+            ("Выкл.", "off"),
+            ("MSAA", "msaa"),
+            ("TAA", "taa"),
+            ("SSAA", "ssaa"),
+        ]:
             primary_combo.addItem(label, value)
         primary_combo.currentIndexChanged.connect(
             lambda _: self._on_primary_aa_changed(primary_combo.currentData())
@@ -299,6 +304,7 @@ class QualityTab(QWidget):
             ("Низкое", "low"),
             ("Среднее", "medium"),
             ("Высокое", "high"),
+            ("Ультра", "ultra"),
         ]:
             quality_combo.addItem(label, value)
         quality_combo.currentIndexChanged.connect(
