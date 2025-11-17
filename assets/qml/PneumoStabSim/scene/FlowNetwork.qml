@@ -7,6 +7,24 @@ Node {
     property var flowData: ({})
     property var geometryHelper: null
     property real sceneScale: 1.0
+    property real renderScaleHint: 1.0
+    property int frameRateLimitHint: 0
+    property bool hdrEnabledHint: false
+
+    readonly property real _particleBudgetHint: {
+        var budgetFromData = asObject(flowData)
+        if (budgetFromData && budgetFromData.performance && typeof budgetFromData.performance === "object") {
+            var rawBudget = Number(budgetFromData.performance.particle_budget)
+            if (Number.isFinite(rawBudget) && rawBudget > 0)
+                return Math.max(0.25, Math.min(1.0, rawBudget))
+        }
+        var scalePenalty = renderScaleHint > 1.05 ? 0.85 : 1.0
+        var hdrPenalty = hdrEnabledHint ? 0.85 : 1.0
+        var framePenalty = frameRateLimitHint >= 120 ? 0.9 : 1.0
+        var combined = scalePenalty * hdrPenalty * framePenalty
+        return Math.max(0.35, Math.min(1.0, combined))
+    }
+    readonly property bool _particleBudgetTight: _particleBudgetHint < 0.65
 
     property color intakeColor: "#3fc1ff"
     property color exhaustColor: "#ff6b6b"
@@ -347,6 +365,8 @@ Node {
         inactiveColor: root.inactiveColor
         lineLabel: "A1"
         animationSpeedFactor: root._lineSpeedHint("a1")
+        particleDensityFactor: root._particleBudgetHint
+        particlesEnabled: !root._particleBudgetTight || flowIntensity > 0.18
     }
 
     FlowArrow {
@@ -370,6 +390,8 @@ Node {
         inactiveColor: root.inactiveColor
         lineLabel: "B1"
         animationSpeedFactor: root._lineSpeedHint("b1")
+        particleDensityFactor: root._particleBudgetHint
+        particlesEnabled: !root._particleBudgetTight || flowIntensity > 0.18
     }
 
     FlowArrow {
@@ -393,6 +415,8 @@ Node {
         inactiveColor: root.inactiveColor
         lineLabel: "A2"
         animationSpeedFactor: root._lineSpeedHint("a2")
+        particleDensityFactor: root._particleBudgetHint
+        particlesEnabled: !root._particleBudgetTight || flowIntensity > 0.18
     }
 
     FlowArrow {
@@ -416,6 +440,8 @@ Node {
         inactiveColor: root.inactiveColor
         lineLabel: "B2"
         animationSpeedFactor: root._lineSpeedHint("b2")
+        particleDensityFactor: root._particleBudgetHint
+        particlesEnabled: !root._particleBudgetTight || flowIntensity > 0.18
     }
 
     ValveIndicator {
