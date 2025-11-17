@@ -483,6 +483,11 @@ class GeometryPanel(QWidget):
         """Return a shallow copy of the current panel state."""
         return dict(self.state_manager.get_all_parameters())
 
+    def collect_state(self) -> dict[str, Any]:
+        """Return the current geometry state without mutating internal caches."""
+
+        return self._collect_state_snapshot()
+
     def get_geometry_settings(self) -> GeometrySettings:
         """Return the validated geometry configuration for the current state."""
         snapshot = self._collect_state_snapshot()
@@ -491,8 +496,10 @@ class GeometryPanel(QWidget):
     def get_parameters(self) -> dict[str, Any]:
         """Return a snapshot of the current geometry parameters as a mapping."""
         snapshot = self._collect_state_snapshot()
-        settings = _build_geometry_settings(snapshot, self.logger)
-        return settings.to_config_dict()
+        settings = _build_geometry_settings(snapshot, self.logger).to_config_dict()
+        merged = dict(snapshot)
+        merged.update(settings)
+        return merged
 
     def set_parameters(self, params: dict):
         """Set geometry parameters
