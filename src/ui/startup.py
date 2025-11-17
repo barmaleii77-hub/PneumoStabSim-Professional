@@ -107,3 +107,23 @@ def bootstrap_graphics_environment(
         headless=headless,
         headless_reasons=tuple(reasons),
     )
+
+
+def enforce_fixed_window_metrics(window, *, width: int, height: int) -> None:
+    """Fix the Qt window size to stable metrics for screenshots/tests."""
+
+    # Prefer explicit bounds to avoid implicit resizes when window decorations
+    # change between platforms or when HiDPI scaling is applied.
+    if hasattr(window, "setMinimumWidth"):
+        window.setMinimumWidth(width)
+    if hasattr(window, "setMaximumWidth"):
+        window.setMaximumWidth(width)
+    if hasattr(window, "setMinimumHeight"):
+        window.setMinimumHeight(height)
+    if hasattr(window, "setMaximumHeight"):
+        window.setMaximumHeight(height)
+
+    if hasattr(window, "setWidth"):
+        window.setWidth(width)
+    if hasattr(window, "setHeight"):
+        window.setHeight(height)

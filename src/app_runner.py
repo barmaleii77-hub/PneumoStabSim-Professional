@@ -1434,7 +1434,9 @@ class ApplicationRunner:
         # Предпочтительно используем явно заданные поля современного окна
         widget = getattr(window, "_qquick_widget", None)
         # Если контейнер отсутствует, но есть QQuickView — используем его
-        if (widget is None or not hasattr(widget, "status")) and hasattr(window, "_qquick_view"):
+        if (widget is None or not hasattr(widget, "status")) and hasattr(
+            window, "_qquick_view"
+        ):
             widget = getattr(window, "_qquick_view")
 
         # Если всё ещё нет контейнера — это явный сбой инициализации
@@ -1452,7 +1454,11 @@ class ApplicationRunner:
             try:
                 central = getattr(window, "centralWidget", None)
                 central = central() if callable(central) else central
-                if central is not None and central is not widget and hasattr(central, "findChildren"):
+                if (
+                    central is not None
+                    and central is not widget
+                    and hasattr(central, "findChildren")
+                ):
                     candidates = central.findChildren(type(widget))  # type: ignore[arg-type]
                     for c in candidates:
                         if callable(getattr(c, "status", None)):

@@ -150,7 +150,9 @@ class SceneTab(QWidget):
         except KeyError as exc:  # pragma: no cover - defensive
             raise KeyError(f"Control '{key}' is not registered") from exc
 
-    def _range_for(self, key: str, fallback_min: float, fallback_max: float) -> tuple[float, float]:
+    def _range_for(
+        self, key: str, fallback_min: float, fallback_max: float
+    ) -> tuple[float, float]:
         if key.startswith("suspension."):
             raw_key = key.split(".", maxsplit=1)[1]
             return self._range_from_definitions(

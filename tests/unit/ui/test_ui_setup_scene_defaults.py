@@ -105,7 +105,9 @@ def test_scene_suspension_uses_metadata_defaults(
     assert "Scene suspension settings missing keys" not in caplog.text
 
 
-def test_scene_basics_use_metadata_defaults(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_scene_basics_use_metadata_defaults(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     payload = _load_settings_payload()
     scene = payload["current"]["graphics"]["scene"]
     snapshot_scene = payload["defaults_snapshot"]["graphics"]["scene"]

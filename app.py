@@ -23,7 +23,11 @@ _DEF_VENV_PY = _DEF_VENV / ("pythonw.exe" if os.name == "nt" else "python")
 if _DEF_VENV_PY.exists():
     try:
         if Path(sys.executable).resolve() != _DEF_VENV_PY.resolve():
-            os.execve(str(_DEF_VENV_PY), [str(_DEF_VENV_PY), __file__, *sys.argv[1:]], os.environ.copy())
+            os.execve(
+                str(_DEF_VENV_PY),
+                [str(_DEF_VENV_PY), __file__, *sys.argv[1:]],
+                os.environ.copy(),
+            )
     except Exception:
         pass
 
@@ -52,7 +56,9 @@ def _ensure_qt_runtime_paths(project_root: Path) -> None:
             cur = os.environ.get(name, "")
             parts = [p for p in cur.split(os.pathsep) if p]
             if str(path) not in parts:
-                os.environ[name] = os.pathsep.join(parts + [str(path)]) if parts else str(path)
+                os.environ[name] = (
+                    os.pathsep.join(parts + [str(path)]) if parts else str(path)
+                )
 
         _append("QML2_IMPORT_PATH", qml_dir)
         _append("QML2_IMPORT_PATH", assets_qml)
@@ -61,10 +67,17 @@ def _ensure_qt_runtime_paths(project_root: Path) -> None:
 
         if os.name == "nt":
             qpa = (os.environ.get("QT_QPA_PLATFORM") or "").strip().lower()
-            headless = (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {"1","true","yes","on"}
+            headless = (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {
+                "1",
+                "true",
+                "yes",
+                "on",
+            }
             if not headless and qpa in {"offscreen", "minimal", "minimal:tools=auto"}:
                 os.environ["QT_QPA_PLATFORM"] = "windows"
-            if (os.environ.get("QT_QUICK_BACKEND") or "").strip().lower() == "software" and not headless:
+            if (
+                os.environ.get("QT_QUICK_BACKEND") or ""
+            ).strip().lower() == "software" and not headless:
                 os.environ.pop("QT_QUICK_BACKEND", None)
             os.environ.setdefault("QSG_RHI_BACKEND", "d3d11")
 
@@ -96,6 +109,7 @@ SELECTED_LOG_PRESET = apply_logging_preset(os.environ)
 
 # Import Qt safely
 from src.bootstrap.qt_imports import safe_import_qt  # noqa: E402
+
 QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(  # noqa: E402
     lambda m: None, lambda m: None
 )

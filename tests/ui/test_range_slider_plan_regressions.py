@@ -127,7 +127,9 @@ class TestStepSize:
         if initial_step is not None:
             assert math.isclose(initial_step, 1.0, rel_tol=1e-9, abs_tol=1e-9)
         else:
-            assert math.isclose(w.value_spinbox.singleStep(), 1.0, rel_tol=1e-9, abs_tol=1e-9)
+            assert math.isclose(
+                w.value_spinbox.singleStep(), 1.0, rel_tol=1e-9, abs_tol=1e-9
+            )
 
         # По умолчанию шаг 1.0
         old = w.value()
@@ -145,7 +147,9 @@ class TestStepSize:
         if updated_step is not None:
             assert math.isclose(updated_step, 0.2, rel_tol=1e-9, abs_tol=1e-9)
         else:
-            assert math.isclose(w.value_spinbox.singleStep(), 0.2, rel_tol=1e-9, abs_tol=1e-9)
+            assert math.isclose(
+                w.value_spinbox.singleStep(), 0.2, rel_tol=1e-9, abs_tol=1e-9
+            )
         change_probe = SignalListener(w.valueChanged)
         old = w.value()
         qtbot.keyClick(

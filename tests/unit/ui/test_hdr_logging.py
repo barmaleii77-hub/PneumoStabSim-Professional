@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from src.ui.main_window_pkg._hdr_paths import normalise_hdr_path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -25,6 +27,22 @@ def _events_file() -> Path | None:
     # fallback старого формата (на случай параллельных запусков)
     legacy = sorted(logs_root.glob("ibl_events_*.jsonl"))
     return legacy[-1] if legacy else None
+
+
+def _clear_events_file() -> None:
+    path = _events_file()
+    if path is not None and path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+@pytest.fixture(autouse=True)
+def _reset_ibl_events_file() -> None:
+    _clear_events_file()
+    yield
+    _clear_events_file()
 
 
 def _read_events() -> list[dict]:
@@ -64,3 +82,19 @@ def test_hdr_logging_emits_missing_event(tmp_path: Path) -> None:
     assert any(e.get("status") == "missing" for e in events), (
         "Ожидался статус missing в событиях"
     )
+
+
+def test_hdr_logging_emits_empty_event() -> None:
+    logger = _LoggerStub()
+
+    result = normalise_hdr_path(
+        "   ", qml_base_dir=None, project_root=PROJECT_ROOT, logger=logger
+    )
+
+    assert result == ""
+    assert logger.records == []
+
+    events = _read_events()
+    statuses = {entry.get("status") for entry in events}
+
+    assert "empty" in statuses

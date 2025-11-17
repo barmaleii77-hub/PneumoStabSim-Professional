@@ -143,11 +143,18 @@ def configure_qt_environment(
     # Блокируем offscreen на Windows, если не запрошен headless
     if is_windows:
         qpa = (os.environ.get("QT_QPA_PLATFORM") or "").strip().lower()
-        headless = (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
+        headless = (os.environ.get("PSS_HEADLESS") or "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         if not headless and qpa in {"offscreen", "minimal", "minimal:tools=auto"}:
             os.environ["QT_QPA_PLATFORM"] = "windows"
         # В интерактивном режиме программный backend не нужен
-        if (os.environ.get("QT_QUICK_BACKEND") or "").strip().lower() == "software" and not headless:
+        if (
+            os.environ.get("QT_QUICK_BACKEND") or ""
+        ).strip().lower() == "software" and not headless:
             os.environ.pop("QT_QUICK_BACKEND", None)
 
     if safe_mode:

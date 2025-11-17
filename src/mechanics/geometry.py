@@ -5,6 +5,7 @@ was refactored into `linkage_geometry.py`. This module re-exports the
 expected symbols and provides a lightweight `LinkagePoint` alias used by
 legacy tests.
 """
+
 from __future__ import annotations
 
 from typing import Tuple
