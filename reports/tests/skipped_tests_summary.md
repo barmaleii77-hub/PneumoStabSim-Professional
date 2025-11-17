@@ -1,5 +1,3 @@
-# Skipped pytest tests
+# Skipped tests summary (2025-11-17)
 
-| Suite | Test | Reason |
-| --- | --- | --- |
-| ui | `tests.ui.test_canvas_animation_preview.test_canvas_animation_preview_window_visible` | Manual canvas preview requires a visible window |
+- tests/ui/test_canvas_animation_preview.py::test_canvas_animation_preview_window_visible — Manual canvas preview requires a visible window [pytest-skip-ok]
