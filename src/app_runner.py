@@ -215,9 +215,7 @@ class ApplicationRunner:
         if state.headless:
             self._is_headless = True
             self._headless_reason = "|".join(state.headless_reasons) or "headless"
-            self._append_post_diag_trace(
-                f"bootstrap-headless:{self._headless_reason}"
-            )
+            self._append_post_diag_trace(f"bootstrap-headless:{self._headless_reason}")
 
         if not state.use_qml_3d:
             self.use_qml_3d_schema = False

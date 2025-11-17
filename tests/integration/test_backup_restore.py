@@ -129,7 +129,9 @@ def test_backup_reports_missing_sources(tmp_path: Path) -> None:
     assert "missing/data" in manifest["skipped"]
 
 
-def test_restore_rejects_corrupted_archive(sample_project: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_restore_rejects_corrupted_archive(
+    sample_project: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
     report = service.create_backup(label="corrupted")
 
@@ -143,7 +145,9 @@ def test_restore_rejects_corrupted_archive(sample_project: Path, caplog: pytest.
     assert any("backup_corrupted" in record.getMessage() for record in caplog.records)
 
 
-def test_restore_rejects_manifest_mismatch(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_restore_rejects_manifest_mismatch(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     root = tmp_path / "project"
     backup_dir = root / "backups"
     backup_dir.mkdir(parents=True)
@@ -173,10 +177,14 @@ def test_restore_rejects_manifest_mismatch(tmp_path: Path, caplog: pytest.LogCap
     with pytest.raises(ValueError, match="manifest"):
         service.restore_backup(archive_path, target_root=root / "restored")
 
-    assert any("backup_manifest_mismatch" in record.getMessage() for record in caplog.records)
+    assert any(
+        "backup_manifest_mismatch" in record.getMessage() for record in caplog.records
+    )
 
 
-def test_restore_rejects_unsafe_members(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_restore_rejects_unsafe_members(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     root = tmp_path / "project"
     backup_dir = root / "backups"
     backup_dir.mkdir(parents=True)
@@ -194,4 +202,6 @@ def test_restore_rejects_unsafe_members(tmp_path: Path, caplog: pytest.LogCaptur
     with pytest.raises(ValueError):
         service.restore_backup(archive_path, target_root=root / "restored")
 
-    assert any("backup_restore_rejected" in record.getMessage() for record in caplog.records)
+    assert any(
+        "backup_restore_rejected" in record.getMessage() for record in caplog.records
+    )
