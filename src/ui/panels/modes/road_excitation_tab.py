@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QCheckBox,
     QComboBox,
+    QLineEdit,
 )
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
@@ -29,6 +30,14 @@ SMOOTHING_EASING_OPTIONS = [
     ("OutQuad", "OutQuad"),
     ("Linear", "Linear"),
     ("InOutSine", "InOutSine"),
+]
+
+ROAD_PROFILE_OPTIONS = [
+    ("smooth_highway", "Гладкое шоссе"),
+    ("city_streets", "Городские улицы"),
+    ("off_road", "Пересечённая местность"),
+    ("mountain_serpentine", "Горный серпантин"),
+    ("custom", "Пользовательский"),
 ]
 
 
@@ -182,6 +191,7 @@ class RoadExcitationTab(QWidget):
     # Signals
     parameter_changed = Signal(str, float)  # parameter_name, value
     animation_changed = Signal(dict)  # All animation parameters
+    mode_changed = Signal(str, str)  # road_profile/custom_profile_path
 
     def __init__(self, state_manager: ModesStateManager, parent=None):
         super().__init__(parent)
@@ -205,6 +215,9 @@ class RoadExcitationTab(QWidget):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
+        profile_group = self._create_profile_group()
+        layout.addWidget(profile_group)
+
         # Global parameters
         global_group = self._create_global_group()
         layout.addWidget(global_group)
@@ -218,6 +231,28 @@ class RoadExcitationTab(QWidget):
         layout.addWidget(smoothing_group)
 
         layout.addStretch()
+
+    def _create_profile_group(self) -> QGroupBox:
+        """Группа выбора дорожного профиля"""
+
+        group = QGroupBox("Профиль дороги")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(6)
+
+        self.road_profile_combo = QComboBox()
+        for value, label in ROAD_PROFILE_OPTIONS:
+            self.road_profile_combo.addItem(label, value)
+        self.road_profile_combo.currentIndexChanged.connect(
+            self._on_profile_changed
+        )
+        layout.addWidget(self.road_profile_combo)
+
+        self.custom_profile_field = QLineEdit()
+        self.custom_profile_field.setPlaceholderText("Путь к пользовательскому профилю")
+        self.custom_profile_field.textEdited.connect(self._on_custom_profile_changed)
+        layout.addWidget(self.custom_profile_field)
+
+        return group
 
     def _create_global_group(self) -> QGroupBox:
         """Создать группу глобальных параметров"""
@@ -430,6 +465,24 @@ class RoadExcitationTab(QWidget):
 
         return group
 
+    def _on_profile_changed(self, index: int):
+        if index < 0:
+            return
+        value = self.road_profile_combo.itemData(index)
+        if value is None:
+            return
+        normalized = str(value)
+        self.state_manager.update_parameter("road_profile", normalized)
+        self.custom_profile_field.setEnabled(normalized == "custom")
+        self.state_manager.switch_to_custom_preset()
+        self.mode_changed.emit("road_profile", normalized)
+
+    def _on_custom_profile_changed(self, text: str):
+        path_value = (text or "").strip()
+        self.state_manager.update_parameter("custom_profile_path", path_value)
+        self.state_manager.switch_to_custom_preset()
+        self.mode_changed.emit("custom_profile_path", path_value)
+
     def _on_parameter_changed(self, param_name: str, value: float):
         """Обработать изменение параметра"""
         LOGGER.debug(
@@ -476,6 +529,8 @@ class RoadExcitationTab(QWidget):
         params = self.state_manager.get_parameters()
 
         # Block signals during update
+        self.road_profile_combo.blockSignals(True)
+        self.custom_profile_field.blockSignals(True)
         self.amplitude_slider.blockSignals(True)
         self.frequency_slider.blockSignals(True)
         self.phase_slider.blockSignals(True)
@@ -487,6 +542,16 @@ class RoadExcitationTab(QWidget):
         self.smoothing_checkbox.setChecked(smoothing_enabled)
         self.smoothing_checkbox.blockSignals(False)
         self._set_smoothing_controls_enabled(smoothing_enabled)
+
+        profile_value = str(params.get("road_profile", "smooth_highway"))
+        profile_index = self.road_profile_combo.findData(profile_value)
+        if profile_index < 0:
+            profile_index = 0
+        self.road_profile_combo.setCurrentIndex(profile_index)
+
+        custom_path = str(params.get("custom_profile_path", ""))
+        self.custom_profile_field.setText(custom_path)
+        self.custom_profile_field.setEnabled(profile_value == "custom")
 
         self.smoothing_duration_slider.blockSignals(True)
         self.smoothing_angle_slider.blockSignals(True)
@@ -538,3 +603,5 @@ class RoadExcitationTab(QWidget):
         self.smoothing_angle_slider.blockSignals(False)
         self.smoothing_piston_slider.blockSignals(False)
         self.smoothing_easing_combo.blockSignals(False)
+        self.road_profile_combo.blockSignals(False)
+        self.custom_profile_field.blockSignals(False)

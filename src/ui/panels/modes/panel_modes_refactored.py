@@ -87,6 +87,7 @@ class ModesPanel(QWidget):
         # Road tab
         self.road_tab.parameter_changed.connect(self._on_parameter_changed)
         self.road_tab.animation_changed.connect(self._on_animation_changed)
+        self.road_tab.mode_changed.connect(self._on_mode_changed)
 
     # ===============================================================
     # SIGNAL HANDLERS (транслируем сигналы от вкладок)
@@ -149,6 +150,13 @@ class ModesPanel(QWidget):
     def get_physics_options(self) -> dict:
         """Получить текущие опции физики"""
         return self.state_manager.get_physics_options()
+
+    def collect_state(self) -> dict:
+        """Собрать состояние панели для SettingsManager"""
+
+        payload = self.state_manager.as_settings_payload()
+        payload["preset_index"] = self.state_manager.get_current_preset_index()
+        return payload
 
     def set_simulation_running(self, running: bool):
         """Установить состояние симуляции извне"""

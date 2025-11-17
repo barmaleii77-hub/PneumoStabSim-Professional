@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
     QButtonGroup,
     QLabel,
     QComboBox,
+    QCheckBox,
+    QDoubleSpinBox,
 )
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtGui import QFont
@@ -59,6 +61,9 @@ class SimulationTab(QWidget):
         # Thermodynamic mode
         thermo_group = self._create_thermo_group()
         layout.addWidget(thermo_group)
+
+        safety_group = self._create_safety_group()
+        layout.addWidget(safety_group)
 
         layout.addStretch()
 
@@ -174,6 +179,36 @@ class SimulationTab(QWidget):
 
         return group
 
+    def _create_safety_group(self) -> QGroupBox:
+        """Переключатели проверки пересечений и температуры среды"""
+
+        group = QGroupBox("Проверки и среда")
+        layout = QVBoxLayout(group)
+        layout.setSpacing(8)
+
+        self.interference_check = QCheckBox("🧱 Проверять пересечения")
+        self.interference_check.setToolTip(
+            "Включить проверку пересечений элементов подвески при расчёте."
+        )
+        self.interference_check.toggled.connect(self._on_interference_changed)
+        layout.addWidget(self.interference_check)
+
+        ambient_row = QHBoxLayout()
+        ambient_label = QLabel("Температура среды, °C")
+        ambient_row.addWidget(ambient_label)
+
+        self.ambient_spin = QDoubleSpinBox()
+        self.ambient_spin.setRange(-80.0, 150.0)
+        self.ambient_spin.setDecimals(1)
+        self.ambient_spin.setSuffix(" °C")
+        self.ambient_spin.setSingleStep(0.5)
+        self.ambient_spin.valueChanged.connect(self._on_ambient_changed)
+        ambient_row.addWidget(self.ambient_spin, stretch=1)
+
+        layout.addLayout(ambient_row)
+
+        return group
+
     def _on_preset_changed(self, index: int):
         """Обработать изменение пресета"""
         print(f"📋 SimulationTab: Пресет изменён на '{PRESET_NAMES[index]}'")
@@ -235,6 +270,22 @@ class SimulationTab(QWidget):
         # Emit signal
         self.mode_changed.emit("thermo_mode", mode)
 
+    def _on_interference_changed(self, checked: bool):
+        """Обработать переключение проверки пересечений"""
+
+        self.state_manager.update_parameter("check_interference", bool(checked))
+        if self.preset_combo.currentIndex() != 4:
+            self.preset_combo.setCurrentIndex(4)
+        self.mode_changed.emit("check_interference", "true" if checked else "false")
+
+    def _on_ambient_changed(self, value: float):
+        """Обработать изменение температуры среды"""
+
+        self.state_manager.update_parameter("ambient_temperature_c", float(value))
+        if self.preset_combo.currentIndex() != 4:
+            self.preset_combo.setCurrentIndex(4)
+        self.mode_changed.emit("ambient_temperature_c", f"{value:.1f}")
+
     def _apply_current_state(self):
         """Применить текущее состояние к UI"""
         params = self.state_manager.get_parameters()
@@ -257,6 +308,17 @@ class SimulationTab(QWidget):
         else:
             self.adiabatic_radio.setChecked(True)
 
+        self.interference_check.blockSignals(True)
+        self.interference_check.setChecked(
+            bool(params.get("check_interference", False))
+        )
+        self.interference_check.blockSignals(False)
+
+        ambient = float(params.get("ambient_temperature_c", 20.0) or 0)
+        self.ambient_spin.blockSignals(True)
+        self.ambient_spin.setValue(ambient)
+        self.ambient_spin.blockSignals(False)
+
         # Unblock signals
         self.sim_type_group.blockSignals(False)
         self.thermo_group.blockSignals(False)
@@ -269,3 +331,5 @@ class SimulationTab(QWidget):
         self.dynamics_radio.setEnabled(enabled)
         self.isothermal_radio.setEnabled(enabled)
         self.adiabatic_radio.setEnabled(enabled)
+        self.interference_check.setEnabled(enabled)
+        self.ambient_spin.setEnabled(enabled)

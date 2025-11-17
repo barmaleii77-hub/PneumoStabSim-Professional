@@ -103,9 +103,27 @@ class PhysicsTab(QWidget):
             lambda checked: self._on_option_changed("include_pneumatics", checked)
         )
 
+        self.include_springs_kinematics_check = QCheckBox("🌀 Пружины в кинематике")
+        self.include_springs_kinematics_check.setToolTip(
+            "Учитывать упругость в кинематических расчётах (предзагрузка, геометрия)."
+        )
+        self.include_springs_kinematics_check.toggled.connect(
+            lambda checked: self._on_option_changed("include_springs_kinematics", checked)
+        )
+
+        self.include_dampers_kinematics_check = QCheckBox("🔧 Демпферы в кинематике")
+        self.include_dampers_kinematics_check.setToolTip(
+            "Учитывать демпферы при вычислении кинематических смещений."
+        )
+        self.include_dampers_kinematics_check.toggled.connect(
+            lambda checked: self._on_option_changed("include_dampers_kinematics", checked)
+        )
+
         layout.addWidget(self.include_springs_check)
         layout.addWidget(self.include_dampers_check)
         layout.addWidget(self.include_pneumatics_check)
+        layout.addWidget(self.include_springs_kinematics_check)
+        layout.addWidget(self.include_dampers_kinematics_check)
 
         tuning_form = QFormLayout()
         tuning_form.setContentsMargins(4, 8, 4, 8)
@@ -209,6 +227,8 @@ class PhysicsTab(QWidget):
         self.include_springs_check.blockSignals(True)
         self.include_dampers_check.blockSignals(True)
         self.include_pneumatics_check.blockSignals(True)
+        self.include_springs_kinematics_check.blockSignals(True)
+        self.include_dampers_kinematics_check.blockSignals(True)
         self.spring_constant_spin.blockSignals(True)
         self.damper_coefficient_spin.blockSignals(True)
         self.inertia_multiplier_spin.blockSignals(True)
@@ -221,6 +241,12 @@ class PhysicsTab(QWidget):
         self.include_dampers_check.setChecked(options.get("include_dampers", True))
         self.include_pneumatics_check.setChecked(
             options.get("include_pneumatics", True)
+        )
+        self.include_springs_kinematics_check.setChecked(
+            options.get("include_springs_kinematics", True)
+        )
+        self.include_dampers_kinematics_check.setChecked(
+            options.get("include_dampers_kinematics", True)
         )
         self.spring_constant_spin.setValue(
             float(options.get("spring_constant", 50_000.0))
@@ -249,6 +275,8 @@ class PhysicsTab(QWidget):
         self.include_springs_check.blockSignals(False)
         self.include_dampers_check.blockSignals(False)
         self.include_pneumatics_check.blockSignals(False)
+        self.include_springs_kinematics_check.blockSignals(False)
+        self.include_dampers_kinematics_check.blockSignals(False)
         self.spring_constant_spin.blockSignals(False)
         self.damper_coefficient_spin.blockSignals(False)
         self.inertia_multiplier_spin.blockSignals(False)
@@ -262,6 +290,8 @@ class PhysicsTab(QWidget):
         self.include_springs_check.setEnabled(enabled)
         self.include_dampers_check.setEnabled(enabled)
         self.include_pneumatics_check.setEnabled(enabled)
+        self.include_springs_kinematics_check.setEnabled(enabled)
+        self.include_dampers_kinematics_check.setEnabled(enabled)
         self.spring_constant_spin.setEnabled(enabled)
         self.damper_coefficient_spin.setEnabled(enabled)
         self.inertia_multiplier_spin.setEnabled(enabled)
