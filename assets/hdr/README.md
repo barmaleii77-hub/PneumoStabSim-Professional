@@ -43,14 +43,14 @@ _The manifest must be updated whenever the asset list changes. Duplicates such
 as `ballawley_park_2k (1).hdr` are not part of the catalogue and should be
 removed immediately._
 
-## Integrity audit (2025-11-10)
+## Integrity audit (rolling)
 
-- Verification command: `python tools/verify_hdr_assets.py --fetch-missing`
-- Result: all 24 manifest entries matched their published SHA-256 hashes; every
-  download passed the Radiance header check and no duplicate `.hdr`/`.exr`
-  assets were detected across `assets/hdr/` and `assets/qml/assets/`.
-- Audit cache: `.cache/hdr_assets/` now contains validated copies for offline
-  development; CI consumes the same cache path when available.
+- Verification command: `python -m tools.task_runner verify-hdr-assets --fetch-missing`
+- Expected result: все записи манифеста должны совпадать с опубликованными
+  SHA-256, загрузки — проходить Radiance-header проверку, а дубликаты `.hdr`
+  или `.exr` в `assets/hdr/` и `assets/qml/assets/` должны отсутствовать.
+- Audit cache: `.cache/hdr_assets/` хранит валидированные копии для офлайн-разработки;
+  CI использует тот же каталог, поэтому держите его в актуальном состоянии после добавления новых карт.
 
 ## ✅ Path Unification (v5.0.0)
 
@@ -84,7 +84,7 @@ removed immediately._
 | Input format | Example | Result |
 |--------------|---------|--------|
 | Relative | `../hdr/studio.hdr`, `../hdri/studio.exr`, `../qml/assets/hdr/custom.hdr` | Normalised to the first matching repository location with a `file://` prefix. |
-| Absolute | `C:/path/file.hdr`, `/tmp/custom.exr` | `file:///C:/path/file.hdr` (validated) | 
+| Absolute | `C:/path/file.hdr`, `/tmp/custom.exr` | `file:///C:/path/file.hdr` (validated) |
 | file:// URL | `file:///path/file.hdr` | `file:///path/file.hdr` (validated) |
 | Remote URL | `http://server/file.hdr` | `http://server/file.hdr` (unchanged, marked as remote) |
 
@@ -106,7 +106,9 @@ removed immediately._
 поведение реализовано в `EnvironmentTab._discover_hdr_files()` и
 `EnvironmentTab._refresh_hdr_status()` и покрыто модульными тестами
 `tests/unit/ui/test_hdr_discovery.py` и
-`tests/unit/ui/test_main_window_hdr_paths.py`.
+`tests/unit/ui/test_main_window_hdr_paths.py`. Пользовательские текстуры и EXR-карты
+обрабатываются этим же механизмом: указывайте относительный путь и убедитесь,
+что файл попадает в один из трёх каталогов или сохранён в конфигурации.
 
 Функция `normalizeHdrPath()` в слое Python (`src/ui/main_window_pkg/_hdr_paths.py`)
 выстраивает последовательность кандидатных путей (`assets/hdri/`, `assets/qml/`,
@@ -118,8 +120,8 @@ removed immediately._
 
 ### Validation & warnings
 
-- `make verify hdr-verify` запускает `python tools/verify_hdr_assets.py` и
-  проверяет manifest, SHA-256 и наличие Radiance заголовков. Используйте его
+- `make verify hdr-verify` запускает `python -m tools.task_runner verify-hdr-assets`
+  и проверяет manifest, SHA-256 и наличие Radiance заголовков. Используйте цель
   перед релизными сборками или добавлением новых путей в `config/app_settings.json`.
 - Все попытки разрешения путей пишутся в `logs/ibl/ibl_events.jsonl` с метками
   `status=ok|missing|remote|empty` и списком кандидатов. Совмещайте эти записи с
@@ -128,11 +130,11 @@ removed immediately._
 
 ## Installation workflow
 
-1. Download the required HDR files from the sources listed above.
-2. Place the originals in `assets/hdr/` and keep the filenames unchanged.
+1. Download the required HDR or EXR files from the sources listed above.
+2. Place the originals in `assets/hdr/` and keep the filenames unchanged (цифровые суффиксы и регистр важны для совпадения с манифестом).
 3. Reference in settings using relative paths: `../hdr/filename.hdr`
-4. Let `normalizeHdrPath()` handle the rest automatically
-5. Commit the updated inventory table whenever new lighting profiles are added.
+4. Let `normalizeHdrPath()` handle the rest automatically; UI отрисует статус сразу после обнаружения.
+5. Commit the updated inventory table whenever new lighting profiles are added and выполните `python -m tools.task_runner verify-hdr-assets --fetch-missing --force-rehash` перед пушем.
 
 ## HDR dynamic range calibration
 
@@ -162,10 +164,10 @@ removed immediately._
 
 ## Verification tooling
 
-- Run `python tools/verify_hdr_assets.py --fetch-missing` to download the
-  manifest entries into `.cache/hdr_assets/`, confirm their SHA-256 checksums and
-  validate the Radiance headers.
-- CI executes the same script through `make check` to ensure no duplicate or
+- Run `python -m tools.task_runner verify-hdr-assets --fetch-missing` to download
+  the manifest entries into `.cache/hdr_assets/`, confirm their SHA-256 checksums
+  and validate the Radiance headers.
+- CI executes the same command through `make check` to ensure no duplicate or
   untracked HDR files appear under `assets/hdr/` or `assets/qml/assets/`.
 - Update `assets/hdr/hdr_manifest.json` when adding or retiring panoramas so the
   automated checks stay authoritative.
