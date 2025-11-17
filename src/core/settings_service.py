@@ -3,6 +3,13 @@
 Сервис предоставляет кэшированную загрузку/сохранение JSON и утилиты
 для обращения к значениям через dot‑путь. Предназначен для модулей без UI
 и юнит‑тестов, где не требуется полная схема валидации SettingsManager.
+
+Архитектурная роль сервиса описана в разделе «Configuration & Settings
+Management» мастер-плана (`docs/RENOVATION_MASTER_PLAN.md`, Section 4) и в
+Phase 2 планах (`docs/RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md` –
+отметки «Settings schema validation uplift» и «Settings schema enrichment &
+sync controller rollout»). Комментарий фиксирует связь реализации с
+контрольными списками схемной валидации и синхронизации.
 """
 
 from __future__ import annotations
