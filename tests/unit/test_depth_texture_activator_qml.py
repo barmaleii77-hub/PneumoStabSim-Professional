@@ -154,3 +154,21 @@ def test_depth_texture_activator_logs_buffer_invocations(
         'DepthTextureActivator:", label + "." + methodName + "() called"'
         in depth_texture_source
     )
+
+
+def test_depth_texture_activator_clears_cache_on_activate(
+    depth_texture_source: str,
+) -> None:
+    activation_start = depth_texture_source.index("function activate(view3d)")
+    cache_clear_pos = depth_texture_source.index(
+        "_clearPropertyCache()", activation_start
+    )
+
+    assert cache_clear_pos > activation_start
+
+
+def test_depth_texture_activator_tracks_error_guard_flags(
+    depth_texture_source: str,
+) -> None:
+    assert "property bool _missingViewLogged" in depth_texture_source
+    assert "property bool _apiUnavailableLogged" in depth_texture_source
