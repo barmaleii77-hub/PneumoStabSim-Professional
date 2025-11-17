@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pneumo-stab-sim-professional"
-version = "5.0.0"
+version = "5.0.1"
 description = "Professional pneumatic suspension simulator"
 keywords = ["pneumatic", "stabilizer", "simulation", "3d", "qt", "pyside6"]
 classifiers = [
