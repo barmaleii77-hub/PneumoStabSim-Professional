@@ -84,10 +84,10 @@ except ModuleNotFoundError:  # pragma: no cover - fallback exercised in kata env
     )  # type: ignore[attr-defined]
 
     class _JSONRenderer:  # pragma: no cover - shim
-        def __call__(
-            self, logger: Any, name: str, event_dict: dict[str, Any]
-        ) -> dict[str, Any]:
-            return _flatten_event_payload(event_dict)
+        def __call__(self, logger: Any, name: str, event_dict: dict[str, Any]) -> str:
+            payload = dict(_flatten_event_payload(event_dict))
+            payload.setdefault("event", name)
+            return _json_dumps(payload)
 
     structlog_shim.processors.JSONRenderer = _JSONRenderer  # type: ignore[attr-defined]
 
@@ -285,6 +285,10 @@ DEFAULT_LOG_LEVEL = logging.INFO
 def _json_dumps(payload: Mapping[str, Any], **kwargs: Any) -> str:
     """Serialise mappings to JSON without ASCII escaping."""
 
+    # structlog's ``JSONRenderer`` passes ``event_key`` to the serializer; the
+    # standard library encoder does not understand this parameter, so strip it
+    # out before delegating to :func:`json.dumps`.
+    kwargs.pop("event_key", None)
     kwargs.setdefault("ensure_ascii", False)
     kwargs.setdefault("default", str)
     return json.dumps(payload, **kwargs)
@@ -337,7 +341,7 @@ def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
     # processors. ``json.dumps`` mutates neither the mapping nor the values but
     # copying keeps the renderer side-effect free and avoids surprises for
     # downstream formatters in custom pipelines.
-    serialisable = dict(event_dict)
+    serialisable = _flatten_event_payload(dict(event_dict))
     if "event" not in serialisable and name:
         serialisable["event"] = name
     return _json_dumps(serialisable)
@@ -435,7 +439,9 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    json_renderer = structlog.processors.JSONRenderer(serializer=_json_dumps)
+    json_renderer = structlog.processors.JSONRenderer(
+        serializer=_json_dumps, event_key="event"
+    )
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
