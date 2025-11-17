@@ -18,10 +18,10 @@ Usage
 >>> log.info("started", details={"phase": 5})
 
 All Python loggers (including modules that still rely on ``logging.getLogger``)
-are routed through a :class:`structlog.stdlib.ProcessorFormatter` that renders
-JSON objects when :mod:`structlog` is available.  In fallback mode a compact
-text renderer is used instead which still preserves structured context in the
-log message.
+share the same structlog processor chain which renders UTF-8 JSON directly to
+the configured handlers.  The standard library bridge keeps formatting minimal
+to avoid double-encoding structured events while still emitting human-readable
+output when :mod:`structlog` is unavailable.
 """
 
 from __future__ import annotations
@@ -282,6 +282,14 @@ else:  # pragma: no cover - exercised in kata env
 DEFAULT_LOG_LEVEL = logging.INFO
 
 
+def _json_dumps(payload: Mapping[str, Any], **kwargs: Any) -> str:
+    """Serialise mappings to JSON without ASCII escaping."""
+
+    kwargs.setdefault("ensure_ascii", False)
+    kwargs.setdefault("default", str)
+    return json.dumps(payload, **kwargs)
+
+
 def _flatten_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
     """Merge nested JSON payloads into the root event dictionary."""
 
@@ -332,7 +340,7 @@ def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
     serialisable = dict(event_dict)
     if "event" not in serialisable and name:
         serialisable["event"] = name
-    return json.dumps(serialisable, ensure_ascii=False, default=str)
+    return _json_dumps(serialisable)
 
 
 def _shared_processors() -> list[Any]:
@@ -427,7 +435,7 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    json_renderer = _json_renderer
+    json_renderer = structlog.processors.JSONRenderer(serializer=_json_dumps)
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
@@ -435,18 +443,11 @@ def configure_logging(
     configured_processors.extend(
         [
             _flatten_event_processor,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+            json_renderer,
         ]
     )
 
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            _flatten_event_processor,
-            json_renderer,
-        ],
-        foreign_pre_chain=_shared_processors(),
-    )
+    formatter = logging.Formatter("%(message)s")
 
     structlog.configure(
         processors=configured_processors,
