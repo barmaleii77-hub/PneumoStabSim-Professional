@@ -1,5 +1,4 @@
 import QtQuick
-import "../core" as Core
 
 /*
  * MouseControls.qml - Mouse & Keyboard Input Handler
@@ -239,7 +238,7 @@ MouseArea {
         interval: 240
         repeat: false
         onTriggered: {
-            cameraState.clearMotion()
+            mouseControls.cameraState.clearMotion()
         }
     }
 

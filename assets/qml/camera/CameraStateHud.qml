@@ -2,12 +2,16 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
+pragma ComponentBehavior: Bound
+
 /*
  * CameraStateHud.qml - Debug overlay for camera metrics
  * Displays camera position, distance, angles, motion flags and damping data.
  */
 Item {
     id: hud
+
+    property var safeApplyConfigChange: null
 
     property var cameraController: null
     property var settings: ({})
@@ -29,10 +33,10 @@ Item {
 
     function persistSetting(key, value) {
         hud.setSetting(key, value)
-        if (typeof safeApplyConfigChange === "function") {
+        if (typeof hud.safeApplyConfigChange === "function") {
             var patch = {}
             patch[key] = value
-            safeApplyConfigChange("diagnostics.camera_hud", patch)
+            hud.safeApplyConfigChange("diagnostics.camera_hud", patch)
         }
     }
 

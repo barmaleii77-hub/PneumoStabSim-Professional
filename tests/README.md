@@ -118,6 +118,9 @@ tracking document.
   silencing logs globally.
 - Record long-running or stateful tests in `tests/system/` with descriptive
   docstrings to aid triage.
+- New tests must run on Linux and Windows. Do not mark them as `skip`/`xfail`
+  unless the line is annotated with `# pytest-skip-ok` and the CI job sets
+  `CI_SKIP_REASON` alongside `PSS_ALLOW_SKIPPED_TESTS=1`.
 
 ## Windows remediation plan
 

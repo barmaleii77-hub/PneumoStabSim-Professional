@@ -155,6 +155,9 @@ jobs:
             echo "PYTEST_PREFIX=" >> "$GITHUB_ENV"
           fi
 
+      - name: Prepare pytest reports directory
+        run: mkdir -p reports/tests
+
       - name: Run smoke/integration verification
         shell: bash
         run: |
@@ -168,28 +171,43 @@ jobs:
         shell: bash
         run: |
           if [ -n "${PYTEST_PREFIX:-}" ]; then
-            ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml
+            ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml \
+              --junitxml=reports/tests/ci-cd-unit.xml
           else
-            pytest tests/unit/ -v --cov=src --cov-report=xml
+            pytest tests/unit/ -v --cov=src --cov-report=xml \
+              --junitxml=reports/tests/ci-cd-unit.xml
           fi
 
       - name: Run integration tests
         shell: bash
         run: |
           if [ -n "${PYTEST_PREFIX:-}" ]; then
-            ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+            ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append \
+              --junitxml=reports/tests/ci-cd-integration.xml
           else
-            pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+            pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append \
+              --junitxml=reports/tests/ci-cd-integration.xml
           fi
 
       - name: Run system tests
         shell: bash
         run: |
           if [ -n "${PYTEST_PREFIX:-}" ]; then
-            ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+            ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append \
+              --junitxml=reports/tests/ci-cd-system.xml
           else
-            pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+            pytest tests/system/ -v --cov=src --cov-report=xml --cov-append \
+              --junitxml=reports/tests/ci-cd-system.xml
           fi
+
+      - name: Enforce skip policy for matrix pytest runs
+        if: always()
+        run: |
+          python -m tools.quality.skip_policy --ci \
+            --junitxml reports/tests/ci-cd-unit.xml \
+            --junitxml reports/tests/ci-cd-integration.xml \
+            --junitxml reports/tests/ci-cd-system.xml \
+            --summary reports/tests/ci-cd-skipped.md
 
       - name: Upload smoke/integration logs
         if: always()
