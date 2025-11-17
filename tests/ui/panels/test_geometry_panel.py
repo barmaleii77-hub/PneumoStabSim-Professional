@@ -35,18 +35,14 @@ def test_get_parameters_returns_copy(qtbot: pytestqt.qtbot.QtBot) -> None:
     assert isinstance(snapshot, dict)
     assert "wheelbase" in snapshot
     assert isinstance(settings, GeometrySettings)
-    assert settings.to_config_dict()["wheelbase"] == pytest.approx(
-        snapshot["wheelbase"]
-    )
+    assert settings.to_config_dict() == snapshot
 
     snapshot["wheelbase"] = -123.0
 
     refreshed = panel.get_parameters()
     assert refreshed["wheelbase"] != snapshot["wheelbase"]
     refreshed_settings = panel.get_geometry_settings()
-    assert refreshed_settings.to_config_dict()["wheelbase"] == pytest.approx(
-        refreshed["wheelbase"]
-    )
+    assert refreshed_settings.to_config_dict() == refreshed
 
 
 @pytest.mark.gui
@@ -65,7 +61,5 @@ def test_get_parameters_tracks_slider_updates(
     params = panel.get_parameters()
     settings = panel.get_geometry_settings()
     assert not math.isclose(updated, initial, rel_tol=1e-9, abs_tol=1e-9)
+    assert params == settings.to_config_dict()
     assert params["wheelbase"] == pytest.approx(get_slider_value(slider))
-    assert settings.to_config_dict()["wheelbase"] == pytest.approx(
-        get_slider_value(slider)
-    )
