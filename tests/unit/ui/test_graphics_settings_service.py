@@ -61,7 +61,12 @@ def _make_baseline_payload() -> dict[str, object]:
             "adjustment_saturation": 0.0,
         },
         "scene": {
+            "scale_factor": 1.0,
             "exposure": 1.2,
+            "default_clear_color": "#1b1f27",
+            "model_base_color": "#9da3aa",
+            "model_roughness": 0.42,
+            "model_metalness": 0.82,
             "suspension": {"rod_warning_threshold_m": 0.001},
         },
     }
@@ -96,7 +101,15 @@ def _make_legacy_payload(
         "current": {
             "graphics": {
                 "environment": {"ibl_intensity": 0.5},
-                "scene": {"exposure": 1.5},
+                "scene": {
+                    "scale_factor": 1.0,
+                    "exposure": 1.5,
+                    "default_clear_color": "#1b1f27",
+                    "model_base_color": "#9da3aa",
+                    "model_roughness": 0.42,
+                    "model_metalness": 0.82,
+                    "suspension": {"rod_warning_threshold_m": 0.001},
+                },
                 "animation": {"is_running": False},
                 "materials": material_override,
             }
