@@ -439,6 +439,7 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
+    # NB: _json_dumps sets ensure_ascii=False by default, so UTF-8 characters are serialized correctly.
     json_renderer = structlog.processors.JSONRenderer(
         serializer=_json_dumps,
         event_key="event",
