@@ -352,3 +352,32 @@ def test_environment_slider_range_validation_reports_missing_keys():
         fog_density.maximum,
         fog_density.step,
     )
+
+
+def test_environment_slider_range_validation_raises_on_missing_required_key():
+    defaults = ENVIRONMENT_SLIDER_RANGE_DEFAULTS
+    ao_strength = defaults["ao_strength"]
+
+    ranges = {
+        "ao_strength": {
+            "min": ao_strength.minimum,
+            "max": ao_strength.maximum,
+            "step": ao_strength.step,
+        }
+    }
+
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_slider_ranges(
+            ranges,
+            required_keys=("ao_strength", "ao_radius"),
+            raise_on_missing=True,
+        )
+
+
+def test_environment_validation_rejects_disallowed_enum_value():
+    baseline = _baseline_environment()
+    mutated = baseline.copy()
+    mutated["reflection_refresh_mode"] = "unsupported-mode"
+
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_settings(mutated)
