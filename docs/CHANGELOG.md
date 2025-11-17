@@ -17,3 +17,6 @@
 
 ### Notes
 - The HDR feature set is delivered as part of the `hdr/bloom-tonemap` integration branch. See the documentation hub for validation checklists and troubleshooting guidance specific to the new controls.
+
+### Changed
+- Refreshed HDR documentation and inventory guidance to reflect the unified verifier (`python -m tools.task_runner verify-hdr-assets`), updated path-handling examples, and clarified that custom textures now follow the same persistence and warning rules as bundled HDRs.
