@@ -75,7 +75,7 @@ def get_version_info() -> dict[str, object]:
     return {
         "module": "PneumoPanel",
         "refactored": _USING_REFACTORED,
-        "version": "2.0.1" if _USING_REFACTORED else "legacy",
+        "version": "2.0.2" if _USING_REFACTORED else "legacy",
         "available": True,
     }
 

@@ -15,9 +15,9 @@ best practices for scientific visualisation software.
 > `docs/RENOVATION_PHASE_*.md` files and keep this master plan synchronised with
 > reality after every milestone.
 >
-> **Target release**: PneumoStabSim Professional v2.0.1
+> **Target release**: PneumoStabSim Professional v2.0.2
 
-Target release: PneumoStabSim Professional v2.0.1
+Target release: PneumoStabSim Professional v2.0.2
 
 ---
 
