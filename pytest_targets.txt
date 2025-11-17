@@ -1,0 +1,2 @@
+# Paths collected by the main pytest suite.
+tests/integration/test_backup_restore.py

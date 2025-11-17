@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -125,3 +127,71 @@ def test_backup_reports_missing_sources(tmp_path: Path) -> None:
     assert Path("config/app_settings.json") in report.included
     manifest = service.inspect_backup(report.archive_path)
     assert "missing/data" in manifest["skipped"]
+
+
+def test_restore_rejects_corrupted_archive(sample_project: Path, caplog: pytest.LogCaptureFixture) -> None:
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+    report = service.create_backup(label="corrupted")
+
+    # Corrupt the archive to mimic transmission/storage errors
+    report.archive_path.write_bytes(b"not-a-zip")
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(zipfile.BadZipFile):
+        service.restore_backup(report.archive_path)
+
+    assert any("backup_corrupted" in record.getMessage() for record in caplog.records)
+
+
+def test_restore_rejects_manifest_mismatch(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    root = tmp_path / "project"
+    backup_dir = root / "backups"
+    backup_dir.mkdir(parents=True)
+    service = BackupService(root=root, backup_dir=backup_dir)
+
+    archive_path = backup_dir / "manual.zip"
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr(
+            "config/app_settings.json",
+            json.dumps({"graphics": {"quality": "low"}}, ensure_ascii=False),
+        )
+        handle.writestr(
+            "PSS_BACKUP_MANIFEST.json",
+            json.dumps(
+                {
+                    "included": ["config/other.json"],
+                    "skipped": [],
+                    "version": "1.0",
+                    "root": str(root),
+                    "sources": [],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(ValueError, match="manifest"):
+        service.restore_backup(archive_path, target_root=root / "restored")
+
+    assert any("backup_manifest_mismatch" in record.getMessage() for record in caplog.records)
+
+
+def test_restore_rejects_unsafe_members(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    root = tmp_path / "project"
+    backup_dir = root / "backups"
+    backup_dir.mkdir(parents=True)
+    service = BackupService(root=root, backup_dir=backup_dir)
+
+    archive_path = backup_dir / "unsafe.zip"
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr("../../escape.txt", "malicious")
+        handle.writestr(
+            "PSS_BACKUP_MANIFEST.json",
+            json.dumps({"included": ["../../escape.txt"]}, ensure_ascii=False),
+        )
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(ValueError):
+        service.restore_backup(archive_path, target_root=root / "restored")
+
+    assert any("backup_restore_rejected" in record.getMessage() for record in caplog.records)
