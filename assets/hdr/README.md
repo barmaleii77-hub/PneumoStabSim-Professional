@@ -59,6 +59,11 @@ removed immediately._
 
 **All HDR paths are now normalized to `file://` URLs through centralized processing.**
 
+> Новая функциональность: лог резолвинга путей сохраняется в `logs/ibl/ibl_events.jsonl`
+> с полями `status`, `input`, `resolved` и `candidates`. Используйте его для
+> ускоренной диагностики после перемещения репозитория или скачивания ассетов из
+> кеша.
+
 ### How paths are processed
 
 1. **Settings storage**: Use relative paths in `config/app_settings.json`
@@ -139,6 +144,20 @@ removed immediately._
 4. Let `normalizeHdrPath()` handle the rest automatically; UI отрисует статус сразу после обнаружения.
 5. Commit the updated inventory table whenever new lighting profiles are added and выполните `python -m tools.task_runner verify-hdr-assets --fetch-missing --force-rehash` перед пушем.
 
+**Быстрые сценарии проверки**
+
+- Сверить содержимое манифеста с кэшем и показать проблемные строки лога:
+  ```bash
+  uv run python -m tools.task_runner verify-hdr-assets --fetch-missing --force-rehash
+  tail -n 40 logs/ibl/ibl_events.jsonl
+  ```
+- Проверить, что UI увидит новые файлы после добавления в каталог:
+  ```bash
+  uv run python -m tools.task_runner verify-hdr-assets --fetch-missing
+  uv run python -m tools.task_runner autonomous-check --skip-build
+  ```
+  Второй шаг прогоняет нормализацию путей, qmllint и фиксирует отчёт в `reports/`.
+
 **Example**
 ```bash
 uv run python -m tools.task_runner verify-hdr-assets --fetch-missing
@@ -207,6 +226,14 @@ uv run python app.py --safe --ibl ../hdr/studio_small_09_2k.hdr
 ```
 logs/ibl/ibl_signals_YYYYMMDD_HHMMSS.log
 ```
+
+For quick health checks also inspect the structured telemetry file:
+```
+logs/ibl/ibl_events.jsonl
+```
+Every line contains the raw input path, the resolved candidate (if any) and a
+status flag. Combine it with the signals log above when triaging missing assets
+or remote fallbacks.
 
 Check logs for loading issues:
 ```bash
