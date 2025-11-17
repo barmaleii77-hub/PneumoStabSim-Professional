@@ -6,7 +6,7 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging
+from src.diagnostics.logger_factory import configure_logging, normalise_event_payload
 
 
 def _extract_structlog_payload(caplog: Any, capsys: Any) -> tuple[str, dict[str, Any]]:
@@ -25,23 +25,24 @@ def _extract_structlog_payload(caplog: Any, capsys: Any) -> tuple[str, dict[str,
             payload = json.loads(text[start:])
         except json.JSONDecodeError:
             return None
-        return text, payload
-
-    for record in caplog.records:
-        message = getattr(record, "message", None) or record.getMessage()
-        if isinstance(message, dict):
-            serialised = json.dumps(message, ensure_ascii=False)
-            return serialised, message
-        if isinstance(message, str):
-            parsed = _from_text(message)
-            if parsed is not None:
-                return parsed
+        return text, normalise_event_payload(payload)
 
     captured = capsys.readouterr()
     for stream in (captured.err, captured.out):
         parsed = _from_text(stream)
         if parsed is not None:
             return parsed
+
+    for record in caplog.records:
+        message = getattr(record, "message", None) or record.getMessage()
+        if isinstance(message, dict):
+            payload = normalise_event_payload(message)
+            serialised = json.dumps(payload, ensure_ascii=False)
+            return serialised, payload
+        if isinstance(message, str):
+            parsed = _from_text(message)
+            if parsed is not None:
+                return parsed
 
     raise AssertionError("structured log entry was not captured")
 

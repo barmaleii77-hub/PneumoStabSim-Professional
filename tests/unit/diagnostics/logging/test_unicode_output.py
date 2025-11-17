@@ -8,7 +8,7 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging
+from src.diagnostics.logger_factory import configure_logging, normalise_event_payload
 
 
 def _extract_payload(raw: str) -> dict[str, object]:
@@ -21,23 +21,28 @@ def _extract_payload(raw: str) -> dict[str, object]:
 
 
 def _extract_structlog_output(caplog: Any, capsys: Any) -> tuple[str, dict[str, Any]]:
-    for record in caplog.records:
-        message = getattr(record, "message", None) or record.getMessage()
-        if isinstance(message, dict):
-            serialised = json.dumps(message, ensure_ascii=False)
-            return serialised, message
-        if isinstance(message, str) and message.strip():
-            try:
-                return message, _extract_payload(message)
-            except AssertionError:
-                continue
     captured = capsys.readouterr()
     for stream in (captured.err, captured.out):
         if stream.strip():
             try:
-                return stream, _extract_payload(stream)
+                payload = _extract_payload(stream)
             except AssertionError:
                 continue
+            return stream, normalise_event_payload(payload)
+
+    for record in caplog.records:
+        message = getattr(record, "message", None) or record.getMessage()
+        if isinstance(message, dict):
+            payload = normalise_event_payload(message)
+            serialised = json.dumps(payload, ensure_ascii=False)
+            return serialised, payload
+        if isinstance(message, str) and message.strip():
+            try:
+                payload = _extract_payload(message)
+            except AssertionError:
+                continue
+            return message, normalise_event_payload(payload)
+
     raise AssertionError("No structured log output captured")
 
 

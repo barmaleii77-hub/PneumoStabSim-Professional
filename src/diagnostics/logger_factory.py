@@ -294,6 +294,17 @@ def _json_dumps(payload: Mapping[str, Any], **kwargs: Any) -> str:
     return json.dumps(payload, **kwargs)
 
 
+def _build_json_renderer(event_key: str = "event") -> Any:
+    """Return a structlog JSON renderer that preserves Unicode characters."""
+
+    if not HAS_STRUCTLOG:
+        return _json_renderer
+
+    return structlog.processors.JSONRenderer(
+        serializer=_json_dumps, event_key=event_key
+    )
+
+
 def _flatten_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
     """Merge nested JSON payloads into the root event dictionary."""
 
@@ -315,6 +326,12 @@ def _flatten_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
             if nested_event is not None:
                 flattened["event"] = nested_event
     return flattened
+
+
+def normalise_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
+    """Return an event payload with nested JSON flattened."""
+
+    return _flatten_event_payload(dict(event_dict))
 
 
 def _flatten_event_processor(
@@ -393,7 +410,7 @@ def _ensure_stdlib_bridge(
     handler.addFilter(_StructlogBridgeFilter())
     if formatter is None:
         if json_renderer is None:
-            json_renderer = _json_renderer
+            json_renderer = _build_json_renderer()
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
@@ -439,9 +456,7 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    json_renderer = structlog.processors.JSONRenderer(
-        serializer=_json_dumps, event_key="event"
-    )
+    json_renderer = _build_json_renderer()
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
     if processors is not None:
@@ -515,4 +530,5 @@ __all__ = [
     "LoggerProtocol",
     "configure_logging",
     "get_logger",
+    "normalise_event_payload",
 ]
