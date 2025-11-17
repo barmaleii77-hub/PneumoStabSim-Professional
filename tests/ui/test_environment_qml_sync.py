@@ -207,6 +207,7 @@ def test_reflection_probe_disabled_when_environment_settings_false(qapp) -> None
     engine, component, root = _create_simulation_root(overrides)
 
     try:
+        assert bool(root.property("reflectionProbeEnabled")) is False
         assembly = root.property("sceneSuspensionAssembly")
         assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
         assert not bool(assembly.property("reflectionProbeEnabled"))

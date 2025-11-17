@@ -258,7 +258,7 @@ Node {
     Env.ProbeCompat {
         id: mainReflectionProbe
         enabled: assembly.reflectionProbeEnabled
-        parallaxCorrection: assembly.reflectionProbeEnabled
+        parallaxCorrection: enabled
         quality: assembly.reflectionProbeQualityValue
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
@@ -282,7 +282,10 @@ Node {
 
     Connections {
         target: assembly
-        function onReflectionProbeEnabledChanged() { mainReflectionProbe.enabled = assembly.reflectionProbeEnabled }
+        function onReflectionProbeEnabledChanged() {
+            mainReflectionProbe.enabled = assembly.reflectionProbeEnabled
+            mainReflectionProbe.parallaxCorrection = assembly.reflectionProbeEnabled
+        }
     }
 
     SuspensionCorner {
