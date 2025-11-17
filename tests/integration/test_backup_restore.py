@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import shutil
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -125,3 +127,71 @@ def test_backup_reports_missing_sources(tmp_path: Path) -> None:
     assert Path("config/app_settings.json") in report.included
     manifest = service.inspect_backup(report.archive_path)
     assert "missing/data" in manifest["skipped"]
+
+
+def test_inspect_backup_without_manifest_errors(tmp_path: Path) -> None:
+    root = tmp_path / "project"
+    root.mkdir()
+    archive_path = root / "backups" / "orphan.zip"
+    archive_path.parent.mkdir()
+
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr("data.txt", "content")
+
+    service = BackupService(root=root, backup_dir=root / "backups")
+
+    with pytest.raises(KeyError):
+        service.inspect_backup(archive_path)
+
+
+@pytest.mark.parametrize("member_name", ["../escape.txt", "/absolute.txt"])
+def test_restore_rejects_unsafe_paths(sample_project: Path, member_name: str) -> None:
+    archive_path = sample_project / "backups" / "unsafe.zip"
+    archive_path.parent.mkdir()
+
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr(member_name, "harmful")
+
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+
+    with pytest.raises(ValueError):
+        service.restore_backup(archive_path)
+
+
+def test_restore_rejects_corrupted_archive(sample_project: Path) -> None:
+    archive_path = sample_project / "backups" / "corrupted.zip"
+    archive_path.parent.mkdir()
+    archive_path.write_bytes(b"this is not a valid zip")
+
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+
+    with pytest.raises(zipfile.BadZipFile):
+        service.restore_backup(archive_path)
+
+
+def test_backup_and_restore_emit_audit_events(
+    sample_project: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.INFO)
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+
+    report = service.create_backup(label="audit")
+    restore_report = service.restore_backup(report.archive_path)
+
+    backup_events = [
+        record for record in caplog.records if getattr(record, "event", "") == "backup_created"
+    ]
+    restore_events = [
+        record for record in caplog.records if getattr(record, "event", "") == "backup_restored"
+    ]
+
+    assert backup_events, "Backup creation should emit an audit event"
+    assert restore_events, "Backup restoration should emit an audit event"
+
+    backup_event = backup_events[-1]
+    assert getattr(backup_event, "archive", None) == str(report.archive_path)
+    assert getattr(backup_event, "included", None) == len(report.included)
+
+    restore_event = restore_events[-1]
+    assert getattr(restore_event, "archive", None) == str(restore_report.archive_path)
+    assert getattr(restore_event, "restored", None) == len(restore_report.restored)

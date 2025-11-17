@@ -1,1 +1,1 @@
-# Intentionally empty so pytest uses default testpaths.
+tests/integration/test_backup_restore.py
