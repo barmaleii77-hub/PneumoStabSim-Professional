@@ -426,6 +426,7 @@ def _probe_qt_runtime(expected_platform: str | None = None) -> str:
 
 # --- Новые проверки наличия Quick3D плагинов и QML модулей ---
 
+
 def _check_quick3d_plugins() -> list[ProbeResult]:
     """Проверить наличие ключевых Quick3D плагинов и QML модулей.
 
@@ -454,12 +455,12 @@ def _check_quick3d_plugins() -> list[ProbeResult]:
         # Наличие хотя бы одного плагина (scene2d, metalrhi, d3d11rhi и т. п.)
         has_any = any(render_plugins.glob("*.dll")) or any(render_plugins.glob("*.so"))
         if has_any:
-            results.append(
-                ProbeResult(True, f"Render plugins found: {render_plugins}")
-            )
+            results.append(ProbeResult(True, f"Render plugins found: {render_plugins}"))
         else:
             results.append(
-                ProbeResult(False, f"Render plugins directory is empty: {render_plugins}")
+                ProbeResult(
+                    False, f"Render plugins directory is empty: {render_plugins}"
+                )
             )
     else:
         results.append(
@@ -471,13 +472,19 @@ def _check_quick3d_plugins() -> list[ProbeResult]:
     if asset_importers.exists():
         has_any = any(asset_importers.glob("*.*"))
         results.append(
-            ProbeResult(True if has_any else False,
-                        f"Asset importers {'found' if has_any else 'directory is empty'}: {asset_importers}",
-                        fatal=False)
+            ProbeResult(
+                True if has_any else False,
+                f"Asset importers {'found' if has_any else 'directory is empty'}: {asset_importers}",
+                fatal=False,
+            )
         )
     else:
         results.append(
-            ProbeResult(False, f"Asset importers directory not found: {asset_importers}", fatal=False)
+            ProbeResult(
+                False,
+                f"Asset importers directory not found: {asset_importers}",
+                fatal=False,
+            )
         )
 
     # 3) QML модули QtQuick3D
@@ -493,9 +500,7 @@ def _check_quick3d_plugins() -> list[ProbeResult]:
     try:
         import PySide6.QtQuick3D as _qq3d  # noqa: F401
     except Exception as exc:
-        results.append(
-            ProbeResult(False, f"PySide6.QtQuick3D import failed: {exc}")
-        )
+        results.append(ProbeResult(False, f"PySide6.QtQuick3D import failed: {exc}"))
     else:
         results.append(ProbeResult(True, "PySide6.QtQuick3D imported successfully."))
 
