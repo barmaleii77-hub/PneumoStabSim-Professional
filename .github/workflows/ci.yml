@@ -32,10 +32,6 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install make --no-progress -y
 
-      - name: Provision Windows Qt runtime
-        if: runner.os == 'Windows'
-        run: pwsh ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe"
-
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -54,14 +50,14 @@ jobs:
         if: runner.os == 'Linux'
         env:
           QT_VERSION: ${{ env.QT_VERSION }}
-        run: bash ./scripts/setup_linux.sh --qt-version ${{ env.QT_VERSION }}
+        run: bash ./scripts/setup_linux.sh --qt-version ${{ env.QT_VERSION }} --skip-qt
 
       - name: Bootstrap Windows environment
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-          ./scripts/setup_windows.ps1 -QtVersion $env:QT_VERSION
+          ./scripts/setup_windows.ps1 -QtVersion $env:QT_VERSION -PythonPath "${{ env.pythonLocation }}\\python.exe" -SkipQt:$true
 
       - name: Discover available Qt versions
         run: |
@@ -114,6 +110,19 @@ jobs:
           with github_env.open("a", encoding="utf-8") as fh:
               fh.write(f"QT_PLUGIN_PATH={plugin_path}{os.linesep}")
               fh.write(f"QML2_IMPORT_PATH={qml_path}{os.linesep}")
+
+      - name: Document headless Qt environment
+        shell: bash
+        run: |
+          {
+            echo "### Headless Qt environment";
+            echo "- QT_VERSION=${QT_VERSION}";
+            echo "- QT_QPA_PLATFORM=${QT_QPA_PLATFORM}";
+            echo "- QT_QUICK_BACKEND=${QT_QUICK_BACKEND:-n/a}";
+            echo "- QSG_RHI_BACKEND=${QSG_RHI_BACKEND:-n/a}";
+            echo "- QT_OPENGL=${QT_OPENGL:-n/a}";
+            echo "- DISPLAY=${DISPLAY:-<empty>}";
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run make full_verify (Linux)
         if: runner.os == 'Linux'

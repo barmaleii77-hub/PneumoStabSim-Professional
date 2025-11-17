@@ -20,7 +20,9 @@ Usage: scripts/setup_linux.sh [--skip-system] [--skip-python] [--skip-qt] [--qt-
 
 The script installs Qt/graphics packages required by the test-suite and
 ensures the PySide6 runtime is available. Environment variables for headless
-runs are exported to \$GITHUB_ENV when present.
+runs are exported to \$GITHUB_ENV when present. DISPLAY is left empty by default
+so that Qt switches to offscreen; start Xvfb before running this script if you
+want a real DISPLAY to be captured in the exported environment.
 USAGE
 }
 
@@ -203,6 +205,26 @@ if [[ ${skip_python} -eq 0 ]]; then
       "aqtinstall>=3.2.1,<3.3"
     python_for_scripts="${python_cmd}"
   fi
+
+  if [[ "${python_cmd}" != "${python_for_scripts}" ]]; then
+    if "${python_cmd}" -m pip --version >/dev/null 2>&1; then
+      log "Ensuring host Python at ${python_cmd} exposes pytest entrypoints"
+      "${python_cmd}" -m pip install --upgrade pip
+      "${python_cmd}" -m pip install -r requirements-dev.txt
+      "${python_cmd}" -m pip install --upgrade --no-cache-dir \
+        "PySide6==6.10.*" \
+        "PySide6-Addons==6.10.*" \
+        "PySide6-Essentials==6.10.*" \
+        "shiboken6==6.10.*" \
+        numpy \
+        pytest-qt \
+        "PyOpenGL==3.1.10" \
+        "PyOpenGL-accelerate==3.1.10" \
+        "aqtinstall>=3.2.1,<3.3"
+    else
+      warn "pip is not available for ${python_cmd}; skipping host-level entrypoints"
+    fi
+  fi
 else
   log "Skipping Python dependency installation"
 fi
@@ -245,6 +267,12 @@ log "Exporting headless Qt defaults to ${env_file}"
   echo "QT_QPA_PLATFORM=offscreen"
   echo "QT_QUICK_BACKEND=software"
   echo "QSG_RHI_BACKEND=opengl"
+  echo "QT_OPENGL=desktop"
+  echo "QT_QUICK_CONTROLS_STYLE=Fusion"
+  echo "QT_AUTO_SCREEN_SCALE_FACTOR=1"
+  echo "QT_ENABLE_HIGHDPI_SCALING=1"
+  echo "QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough"
+  echo "QT_ASSUME_STDERR_HAS_CONSOLE=1"
   echo "LIBGL_ALWAYS_SOFTWARE=1"
   echo "MESA_GL_VERSION_OVERRIDE=4.1"
   echo "MESA_GLSL_VERSION_OVERRIDE=410"
@@ -253,12 +281,24 @@ log "Exporting headless Qt defaults to ${env_file}"
     echo "DISPLAY="
   fi
   echo "QT_VERSION=${qt_version}"
+  if [[ -x ".venv/bin/python" ]]; then
+    echo "PATH=$(pwd)/.venv/bin:${PATH}"
+  fi
   if [[ -n "${qt_plugins}" ]]; then
     echo "QT_PLUGIN_PATH=${qt_plugins}"
   fi
   if [[ -n "${qt_qml}" ]]; then
     echo "QML2_IMPORT_PATH=${qt_qml}"
   fi
-} >>"${env_file}"
+} >"${env_file}"
+
+if [[ -z "${GITHUB_ENV:-}" ]]; then
+  log "Applying headless Qt defaults to current session"
+  while IFS= read -r line; do
+    if [[ -n "${line}" ]]; then
+      export "${line}"
+    fi
+  done <"${env_file}"
+fi
 
 log "Linux environment bootstrap complete"
