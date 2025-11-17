@@ -145,6 +145,9 @@ jobs:
             echo "- QML2_IMPORT_PATH=${QML2_IMPORT_PATH:-n/a}";
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Prepare pytest reports directory
+        run: mkdir -p reports/tests
+
       - name: Smoke test setup with pytest (Linux)
         if: runner.os == 'Linux'
         env:
@@ -152,7 +155,9 @@ jobs:
           QT_QUICK_BACKEND: software
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: "1"
-        run: bash scripts/xvfb_wrapper.sh uv run pytest -q --maxfail=1 --disable-warnings
+        run: |
+          bash scripts/xvfb_wrapper.sh uv run pytest -q --maxfail=1 --disable-warnings \
+            --junitxml=reports/tests/smoke-${{ runner.os }}.xml
 
       - name: Smoke test setup with pytest (Windows)
         if: runner.os == 'Windows'
@@ -161,7 +166,15 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: rhi
           QSG_RHI_BACKEND: d3d11
-        run: uv run pytest -q --maxfail=1 --disable-warnings
+        run: |
+          uv run pytest -q --maxfail=1 --disable-warnings `
+            --junitxml=reports/tests/smoke-${{ runner.os }}.xml`
+
+      - name: Enforce skip policy for smoke setup
+        run: |
+          python -m tools.quality.skip_policy --ci \
+            --junitxml reports/tests/smoke-${{ runner.os }}.xml \
+            --summary reports/tests/skipped_smoke_${{ runner.os }}.md
 
       - name: Run make full_verify (Linux)
         if: runner.os == 'Linux'
