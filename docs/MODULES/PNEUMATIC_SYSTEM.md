@@ -41,6 +41,14 @@
 
 ---
 
+## Ambient temperature control
+
+- The simulation panel exposes an ambient temperature field (Â°C) that writes to
+  `current.pneumatic.atmo_temp` via `SettingsManager`; values are converted to Kelvin in
+  the simulation core before use.
+- This input is shared with the pneumatic defaults used by `runtime/sim_loop.py`, ensuring
+  the gas network and receiver setup reuse the persisted ambient conditions on startup.
+
 ## ?? Class Diagrams
 
 ### **GasNetwork**
@@ -281,7 +289,7 @@ def calculate_mass_flow(
         p_upstream: Upstream pressure (Pa)
         p_downstream: Downstream pressure (Pa)
         temp: Temperature (K)
-        Cv: Flow coefficient (m?/(s·bar))
+        Cv: Flow coefficient (m?/(sbar))
         position: Valve position (0-1)
 
     Returns:
@@ -334,7 +342,7 @@ def calculate_mass_flow(
 # Isothermal: PV = mRT (T constant)
 def _calc_pressure_isothermal(self, mass: float, volume: float) -> float:
     """Calculate pressure (isothermal)"""
-    R = 287.05  # J/(kg·K) for air
+    R = 287.05  # J/(kgK) for air
     T = self.ambient_temp  # K
 
     if volume < 1e-9:
@@ -380,7 +388,7 @@ DEFAULT_PNEUMATIC_CONFIG = {
     # Gas properties
     'initial_pressure': 600000,  # Pa (6 bar)
     'ambient_pressure': 101325,  # Pa (1 bar)
-    'ambient_temp': 293.15,      # K (20°C)
+    'ambient_temp': 293.15,      # K (20C)
 
     # Receiver tank
     'receiver_volume': 0.01,     # m? (10 liters)
@@ -485,7 +493,7 @@ else:
 
 ## ?? References
 
-- **ISO 6358:** Pneumatic fluid power — Flow coefficient
+- **ISO 6358:** Pneumatic fluid power  Flow coefficient
 - **Ideal Gas Law:** PV = mRT
 - **Adiabatic Process:** PV^? = constant
 - **Choked Flow:** Sonic velocity limit

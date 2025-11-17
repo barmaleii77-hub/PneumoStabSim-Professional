@@ -44,6 +44,19 @@
 
 ---
 
+## Settings & UI integration
+
+- Road profile selection is exposed in `qml/SimulationPanel.qml` via a drop-down backed by
+  `current.modes.road_profile` with presets (`smooth_highway`, `city_streets`, `off_road`,
+  `mountain_serpentine`) and a dedicated **Custom** option.
+- When **Custom** is chosen, the adjacent path field writes to
+  `current.modes.custom_profile_path` through `SettingsManager`, keeping presets and user
+  inputs in sync across sessions.
+- Interference checks and kinematic spring/damper toggles from the same panel persist under
+  `current.modes.check_interference` and `current.modes.physics.*`, allowing the road profile
+  selector to reflect the full simulation context when a session is restored.
+
+
 ## ?? Class Diagram
 
 ```
@@ -448,7 +461,7 @@ road.set_sine_profile(
     wheels=[Wheel.FL, Wheel.FR]
 )
 
-# Rear wheels 180° out of phase
+# Rear wheels 180 out of phase
 road.set_sine_profile(
     amplitude=0.05,
     frequency=1.0,
