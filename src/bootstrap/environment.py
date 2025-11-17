@@ -136,7 +136,9 @@ def configure_qt_environment(
 
     # Уважаем .env, но задаём дефолты при отсутствии значений
     is_windows = sys.platform.startswith("win")
-    backend_default = "d3d11" if is_windows else "opengl"
+    # Унифицируем поведение: по умолчанию используем OpenGL на всех платформах
+    # (детерминированно для тестов и QML-пайплайна). Переопределяется внешней переменной.
+    backend_default = "opengl"
     removed_backend: str | None = None
     removed_safe_mode_keys: list[str] = []
 
@@ -178,7 +180,7 @@ def configure_qt_environment(
     os.environ.setdefault("PSS_DIAG", "1")
     os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
-    # OpenGL по умолчанию для не-Windows; для Windows оставляем d3d11
+    # Если выбран OpenGL — фиксируем версию и тип
     if (backend or "").lower() == "opengl":
         os.environ.setdefault("QSG_OPENGL_VERSION", "3.3")
         os.environ.setdefault("QT_OPENGL", "desktop")

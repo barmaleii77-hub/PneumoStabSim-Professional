@@ -2,7 +2,7 @@
   "metadata": {
     "version": "5.0.0",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-17T07:40:59.510Z",
+    "last_modified": "2025-11-17T09:12:00.295Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults",
@@ -227,7 +227,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0029,
+      "diagonal_coupling_dia": 0.003,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 0.0,
@@ -1621,7 +1621,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0029,
+      "diagonal_coupling_dia": 0.003,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "master_isolation_open": false,
