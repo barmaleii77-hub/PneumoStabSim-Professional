@@ -162,10 +162,21 @@ class ReceiverState:
             except KeyError as exc:  # pragma: no cover - defensive guard
                 raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
 
-        self.mode = resolved_mode
+        previous_mode = self.mode
 
         if recompute:
-            self.apply_instant_volume_change(new_volume)
+            if not (self.spec.V_min <= new_volume <= self.spec.V_max):
+                raise ThermoError(
+                    f"New volume {new_volume} outside valid range"
+                    f" [{self.spec.V_min}, {self.spec.V_max}]"
+                )
+
+            try:
+                self.mode = resolved_mode
+                self.apply_instant_volume_change(new_volume)
+            except Exception:
+                self.mode = previous_mode
+                raise
         else:
             if not (self.spec.V_min <= new_volume <= self.spec.V_max):
                 raise ModelConfigError(
@@ -173,6 +184,7 @@ class ReceiverState:
                         new_volume, self.spec.V_min, self.spec.V_max
                     )
                 )
+            self.mode = resolved_mode
             self.V = new_volume
 
         return ReceiverVolumeUpdate(
