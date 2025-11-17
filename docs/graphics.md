@@ -218,6 +218,13 @@ Environment payload (вложенный)
   `QSB_COMMAND=/usr/lib/qt6/bin/qsb make check`.
 - Команда включена в `make check`, поэтому локальная проверка и CI падают при любой ошибке компиляции шейдера.
 
+### Мониторинг производительности новых пост-эффектов (декабрь 2025)
+
+- **Средние значения по профилю Phase 3** — Qt Quick profiler зафиксировал \~59 FPS (16,9 мс на кадр) при среднем потреблении CPU 0,8 % и памяти 67 МБ; показатели вписываются в контрольный коридор `avg_fps ≥ 30` и `frame_time_ms ≤ 28` из базовой матрицы. 【F:reports/performance/ui_phase3_summary.json†L2-L53】【F:reports/performance/baselines/ui_phase3_baseline.json†L2-L38】
+- **Пробел в метриках GPU** — NVML недоступен в текущем прогоне, поэтому графические метрики вернулись `null`; для полноты картины включите `pynvml` или запустите профайлер на машине с драйверами NVIDIA. 【F:reports/performance/ui_phase3_summary.json†L41-L52】【F:tools/performance_monitor.py†L27-L52】
+- **Узкое место — компиляция шейдеров** — в свежих логах присутствуют десятки ошибок компиляции для `FogEffect`/`PostEffects`, что блокирует применение батчей `environment` и `threeD`; устранение этих ошибок — самый быстрый способ стабилизировать FPS. 【F:reports/runtime_graphics_sync_analysis.md†L21-L43】
+- **Рекомендованные fallback-настройки** — при сбоях шейдеров включается `effectsBypass` и активируется упрощённый режим через `simplifiedRenderingRequested`; если на стенде наблюдаются просадки, зафиксируйте запуск в этом режиме и сократите цепочку эффектов до стабильного набора. 【F:assets/qml/effects/PostEffects.qml†L31-L177】【F:assets/qml/effects/PostEffects.qml†L640-L759】
+
 ### Проверка визуального результата
 
 1. На настольных системах (Windows ANGLE/D3D11, Linux/OpenGL, macOS Metal) включить туман в панели окружения и убедиться,
