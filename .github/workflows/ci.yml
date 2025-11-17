@@ -40,6 +40,40 @@ jobs:
         if: runner.os == 'Windows'
         run: choco install make --no-progress -y
 
+      - name: Install headless Qt dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+
+          packages=(
+            xvfb xauth mesa-utils mesa-utils-extra libosmesa6
+            libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev
+            libegl1 libegl1-mesa-dev libgles2-mesa-dev
+            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+            libosmesa6-dev libgbm1 libdrm2
+            libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0
+            mesa-vulkan-drivers vulkan-tools qt6-shader-baker
+          )
+
+          to_install=()
+          for pkg in "${packages[@]}"; do
+            if dpkg -s "$pkg" >/dev/null 2>&1; then
+              echo "Package $pkg already installed"
+              continue
+            fi
+            if apt-cache show "$pkg" >/dev/null 2>&1; then
+              to_install+=("$pkg")
+            else
+              echo "Skipping unavailable package: $pkg"
+            fi
+          done
+
+          if [ "${#to_install[@]}" -gt 0 ]; then
+            sudo apt-get install -y --no-install-recommends "${to_install[@]}"
+          else
+            echo "No additional apt packages required"
+          fi
+
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
@@ -64,6 +98,15 @@ jobs:
             "shiboken6==6.10.*" \
             numpy \
             pytest-qt
+
+      - name: Run final readiness test (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: software
+          QSG_RHI_BACKEND: opengl
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: bash scripts/xvfb_wrapper.sh uv run python final_readiness_test.py
 
       - name: Bootstrap Linux environment
         if: runner.os == 'Linux'
