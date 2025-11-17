@@ -1455,6 +1455,13 @@ class SignalsRouter:
         mode_key_lower = mode_key.lower()
         if mode_key_lower == "check_interference":
             value = bool(new_mode)
+        elif mode_key_lower == "ambient_temperature_c":
+            value = clamp_parameter_value("ambient_temperature_c", new_mode)
+            if value is None:
+                SignalsRouter.logger.debug(
+                    "Ignored non-numeric ambient temperature: %s", new_mode
+                )
+                return
         elif mode_key_lower in {"road_profile", "custom_profile_path"}:
             value = str(new_mode or "").strip()
             if not value:
@@ -1478,7 +1485,16 @@ class SignalsRouter:
         window._apply_settings_update("modes", modes_updates)
         SignalsRouter._push_modes_state(window)
 
-        if mode_key.lower() == "thermo_mode":
+        if mode_key_lower == "ambient_temperature_c":
+            try:
+                window._apply_settings_update("pneumatic", {"atmo_temp": float(value)})
+            except Exception as exc:
+                SignalsRouter.logger.debug(
+                    "Failed to mirror ambient temperature to pneumatic settings: %s",
+                    exc,
+                )
+
+        if mode_key_lower == "thermo_mode":
             try:
                 bus = window.simulation_manager.state_bus
                 bus.set_thermo_mode.emit(value)
