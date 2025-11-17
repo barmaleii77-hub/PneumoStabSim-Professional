@@ -183,6 +183,37 @@ class BackupService:
             raise ValueError(f"Refusing to restore unsafe archive member: {member}")
         return path
 
+    def _validate_manifest(
+        self, *, manifest: dict[str, object] | None, members: list[str], archive: Path
+    ) -> None:
+        if manifest is None:
+            return
+        included = manifest.get("included")
+        if included is None:
+            return
+        if not isinstance(included, list) or not all(
+            isinstance(item, str) for item in included
+        ):
+            self._logger.error(
+                "backup_manifest_invalid", archive=str(archive), manifest_keys=list(manifest)
+            )
+            raise ValueError("Backup manifest has an invalid structure")
+
+        expected_files = set(included)
+        actual_files = {
+            Path(member).as_posix()
+            for member in members
+            if member != _MANIFEST_FILENAME and not member.endswith("/")
+        }
+        if expected_files != actual_files:
+            self._logger.error(
+                "backup_manifest_mismatch",
+                archive=str(archive),
+                missing=sorted(expected_files - actual_files),
+                unexpected=sorted(actual_files - expected_files),
+            )
+            raise ValueError("Archive manifest does not match archive contents")
+
     # ---------------------------------------------------------------- operations
     def create_backup(
         self,
@@ -337,42 +368,60 @@ class BackupService:
 
         manifest: dict[str, object] | None = None
 
-        with zipfile.ZipFile(archive, "r") as handle:
-            try:
-                with handle.open(_MANIFEST_FILENAME) as manifest_handle:
-                    manifest = cast(dict[str, object], json.load(manifest_handle))
-            except KeyError:
-                manifest = None
+        try:
+            with zipfile.ZipFile(archive, "r") as handle:
+                members = handle.namelist()
+                try:
+                    with handle.open(_MANIFEST_FILENAME) as manifest_handle:
+                        manifest = cast(dict[str, object], json.load(manifest_handle))
+                except KeyError:
+                    manifest = None
 
-            for member in handle.namelist():
-                if member == _MANIFEST_FILENAME:
-                    continue
-                relative = self._safe_member(member)
-                if relative is None:
-                    continue
+                self._validate_manifest(
+                    manifest=manifest, members=members, archive=archive
+                )
 
-                if member.endswith("/"):
-                    destination_dir = (target / relative).resolve()
-                    if not destination_dir.is_relative_to(target):
+                for member in members:
+                    if member == _MANIFEST_FILENAME:
+                        continue
+                    relative = self._safe_member(member)
+                    if relative is None:
+                        continue
+
+                    if member.endswith("/"):
+                        destination_dir = (target / relative).resolve()
+                        if not destination_dir.is_relative_to(target):
+                            raise ValueError(
+                                f"Archive member escapes target directory: {member}"
+                            )
+                        destination_dir.mkdir(parents=True, exist_ok=True)
+                        continue
+
+                    destination = (target / relative).resolve()
+                    if not destination.is_relative_to(target):
                         raise ValueError(
                             f"Archive member escapes target directory: {member}"
                         )
-                    destination_dir.mkdir(parents=True, exist_ok=True)
-                    continue
+                    if destination.exists() and not overwrite:
+                        skipped.append(destination.relative_to(target))
+                        continue
 
-                destination = (target / relative).resolve()
-                if not destination.is_relative_to(target):
-                    raise ValueError(
-                        f"Archive member escapes target directory: {member}"
-                    )
-                if destination.exists() and not overwrite:
-                    skipped.append(destination.relative_to(target))
-                    continue
-
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                with handle.open(member) as source, destination.open("wb") as output:
-                    shutil.copyfileobj(source, output)
-                restored.append(destination.relative_to(target))
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    with handle.open(member) as source, destination.open(
+                        "wb"
+                    ) as output:
+                        shutil.copyfileobj(source, output)
+                    restored.append(destination.relative_to(target))
+        except zipfile.BadZipFile as exc:
+            self._logger.error(
+                "backup_corrupted", archive=str(archive), error=str(exc)
+            )
+            raise
+        except ValueError as exc:
+            self._logger.error(
+                "backup_restore_rejected", archive=str(archive), error=str(exc)
+            )
+            raise
 
         self._logger.info(
             "backup_restored",
