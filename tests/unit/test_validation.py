@@ -32,6 +32,8 @@ def test_sanitize_physics_payload_filters_and_clamps() -> None:
     payload = {
         "include_springs": 0,
         "include_dampers": 1,
+        "include_springs_kinematics": 0,
+        "include_dampers_kinematics": 1,
         "spring_constant": -5.0,
         "damper_coefficient": "not-a-number",
         "lever_inertia_multiplier": -0.5,
@@ -40,6 +42,8 @@ def test_sanitize_physics_payload_filters_and_clamps() -> None:
     sanitized = sanitize_physics_payload(payload)
     assert sanitized["include_springs"] is False
     assert sanitized["include_dampers"] is True
+    assert sanitized["include_springs_kinematics"] is False
+    assert sanitized["include_dampers_kinematics"] is True
     assert sanitized["spring_constant"] >= 0.0
     # fallback to defaults for invalid numeric input
     assert sanitized["damper_coefficient"] > 0.0

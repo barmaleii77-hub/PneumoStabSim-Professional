@@ -1241,6 +1241,9 @@ class SignalsRouter:
             "smoothing_angle_snap_deg": "smoothing_angle_snap_deg",
             "smoothing_piston_snap_m": "smoothing_piston_snap_m",
             "smoothing_easing": "smoothing_easing",
+            "road_profile": "road_profile",
+            "custom_profile_path": "custom_profile_path",
+            "check_interference": "check_interference",
         }
 
         def _assign_numeric(source_key: str, settings_key: str, qml_key: str) -> None:
@@ -1271,6 +1274,18 @@ class SignalsRouter:
                     if modes_key:
                         modes_payload[modes_key] = value
                     return
+
+        def _assign_text(source_key: str, settings_key: str) -> None:
+            if source_key not in params:
+                return
+            text_value = str(params.get(source_key) or "").strip()
+            if not text_value:
+                return
+            settings_payload[settings_key] = text_value
+            qml_payload[settings_key] = text_value
+            modes_key = modes_key_map.get(settings_key)
+            if modes_key:
+                modes_payload[modes_key] = text_value
 
         _assign_numeric("amplitude", "amplitude", "amplitude")
         _assign_numeric("frequency", "frequency", "frequency")
@@ -1303,6 +1318,10 @@ class SignalsRouter:
             "smoothing_enabled",
             "smoothingEnabled",
         )
+        _assign_bool(["check_interference"], "check_interference", "check_interference")
+
+        _assign_text("road_profile", "road_profile")
+        _assign_text("custom_profile_path", "custom_profile_path")
         _assign_numeric(
             "smoothing_duration_ms", "smoothing_duration_ms", "smoothingDurationMs"
         )
@@ -1398,6 +1417,10 @@ class SignalsRouter:
         if thermo_mode:
             modes_updates["thermo_mode"] = str(thermo_mode)
 
+        for optional_key in ("road_profile", "custom_profile_path", "check_interference"):
+            if optional_key in preset:
+                modes_updates[optional_key] = preset.get(optional_key)
+
         physics_payload: dict[str, bool] = {}
         for option in DEFAULT_PHYSICS_OPTIONS.keys():
             if option in preset:
@@ -1425,12 +1448,23 @@ class SignalsRouter:
         if not mode_key:
             return
 
-        value = normalise_mode_value(mode_key, new_mode)
-        if not value:
-            SignalsRouter.logger.debug(
-                "Ignored unsupported mode value: type=%s value=%s", mode_type, new_mode
-            )
-            return
+        mode_key_lower = mode_key.lower()
+        if mode_key_lower == "check_interference":
+            value = bool(new_mode)
+        elif mode_key_lower in {"road_profile", "custom_profile_path"}:
+            value = str(new_mode or "").strip()
+            if not value:
+                SignalsRouter.logger.debug(
+                    "Ignored empty mode value: type=%s value=%s", mode_type, new_mode
+                )
+                return
+        else:
+            value = normalise_mode_value(mode_key, new_mode)
+            if not value:
+                SignalsRouter.logger.debug(
+                    "Ignored unsupported mode value: type=%s value=%s", mode_type, new_mode
+                )
+                return
 
         modes_updates = {mode_key: value}
         # Manual change implies custom preset

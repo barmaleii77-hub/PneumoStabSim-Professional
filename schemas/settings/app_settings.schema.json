@@ -777,6 +777,14 @@
         "include_springs": {"title": "Include Springs", "type": "boolean"},
         "include_dampers": {"title": "Include Dampers", "type": "boolean"},
         "include_pneumatics": {"title": "Include Pneumatics", "type": "boolean"},
+        "include_springs_kinematics": {
+          "title": "Include Springs In Kinematics",
+          "type": "boolean"
+        },
+        "include_dampers_kinematics": {
+          "title": "Include Dampers In Kinematics",
+          "type": "boolean"
+        },
         "spring_constant": {"title": "Spring Constant", "type": "number"},
         "damper_coefficient": {"title": "Damper Coefficient", "type": "number"},
         "lever_inertia_multiplier": {"title": "Lever Inertia Multiplier", "type": "number"},
@@ -788,7 +796,7 @@
           "enum": ["rk4", "euler"]
         }
       },
-      "required": ["include_springs", "include_dampers", "include_pneumatics", "spring_constant", "damper_coefficient", "lever_inertia_multiplier", "damper_force_threshold_n", "spring_rest_position_m", "integrator_method"],
+      "required": ["include_springs", "include_dampers", "include_pneumatics", "include_springs_kinematics", "include_dampers_kinematics", "spring_constant", "damper_coefficient", "lever_inertia_multiplier", "damper_force_threshold_n", "spring_rest_position_m", "integrator_method"],
       "title": "ModesPhysicsSettings",
       "type": "object"
     },
@@ -796,7 +804,11 @@
       "additionalProperties": false,
       "properties": {
         "sim_type": {"title": "Sim Type", "type": "string"},
+        "thermo_mode": {"title": "Thermo Mode", "type": "string"},
         "mode_preset": {"title": "Mode Preset", "type": "string"},
+        "road_profile": {"title": "Road Profile", "type": "string"},
+        "custom_profile_path": {"title": "Custom Profile Path", "type": "string"},
+        "check_interference": {"title": "Check Interference", "type": "boolean"},
         "amplitude": {"title": "Amplitude", "type": "number"},
         "frequency": {"title": "Frequency", "type": "number"},
         "phase": {"title": "Phase", "type": "number"},
@@ -806,7 +818,7 @@
         "rr_phase": {"title": "Rr Phase", "type": "number"},
         "physics": {"$ref": "#/$defs/ModesPhysicsSettings"}
       },
-      "required": ["sim_type", "mode_preset", "amplitude", "frequency", "phase", "lf_phase", "rf_phase", "lr_phase", "rr_phase", "physics"],
+      "required": ["sim_type", "thermo_mode", "mode_preset", "road_profile", "custom_profile_path", "check_interference", "amplitude", "frequency", "phase", "lf_phase", "rf_phase", "lr_phase", "rr_phase", "physics"],
       "title": "ModesSettings",
       "type": "object"
     },
