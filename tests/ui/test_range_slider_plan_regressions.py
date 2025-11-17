@@ -11,29 +11,32 @@ pytestmark = [pytest.mark.ui, pytest.mark.headless]
 
 
 def _step_property_value(slider: RangeSlider) -> float | None:
-    if not hasattr(slider, "step"):
-        # Community builds of PySide6 sometimes drop the property; fall back to
-        # a behavioural probe using the value setter.
+    """Read ``RangeSlider.step`` defensively and emulate when absent."""
+
+    def _probe_step_via_value() -> float | None:
         before = slider.value()
         slider.setValue(before + 1.0)
         after = slider.value()
         slider.setValue(before)
         delta = abs(after - before)
         return delta if delta > 0 else None
-    try:
+
+    if hasattr(slider, "step"):
         step_attr = getattr(slider, "step")
-    except Exception:
-        return None
+        try:
+            return float(step_attr)
+        except (TypeError, ValueError):
+            pass
+
+    # Some community PySide6 builds expose only a private attribute.
+    private_step = getattr(slider, "_step", None)
     try:
-        return float(step_attr)
+        if private_step is not None:
+            return float(private_step)
     except (TypeError, ValueError):
-        # As a fallback, emulate a single-step delta via value mutation.
-        before = slider.value()
-        slider.setValue(before + 1.0)
-        after = slider.value()
-        slider.setValue(before)
-        delta = abs(after - before)
-        return delta if delta > 0 else None
+        pass
+
+    return _probe_step_via_value()
 
 
 class TestLocales:

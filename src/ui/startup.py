@@ -39,6 +39,41 @@ def _truthy(value: str | None) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def choose_scenegraph_backend(platform: str) -> str:
+    """Return the preferred Qt scenegraph backend for ``platform``."""
+
+    normalized = platform.lower()
+    if normalized.startswith("win"):
+        return "d3d11"
+    if normalized.startswith("darwin") or normalized.startswith("mac"):
+        return "metal"
+    return "opengl"
+
+
+def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str, ...]]:
+    """Determine headless mode triggers and return reasons."""
+
+    if _truthy(env.get("PSS_HEADLESS")):
+        return True, ("flag:pss-headless",)
+
+    reasons: list[str] = []
+    qpa = (env.get("QT_QPA_PLATFORM") or "").strip().lower()
+    display_present = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
+
+    if _truthy(env.get("CI")):
+        reasons.append("ci-flag")
+
+    if not qpa:
+        if not display_present:
+            reasons.append("no-display-server")
+        reasons.append("qt-qpa-platform-missing")
+    elif qpa in {"offscreen", "minimal", "minimal:tools=auto"}:
+        reasons.append(f"qt-qpa-platform:{qpa}")
+
+    headless = bool(reasons)
+    return headless, tuple(reasons)
+
+
 def bootstrap_graphics_environment(
     env: Mapping[str, str],
     *,
@@ -56,56 +91,28 @@ def bootstrap_graphics_environment(
     - ``use_qml_3d`` выключается только при реальном headless или в ``safe_mode``.
     """
 
-    is_windows = platform.startswith("win")
+    headless, reasons = detect_headless_environment(env)
 
-    qpa = (env.get("QT_QPA_PLATFORM") or "").strip().lower()
-    user_forced_offscreen = qpa in {"offscreen", "minimal", "minimal:tools=auto"}
+    if headless:
+        if not env.get("QT_QPA_PLATFORM"):
+            env["QT_QPA_PLATFORM"] = "offscreen"
+        env["PSS_FORCE_NO_QML_3D"] = "1"
 
-    explicit_headless = (
-        _truthy(env.get("PSS_HEADLESS"))
-        or _truthy(env.get("CI"))
-        or _truthy(env.get("GITHUB_ACTIONS"))
-    )
+    backend = env.get("QSG_RHI_BACKEND") or ""
+    chosen_backend = choose_scenegraph_backend(platform)
+    if not safe_mode and not backend:
+        env["QSG_RHI_BACKEND"] = chosen_backend
+        backend = chosen_backend
+    elif not backend:
+        backend = chosen_backend
 
-    headless = False
-    reasons: list[str] = []
-
-    if is_windows:
-        # На Windows headless только по явному сигналу пользователя/окружения
-        if explicit_headless:
-            headless = True
-            reasons.append("user-requested")
-        elif user_forced_offscreen:
-            headless = True
-            reasons.append("qt-qpa-offscreen")
-        # иначе — считаем интерактивный режим
-    else:
-        # Unix: нет дисплея => headless, либо явный offscreen
-        display_present = bool(env.get("DISPLAY") or env.get("WAYLAND_DISPLAY"))
-        if explicit_headless:
-            headless = True
-            reasons.append("user-requested")
-        elif user_forced_offscreen:
-            headless = True
-            reasons.append("qt-qpa-offscreen")
-        elif not display_present:
-            headless = True
-            reasons.append("no-display-server")
-
-    # Выбор backend по умолчанию
-    backend = (env.get("QSG_RHI_BACKEND") or "").strip().lower()
-    if not backend:
-        backend = "d3d11" if is_windows else "opengl"
-
-    # QML 3D доступен только вне safe_mode и не в headless
-    use_qml_3d = not safe_mode and not headless
-
+    use_qml_3d = not headless
     return GraphicsBootstrapState(
         backend=backend,
         use_qml_3d=use_qml_3d,
         safe_mode=safe_mode,
         headless=headless,
-        headless_reasons=tuple(reasons),
+        headless_reasons=reasons,
     )
 
 
