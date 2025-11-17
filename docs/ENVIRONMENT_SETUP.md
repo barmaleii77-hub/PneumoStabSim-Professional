@@ -12,7 +12,9 @@ headless-профилей.
 ### Linux (Ubuntu 22.04+/headless контейнеры)
 
 1. **Системные пакеты Qt/X11/GL** — то же, что в CI/Docker. Можно вручную или
-   довериться `setup_linux.sh` (он выполнит команды сам):
+   довериться `setup_linux.sh` (он выполнит команды сам) и поставит Xvfb+
+   Mesa для софтверного GL **и** бинарные Qt-штуки (`qmlimportscanner`,
+   Shader Baker):
 
    ```sh
    sudo apt-get update
@@ -27,7 +29,9 @@ headless-профилей.
    ```
 
    Mesa + OSMesa дают программный OpenGL, Qt dev-пакеты включают `qmlimportscanner`
-   и Shader Baker, Xvfb/X11 пакеты покрывают headless-запуски QtQuick3D.
+   и Shader Baker, Xvfb/X11 пакеты покрывают headless-запуски QtQuick3D. Для
+   машин с GPU добавьте `nvidia-driver-535`/`mesa-vulkan-drivers` (уже в списке)
+   и проверьте ICD-файлы (`ls /usr/share/vulkan/icd.d/`).
 
 2. **Автонастройка окружения** — ставит Python-зависимости (через `uv` или pip),
    `aqtinstall`, PySide6/QtQuick3D, headless-переменные (`QT_QPA_PLATFORM=offscreen`,
@@ -43,7 +47,9 @@ headless-профилей.
 
 3. **Xvfb и DISPLAY** — если нужен реальный `DISPLAY`, поднимите Xvfb **до**
    вызова скрипта, чтобы переменная попала в экспортированный env. Без Xvfb
-   `DISPLAY` остаётся пустым и Qt уходит в offscreen:
+   `DISPLAY` остаётся пустым и Qt уходит в offscreen. Скрипт фиксирует текущее
+   значение `DISPLAY` в `$GITHUB_ENV`/локальном env и сообщает, используется ли
+   offscreen. Проверка программного GL:
 
    ```sh
    Xvfb :99 -screen 0 1920x1080x24 &
@@ -54,6 +60,8 @@ headless-профилей.
 
 4. **Тесты без ручных шагов** — проверка минимальной цепочки: `./scripts/setup_linux.sh && pytest`.
    Полный профиль: `make full_verify` или `python -m tools.testing_entrypoint`.
+   Скрипт добавляет `QT_PLUGIN_PATH` и `QML2_IMPORT_PATH` в `$GITHUB_ENV`, так
+   что `pytest -q` получает полноценный runtime даже без шагов «Export Qt paths».
 
 ### Windows 10+/Windows Server 2022
 
@@ -73,6 +81,9 @@ headless-профилей.
 
    Дополнительно убедитесь, что GPU-драйверы актуальны и `dxdiag /whql:off`
    показывает включённые **DirectX Features**; Qt тогда использует backend `d3d11`.
+   В headless/CI режиме скрипт включает `QT_QPA_PLATFORM=offscreen`,
+   `QT_QUICK_BACKEND=rhi`, `QSG_RHI_BACKEND=d3d11` и добавляет пути до Qt
+   в `$GITHUB_ENV`.
 
 3. **Автонастройка окружения** — ставит Python-зависимости (`uv`/pip), PySide6,
    `pytest-qt`, headless-настройки (`QT_QPA_PLATFORM=offscreen`,

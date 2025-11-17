@@ -68,6 +68,7 @@ done
 
 kernel=$(uname -s 2>/dev/null || echo "unknown")
 log "Detected host kernel: ${kernel}"
+log "Detected DISPLAY value: ${DISPLAY:-<empty>}"
 if [[ ${kernel} != "Linux" ]]; then
   warn "This bootstrap script only supports Linux hosts."
   exit 1
@@ -232,6 +233,13 @@ fi
 qt_bin=""
 qt_plugins=""
 qt_qml=""
+qt_platform="offscreen"
+if [[ -n "${DISPLAY:-}" ]]; then
+  qt_platform="xcb"
+  log "DISPLAY is set; using Qt platform '${qt_platform}' instead of offscreen"
+else
+  log "No DISPLAY detected; defaulting to headless Qt platform 'offscreen'"
+fi
 if [[ ${skip_qt} -eq 0 ]]; then
   log "Provisioning Qt runtime via tools/setup_qt.py (version ${qt_version})"
   if [[ ! -f tools/setup_qt.py ]]; then
@@ -264,7 +272,7 @@ fi
 env_file=${GITHUB_ENV:-/tmp/setup_linux.env}
 log "Exporting headless Qt defaults to ${env_file}"
 {
-  echo "QT_QPA_PLATFORM=offscreen"
+  echo "QT_QPA_PLATFORM=${qt_platform}"
   echo "QT_QUICK_BACKEND=software"
   echo "QSG_RHI_BACKEND=opengl"
   echo "QT_OPENGL=desktop"
