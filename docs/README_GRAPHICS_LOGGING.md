@@ -388,6 +388,6 @@ panel.material_changed.connect(on_material_changed)
 
 ---
 
-**Версия**: 5.0.0
+**Версия**: 5.0.1
 **Последнее обновление**: 2024
 **Автор**: PneumoStabSim Development Team
