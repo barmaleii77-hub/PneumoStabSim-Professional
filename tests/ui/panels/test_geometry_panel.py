@@ -39,7 +39,9 @@ def _get_wheelbase_slider(panel):
 
 
 @pytest.mark.gui
-def test_get_parameters_returns_copy(geometry_panel, qtbot: pytestqt.qtbot.QtBot) -> None:
+def test_get_parameters_returns_copy(
+    geometry_panel, qtbot: pytestqt.qtbot.QtBot
+) -> None:
     panel = geometry_panel
 
     snapshot = panel.get_parameters()

@@ -186,12 +186,16 @@ class ReceiverState:
         )
 
         if not (self.spec.V_min <= new_volume <= self.spec.V_max):
-            raise ThermoError(
-                f"New volume {new_volume} outside valid range"
-                f" [{self.spec.V_min}, {self.spec.V_max}]"
-            ) if recompute else ModelConfigError(
-                "Volume {0} outside valid range [{1}, {2}]".format(
-                    new_volume, self.spec.V_min, self.spec.V_max
+            raise (
+                ThermoError(
+                    f"New volume {new_volume} outside valid range"
+                    f" [{self.spec.V_min}, {self.spec.V_max}]"
+                )
+                if recompute
+                else ModelConfigError(
+                    "Volume {0} outside valid range [{1}, {2}]".format(
+                        new_volume, self.spec.V_min, self.spec.V_max
+                    )
                 )
             )
 

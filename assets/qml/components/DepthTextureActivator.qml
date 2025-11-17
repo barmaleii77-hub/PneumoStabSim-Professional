@@ -255,6 +255,8 @@ QtObject {
     function _hasProperty(target, propertyName) {
         if (!target || !propertyName)
             return false
+        if (_legacyDepthProperties.indexOf(propertyName) !== -1)
+            return false
         var cached = _readCachedPresence(target, propertyName)
         if (cached !== undefined)
             return cached
