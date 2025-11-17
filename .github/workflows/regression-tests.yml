@@ -24,10 +24,6 @@ on:
       - "tests/**"
       - "tools/**"
       - "config/schemas/**"
-    branches:
-      - develop
-      - main
-      - 'feature/**'
 
 jobs:
   regression:
