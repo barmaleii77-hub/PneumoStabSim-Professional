@@ -32,7 +32,7 @@ __all__ = [
     "menu_actions",
 ]
 
-__version__ = "2.0.2"
+__version__ = "4.9.5"
 
 _MODULE_EXPORTS = {
     "qml_bridge": "qml_bridge",

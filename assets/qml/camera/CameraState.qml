@@ -133,35 +133,35 @@ QtObject {
 
     Behavior on yawDeg {
         NumberAnimation {
-            duration: rotationDampingMs
+            duration: cameraState.rotationDampingMs
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on pitchDeg {
         NumberAnimation {
-            duration: rotationDampingMs
+            duration: cameraState.rotationDampingMs
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on distance {
         NumberAnimation {
-            duration: distanceDampingMs
+            duration: cameraState.distanceDampingMs
             easing.type: Easing.OutCubic
         }
     }
 
     Behavior on panX {
         NumberAnimation {
-            duration: panDampingMs
+            duration: cameraState.panDampingMs
             easing.type: Easing.OutQuad
         }
     }
 
     Behavior on panY {
         NumberAnimation {
-            duration: panDampingMs
+            duration: cameraState.panDampingMs
             easing.type: Easing.OutQuad
         }
     }

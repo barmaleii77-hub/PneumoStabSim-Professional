@@ -203,7 +203,7 @@ Pane {
                     Layout.fillWidth: true
                 }
                 Flow {
-                    width: parent.width
+                    Layout.fillWidth: true
                     visible: root.modulesList.length > 0
                     spacing: 6
                     Repeater {
