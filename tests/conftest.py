@@ -61,6 +61,9 @@ def qapp():
     except Exception:
         yield None
         return
+    # Ensure Qt uses a platform plugin that works in headless Linux containers
+    # while still allowing Windows/macOS agents to override as needed.
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     app = QApplication.instance() or QApplication(sys.argv)
     yield app
     try:
@@ -157,7 +160,7 @@ def temp_settings_file(tmp_path):
 
     settings_path = tmp_path / "config" / "app_settings.json"
     settings_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Load baseline config
     try:
         baseline = json.loads(
@@ -169,7 +172,7 @@ def temp_settings_file(tmp_path):
             "current": {},
             "defaults_snapshot": {},
         }
-    
+
     settings_path.write_text(
         json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -180,7 +183,7 @@ def temp_settings_file(tmp_path):
 def hysteretic_check_valve():
     """Provide a check valve with hysteresis for testing state transitions."""
     from src.pneumo.valves import CheckValve
-    
+
     # Калиброванный клапан: открывается при Δp > 1.5 kPa,
     # закрывается при Δp < 0.9 kPa (гистерезис 600 Pa)
     return CheckValve(
@@ -195,7 +198,7 @@ def relief_valve_reference():
     """Provide a reference relief valve for testing flow and hysteresis."""
     from src.pneumo.valves import ReliefValve
     from src.pneumo.enums import ReliefValveKind
-    
+
     # Клапан давления: открывается при p > 205 kPa,
     # закрывается при p < 200 kPa (гистерезис 5 kPa)
     return ReliefValve(
@@ -383,6 +386,7 @@ def qtbot(qapp):
 
         def assertNotEmitted(self, signal, timeout: int = 100) -> object:
             """Context manager asserting that a signal is NOT emitted."""
+
             class _NotEmittedCtx:
                 def __init__(self, sig, to):
                     self._sig = sig
@@ -465,12 +469,15 @@ def monkeypatch():  # custom to ignore raising kw
     finally:
         mp.undo()
 
+
 @pytest.fixture
 def legacy_gas_state_factory():
     """Factory fixture producing LegacyGasState instances for legacy tests."""
     from src.pneumo.gas_state import LegacyGasState
 
-    def _factory(*, pressure: float, volume: float, temperature: float, mass: float | None = None):
+    def _factory(
+        *, pressure: float, volume: float, temperature: float, mass: float | None = None
+    ):
         return LegacyGasState(
             pressure=pressure,
             volume=volume,
