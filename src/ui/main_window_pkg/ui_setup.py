@@ -51,6 +51,28 @@ EFFECT_SHADER_DIRS: tuple[Path, ...] = (EFFECT_SHADER_DIR,)
 
 _SCENE_SUSPENSION_REQUIRED_KEYS: tuple[str, ...] = ("rod_warning_threshold_m",)
 _SCENE_SUSPENSION_DEFAULTS: dict[str, float] = {"rod_warning_threshold_m": 0.001}
+_SCENE_REQUIRED_KEYS: tuple[str, ...] = (
+    "scale_factor",
+    "exposure",
+    "default_clear_color",
+    "model_base_color",
+    "model_roughness",
+    "model_metalness",
+)
+_SCENE_FLOAT_KEYS: tuple[str, ...] = (
+    "scale_factor",
+    "exposure",
+    "model_roughness",
+    "model_metalness",
+)
+_SCENE_DEFAULTS: dict[str, Any] = {
+    "scale_factor": 1.0,
+    "exposure": 1.0,
+    "default_clear_color": "#1b1f27",
+    "model_base_color": "#9da3aa",
+    "model_roughness": 0.42,
+    "model_metalness": 0.82,
+}
 
 
 class UISetup:
@@ -394,19 +416,80 @@ class UISetup:
             )
             return sanitized, unique_missing
 
+        def _fallback_section(path: str) -> dict[str, Any]:
+            try:
+                payload = manager.get(path, {}) or {}
+            except Exception as exc:  # pragma: no cover - defensive logging
+                UISetup.logger.debug(
+                    "    ⚠️ Failed to read %s for scene defaults: %s", path, exc
+                )
+                return {}
+            return payload if isinstance(payload, dict) else {}
+
+        def _coerce_scene_color(value: Any) -> str | None:
+            if isinstance(value, str):
+                text = value.strip()
+                if text.startswith("#") and len(text) in {4, 7}:
+                    return text.lower()
+            return None
+
+        def _ensure_scene_basics(scene_payload: dict[str, Any]) -> dict[str, Any]:
+            payload = scene_payload if isinstance(scene_payload, dict) else {}
+
+            fallback_sources: list[tuple[str, dict[str, Any]]] = [
+                ("metadata", _fallback_section("metadata.scene_defaults")),
+                ("snapshot", _fallback_section("defaults_snapshot.graphics.scene")),
+            ]
+
+            normalised: dict[str, Any] = {}
+            missing_keys: list[str] = []
+
+            for key in _SCENE_REQUIRED_KEYS:
+                value = payload.get(key)
+                normalised_value: Any | None = None
+
+                if key in _SCENE_FLOAT_KEYS and isinstance(value, (int, float)) and not isinstance(value, bool):
+                    normalised_value = float(value)
+                elif key.endswith("_color"):
+                    normalised_value = _coerce_scene_color(value)
+
+                if normalised_value is None:
+                    for _, fallback in fallback_sources:
+                        candidate = fallback.get(key)
+                        if key in _SCENE_FLOAT_KEYS:
+                            if isinstance(candidate, (int, float)) and not isinstance(
+                                candidate, bool
+                            ):
+                                normalised_value = float(candidate)
+                                break
+                        elif key.endswith("_color"):
+                            candidate_color = _coerce_scene_color(candidate)
+                            if candidate_color:
+                                normalised_value = candidate_color
+                                break
+                        elif candidate is not None:
+                            normalised_value = candidate
+                            break
+
+                if normalised_value is None:
+                    normalised_value = _SCENE_DEFAULTS.get(key)
+                    missing_keys.append(key)
+
+                normalised[key] = normalised_value
+
+            if missing_keys:
+                UISetup.logger.warning(
+                    "    ⚠️ Scene settings missing keys: %s. Applying defaults.",
+                    ", ".join(sorted(missing_keys)),
+                )
+
+            merged = dict(payload)
+            merged.update(normalised)
+            return merged
+
         def _ensure_scene_suspension(scene_payload: dict[str, Any]) -> dict[str, Any]:
             if not isinstance(scene_payload, dict):
                 return {}
-
-            def _fallback_section(path: str) -> dict[str, Any]:
-                try:
-                    payload = manager.get(path, {}) or {}
-                except Exception as exc:  # pragma: no cover - defensive logging
-                    UISetup.logger.debug(
-                        "    ⚠️ Failed to read %s for scene defaults: %s", path, exc
-                    )
-                    return {}
-                return payload if isinstance(payload, dict) else {}
 
             fallback_sources: list[tuple[str, dict[str, Any]]] = []
             metadata_defaults = _fallback_section("metadata.scene_defaults")
@@ -488,7 +571,9 @@ class UISetup:
             return result
 
         animation_payload = _read_section("animation")
-        scene_payload = _ensure_scene_suspension(_read_section("scene"))
+        scene_payload = _ensure_scene_suspension(
+            _ensure_scene_basics(_read_section("scene"))
+        )
         materials_payload = _read_section("materials")
         environment_payload = _read_section("environment")
         effects_payload = _read_section("effects")

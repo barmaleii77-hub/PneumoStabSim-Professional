@@ -1170,6 +1170,12 @@
     "SceneDefaultsMetadata": {
       "additionalProperties": false,
       "properties": {
+        "scale_factor": {"title": "Scale Factor", "type": "number"},
+        "exposure": {"title": "Exposure", "type": "number"},
+        "default_clear_color": {"title": "Default Clear Color", "type": "string"},
+        "model_base_color": {"title": "Model Base Color", "type": "string"},
+        "model_roughness": {"title": "Model Roughness", "type": "number"},
+        "model_metalness": {"title": "Model Metalness", "type": "number"},
         "suspension": {"$ref": "#/$defs/SceneSuspensionSettings"}
       },
       "required": ["suspension"],

@@ -103,3 +103,26 @@ def test_scene_suspension_uses_metadata_defaults(
     assert suspension_defaults["rod_warning_threshold_m"] == pytest.approx(0.0035)
     assert "Scene settings missing 'suspension' section" in caplog.text
     assert "Scene suspension settings missing keys" not in caplog.text
+
+
+def test_scene_basics_use_metadata_defaults(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    payload = _load_settings_payload()
+    scene = payload["current"]["graphics"]["scene"]
+    snapshot_scene = payload["defaults_snapshot"]["graphics"]["scene"]
+    scene.pop("exposure", None)
+    scene.pop("default_clear_color", None)
+    snapshot_scene.pop("exposure", None)
+    snapshot_scene.pop("default_clear_color", None)
+
+    metadata = payload.setdefault("metadata", {})
+    scene_defaults = metadata.setdefault("scene_defaults", {})
+    scene_defaults.update({"exposure": 2.5, "default_clear_color": "#ABCDEF"})
+
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    assert context["scene"]["exposure"] == pytest.approx(2.5)
+    assert context["scene"]["default_clear_color"] == "#abcdef"
+    assert "Scene settings missing keys: default_clear_color, exposure" in caplog.text

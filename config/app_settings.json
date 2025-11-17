@@ -148,6 +148,12 @@
       }
     },
     "scene_defaults": {
+      "scale_factor": 1.0,
+      "exposure": 1.0,
+      "default_clear_color": "#1b1f27",
+      "model_base_color": "#9da3aa",
+      "model_roughness": 0.42,
+      "model_metalness": 0.82,
       "suspension": {
         "rod_warning_threshold_m": 0.001
       }
