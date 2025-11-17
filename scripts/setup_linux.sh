@@ -277,9 +277,7 @@ log "Exporting headless Qt defaults to ${env_file}"
   echo "MESA_GL_VERSION_OVERRIDE=4.1"
   echo "MESA_GLSL_VERSION_OVERRIDE=410"
   echo "QT_LOGGING_RULES=*.debug=false;qt.scenegraph.general=false"
-  if [[ -z "${DISPLAY:-}" ]]; then
-    echo "DISPLAY="
-  fi
+  echo "DISPLAY=${DISPLAY:-}"
   echo "QT_VERSION=${qt_version}"
   if [[ -x ".venv/bin/python" ]]; then
     echo "PATH=$(pwd)/.venv/bin:${PATH}"
