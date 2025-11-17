@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from collections.abc import Callable
 import pytest
+import types
 
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -73,6 +74,136 @@ def _path_snapshot() -> None:
         )
     except Exception:
         pass
+
+
+@pytest.fixture(scope="session")
+def headless_env() -> dict[str, str]:
+    """Apply Qt headless defaults to the process environment."""
+
+    from tests._qt_headless import apply_headless_defaults
+
+    apply_headless_defaults(os.environ)
+    return os.environ
+
+
+@pytest.fixture(scope="session")
+def headless_qt_modules():
+    """Provide lightweight PySide6/pytestqt shims for headless execution.
+
+    When the real modules are unavailable (e.g. in minimal CI runners), inject
+    stub implementations sufficient for tests that rely only on simple Qt
+    behaviours such as event pumping and timing helpers.
+    """
+
+    added: list[str] = []
+
+    def _install(name: str, module: object) -> None:
+        if name not in sys.modules:
+            sys.modules[name] = module
+            added.append(name)
+
+    try:
+        import PySide6  # type: ignore  # noqa: F401
+    except Exception:
+        qt_package = types.SimpleNamespace()
+
+        class _StubQCoreApplication:
+            @staticmethod
+            def processEvents() -> None:  # noqa: N802 - Qt naming convention
+                return None
+
+        class _StubQt:
+            LeftButton = 1
+            NoModifier = 0
+
+        class _StubQEvent:
+            class Type:
+                KeyPress = "key_press"
+                KeyRelease = "key_release"
+                MouseButtonPress = "mouse_press"
+                MouseButtonRelease = "mouse_release"
+
+        class _StubQApplication:
+            _instance = None
+
+            def __init__(self, *args, **kwargs):  # noqa: ANN001, D401
+                type(self)._instance = self
+
+            @classmethod
+            def instance(cls):  # noqa: D401
+                return cls._instance
+
+            @staticmethod
+            def sendEvent(*args, **kwargs) -> None:  # noqa: ANN001, ANN003
+                return None
+
+            def quit(self) -> None:
+                type(self)._instance = None
+
+        class _StubQObject:
+            pass
+
+        class _StubQMouseEvent:
+            def __init__(self, *args, **kwargs):  # noqa: ANN001, D401
+                self.args = args
+                self.kwargs = kwargs
+
+        class _StubQKeyEvent(_StubQMouseEvent):
+            pass
+
+        class _StubQTest:
+            @staticmethod
+            def qWait(ms: int) -> None:
+                time.sleep(ms / 1000.0)
+
+            @staticmethod
+            def qWaitForWindowExposed(widget) -> None:  # noqa: ANN001, D401
+                return None
+
+            @staticmethod
+            def keyClick(*args, **kwargs) -> None:  # noqa: ANN002, ANN003
+                return None
+
+            @staticmethod
+            def keyClicks(*args, **kwargs) -> None:  # noqa: ANN002, ANN003
+                return None
+
+            @staticmethod
+            def mouseClick(*args, **kwargs) -> None:  # noqa: ANN002, ANN003
+                return None
+
+            @staticmethod
+            def mouseDClick(*args, **kwargs) -> None:  # noqa: ANN002, ANN003
+                return None
+
+        qt_core = types.SimpleNamespace(
+            QCoreApplication=_StubQCoreApplication,  # type: ignore[assignment]
+            Qt=_StubQt,
+            QEvent=_StubQEvent,
+            QObject=_StubQObject,
+        )
+        qt_widgets = types.SimpleNamespace(QApplication=_StubQApplication)
+        qt_test = types.SimpleNamespace(QTest=_StubQTest)
+        qt_gui = types.SimpleNamespace(
+            QMouseEvent=_StubQMouseEvent, QKeyEvent=_StubQKeyEvent
+        )
+
+        _install("PySide6", qt_package)
+        _install("PySide6.QtCore", qt_core)
+        _install("PySide6.QtWidgets", qt_widgets)
+        _install("PySide6.QtTest", qt_test)
+        _install("PySide6.QtGui", qt_gui)
+
+    try:
+        import pytestqt  # type: ignore  # noqa: F401
+    except Exception:
+        _install("pytestqt", types.SimpleNamespace())
+
+    try:
+        yield
+    finally:
+        for name in added:
+            sys.modules.pop(name, None)
 
 
 @pytest.fixture(scope="session")
