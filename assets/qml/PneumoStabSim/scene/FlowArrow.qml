@@ -29,6 +29,7 @@ Node {
     property real flowPhase: 0.0
     property real glowPhase: 0.0
     property bool particlesEnabled: true   // включение системы частиц
+    property real particleDensityFactor: 1.0
 
     readonly property real _intensityCeiling: Math.max(1e-6, Math.abs(maxIntensity))
     readonly property real normalizedIntensity: Math.min(Math.abs(flowIntensity) / _intensityCeiling, 1.0)
@@ -101,7 +102,7 @@ Node {
         // базовый материал частиц
         ModelParticle3D {
             id: particleDelegate
-            maxAmount: 400
+            maxAmount: Math.max(60, Math.round(320 * Math.max(0.35, Math.min(1.0, root.particleDensityFactor))))
             delegate: Model {
                 source: "#Sphere"
                 scale: Qt.vector3d(0.05, 0.05, 0.05) * root.sceneScale
@@ -121,7 +122,12 @@ Node {
             id: mainEmitter
             particle: particleDelegate
             enabled: root.active && root.particlesEnabled
-            emitRate: 40 + root.normalizedIntensity * 160
+            emitRate: {
+                var density = Math.max(0.35, Math.min(1.0, root.particleDensityFactor))
+                var baseline = 12 * density
+                var scaled = root.normalizedIntensity * 140 * density
+                return baseline + scaled
+            }
             lifeSpan: 650
             lifeSpanVariation: 150
             velocity: VectorDirection3D { direction: Qt.vector3d(0, 0, root._directionSign * 1.0) }

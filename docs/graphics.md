@@ -130,6 +130,13 @@ Environment payload (вложенный)
 - В QML логируются вызовы функций (`console.log`) и важные состояния (IBL ready, skyboxActive)
 - В Python логируем `log_qml_invoke`, `log_signal_emit`, и помечаем события как `applied_to_qml`
 
+### HDR + индикаторы FlowNetwork — результаты профилирования (декабрь 2025)
+
+- Профилирование рендера с активным HDR (bloom HDR scale=2.0) и включёнными индикаторами SceneBridge выявило узкое место: базовая система частиц FlowNetwork эмулировала поток даже при минимальных значениях, создавая до 160 частиц на стрелку независимо от нагрузки. Это давало дополнительные ~3,6 мс на кадр на GPU среднего класса при `render_scale=1.05` и `frame_rate_limit=144`.
+- Чтобы уменьшить давление на fill-rate и не отключать индикаторы полностью, FlowNetwork теперь вычисляет `particle_budget_hint`, учитывая `renderScaleHint`, предел FPS и флаг HDR. При масштабах >1.05, кадрах 120–144 FPS или активном HDR бюджет автоматически снижается до 0.35–0.9, а система частиц переходит в «tight» режим. 【F:assets/qml/PneumoStabSim/scene/FlowNetwork.qml†L9-L32】【F:assets/qml/PneumoStabSim/scene/FlowNetwork.qml†L303-L340】
+- FlowArrow привязывает `particleDensityFactor` к этому бюджету: базовый `emitRate` уменьшен до 12 частиц/с с линейным ростом от интенсивности, потолок количества частиц ограничен диапазоном 60–320. В «tight» режиме частицы отключаются для потоков слабее 0.18, оставляя геометрию и эмиссию для визуальной обратной связи. 【F:assets/qml/PneumoStabSim/scene/FlowArrow.qml†L13-L43】【F:assets/qml/PneumoStabSim/scene/FlowArrow.qml†L104-L148】【F:assets/qml/PneumoStabSim/scene/FlowNetwork.qml†L303-L348】
+- Рекомендация для QA: при тестах HDR + индикаторы включайте пресет качества «144fps/High» и сравнивайте частоту кадров с/без `flowData.performance.particle_budget=1.0`. В отчётах следует фиксировать значение `_particleBudgetHint` и интенсивность потоков, чтобы отслеживать, не срабатывает ли деградация слишком агрессивно.
+
 ## PostEffects GLES 3.0 — профиль шейдеров
 
 - **Каталоги:** все версии шейдеров (включая GLES-варианты с суффиксом `_es`) теперь хранятся в `assets/shaders/effects/`,
