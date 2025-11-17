@@ -68,6 +68,13 @@ Item {
         { value: "ISOTHERMAL", label: qsTr("Изотермический") },
         { value: "ADIABATIC", label: qsTr("Адиабатический") }
     ]
+    readonly property var _roadProfileOptions: [
+        { value: "smooth_highway", label: qsTr("Гладкое шоссе") },
+        { value: "city_streets", label: qsTr("Городские улицы") },
+        { value: "off_road", label: qsTr("Пересечённая местность") },
+        { value: "mountain_serpentine", label: qsTr("Горный серпантин") },
+        { value: "custom", label: qsTr("Пользовательский профиль") }
+    ]
 
     // Кэшированные снимки настроек для синхронизации с SettingsManager.
     property var _pneumaticDefaults: ({})
@@ -382,6 +389,13 @@ Item {
         return current !== undefined ? current : fallback
     }
 
+    function _modeOrAnimationValue(path, fallback) {
+        var value = _modesValue(path, undefined)
+        if (value !== undefined)
+            return value
+        return _animationValue(path, fallback)
+    }
+
     function _animationValue(key, fallback) {
         if (_animationState && _animationState[key] !== undefined)
             return _animationState[key]
@@ -430,12 +444,27 @@ Item {
             var thermoIndex = _findOptionIndex(_thermoModeOptions, thermoValue)
             thermoModeCombo.currentIndex = thermoIndex >= 0 ? thermoIndex : 0
         }
+        if (roadProfileCombo) {
+            var roadProfileValue = String(_modeOrAnimationValue("road_profile", "smooth_highway")).toLowerCase()
+            var roadIndex = _findOptionIndex(_roadProfileOptions, roadProfileValue)
+            roadProfileCombo.currentIndex = roadIndex >= 0 ? roadIndex : 0
+        }
+        if (customProfileField) {
+            customProfileField.text = String(_modeOrAnimationValue("custom_profile_path", ""))
+            customProfileField.enabled = roadProfileCombo && String(roadProfileCombo.currentValue || roadProfileCombo.displayText).toLowerCase() === "custom"
+        }
+        if (interferenceSwitch)
+            interferenceSwitch.checked = !!_modeOrAnimationValue("check_interference", false)
         if (springsSwitch)
             springsSwitch.checked = !!_modesValue(["physics", "include_springs"], true)
         if (dampersSwitch)
             dampersSwitch.checked = !!_modesValue(["physics", "include_dampers"], true)
         if (pneumaticsSwitch)
             pneumaticsSwitch.checked = !!_modesValue(["physics", "include_pneumatics"], true)
+        if (kinematicSpringsSwitch)
+            kinematicSpringsSwitch.checked = !!_modesValue(["physics", "include_springs_kinematics"], true)
+        if (kinematicDampersSwitch)
+            kinematicDampersSwitch.checked = !!_modesValue(["physics", "include_dampers_kinematics"], true)
     }
 
     function _updateAnimationBindings() {
@@ -447,6 +476,8 @@ Item {
             phaseField.text = _formatNumeric(_animationValue("phase", _animationValue("phase_global", 0.0)), 1)
         if (temperatureField)
             temperatureField.text = _formatNumeric(_pneumaticNumber([["gas"], ["tank_temperature_initial_k", "tankTemperatureInitialK"]], 293.15), 1)
+        if (ambientTemperatureField)
+            ambientTemperatureField.text = _formatNumeric(_pneumaticNumber("atmo_temp", 20.0), 1)
         if (smoothingSwitch)
             smoothingSwitch.checked = !!_animationValue("smoothing_enabled", true)
         if (smoothingDurationField)
@@ -488,12 +519,46 @@ Item {
         _updateAnimationBindings()
     }
 
+    function _emitAmbientTemperatureChange(rawValue) {
+        var numeric = Number(rawValue)
+        if (!Number.isFinite(numeric))
+            return
+        _pneumaticState = _mergeObjects(_pneumaticState, { atmo_temp: numeric })
+        root.pneumaticSettingsChanged({ atmo_temp: numeric })
+        _updateAnimationBindings()
+    }
+
+    function _emitRoadProfileChange(value) {
+        var normalized = String(value || "").toLowerCase()
+        _modesState = _mergeObjects(_modesState, { road_profile: normalized })
+        root.modesModeChanged("road_profile", normalized)
+        _updateModesBindings()
+    }
+
+    function _emitCustomProfileChange(value) {
+        var text = String(value || "").trim()
+        var currentProfile = String(_modeOrAnimationValue("road_profile", "")).toLowerCase()
+        if (currentProfile !== "custom")
+            _emitRoadProfileChange("custom")
+        _modesState = _mergeObjects(_modesState, { custom_profile_path: text })
+        root.modesModeChanged("custom_profile_path", text)
+    }
+
+    function _emitInterferenceChange(checked) {
+        var enabled = !!checked
+        _modesState = _mergeObjects(_modesState, { check_interference: enabled })
+        root.modesModeChanged("check_interference", enabled)
+    }
+
     function _emitPhysicsPayload() {
         var payload = {
             include_springs: springsSwitch ? !!springsSwitch.checked : true,
             include_dampers: dampersSwitch ? !!dampersSwitch.checked : true,
-            include_pneumatics: pneumaticsSwitch ? !!pneumaticsSwitch.checked : true
+            include_pneumatics: pneumaticsSwitch ? !!pneumaticsSwitch.checked : true,
+            include_springs_kinematics: kinematicSpringsSwitch ? !!kinematicSpringsSwitch.checked : true,
+            include_dampers_kinematics: kinematicDampersSwitch ? !!kinematicDampersSwitch.checked : true
         }
+        _modesState = _mergeObjects(_modesState, { physics: _mergeObjects(_modesValue("physics", {}), payload) })
         root.modesPhysicsChanged(payload)
     }
 
@@ -880,7 +945,8 @@ Item {
             return
 
         var pneumoUpdate = _extractCategory(payload, ["pneumatic", "pneumo"])
-        if (_isPlainObject(pneumoUpdate))
+        var hasPneumoUpdate = _isPlainObject(pneumoUpdate)
+        if (hasPneumoUpdate)
             _pneumaticState = _mergeObjects(_pneumaticState, pneumoUpdate)
 
         var simulationUpdate = _extractCategory(payload, ["simulation", "sim"], ["gas", "receiver"])
@@ -905,6 +971,8 @@ Item {
         if (_isPlainObject(sceneUpdate))
             _sceneState = _mergeObjects(_sceneState, sceneUpdate)
 
+        if (hasPneumoUpdate)
+            _updateAnimationBindings()
         _updatePressureBindings()
     }
 
@@ -1215,6 +1283,45 @@ Item {
                     }
                 }
 
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    ComboBox {
+                        id: roadProfileCombo
+                        Layout.fillWidth: true
+                        model: root._roadProfileOptions
+                        textRole: "label"
+                        valueRole: "value"
+                        onActivated: function(index) {
+                            if (index >= 0 && index < root._roadProfileOptions.length) {
+                                var selectedProfile = root._roadProfileOptions[index].value
+                                root._emitRoadProfileChange(selectedProfile)
+                            }
+                        }
+                        onCurrentValueChanged: function(value) {
+                            if (value === undefined || value === null)
+                                return
+                            var normalized = String(value).toLowerCase()
+                            customProfileField.enabled = normalized === "custom"
+                        }
+                    }
+
+                    TextField {
+                        id: customProfileField
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Путь к профилю дороги…")
+                        inputMethodHints: Qt.ImhPreferLowercase | Qt.ImhNoAutoUppercase
+                        onEditingFinished: function() { root._emitCustomProfileChange(text) }
+                    }
+
+                    Switch {
+                        id: interferenceSwitch
+                        text: qsTr("Проверять пересечения")
+                        onToggled: function() { root._emitInterferenceChange(interferenceSwitch.checked) }
+                    }
+                }
+
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 12
@@ -1234,6 +1341,23 @@ Item {
                     Switch {
                         id: pneumaticsSwitch
                         text: qsTr("Пневматика")
+                        onToggled: function() { root._emitPhysicsPayload() }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    Switch {
+                        id: kinematicSpringsSwitch
+                        text: qsTr("Пружины в кинематике")
+                        onToggled: function() { root._emitPhysicsPayload() }
+                    }
+
+                    Switch {
+                        id: kinematicDampersSwitch
+                        text: qsTr("Демпферы в кинематике")
                         onToggled: function() { root._emitPhysicsPayload() }
                     }
                 }
@@ -1379,6 +1503,29 @@ Item {
                             decimals: 1
                         }
                         onEditingFinished: function() { root._emitTemperatureChange(text) }
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Label {
+                        text: qsTr("Температура среды, °C")
+                        color: "#cdd6e5"
+                        Layout.alignment: Qt.AlignVCenter
+                    }
+
+                    TextField {
+                        id: ambientTemperatureField
+                        Layout.fillWidth: true
+                        inputMethodHints: Qt.ImhFormattedNumbersOnly
+                        validator: DoubleValidator {
+                            bottom: -80.0
+                            top: 150.0
+                            decimals: 1
+                        }
+                        onEditingFinished: function() { root._emitAmbientTemperatureChange(text) }
                     }
                 }
             }
