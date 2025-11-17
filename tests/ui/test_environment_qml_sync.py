@@ -167,6 +167,39 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
 
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
+def test_environment_update_disables_probe_visibility(qapp) -> None:
+    engine, component, root = _create_simulation_root()
+
+    try:
+        state: dict[str, Any] = {"reflection_enabled": False}
+
+        ok = QMetaObject.invokeMethod(
+            root, "applyEnvironmentUpdates", Q_ARG("QVariant", state)
+        )
+        assert ok, "applyEnvironmentUpdates invocation failed"
+        qapp.processEvents()
+
+        scene_environment = root.findChild(QObject, "sceneEnvironment")
+        assert scene_environment is not None, "sceneEnvironment controller missing"
+        assert bool(scene_environment.property("reflectionProbeEnabled")) is False
+
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+
+        probe = assembly.property("reflectionProbe")
+        assert isinstance(probe, QObject), "ReflectionProbe object unavailable"
+        enabled_index = probe.metaObject().indexOfProperty("enabled")
+        assert enabled_index >= 0, "ReflectionProbe.enabled property unavailable"
+        assert bool(probe.property("enabled")) is False
+        assert bool(probe.property("visible")) is False
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
 def test_reflection_probe_disabled_when_settings_false(qapp) -> None:
     overrides = {
         "initialReflectionProbeSettings": {

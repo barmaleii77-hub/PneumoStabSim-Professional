@@ -290,7 +290,10 @@ Item {
         if(normalized.ibl_enabled !== undefined) envController.iblLightingEnabled = !!normalized.ibl_enabled
         if(normalized.skybox_enabled !== undefined) envController.skyboxToggleFlag = !!normalized.skybox_enabled
         var reflectionToggle = normalized.reflection_enabled !== undefined ? normalized.reflection_enabled : normalized.reflectionEnabled
-        if (reflectionToggle !== undefined) _applyReflectionProbeEnabledOverride(reflectionToggle)
+        if (reflectionToggle !== undefined) {
+            envController.reflectionProbeEnabled = !!reflectionToggle
+            _applyReflectionProbeEnabledOverride(reflectionToggle)
+        }
         _storeLastUpdate("environment", normalized)
         _refreshReflectionProbeObject()
     }
@@ -532,6 +535,7 @@ Item {
                 _applyReflectionProbeEnabledOverride(false)
                 reflectionProbeEnabledState = false
             }
+            if (env.reflection_enabled !== undefined) envController.reflectionProbeEnabled = !!env.reflection_enabled
             if (env.reflection_padding_m !== undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(env.reflection_padding_m)
             _refreshReflectionProbeObject()
         }
@@ -560,6 +564,7 @@ Item {
         property QtObject fog: QtObject { property real density: 0.0 }
         property bool iblLightingEnabled: false
         property bool skyboxToggleFlag: false
+        property bool reflectionProbeEnabled: root.reflectionProbeEnabled
     }
     QtObject {
         id: suspensionAssembly
