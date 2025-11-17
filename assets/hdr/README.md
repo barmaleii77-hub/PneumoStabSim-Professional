@@ -5,6 +5,20 @@ image-based lighting for PneumoStabSim Professional. Keeping the authoritative c
 here ensures that lighting presets stay consistent between the editor, automated tests
 and packaged builds.
 
+## Новые возможности
+
+- **Manifest-first delivery** — `hdr_manifest.json` является единственным источником
+  правды для списка панорам, SHA-256 и атрибуции. Скрипт верификации скачивает
+  недостающие файлы в `.cache/hdr_assets/` и блокирует дубликаты.
+- **UI подсветка и телеметрия** — `MainWindow.normalizeHdrPath()` и
+  `FileCyclerWidget` немедленно показывают статус отсутствующих файлов,
+  отмечают удалённые URL как `remote` и пишут события в `logs/ibl/ibl_events.jsonl`
+  для последующего аудита.
+- **Быстрое восстановление ассетов** — кешированные HDR/EXR из
+  `.cache/hdr_assets/` можно восстановить в `assets/hdr/` без ручного поиска,
+  поэтому QA и артоманды могут обновлять репозиторий без риска потерять фоновые
+  карты.
+
 ## Required production HDRIs
 
 `assets/hdr/hdr_manifest.json` mirrors the HDR panorama list from the technical
@@ -143,6 +157,18 @@ uv run python -m tools.task_runner verify-hdr-assets --fetch-missing
 cp .cache/hdr_assets/studio_small_09_2k.hdr assets/hdr/
 uv run python app.py --safe --ibl ../hdr/studio_small_09_2k.hdr
 ```
+
+**Advanced checks**
+
+- Используйте `--force-rehash`, когда заменяете существующий HDR/EXR, чтобы
+  обновить контрольные суммы в кеше и убедиться, что манифест отражает новые
+  байты.
+- Если UI показывает статус `remote`, оставляйте такие ссылки только для
+  временной проверки и заменяйте их локальными файлами до релизной сборки.
+- При миграции ассетов между машинами сначала синхронизируйте
+  `.cache/hdr_assets/`, затем перезапустите `python -m tools.task_runner
+  verify-hdr-assets --fetch-missing`, чтобы автоматически восстановить
+  пропущенные карты.
 
 ## HDR dynamic range calibration
 
