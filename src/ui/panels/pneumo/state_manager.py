@@ -55,6 +55,9 @@ _PRESSURE_REASON_HINTS: dict[str, str] = {
 _UNITS_MIGRATION_FLAG = "pneumo_units_normalised"
 
 
+_RELIEF_TOLERANCE = 1e-6
+
+
 class PneumoStateManager:
     """Manage pneumatic state, validation and persistence."""
 
@@ -312,27 +315,37 @@ class PneumoStateManager:
     def get_manual_volume(self) -> float:
         return float(self._state.get("receiver_volume", 0.0))
 
-    def set_manual_volume(self, volume: float) -> None:
+    def _clamp_volume_with_limits(
+        self, volume: float, *, hint_key: str, source_label: str
+    ) -> float:
         limits = self.get_volume_limits()
         clamped = clamp(volume, limits["min_m3"], limits["max_m3"])
-        self._state["receiver_volume"] = clamped
-        if not math.isclose(volume, clamped, rel_tol=1e-9, abs_tol=1e-9):
+
+        if not math.isclose(volume, clamped, rel_tol=1e-9, abs_tol=1e-12):
             LOGGER.warning(
-                "receiver_volume adjusted from %.4f m^3 to %.4f m^3 (limits %.4f..%.4f)",
+                "receiver_volume adjusted from %.6f m^3 to %.6f m^3 (limits %.6f..%.6f)",
                 volume,
                 clamped,
                 limits["min_m3"],
                 limits["max_m3"],
             )
             self._record_hint(
-                "receiver_volume",
+                hint_key,
                 (
-                    "Объём ресивера скорректирован до "
-                    f"{clamped:.3f} м³ (диапазон: {limits['min_m3']:.3f}–{limits['max_m3']:.3f} м³)."
+                    f"{source_label} скорректирован до {clamped:.3f} м³ "
+                    f"(диапазон: {limits['min_m3']:.3f}–{limits['max_m3']:.3f} м³)."
                 ),
             )
         else:
-            self._record_hint("receiver_volume", None)
+            self._record_hint(hint_key, None)
+
+        return clamped
+
+    def set_manual_volume(self, volume: float) -> None:
+        clamped = self._clamp_volume_with_limits(
+            volume, hint_key="receiver_volume", source_label="Объём ресивера"
+        )
+        self._state["receiver_volume"] = clamped
 
     def get_volume_limits(self) -> dict[str, float]:
         return deepcopy(
@@ -428,8 +441,13 @@ class PneumoStateManager:
         volume = self.calculate_geometric_volume(
             self.get_receiver_diameter(), self.get_receiver_length()
         )
-        self._state["receiver_volume"] = volume
-        return volume
+        clamped = self._clamp_volume_with_limits(
+            volume,
+            hint_key="receiver_volume",
+            source_label="Расчётный объём ресивера",
+        )
+        self._state["receiver_volume"] = clamped
+        return clamped
 
     def refresh_geometric_volume(self) -> float:
         """Recompute receiver volume when geometric mode is active."""
@@ -767,6 +785,8 @@ class PneumoStateManager:
 
         volume = float(self._state.get("receiver_volume", 0.0))
         limits = self.get_volume_limits()
+        if volume < 0:
+            errors.append("Объём ресивера не может быть отрицательным")
         if limits["min_m3"] <= 0:
             errors.append("Минимальный объём ресивера должен быть больше нуля")
         if limits["max_m3"] <= 0:
@@ -784,13 +804,20 @@ class PneumoStateManager:
             length = self.get_receiver_length()
             if diameter <= 0 or length <= 0:
                 errors.append("Геометрические параметры ресивера должны быть > 0")
+            if (
+                not (limits["min_m3"] <= volume <= limits["max_m3"])
+                and limits["min_m3"] > 0
+            ):
+                errors.append(
+                    "Расчётный объём ресивера выходит за пределы заданного диапазона"
+                )
 
         p_min = self.get_relief_pressure("relief_min_pressure")
         p_stiff = self.get_relief_pressure("relief_stiff_pressure")
         p_safe = self.get_relief_pressure("relief_safety_pressure")
-        if p_min >= p_stiff:
+        if p_min > p_stiff + _RELIEF_TOLERANCE:
             errors.append("Мин. сброс должен быть меньше давления сброса жёсткости")
-        if p_stiff >= p_safe:
+        if p_stiff > p_safe + _RELIEF_TOLERANCE:
             errors.append("Давление сброса жёсткости должно быть меньше аварийного")
 
         throttle_min = self.get_valve_diameter("throttle_min_dia")
