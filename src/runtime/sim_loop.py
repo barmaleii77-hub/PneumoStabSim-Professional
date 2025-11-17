@@ -861,9 +861,9 @@ class PhysicsWorker(QObject):
         self.master_isolation_open = open
         self.logger.info(f"Master isolation: {'OPEN' if open else 'CLOSED'}")
 
-    @Slot(float, str, result=object)
+    @Slot(float, object, result=object)
     def set_receiver_volume(
-        self, volume: float, mode: str
+        self, volume: float, mode: ReceiverVolumeMode | str | None
     ) -> ReceiverVolumeUpdate | None:
         """Set receiver volume and recalculation mode
 
@@ -911,10 +911,11 @@ class PhysicsWorker(QObject):
                 else:
                     getattr(logger_obj, level)(fallback_message)
 
-        mode_token = str(mode).upper()
-        user_mode_token = mode_token
+        user_mode_token = (
+            mode.value if isinstance(mode, ReceiverVolumeMode) else str(mode or "")
+        ).upper()
         preserve_user_mode = bool(getattr(self, "preserve_user_volume_mode", False))
-        mode_enum = self._resolve_receiver_mode(mode_token)
+        mode_enum = self._resolve_receiver_mode(mode)
         applied_mode_token = (
             "GEOMETRIC"
             if user_mode_token == "GEOMETRIC" and preserve_user_mode
@@ -1348,7 +1349,12 @@ class PhysicsWorker(QObject):
             )
             return None
 
-    def _resolve_receiver_mode(self, mode: str | None = None) -> ReceiverVolumeMode:
+    def _resolve_receiver_mode(
+        self, mode: ReceiverVolumeMode | str | None = None
+    ) -> ReceiverVolumeMode:
+        if isinstance(mode, ReceiverVolumeMode):
+            return mode
+
         raw_mode = (mode or self.receiver_volume_mode or "MANUAL").strip().upper()
         mapping = {
             "MANUAL": ReceiverVolumeMode.NO_RECALC,
