@@ -127,7 +127,6 @@ class ReceiverState:
         self,
         new_volume: float,
         mode: ReceiverVolumeMode | str | None = None,
-        *,
         recompute: bool = True,
     ) -> ReceiverVolumeUpdate:
         """Set the receiver volume with optional mode switching.
