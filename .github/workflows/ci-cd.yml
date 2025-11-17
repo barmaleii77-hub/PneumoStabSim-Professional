@@ -116,7 +116,7 @@ jobs:
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-          ./scripts/setup_windows.ps1 -SkipUvSync
+          ./scripts/setup_windows.ps1 -SkipUvSync -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Verify Qt environment
         shell: bash
@@ -136,7 +136,7 @@ jobs:
       - name: Provision Windows Qt runtime
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe"
+        run: ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe" -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Configure pytest command
         shell: bash

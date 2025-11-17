@@ -35,7 +35,7 @@ headless-профилей.
    В CI Qt загружается отдельным шагом, поэтому обычно используем `--skip-qt`:
 
    ```sh
-   ./scripts/setup_linux.sh --qt-version 6.10.0 --skip-qt
+   ./scripts/setup_linux.sh --qt-version 6.10.0 --skip-qt --summary "$GITHUB_STEP_SUMMARY"
    ```
 
    Для локальной загрузки Qt уберите флаг. `--skip-system` и `--skip-python`
@@ -54,6 +54,12 @@ headless-профилей.
 
 4. **Тесты без ручных шагов** — проверка минимальной цепочки: `./scripts/setup_linux.sh && pytest`.
    Полный профиль: `make full_verify` или `python -m tools.testing_entrypoint`.
+
+5. **Отчёты и зависимости** — `setup_linux.sh` теперь умеет писать краткий
+   отчёт в файл (по умолчанию `GITHUB_STEP_SUMMARY`), включая обнаруженные
+   версии Python/uv/PySide6 и Qt-пути. Добавьте флаг `--summary /tmp/linux_env.md`,
+   если нужно зафиксировать вывод локально. Если `uv` отсутствует, установите
+   его заранее (`pip install uv aqtinstall`) или воспользуйтесь путём pip в скрипте.
 
 ### Windows 10+/Windows Server 2022
 
@@ -80,7 +86,7 @@ headless-профилей.
    необходимости скачивает Qt через `tools/setup_qt.py`:
 
    ```powershell
-   powershell -File scripts/setup_windows.ps1 -QtVersion 6.10.0 -PythonPath C:\\hostedtoolcache\\windows\\Python\\3.13\\x64\\python.exe -SkipQt:$true
+   powershell -File scripts/setup_windows.ps1 -QtVersion 6.10.0 -PythonPath C:\\hostedtoolcache\\windows\\Python\\3.13\\x64\\python.exe -SkipQt:$true -SummaryPath $env:GITHUB_STEP_SUMMARY
    ```
 
    Снимите `-SkipQt` для локальной офлайновой установки Qt. Флаги `-SkipUvSync`
@@ -89,6 +95,13 @@ headless-профилей.
 4. **Smoke-тесты** — убедитесь, что `QT_QPA_PLATFORM=offscreen` и
    `QSG_RHI_BACKEND=d3d11` активны (скрипт выставляет автоматически). Далее:
    `pytest` для быстрой проверки или `make full_verify` для полного прогона.
+
+5. **Отчёты и зависимые инструменты** — по умолчанию `setup_windows.ps1` запишет
+   краткий отчёт в `GITHUB_STEP_SUMMARY` (или путь, переданный через
+   `-SummaryPath`), включая версии Python/uv/PySide6 и найденные Qt-пути.
+   Для преднастройки установите `uv`/`aqtinstall` через `pip install uv aqtinstall`
+   или дайте скрипту выполнить синхронизацию через флаг по умолчанию
+   (`-SkipUvSync:$false`).
 
 ## 1. Поддерживаемые профили Python/Qt
 

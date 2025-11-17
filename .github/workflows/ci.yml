@@ -50,14 +50,14 @@ jobs:
         if: runner.os == 'Linux'
         env:
           QT_VERSION: ${{ env.QT_VERSION }}
-        run: bash ./scripts/setup_linux.sh --qt-version ${{ env.QT_VERSION }} --skip-qt
+        run: bash ./scripts/setup_linux.sh --qt-version ${{ env.QT_VERSION }} --skip-qt --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Bootstrap Windows environment
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
-          ./scripts/setup_windows.ps1 -QtVersion $env:QT_VERSION -PythonPath "${{ env.pythonLocation }}\\python.exe" -SkipQt:$true
+          ./scripts/setup_windows.ps1 -QtVersion $env:QT_VERSION -PythonPath "${{ env.pythonLocation }}\\python.exe" -SkipQt:$true -SummaryPath $env:GITHUB_STEP_SUMMARY
 
       - name: Discover available Qt versions
         run: |

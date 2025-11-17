@@ -11,12 +11,14 @@ warn() {
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/setup_linux.sh [--skip-system] [--skip-python] [--skip-qt] [--qt-version <version>]
+Usage: scripts/setup_linux.sh [--skip-system] [--skip-python] [--skip-qt] [--qt-version <version>] [--summary <path>]
 
   --skip-system   Skip installation of system packages (apt).
   --skip-python   Skip synchronising Python dependencies.
   --skip-qt       Skip offline Qt runtime provisioning via tools/setup_qt.py.
   --qt-version    Override the Qt version to provision (defaults to 6.10.0).
+  --summary       Append a short environment report to the provided path
+                  (defaults to $GITHUB_STEP_SUMMARY when available).
 
 The script installs Qt/graphics packages required by the test-suite and
 ensures the PySide6 runtime is available. Environment variables for headless
@@ -30,6 +32,8 @@ skip_system=0
 skip_python=0
 skip_qt=0
 qt_version="${QT_VERSION:-6.10.0}"
+summary_file="${GITHUB_STEP_SUMMARY:-}"
+installed_apt=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -52,6 +56,15 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       qt_version="$2"
+      shift 2
+      ;;
+    --summary)
+      if [[ -z "${2:-}" ]]; then
+        warn "--summary requires a path"
+        usage
+        exit 1
+      fi
+      summary_file="$2"
       shift 2
       ;;
     -h|--help)
@@ -149,6 +162,7 @@ if [[ ${skip_system} -eq 0 ]]; then
     if (( ${#to_install[@]} > 0 )); then
       log "Installing packages: ${to_install[*]}"
       run_cmd apt-get install -y --no-install-recommends "${to_install[@]}"
+      installed_apt=("${to_install[@]}")
     else
       log "No additional apt packages required"
     fi
@@ -297,6 +311,47 @@ if [[ -z "${GITHUB_ENV:-}" ]]; then
       export "${line}"
     fi
   done <"${env_file}"
+fi
+
+if [[ -n "${summary_file}" ]]; then
+  log "Appending setup summary to ${summary_file}"
+  python_version="unavailable"
+  if output="$(${python_for_scripts} - <<'PY' 2>/dev/null
+import sys
+print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+PY
+)"; then
+    python_version="${output}"
+  fi
+
+  pyside_version="missing"
+  if output="$(${python_for_scripts} - <<'PY' 2>/dev/null
+try:
+    import PySide6  # noqa: F401
+except Exception as exc:  # pragma: no cover - runtime probe
+    print(f"unavailable ({exc.__class__.__name__})")
+else:
+    import PySide6
+    print(getattr(PySide6, '__version__', 'unknown'))
+PY
+)"; then
+    pyside_version="${output}"
+  fi
+
+  uv_version="$(uv --version 2>/dev/null || true)"
+  {
+    echo "### setup_linux.sh summary"
+    echo "- Kernel: ${kernel}"
+    echo "- Qt version requested: ${qt_version} (skip_qt=${skip_qt})"
+    echo "- Newly installed apt packages: ${installed_apt[*]:-<none>}"
+    echo "- Python (${python_for_scripts}): ${python_version}"
+    echo "- uv: ${uv_version:-unavailable}"
+    echo "- PySide6: ${pyside_version}"
+    echo "- QT_PLUGIN_PATH: ${qt_plugins:-<empty>}"
+    echo "- QML2_IMPORT_PATH: ${qt_qml:-<empty>}"
+    echo "- DISPLAY: ${DISPLAY:-<empty>}"
+    echo ""
+  } >>"${summary_file}"
 fi
 
 log "Linux environment bootstrap complete"
