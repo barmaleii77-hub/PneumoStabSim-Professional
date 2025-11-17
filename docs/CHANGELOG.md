@@ -1,5 +1,14 @@
 # 📦 Changelog
 
+## [5.0.1] - 2026-12-06
+### Changed
+- Refreshed HDR documentation (`docs/README.md`, `assets/hdr/README.md`) with
+  verified download examples, cache usage guidance, and updated references to
+  the manifest-driven workflow.
+- Clarified texture selection support in the documentation hub to avoid outdated
+  "not supported" messaging and align instructions with the current
+  `FileCyclerWidget` UX.
+
 ## [4.9.9] - 2026-06-18
 ### Added
 - Expanded bloom controls with dedicated `HDR Maximum` and `HDR Scale` sliders so QA can tune the high dynamic range pipeline alongside the existing threshold slider; all three values persist through the graphics settings service.

@@ -91,7 +91,9 @@ class SignalSpy:
     def __len__(self) -> int:
         return self.count()
 
-    def _normalize(self, payload: Any) -> tuple[Any, ...]:  # pragma: no cover - tiny helper
+    def _normalize(
+        self, payload: Any
+    ) -> tuple[Any, ...]:  # pragma: no cover - tiny helper
         if isinstance(payload, (list, tuple)):
             return tuple(payload)
         return (payload,)

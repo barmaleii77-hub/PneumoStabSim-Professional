@@ -22,6 +22,7 @@
 | **Модули освещения** | Добавлена поддержка прожекторов (`SpotLights`), унифицированы ключи для освещения и проведён рефакторинг `SimulationRoot.qml`. | [`commit f4e29b8`](../commit/f4e29b8), [`commit 408f384`](../commit/408f384) |
 | **Интеграция QML-модулей** | QML-пакеты для освещения, геометрии и материалов зарегистрированы через `qmldir`, документация по модульной архитектуре обновлена. | `docs/REFACTORING_FINAL_COMPLETION_REPORT.md`, `docs/MODULAR_ARCHITECTURE_FINAL.md` |
 | **Автоматизация и тестовая инфраструктура** | Проверены полные циклы `make check`, подготовлены журналы и артефакты для CI, обновлены метрики покрытия. | `reports/tests/make_check_20251105.md`, `reports/tests/make_check_20251108_162420.md`, `reports/quality/latest_metrics.json` |
+| **Документация HDR/текстур** | Обновлены инструкции по загрузке HDR из манифеста, приведены примеры использования `verify-hdr-assets` и описано сохранение текстур через `FileCyclerWidget`. | `docs/README.md`, `assets/hdr/README.md`, `docs/CHANGELOG.md` |
 
 ---
 

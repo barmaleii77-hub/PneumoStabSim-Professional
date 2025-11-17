@@ -9,8 +9,9 @@ and packaged builds.
 
 `assets/hdr/hdr_manifest.json` mirrors the HDR panorama list from the technical
 specification. The manifest powers automated checksum validation and should be
-treated as the source of truth for licensing data. The table below summarises the
-expected files and their primary usage inside PneumoStabSim:
+treated as the source of truth for licensing data. Use it to download or validate
+HDRs even when the repository snapshot contains only metadata. The table below
+summarises the expected files and their primary usage inside PneumoStabSim:
 
 | File | Resolution | Source | License | Attribution | Primary use |
 | --- | --- | --- | --- | --- | --- |
@@ -45,12 +46,13 @@ removed immediately._
 
 ## Integrity audit (2025-11-10)
 
-- Verification command: `python tools/verify_hdr_assets.py --fetch-missing`
+- Verification command: `uv run python -m tools.task_runner verify-hdr-assets --fetch-missing`
 - Result: all 24 manifest entries matched their published SHA-256 hashes; every
   download passed the Radiance header check and no duplicate `.hdr`/`.exr`
   assets were detected across `assets/hdr/` and `assets/qml/assets/`.
 - Audit cache: `.cache/hdr_assets/` now contains validated copies for offline
-  development; CI consumes the same cache path when available.
+  development; CI consumes the same cache path when available. Copy refreshed
+  assets from this cache into `assets/hdr/` when preparing packaged builds.
 
 ## ✅ Path Unification (v5.0.0)
 
@@ -128,11 +130,18 @@ removed immediately._
 
 ## Installation workflow
 
-1. Download the required HDR files from the sources listed above.
-2. Place the originals in `assets/hdr/` and keep the filenames unchanged.
-3. Reference in settings using relative paths: `../hdr/filename.hdr`
-4. Let `normalizeHdrPath()` handle the rest automatically
+1. Fetch or refresh assets with `uv run python -m tools.task_runner verify-hdr-assets --fetch-missing` to populate `.cache/hdr_assets/`.
+2. Copy validated files from `.cache/hdr_assets/` into `assets/hdr/` and keep the filenames unchanged.
+3. Reference HDRs in settings using relative paths: `../hdr/filename.hdr`.
+4. Launch the app or run `make check` to confirm `normalizeHdrPath()` resolves the files without warnings.
 5. Commit the updated inventory table whenever new lighting profiles are added.
+
+**Example**
+```bash
+uv run python -m tools.task_runner verify-hdr-assets --fetch-missing
+cp .cache/hdr_assets/studio_small_09_2k.hdr assets/hdr/
+uv run python app.py --safe --ibl ../hdr/studio_small_09_2k.hdr
+```
 
 ## HDR dynamic range calibration
 
@@ -162,11 +171,12 @@ removed immediately._
 
 ## Verification tooling
 
-- Run `python tools/verify_hdr_assets.py --fetch-missing` to download the
-  manifest entries into `.cache/hdr_assets/`, confirm their SHA-256 checksums and
-  validate the Radiance headers.
+- Run `uv run python -m tools.task_runner verify-hdr-assets --fetch-missing` to
+  download the manifest entries into `.cache/hdr_assets/`, confirm their
+  SHA-256 checksums and validate the Radiance headers.
 - CI executes the same script through `make check` to ensure no duplicate or
-  untracked HDR files appear under `assets/hdr/` or `assets/qml/assets/`.
+  untracked HDR files appear under `assets/hdr/` or `assets/qml/assets/` and
+  to keep telemetry (`logs/ibl/ibl_events.jsonl`) aligned with the manifest.
 - Update `assets/hdr/hdr_manifest.json` when adding or retiring panoramas so the
   automated checks stay authoritative.
 
