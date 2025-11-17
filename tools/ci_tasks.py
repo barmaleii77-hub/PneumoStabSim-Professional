@@ -533,6 +533,12 @@ def _verify_hdr_assets() -> None:
         raise TaskError(f"HDR assets verification failed: {exc}")
 
 
+def task_hdr_verify() -> None:
+    """Run HDR manifest verification and persist reports under reports/quality."""
+
+    _verify_hdr_assets()
+
+
 def _finalise_coverage_reports() -> Path | None:
     coverage_files = [
         path
@@ -1148,6 +1154,9 @@ def build_parser() -> argparse.ArgumentParser:
         "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
     )
     subparsers.add_parser("security", help="Run bandit security scanner")
+    subparsers.add_parser(
+        "hdr-verify", help="Verify HDR assets manifest and persist status reports"
+    )
     return parser
 
 
@@ -1165,6 +1174,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "qml-lint": task_qml_lint,
         "verify": task_verify,
         "security": task_security,
+        "hdr-verify": task_hdr_verify,
     }
     task = task_map[args.command]
     RECORDER.start(args.command)

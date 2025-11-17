@@ -20,7 +20,7 @@ INTEGRATION_TARGET ?= tests/integration
 RUN_ARGS ?=
 
 .PHONY: format lint typecheck qml-lint test-local test-unit test-integration test-ui analyze-logs \
-validate-shaders check-shaders monitor-shader-logs check verify security smoke integration run \
+validate-shaders check-shaders monitor-shader-logs hdr-verify check verify security smoke integration run \
 localization-check \
 autonomous-check autonomous-check-trace trace-launch sanitize cipilot-env \
 install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render profile-validate package-all
@@ -161,6 +161,9 @@ monitor-shader-logs:
 
 shader-artifacts:
 	$(PYTHON) tools/validate_shaders.py --emit-qsb
+
+hdr-verify:
+	$(PYTHON) -m tools.ci_tasks hdr-verify
 
 validate-hdr-orientation:
 	$(PYTHON) tools/render_checks/validate_hdr_orientation.py
