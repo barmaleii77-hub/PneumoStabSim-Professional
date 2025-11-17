@@ -24,6 +24,11 @@ QtObject {
             _propertyPresenceCache.clear()
     }
 
+    function _resetDiagnostics() {
+        _clearPropertyCache()
+        _diagnosticDedup = ({})
+    }
+
     function _readCachedPresence(target, propertyName) {
         if (!_propertyPresenceCache || !_propertyPresenceCache.has(target))
             return undefined
@@ -69,7 +74,7 @@ QtObject {
             return false
         }
 
-        _clearPropertyCache()
+        _resetDiagnostics()
 
         console.log("🔍 DepthTextureActivator: Activating depth/velocity textures for View3D")
 

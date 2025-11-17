@@ -381,3 +381,44 @@ def test_environment_validation_rejects_disallowed_enum_value():
 
     with pytest.raises(EnvironmentValidationError):
         validate_environment_settings(mutated)
+
+
+def test_environment_slider_ranges_reject_unexpected_keys():
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_slider_ranges(
+            {"unexpected": {"min": 0.0, "max": 1.0, "step": 0.1}},
+            required_keys=(),
+            raise_on_missing=False,
+        )
+
+
+def test_environment_slider_ranges_normalize_units_and_decimals():
+    ranges = {
+        "ibl_intensity": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.1,
+            "decimals": "2",
+            "units": "  кд  ",
+        }
+    }
+
+    validated, missing = validate_environment_slider_ranges(
+        ranges,
+        required_keys=("ibl_intensity",),
+        raise_on_missing=False,
+    )
+
+    assert not missing
+    slider = validated["ibl_intensity"]
+    assert slider.decimals == 2
+    assert slider.unit == "кд"
+
+
+def test_environment_slider_ranges_reject_non_string_units():
+    with pytest.raises(EnvironmentValidationError):
+        validate_environment_slider_ranges(
+            {"ibl_intensity": {"min": 0.0, "max": 1.0, "step": 0.1, "units": 12}},
+            required_keys=("ibl_intensity",),
+            raise_on_missing=True,
+        )

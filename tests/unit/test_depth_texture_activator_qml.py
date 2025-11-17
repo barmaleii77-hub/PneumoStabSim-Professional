@@ -90,6 +90,31 @@ def test_depth_texture_activator_deduplicates_debug_logging(
     assert "_clearPropertyCache()" in depth_texture_source
 
 
+def test_depth_texture_activator_resets_diagnostics_on_activate(
+    depth_texture_source: str,
+) -> None:
+    activation_block = depth_texture_source[
+        depth_texture_source.index(
+            "function activate(view3d)"
+        ) : depth_texture_source.index("function isDepthAvailable")
+    ]
+
+    assert "_resetDiagnostics()" in activation_block
+
+
+def test_depth_texture_activator_exposes_reset_hook(
+    depth_texture_source: str,
+) -> None:
+    reset_block = depth_texture_source[
+        depth_texture_source.index(
+            "function _resetDiagnostics"
+        ) : depth_texture_source.index("function activate(view3d)")
+    ]
+
+    assert "_clearPropertyCache()" in reset_block
+    assert "_diagnosticDedup = ({})" in reset_block
+
+
 def test_depth_texture_activator_caches_property_checks(
     depth_texture_source: str,
 ) -> None:
@@ -160,11 +185,13 @@ def test_depth_texture_activator_clears_cache_on_activate(
     depth_texture_source: str,
 ) -> None:
     activation_start = depth_texture_source.index("function activate(view3d)")
-    cache_clear_pos = depth_texture_source.index(
-        "_clearPropertyCache()", activation_start
+    reset_pos = depth_texture_source.index("_resetDiagnostics()", activation_start)
+    activation_log = depth_texture_source.index(
+        "DepthTextureActivator: Activating", activation_start
     )
 
-    assert cache_clear_pos > activation_start
+    assert reset_pos > activation_start
+    assert reset_pos < activation_log
 
 
 def test_depth_texture_activator_tracks_error_guard_flags(
