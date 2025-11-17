@@ -9,6 +9,8 @@ from collections.abc import Callable
 import pytest
 import types
 
+from tools.quality.skip_policy import EXPECTED_SKIP_TOKEN
+
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -19,9 +21,6 @@ if str(SRC_PATH) not in sys.path:
 os.environ.setdefault("PYTHONHASHSEED", "0")
 os.environ.setdefault("PSS_FORCE_NONBLOCKING_DIALOGS", "1")
 os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
-
-_EXPECTED_SKIP_TOKEN = "pytest-skip-ok"
-
 
 def _env_flag(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
@@ -269,7 +268,7 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:  # n
     unexpected: list[tuple[str, str]] = []
     for report in skipped_reports:
         reason = _extract_skip_reason(report)
-        if _EXPECTED_SKIP_TOKEN in reason:
+        if EXPECTED_SKIP_TOKEN in reason:
             continue
         unexpected.append((report.nodeid, reason))
 

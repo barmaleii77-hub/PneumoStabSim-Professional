@@ -403,7 +403,12 @@ def _pytest_suites() -> list[PytestSuite]:
         ),
     ]
     extra_file = os.environ.get("PYTEST_TARGETS_FILE", PYTEST_TARGETS_FILE)
+    extra_path = PROJECT_ROOT / extra_file
     extra_targets = _read_targets_file(extra_file)
+    if extra_path.exists():
+        print(
+            f"[ci_tasks] Detected {extra_path.name}; base suites (unit/integration/ui) still run before extra targets."
+        )
     if extra_targets:
         suites.append(
             PytestSuite(
@@ -607,13 +612,19 @@ def _write_skipped_summary(entries: list[skip_policy.SkippedTestCase]) -> Path |
 
 
 def _enforce_ci_skip_policy(entries: list[skip_policy.SkippedTestCase]) -> None:
-    summary_path = _write_skipped_summary(entries)
+    acknowledged, unexpected = skip_policy.partition_skipped_tests(entries)
+    summary_path = _write_skipped_summary(unexpected)
     context = skip_policy.resolve_skip_policy_context(
         summary_path=summary_path or (PYTEST_REPORT_ROOT / "skipped_tests_summary.md"),
         project_root=PROJECT_ROOT,
     )
+    if acknowledged:
+        print(
+            "[skip-policy] Skips acknowledged via '"
+            f"{skip_policy.EXPECTED_SKIP_TOKEN}' token: {len(acknowledged)}"
+        )
     violation = skip_policy.evaluate_skip_policy(
-        entries, context=context, summary_path=summary_path
+        unexpected, context=context, summary_path=summary_path
     )
     if violation:
         raise TaskError(violation)
