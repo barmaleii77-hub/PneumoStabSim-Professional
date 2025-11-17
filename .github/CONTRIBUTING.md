@@ -43,6 +43,21 @@ Before opening a pull request or merging into `develop`:
 4. Update documentation (master plan, phase plan, or change log) whenever the
    architecture, tooling, or workflows change.
 
+### Pytest skip policy and targets
+
+- New and refactored tests must execute on Linux and Windows runners. Do not
+  mark them `skip`/`xfail` unless you add `# pytest-skip-ok` with a short
+  justification and open a follow-up issue to remove the exception.
+- CI enforces the skip policy via `tools.quality.skip_policy` and fails when
+  skipped tests appear without `PSS_ALLOW_SKIPPED_TESTS=1` and a meaningful
+  `CI_SKIP_REASON`. Skipped cases are summarised in
+  `reports/tests/skipped_tests_summary.md` for triage.
+- The optional `pytest_targets.txt` file has been removed to avoid accidental
+  filtering. To scope a run temporarily, use the per-suite target files
+  (`pytest_unit_targets.txt`, `pytest_integration_targets.txt`,
+  `pytest_ui_targets.txt`) or the corresponding `PYTEST_*_TARGETS`
+  environment variables.
+
 ## Opening a pull request
 
 - Use the provided PR template and describe how the change advances the

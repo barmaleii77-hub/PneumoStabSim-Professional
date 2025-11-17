@@ -27,6 +27,7 @@ from tools.headless import (
     apply_headless_defaults,
     headless_requested,
 )
+from tools.quality import skip_policy
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
@@ -229,16 +230,6 @@ class PytestSuite:
             if file_targets:
                 return file_targets
         return list(self.default_targets)
-
-
-@dataclass(slots=True)
-class SkippedTestCase:
-    """Representation of a skipped pytest test case."""
-
-    suite: str
-    case: str
-    message: str
-    source: Path
 
 
 def _relative_display(path: Path) -> str:
@@ -592,104 +583,34 @@ def _finalise_coverage_reports() -> Path | None:
     return COVERAGE_JSON_PATH
 
 
-def _collect_skipped_tests() -> list[SkippedTestCase]:
-    skipped: list[SkippedTestCase] = []
-    for xml_file in sorted(PYTEST_REPORT_ROOT.glob("*.xml")):
-        try:
-            tree = ET.parse(xml_file)
-        except (ET.ParseError, FileNotFoundError):
-            print(
-                "[ci_tasks] Unable to parse JUnit report while scanning skips: "
-                f"{_relative_display(xml_file)}"
-            )
-            continue
-        root = tree.getroot()
-        for testcase in root.iterfind(".//testcase"):
-            skipped_nodes = list(testcase.findall("skipped"))
-            if not skipped_nodes:
-                continue
-            classname = testcase.attrib.get("classname", "")
-            name = testcase.attrib.get("name", "")
-            test_id = (
-                f"{classname}.{name}"
-                if classname and name
-                else (name or classname or "<unknown>")
-            )
-            for node in skipped_nodes:
-                message = (node.attrib.get("message") or node.text or "").strip()
-                skipped.append(
-                    SkippedTestCase(
-                        suite=xml_file.stem,
-                        case=test_id,
-                        message=message,
-                        source=xml_file,
-                    )
-                )
-    return skipped
+def _collect_skipped_tests() -> list[skip_policy.SkippedTestCase]:
+    junit_paths = sorted(PYTEST_REPORT_ROOT.glob("*.xml"))
+    return skip_policy.collect_skipped_tests(junit_paths, project_root=PROJECT_ROOT)
 
 
-def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
+def _write_skipped_summary(entries: list[skip_policy.SkippedTestCase]) -> Path | None:
     summary_path = PYTEST_REPORT_ROOT / "skipped_tests_summary.md"
-    if not entries:
-        if summary_path.exists():
-            try:
-                summary_path.unlink()
-            except OSError:
-                pass
-        return None
-    lines = [
-        "# Skipped pytest tests",
-        "",
-        "| Suite | Test | Reason |",
-        "| --- | --- | --- |",
-    ]
-    for entry in entries:
-        reason = (entry.message or "—").replace("|", "\\|")
-        lines.append(f"| {entry.suite} | `{entry.case}` | {reason} |")
-    summary_path.parent.mkdir(parents=True, exist_ok=True)
-    summary_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    step_summary = os.environ.get("GITHUB_STEP_SUMMARY")
-    if step_summary:
-        try:
-            with Path(step_summary).open("a", encoding="utf-8") as handle:
-                handle.write("## Skipped pytest tests\n\n")
-                handle.write(summary_path.read_text(encoding="utf-8"))
-                handle.write("\n")
-        except OSError:
-            pass
-    return summary_path
+    return skip_policy.write_skipped_summary(
+        entries,
+        summary_path=summary_path,
+        step_summary_path=Path(os.environ["GITHUB_STEP_SUMMARY"]).resolve()
+        if os.environ.get("GITHUB_STEP_SUMMARY")
+        else None,
+        project_root=PROJECT_ROOT,
+    )
 
 
-def _enforce_ci_skip_policy(entries: list[SkippedTestCase]) -> None:
+def _enforce_ci_skip_policy(entries: list[skip_policy.SkippedTestCase]) -> None:
     summary_path = _write_skipped_summary(entries)
-    if not entries:
-        return
-    in_ci = _env_flag("CI", default=False) or bool(os.environ.get("GITHUB_ACTIONS"))
-    if not in_ci:
-        return
-    allow_flag = _env_flag("PSS_ALLOW_SKIPPED_TESTS", default=False) or _env_flag(
-        "CI_ALLOW_SKIPS", default=False
+    context = skip_policy.resolve_skip_policy_context(
+        summary_path=summary_path or (PYTEST_REPORT_ROOT / "skipped_tests_summary.md"),
+        project_root=PROJECT_ROOT,
     )
-    justification = os.environ.get("CI_SKIP_REASON", "").strip()
-    count = len(entries)
-    plural = "s" if count != 1 else ""
-    location_hint = (
-        f" See {_relative_display(summary_path)} for details." if summary_path else ""
+    violation = skip_policy.evaluate_skip_policy(
+        entries, context=context, summary_path=summary_path
     )
-    base_message = (
-        f"{count} skipped test{plural} detected across pytest suites." + location_hint
-    )
-    if not allow_flag:
-        raise TaskError(
-            base_message
-            + " Re-run the job with PSS_ALLOW_SKIPPED_TESTS=1 and provide CI_SKIP_REASON to acknowledge intentional skips."
-        )
-    if not justification:
-        raise TaskError(
-            base_message
-            + " CI_SKIP_REASON must describe why skips are accepted when PSS_ALLOW_SKIPPED_TESTS=1 is set."
-        )
-    print(f"[ci_tasks] Skipped tests acknowledged: {justification}")
+    if violation:
+        raise TaskError(violation)
 
 
 def _collect_test_summaries() -> dict[str, dict[str, float | int]]:
