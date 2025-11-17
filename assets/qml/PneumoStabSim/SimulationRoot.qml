@@ -141,6 +141,12 @@ Item {
             }
 
             if (typeof initialSceneSettings !== "undefined" && initialSceneSettings
+                    && initialSceneSettings.graphics && initialSceneSettings.graphics.reflection_probe
+                    && initialSceneSettings.graphics.reflection_probe.enabled !== undefined) {
+                return !!initialSceneSettings.graphics.reflection_probe.enabled
+            }
+
+            if (typeof initialSceneSettings !== "undefined" && initialSceneSettings
                     && initialSceneSettings.graphics && initialSceneSettings.graphics.environment
                     && initialSceneSettings.graphics.environment.reflection_enabled !== undefined) {
                 return !!initialSceneSettings.graphics.environment.reflection_enabled
@@ -524,6 +530,23 @@ Item {
             if (initialReflectionProbeSettings.quality !== undefined) reflectionProbeQualitySetting = String(initialReflectionProbeSettings.quality).toLowerCase()
             if (initialReflectionProbeSettings.refresh_mode !== undefined) reflectionProbeRefreshModeSetting = String(initialReflectionProbeSettings.refresh_mode).toLowerCase()
             if (initialReflectionProbeSettings.time_slicing !== undefined) reflectionProbeTimeSlicingSetting = String(initialReflectionProbeSettings.time_slicing).toLowerCase()
+            _refreshReflectionProbeObject()
+        }
+        if (typeof initialSceneSettings !== "undefined" && initialSceneSettings
+                && initialSceneSettings.graphics && initialSceneSettings.graphics.reflection_probe) {
+            var initialReflectionProbeState = initialSceneSettings.graphics.reflection_probe
+            if (initialReflectionProbeState.enabled !== undefined) {
+                _applyReflectionProbeEnabledOverride(initialReflectionProbeState.enabled)
+                reflectionProbeEnabledState = !!initialReflectionProbeState.enabled
+            }
+            if (initialReflectionProbeState.padding_m !== undefined) {
+                reflectionProbePaddingM = sanitizeReflectionProbePadding(initialReflectionProbeState.padding_m)
+            } else if (initialReflectionProbeState.padding !== undefined) {
+                reflectionProbePaddingM = sanitizeReflectionProbePadding(initialReflectionProbeState.padding)
+            }
+            if (initialReflectionProbeState.quality !== undefined) reflectionProbeQualitySetting = String(initialReflectionProbeState.quality).toLowerCase()
+            if (initialReflectionProbeState.refresh_mode !== undefined) reflectionProbeRefreshModeSetting = String(initialReflectionProbeState.refresh_mode).toLowerCase()
+            if (initialReflectionProbeState.time_slicing !== undefined) reflectionProbeTimeSlicingSetting = String(initialReflectionProbeState.time_slicing).toLowerCase()
             _refreshReflectionProbeObject()
         }
         if (typeof initialSceneSettings !== "undefined" && initialSceneSettings && initialSceneSettings.graphics && initialSceneSettings.graphics.environment) {
