@@ -262,7 +262,9 @@ def test_receiver_state_set_volume_does_not_mutate_on_error() -> None:
     )
 
     with pytest.raises(ModelConfigError):
-        state.set_volume(0.005, mode=ReceiverVolumeMode.ADIABATIC_RECALC, recompute=False)
+        state.set_volume(
+            0.005, mode=ReceiverVolumeMode.ADIABATIC_RECALC, recompute=False
+        )
 
     assert state.V == pytest.approx(0.02)
     assert state.p == pytest.approx(101325.0)

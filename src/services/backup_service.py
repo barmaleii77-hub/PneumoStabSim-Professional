@@ -195,7 +195,9 @@ class BackupService:
             isinstance(item, str) for item in included
         ):
             self._logger.error(
-                "backup_manifest_invalid", archive=str(archive), manifest_keys=list(manifest)
+                "backup_manifest_invalid",
+                archive=str(archive),
+                manifest_keys=list(manifest),
             )
             raise ValueError("Backup manifest has an invalid structure")
 
@@ -407,15 +409,14 @@ class BackupService:
                         continue
 
                     destination.parent.mkdir(parents=True, exist_ok=True)
-                    with handle.open(member) as source, destination.open(
-                        "wb"
-                    ) as output:
+                    with (
+                        handle.open(member) as source,
+                        destination.open("wb") as output,
+                    ):
                         shutil.copyfileobj(source, output)
                     restored.append(destination.relative_to(target))
         except zipfile.BadZipFile as exc:
-            self._logger.error(
-                "backup_corrupted", archive=str(archive), error=str(exc)
-            )
+            self._logger.error("backup_corrupted", archive=str(archive), error=str(exc))
             raise
         except ValueError as exc:
             self._logger.error(

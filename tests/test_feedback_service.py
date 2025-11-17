@@ -96,7 +96,9 @@ def test_thread_safe_writes(feedback_service, tmp_path):
         lines = [line.strip() for line in handle if line.strip()]
     assert len(lines) == 10
 
-    summary = json.loads((tmp_path / feedback_service.SUMMARY_JSON_FILENAME).read_text())
+    summary = json.loads(
+        (tmp_path / feedback_service.SUMMARY_JSON_FILENAME).read_text()
+    )
     assert summary["totals"]["reports"] == 10
     assert summary["totals"]["categories"] == {"load": 10}
     assert summary["totals"]["severity"] == {"medium": 10}

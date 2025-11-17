@@ -25,6 +25,8 @@ def _flatten_event_payload(payload: dict[str, object]) -> dict[str, object]:
         result.update(event)
         result["event"] = event.get("event", "unknown")
     return result
+
+
 def _extract_payload(raw: str) -> dict[str, object]:
     """Return the JSON payload embedded in the log message."""
 

@@ -22,11 +22,13 @@ os.environ.setdefault("PYTHONHASHSEED", "0")
 os.environ.setdefault("PSS_FORCE_NONBLOCKING_DIALOGS", "1")
 os.environ.setdefault("PSS_SUPPRESS_UI_DIALOGS", "1")
 
+
 def _env_flag(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
 
 _MARKERS = [
     "unit: Unit tests",
