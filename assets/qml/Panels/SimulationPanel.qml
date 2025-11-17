@@ -289,6 +289,16 @@ Pane {
         })
     }
 
+    function _emitAmbientTemperature(value) {
+        if (value === undefined || value === null)
+            return
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            return
+        modesModeChanged("ambient_temperature_c", numeric)
+        pneumaticSettingsChanged({ atmo_temp: numeric })
+    }
+
     function _emitPneumaticChange(key, value) {
         var payload = {}
         payload[key] = value
@@ -320,8 +330,12 @@ Pane {
             _setComboValue(roadProfileCombo, data.road_profile, _roadProfiles[0].value)
         if (Object.prototype.hasOwnProperty.call(data, "custom_profile_path"))
             customProfileField.text = data.custom_profile_path || ""
+        if (roadProfileCombo)
+            customProfileField.enabled = (roadProfileCombo.currentValue || roadProfileCombo.currentText) === "custom"
         if (Object.prototype.hasOwnProperty.call(data, "check_interference"))
             _setCheckBox(interferenceCheck, data.check_interference, false)
+        if (Object.prototype.hasOwnProperty.call(data, "ambient_temperature_c"))
+            ambientTemperatureSpin.value = Number(data.ambient_temperature_c) || 0.0
         if (data.physics) {
             _setCheckBox(springsCheck, data.physics.include_springs, true)
             _setCheckBox(dampersCheck, data.physics.include_dampers, true)
@@ -719,6 +733,36 @@ Pane {
                                 return
                             root._activePresetId = "custom"
                             _emitAnimationPayload()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Label {
+                            text: qsTr("Температура среды, °C")
+                            Layout.preferredWidth: 150
+                        }
+                        SpinBox {
+                            id: ambientTemperatureSpin
+                            Layout.fillWidth: true
+                            from: -80.0
+                            to: 150.0
+                            stepSize: 0.5
+                            value: 20.0
+                            editable: true
+                            validator: DoubleValidator { bottom: -120; top: 200; decimals: 1 }
+                            textFromValue: function(value, locale) { return root._formatValue(value, 1) }
+                            valueFromText: function(text, locale) {
+                                var numeric = Number(text)
+                                return Number.isFinite(numeric) ? numeric : value
+                            }
+                            onValueModified: {
+                                if (root._updatingFromPython)
+                                    return
+                                root._activePresetId = "custom"
+                                _emitAmbientTemperature(value)
+                            }
                         }
                     }
 
