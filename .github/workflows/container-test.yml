@@ -2,9 +2,17 @@ name: Container tests (Linux headless)
 
 on:
   push:
-    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs container checks
   pull_request:
-    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs container checks
 
 jobs:
   verify:
