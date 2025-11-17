@@ -923,6 +923,7 @@ class PhysicsWorker(QObject):
         )
 
         receiver_update: ReceiverVolumeUpdate | None = None
+        latest_state = getattr(self, "_latest_tank_state", None)
 
         receiver_pressure: float | None = None
         receiver_temperature: float | None = None
@@ -982,7 +983,6 @@ class PhysicsWorker(QObject):
                 tank_pressure = getattr(tank_state, "p", None)
                 tank_mass = getattr(tank_state, "m", None)
                 tank_temperature = getattr(tank_state, "T", None)
-                latest_state = getattr(self, "_latest_tank_state", None)
                 if latest_state is not None:
                     latest_state.volume = tank_state.V
                     if tank_pressure is not None:
@@ -1001,19 +1001,6 @@ class PhysicsWorker(QObject):
                     {"error": str(exc)},
                     exc_info=True,
                 )
-
-        log_payload = {
-            "volume_m3": float(volume),
-            "mode": applied_mode_token,
-            "tank_pressure_pa": tank_pressure,
-            "tank_mass_kg": tank_mass,
-            "tank_temperature_k": tank_temperature,
-            "receiver_pressure_pa": receiver_pressure,
-            "receiver_temperature_k": receiver_temperature,
-            "pneumatic_tank_volume_m3": pneumatic_tank_volume,
-        }
-
-        _log_with_context("info", "Receiver volume updated", log_payload)
 
         if receiver_update is None:
             fallback_pressure = receiver_pressure
@@ -1048,6 +1035,52 @@ class PhysicsWorker(QObject):
             )
 
         update_payload = receiver_update
+
+        if latest_state is not None:
+            latest_state.volume = float(update_payload.volume)
+            if hasattr(latest_state, "pressure"):
+                latest_state.pressure = float(
+                    tank_pressure
+                    if tank_pressure is not None
+                    else update_payload.pressure
+                )
+            if hasattr(latest_state, "temperature"):
+                latest_state.temperature = float(
+                    tank_temperature
+                    if tank_temperature is not None
+                    else update_payload.temperature
+                )
+            if tank_mass is not None and hasattr(latest_state, "mass"):
+                latest_state.mass = float(tank_mass)
+
+        log_tank_pressure = (
+            tank_pressure
+            if tank_pressure is not None
+            else getattr(latest_state, "pressure", None)
+        )
+        log_tank_mass = tank_mass if tank_mass is not None else getattr(latest_state, "mass", None)
+        log_tank_temperature = (
+            tank_temperature
+            if tank_temperature is not None
+            else getattr(latest_state, "temperature", None)
+        )
+
+        log_payload = {
+            "volume_m3": float(update_payload.volume),
+            "mode": applied_mode_token,
+            "tank_pressure_pa": log_tank_pressure,
+            "tank_mass_kg": log_tank_mass,
+            "tank_temperature_k": log_tank_temperature,
+            "receiver_pressure_pa": float(update_payload.pressure),
+            "receiver_temperature_k": float(update_payload.temperature),
+            "pneumatic_tank_volume_m3": float(
+                pneumatic_tank_volume
+                if pneumatic_tank_volume is not None
+                else update_payload.volume
+            ),
+        }
+
+        _log_with_context("info", "Receiver volume updated", log_payload)
 
         # Store canonical values after successful update generation
         self.receiver_volume = float(update_payload.volume)
