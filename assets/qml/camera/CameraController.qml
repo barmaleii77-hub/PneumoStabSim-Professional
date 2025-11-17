@@ -180,14 +180,14 @@ Item {
         viewHeight: controller.view3d ? controller.view3d.height : 600
         taaMotionAdaptive: controller.taaMotionAdaptive
 
-        onAutoFit: function() { controller.autoFitFrame() }
-        onResetView: function() { controller.resetView() }
-        onToggleAnimation: function() {
+        autoFitHandler: function() { controller.autoFitFrame() }
+        resetViewHandler: function() { controller.resetView() }
+        toggleAnimationHandler: function() {
             if (controller.onToggleAnimation) {
                 controller.onToggleAnimation()
             }
         }
-        onToggleCameraHud: function() {
+        toggleCameraHudHandler: function() {
             controller.hudToggleRequested()
         }
     }

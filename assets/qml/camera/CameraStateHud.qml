@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -29,10 +30,14 @@ Item {
 
     function persistSetting(key, value) {
         hud.setSetting(key, value)
-        if (typeof safeApplyConfigChange === "function") {
+        var applyConfigChange = (typeof safeApplyConfigChange === "function")
+            ? safeApplyConfigChange
+            : null
+
+        if (applyConfigChange) {
             var patch = {}
             patch[key] = value
-            safeApplyConfigChange("diagnostics.camera_hud", patch)
+            applyConfigChange("diagnostics.camera_hud", patch)
         }
     }
 
@@ -149,17 +154,23 @@ Item {
                     ]
 
                     delegate: CheckDelegate {
-                        text: modelData.text
-                        checked: hud[modelData.binding]
-                        onToggled: hud.persistSetting(modelData.settingKey, checked)
+                        id: hudToggle
+
+                        required property var modelData
+
+                        text: hudToggle.modelData.text
+                        checked: hud[hudToggle.modelData.binding]
+                        onToggled: hud.persistSetting(hudToggle.modelData.settingKey, checked)
                     }
                 }
             }
 
             Repeater {
-                model: metricsModel()
+                model: hud.metricsModel()
 
                 delegate: RowLayout {
+                    id: metricRow
+
                     required property var modelData
 
                     spacing: 6
@@ -173,7 +184,7 @@ Item {
                         : "—"
 
                     Text {
-                        text: metricLabel.length ? metricLabel + ":" : "—"
+                        text: metricRow.metricLabel.length ? metricRow.metricLabel + ":" : "—"
                         font.pixelSize: 13
                         color: "#8fa6d3"
                         horizontalAlignment: Text.AlignLeft
@@ -182,7 +193,7 @@ Item {
                     }
 
                     Text {
-                        text: metricValue
+                        text: metricRow.metricValue
                         font.pixelSize: 13
                         color: "#e9f0ff"
                         horizontalAlignment: Text.AlignRight

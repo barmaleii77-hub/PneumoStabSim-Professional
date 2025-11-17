@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
@@ -6,7 +7,8 @@ import "../Panels/Common" as Common
 Pane {
     id: root
 
-    property var bridge: (typeof trainingBridge !== "undefined" ? trainingBridge : null)
+    property var trainingBridge: null
+    property var bridge: root.trainingBridge
     property string activePresetId: ""
     property var presetModel: []
     property var selectedDetails: ({})
@@ -72,11 +74,11 @@ Pane {
     }
 
     function loadFromBridge() {
-        if (!bridge)
+        if (!root.bridge)
             return
-        presetModel = bridge.listPresets()
-        activePresetId = bridge.activePresetId
-        setSelected(bridge.selectedPresetSnapshot())
+        presetModel = root.bridge.listPresets()
+        activePresetId = root.bridge.activePresetId
+        setSelected(root.bridge.selectedPresetSnapshot())
     }
 
     ColumnLayout {
@@ -93,7 +95,7 @@ Pane {
         }
 
         Label {
-            text: selectedDetails.description || qsTr("Выберите пресет, чтобы увидеть описание и параметры.")
+            text: root.selectedDetails.description || qsTr("Выберите пресет, чтобы увидеть описание и параметры.")
             wrapMode: Text.WordWrap
             color: Qt.rgba(0.8, 0.83, 0.92, 0.9)
             Layout.fillWidth: true
@@ -122,9 +124,13 @@ Pane {
             visible: root.tagList && root.tagList.length > 0
             spacing: 6
 
-            Repeater {
-                model: root.tagList || []
+                Repeater {
+                    model: root.tagList || []
                 delegate: Rectangle {
+                    id: tagEntry
+
+                    required property var modelData
+
                     radius: 6
                     color: Qt.rgba(0.21, 0.25, 0.33, 0.9)
                     border.color: Qt.rgba(0.33, 0.39, 0.49, 0.9)
@@ -135,7 +141,7 @@ Pane {
                     Text {
                         id: tagLabel
                         anchors.centerIn: parent
-                        text: String(modelData)
+                        text: String(tagEntry.modelData)
                         color: Qt.rgba(0.9, 0.92, 0.97, 1.0)
                         font.pointSize: 9
                     }
@@ -189,7 +195,11 @@ Pane {
                 Repeater {
                     model: root.objectivesList
                     delegate: Label {
-                        text: "• " + String(modelData)
+                        id: objectiveEntry
+
+                        required property var modelData
+
+                        text: "• " + String(objectiveEntry.modelData)
                         wrapMode: Text.WordWrap
                         Layout.fillWidth: true
                     }
@@ -203,12 +213,16 @@ Pane {
                     Layout.fillWidth: true
                 }
                 Flow {
-                    width: parent.width
+                    Layout.fillWidth: true
                     visible: root.modulesList.length > 0
                     spacing: 6
                     Repeater {
                         model: root.modulesList
                         delegate: Rectangle {
+                            id: moduleEntry
+
+                            required property var modelData
+
                             radius: 4
                             color: Qt.rgba(0.18, 0.21, 0.28, 0.9)
                             border.color: Qt.rgba(0.3, 0.35, 0.44, 0.9)
@@ -219,7 +233,7 @@ Pane {
                             Text {
                                 id: moduleLabel
                                 anchors.centerIn: parent
-                                text: String(modelData)
+                                text: String(moduleEntry.modelData)
                                 color: Qt.rgba(0.85, 0.88, 0.95, 1.0)
                                 font.pointSize: 8
                             }
@@ -237,7 +251,11 @@ Pane {
                 Repeater {
                     model: root.metricsList
                     delegate: Label {
-                        text: "• " + String(modelData)
+                        id: metricEntry
+
+                        required property var modelData
+
+                        text: "• " + String(metricEntry.modelData)
                         Layout.fillWidth: true
                     }
                 }
@@ -258,14 +276,18 @@ Pane {
                 Repeater {
                     model: root.simulationEntries
                     delegate: RowLayout {
+                        id: simulationEntry
+
+                        required property var modelData
+
                         Layout.fillWidth: true
                         Label {
-                            text: String(modelData.key)
+                            text: String(simulationEntry.modelData.key)
                             color: Qt.rgba(0.75, 0.79, 0.88, 1.0)
                             Layout.fillWidth: true
                         }
                         Label {
-                            text: root.formatValue(modelData.value)
+                            text: root.formatValue(simulationEntry.modelData.value)
                             horizontalAlignment: Text.AlignRight
                             Layout.fillWidth: true
                         }
@@ -288,14 +310,18 @@ Pane {
                 Repeater {
                     model: root.pneumaticEntries
                     delegate: RowLayout {
+                        id: pneumaticEntry
+
+                        required property var modelData
+
                         Layout.fillWidth: true
                         Label {
-                            text: String(modelData.key)
+                            text: String(pneumaticEntry.modelData.key)
                             color: Qt.rgba(0.75, 0.79, 0.88, 1.0)
                             Layout.fillWidth: true
                         }
                         Label {
-                            text: root.formatValue(modelData.value)
+                            text: root.formatValue(pneumaticEntry.modelData.value)
                             horizontalAlignment: Text.AlignRight
                             Layout.fillWidth: true
                         }
@@ -310,15 +336,15 @@ Pane {
     Component.onCompleted: loadFromBridge()
 
     Connections {
-        target: bridge
+        target: root.bridge
         function onPresetsChanged() {
-            presetModel = bridge.presets
+            root.presetModel = root.bridge.presets
         }
         function onActivePresetChanged() {
-            activePresetId = bridge.activePresetId
+            root.activePresetId = root.bridge.activePresetId
         }
         function onSelectedPresetChanged() {
-            setSelected(bridge.selectedPresetSnapshot())
+            root.setSelected(root.bridge.selectedPresetSnapshot())
         }
     }
 }
