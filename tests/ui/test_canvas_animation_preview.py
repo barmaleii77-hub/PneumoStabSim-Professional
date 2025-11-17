@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -16,6 +17,7 @@ pytest.importorskip(
 
 from PySide6.QtCore import QObject
 
+from tests._qt_headless import headless_requested
 from tests.ui.utils import capture_window_image, load_qml_scene, log_window_metrics
 
 CANVAS_QML = Path("assets/qml/main_canvas_2d.qml")
@@ -36,8 +38,15 @@ def _normalise_angle_delta(start: float, end: float) -> float:
     return delta
 
 
+def _resolve_hold_seconds() -> float:
+    default_hold = 0.0
+    if sys.platform.startswith("win") and not os.environ.get("CI") and not headless_requested():
+        default_hold = 2.0
+    return float(os.environ.get("PSS_CANVAS_TEST_HOLD_SECONDS", default_hold) or 0)
+
+
 def _maybe_hold_window(scene, qapp) -> None:
-    hold_seconds = float(os.environ.get("PSS_CANVAS_TEST_HOLD_SECONDS", "0") or 0)
+    hold_seconds = _resolve_hold_seconds()
     if hold_seconds <= 0:
         return
     try:
@@ -49,6 +58,28 @@ def _maybe_hold_window(scene, qapp) -> None:
     while time.monotonic() < deadline:
         qapp.processEvents()
         time.sleep(0.05)
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+@pytest.mark.skipif(headless_requested(), reason="Manual canvas preview requires a visible window")
+def test_canvas_animation_preview_window_visible(qapp, integration_reports_dir) -> None:
+    """Open the Canvas schematic in a real window for Windows manual verification."""
+
+    with load_qml_scene(qapp, qml_file=CANVAS_QML, width=960, height=540) as scene:
+        log_window_metrics(scene.view)
+        qapp.processEvents()
+
+        assert scene.view.isVisible(), "QQuickView must be visible for the preview"
+        assert scene.view.isExposed(), "Canvas preview window is not exposed on screen"
+
+        preview_dir = integration_reports_dir / "canvas_animation" / "windows_preview"
+        preview_dir.mkdir(parents=True, exist_ok=True)
+        preview_frame = capture_window_image(scene.view, qapp)
+        preview_path = preview_dir / "canvas_preview.png"
+        preview_frame.save(preview_path)
+
+        _maybe_hold_window(scene, qapp)
 
 
 @pytest.mark.gui
