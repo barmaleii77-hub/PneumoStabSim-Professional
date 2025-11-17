@@ -1,6 +1,6 @@
 """
 PneumoStabSim - Pneumatic Stabilizer Simulator
-Main application entry point - MODULAR VERSION v4.9.9
+Main application entry point - MODULAR VERSION v2.0.1
 """
 
 from __future__ import annotations
