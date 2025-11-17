@@ -151,6 +151,9 @@ Item {
 
         return _reflectionEnabledFromSettings()
     }
+    property bool reflectionProbeEnabled: reflectionProbeEnabledOverrideActive
+            ? reflectionProbeEnabledOverride
+            : reflectionProbeEnabledState
     property bool reflectionProbeEnabledOverrideActive: false
     property bool reflectionProbeEnabledOverride: true
     property real reflectionProbePaddingM: 0.0
@@ -561,7 +564,7 @@ Item {
     QtObject {
         id: suspensionAssembly
         objectName: "sceneSuspensionAssembly"
-        property bool reflectionProbeEnabled: root.reflectionProbeEnabledOverrideActive ? root.reflectionProbeEnabledOverride : root.reflectionProbeEnabledState
+        property bool reflectionProbeEnabled: root.reflectionProbeEnabled
         property real reflectionProbePaddingM: root.reflectionProbePaddingM
         property int reflectionProbeQualityValue: reflectionProbe ? reflectionProbe.quality : 0
         property int reflectionProbeRefreshModeValue: reflectionProbe ? reflectionProbe.refreshMode : 0
