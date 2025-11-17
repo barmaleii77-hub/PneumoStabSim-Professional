@@ -809,6 +809,7 @@
         "road_profile": {"title": "Road Profile", "type": "string"},
         "custom_profile_path": {"title": "Custom Profile Path", "type": "string"},
         "check_interference": {"title": "Check Interference", "type": "boolean"},
+        "ambient_temperature_c": {"title": "Ambient Temperature Celsius", "type": "number"},
         "amplitude": {"title": "Amplitude", "type": "number"},
         "frequency": {"title": "Frequency", "type": "number"},
         "phase": {"title": "Phase", "type": "number"},
@@ -818,7 +819,7 @@
         "rr_phase": {"title": "Rr Phase", "type": "number"},
         "physics": {"$ref": "#/$defs/ModesPhysicsSettings"}
       },
-      "required": ["sim_type", "thermo_mode", "mode_preset", "road_profile", "custom_profile_path", "check_interference", "amplitude", "frequency", "phase", "lf_phase", "rf_phase", "lr_phase", "rr_phase", "physics"],
+      "required": ["sim_type", "thermo_mode", "mode_preset", "road_profile", "custom_profile_path", "check_interference", "ambient_temperature_c", "amplitude", "frequency", "phase", "lf_phase", "rf_phase", "lr_phase", "rr_phase", "physics"],
       "title": "ModesSettings",
       "type": "object"
     },

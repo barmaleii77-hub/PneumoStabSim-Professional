@@ -6,6 +6,8 @@ ModesPanel state manager
 from typing import Any
 import copy
 
+from src.common.settings_manager import SettingsManager, get_settings_manager
+
 from .defaults import (
     DEFAULT_MODES_PARAMS,
     DEFAULT_PHYSICS_OPTIONS,
@@ -17,11 +19,47 @@ from .defaults import (
 class ModesStateManager:
     """Менеджер состояния панели режимов"""
 
-    def __init__(self):
-        """Инициализация с дефолтными значениями"""
-        self.parameters: dict[str, Any] = copy.deepcopy(DEFAULT_MODES_PARAMS)
-        self.physics_options: dict[str, Any] = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
+    def __init__(self, settings_manager: SettingsManager | None = None):
+        """Инициализация с дефолтными значениями и загрузкой из SettingsManager"""
+
+        self.settings_manager = settings_manager or get_settings_manager()
+        self.parameters: dict[str, Any] = {}
+        self.physics_options: dict[str, Any] = {}
         self._current_preset: int = 0  # Standard preset
+
+        self._load_from_settings()
+
+    # ===============================================================
+    # Loading / persistence
+    # ===============================================================
+
+    def _load_from_settings(self) -> None:
+        """Load state from SettingsManager with defaults as fallback."""
+
+        defaults = copy.deepcopy(DEFAULT_MODES_PARAMS)
+        physics_defaults = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
+
+        stored = self.settings_manager.get_category("modes", {}) or {}
+        self.parameters = {**defaults, **{k: v for k, v in stored.items() if k != "physics"}}
+        self.physics_options = {**physics_defaults, **stored.get("physics", {})}
+
+        preset_name = str(self.parameters.get("mode_preset", ""))
+        self._current_preset = self._resolve_preset_index(preset_name)
+
+    def _persist(self, *, auto_save: bool = True) -> None:
+        """Persist current state back to SettingsManager."""
+
+        if not self.settings_manager:
+            return
+
+        payload = self._merge_state()
+        self.settings_manager.set_category("modes", payload, auto_save=auto_save)
+
+        ambient_c = payload.get("ambient_temperature_c")
+        if ambient_c is not None:
+            pneumatic = self.settings_manager.get_category("pneumatic", {}) or {}
+            pneumatic["atmo_temp"] = float(ambient_c)
+            self.settings_manager.set_category("pneumatic", pneumatic, auto_save=auto_save)
 
     def get_parameters(self) -> dict[str, Any]:
         """Получить копию параметров"""
@@ -39,6 +77,7 @@ class ModesStateManager:
         вместо молчаливой коррекции.
         """
         self.parameters[name] = value
+        self._persist(auto_save=True)
 
     def update_physics_option(self, name: str, value: Any) -> None:
         """Обновить опцию физики"""
@@ -54,6 +93,7 @@ class ModesStateManager:
                 self.physics_options[name] = float(default_value)
         else:
             self.physics_options[name] = value
+        self._persist(auto_save=True)
 
     def apply_preset(self, preset_index: int) -> dict[str, Any]:
         """Применить пресет и вернуть обновлённые параметры"""
@@ -83,6 +123,8 @@ class ModesStateManager:
         self._current_preset = preset_index
         self.parameters["mode_preset"] = preset["name"]
 
+        self._persist(auto_save=True)
+
         return {
             "sim_type": self.parameters.get("sim_type"),
             "thermo_mode": self.parameters.get("thermo_mode"),
@@ -98,6 +140,7 @@ class ModesStateManager:
         if self._current_preset != 4:
             self._current_preset = 4
             self.parameters["mode_preset"] = MODE_PRESETS[4]["name"]
+            self._persist(auto_save=True)
 
     def validate_state(self) -> list[str]:
         """Валидация состояния
@@ -153,6 +196,27 @@ class ModesStateManager:
         """Получить параметры анимации для передачи в QML"""
         return get_animation_params(self.parameters)
 
+    # ===============================================================
+    # Persistence helpers
+    # ===============================================================
+
+    def _resolve_preset_index(self, preset_name: str) -> int:
+        """Resolve preset index from stored name or identifier."""
+
+        if not preset_name:
+            return 0
+
+        normalized = preset_name.lower()
+        if normalized in {"standard", "стандартный"}:
+            return 0
+        if normalized in {"custom", "пользовательский"}:
+            return 4
+        for idx, preset in MODE_PRESETS.items():
+            name = str(preset.get("name", "")).lower()
+            if normalized == name or normalized == str(preset.get("id", "")).lower():
+                return idx
+        return 0
+
     def check_dependencies(self, param_name: str, value: Any) -> dict[str, Any]:
         """Проверка зависимостей между параметрами
 
@@ -197,6 +261,7 @@ class ModesStateManager:
         self.parameters = copy.deepcopy(DEFAULT_MODES_PARAMS)
         self.physics_options = copy.deepcopy(DEFAULT_PHYSICS_OPTIONS)
         self._current_preset = 0
+        self._persist()
 
     def to_dict(self) -> dict[str, Any]:
         """Сериализация состояния в словарь"""
@@ -214,3 +279,20 @@ class ModesStateManager:
             self.physics_options.update(state["physics_options"])
         if "preset_index" in state:
             self._current_preset = state["preset_index"]
+
+    def _merge_state(self) -> dict[str, Any]:
+        """Return combined settings payload for SettingsManager."""
+
+        payload = copy.deepcopy(self.parameters)
+        payload["physics"] = copy.deepcopy(self.physics_options)
+        return payload
+
+    def as_settings_payload(self) -> dict[str, Any]:
+        """Публичная версия объединённых настроек"""
+
+        return self._merge_state()
+
+    def persist_state(self) -> None:
+        """Public entrypoint to persist the current state."""
+
+        self._persist()

@@ -17,6 +17,7 @@ DEFAULT_MODES_PARAMS: dict[str, Any] = {
     "road_profile": "smooth_highway",
     "custom_profile_path": "",
     "check_interference": False,
+    "ambient_temperature_c": 20.0,
     # Road excitation
     "amplitude": 0.05,  # m
     "frequency": 1.0,  # Hz
@@ -59,6 +60,7 @@ MODE_PRESETS: dict[int, dict[str, Any]] = {
         "road_profile": "smooth_highway",
         "custom_profile_path": "",
         "check_interference": False,
+        "ambient_temperature_c": 20.0,
         "include_springs": True,
         "include_springs_kinematics": True,
         "include_dampers": True,
@@ -79,6 +81,7 @@ MODE_PRESETS: dict[int, dict[str, Any]] = {
         "road_profile": "smooth_highway",
         "custom_profile_path": "",
         "check_interference": False,
+        "ambient_temperature_c": 20.0,
         "include_springs": False,
         "include_springs_kinematics": False,
         "include_dampers": False,
@@ -99,6 +102,7 @@ MODE_PRESETS: dict[int, dict[str, Any]] = {
         "road_profile": "off_road",
         "custom_profile_path": "",
         "check_interference": True,
+        "ambient_temperature_c": 20.0,
         "include_springs": True,
         "include_springs_kinematics": True,
         "include_dampers": True,
@@ -119,6 +123,7 @@ MODE_PRESETS: dict[int, dict[str, Any]] = {
         "road_profile": "city_streets",
         "custom_profile_path": "",
         "check_interference": False,
+        "ambient_temperature_c": 20.0,
         "include_springs": False,
         "include_springs_kinematics": False,
         "include_dampers": False,
