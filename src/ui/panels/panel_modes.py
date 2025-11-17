@@ -629,6 +629,11 @@ class ModesPanel(QWidget):
         data["physics"] = dict(self.physics_options)
         return data
 
+    def get_parameters(self) -> dict:
+        """Return a copy of the current simulation mode parameters."""
+
+        return self.collect_state()
+
     @Slot()
     def _reset_to_defaults(self):
         self._settings_manager.reset_to_defaults(category="modes")
