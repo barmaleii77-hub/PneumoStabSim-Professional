@@ -443,7 +443,7 @@ class ApplicationRunner:
             )
 
             logger.info("=" * 60)
-            logger.info("PneumoStabSim v5.0.0 - Application Started")
+            logger.info("PneumoStabSim v5.0.1 - Application Started")
             logger.info("=" * 60)
             logger.info(f"Python: {sys.version_info.major}.{sys.version_info.minor}")
             if self.logging_preset is not None:
@@ -552,7 +552,7 @@ class ApplicationRunner:
                     )
 
         app.setApplicationName("PneumoStabSim")
-        app.setApplicationVersion("5.0.0")
+        app.setApplicationVersion("5.0.1")
         app.setOrganizationName("PneumoStabSim")
 
         if self.app_logger:
@@ -1154,10 +1154,29 @@ class ApplicationRunner:
             )
             self.use_legacy_ui = bool(getattr(args, "legacy", False))
             no_qml_requested = bool(getattr(args, "no_qml", False))
+            force_disable_qml = bool(getattr(args, "force_disable_qml_3d", False))
+            force_disable_reasons = tuple(
+                getattr(args, "force_disable_qml_3d_reasons", tuple())
+            )
 
             # Применяем --no-qml отдельно от safe
             if self.use_legacy_ui or no_qml_requested:
                 self.use_qml_3d_schema = False
+
+            if force_disable_qml:
+                self.use_qml_3d_schema = False
+                reasons_payload = list(force_disable_reasons) or ["unspecified"]
+                if self.app_logger:
+                    self.app_logger.warning(
+                        "Qt Quick 3D disabled by bootstrap guard",
+                        extra={"reasons": reasons_payload},
+                    )
+                else:
+                    self._log_with_fallback(
+                        "warning",
+                        "WARNING: Qt Quick 3D disabled by bootstrap guard",
+                        reasons=reasons_payload,
+                    )
 
             if self.app_logger:
                 self.app_logger.info("Logging initialized successfully")
@@ -1269,7 +1288,7 @@ class ApplicationRunner:
     def _print_header(self) -> None:
         """Печать заголовка приложения в консоль."""
         print("=" * 60)
-        print("🚀 PNEUMOSTABSIM v5.0.0")
+        print("🚀 PNEUMOSTABSIM v5.0.1")
         print("=" * 60)
 
         try:
