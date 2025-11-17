@@ -12,6 +12,15 @@ from types import MappingProxyType
 
 from .types import SourceKind, Iso8608Class, CorrelationSpec, Preset
 
+_PRESET_ALIASES: Mapping[str, str] = MappingProxyType(
+    {
+        "standard": "urban_50kmh",
+        "полная динамика": "sine_sweep",
+        "только кинематика": "test_sine",
+        "тест пневматики": "test_sine",
+    }
+)
+
 
 def create_highway_preset(velocity: float = 27.8, duration: float = 60.0) -> Preset:
     """Highway scenario: smooth roads at high speed
@@ -206,6 +215,36 @@ def create_test_preset(
 
 
 @lru_cache(maxsize=1)
+def _preset_name_index() -> Mapping[str, str]:
+    """Return cached mapping of normalised preset names to canonical keys."""
+
+    catalogue = _build_preset_catalogue()
+    normalized: dict[str, str] = {}
+
+    for name in catalogue.keys():
+        normalized[name.lower()] = name
+
+    return MappingProxyType(normalized)
+
+
+@lru_cache(maxsize=64)
+def resolve_preset_name(raw_name: str | None) -> str | None:
+    """Resolve aliases and normalise preset identifiers for lookups."""
+
+    if not isinstance(raw_name, str):
+        return None
+
+    candidate = raw_name.strip()
+    if not candidate:
+        return None
+
+    normalized = candidate.lower()
+    alias_target = _PRESET_ALIASES.get(normalized, normalized)
+
+    return _preset_name_index().get(alias_target)
+
+
+@lru_cache(maxsize=1)
 def _build_preset_catalogue() -> Mapping[str, Preset]:
     """Materialise and cache the immutable preset catalogue."""
 
@@ -252,17 +291,14 @@ def get_all_presets() -> Mapping[str, Preset]:
     return _build_preset_catalogue()
 
 
-def get_preset_by_name(name: str) -> Preset | None:
-    """Get preset by name
+def get_preset_by_name(name: str | None) -> Preset | None:
+    """Return a preset by name or alias, handling normalisation and caching."""
 
-    Args:
-        name: Preset name
+    canonical_name = resolve_preset_name(name)
+    if not canonical_name:
+        return None
 
-    Returns:
-        Preset object or None if not found
-    """
-    presets = get_all_presets()
-    return presets.get(name)
+    return get_all_presets().get(canonical_name)
 
 
 def list_preset_names() -> list[str]:
@@ -332,6 +368,7 @@ __all__ = [
     "create_offroad_preset",
     "create_maneuver_preset",
     "create_test_preset",
+    "resolve_preset_name",
     "get_all_presets",
     "get_preset_by_name",
     "list_preset_names",

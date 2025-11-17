@@ -304,3 +304,45 @@ def test_run_schema_validation_wraps_os_error(monkeypatch: pytest.MonkeyPatch) -
         runner._run_schema_validation(validator_path.with_suffix(".json"))
 
     assert "Failed to execute settings validator" in str(exc.value)
+
+
+def test_run_schema_validation_uses_resolved_paths(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    runner = ApplicationRunner(
+        object, lambda *args, **kwargs: None, _DummyQtModule, object
+    )
+    project_root = Path(__file__).resolve().parents[4]
+    validator_path = project_root / "tools" / "validate_settings.py"
+
+    real_exists = Path.exists
+
+    def _exists(self: Path) -> bool:  # pragma: no cover - shim
+        if self == validator_path:
+            return True
+        return real_exists(self)
+
+    monkeypatch.setattr(Path, "exists", _exists, raising=False)
+
+    captured_command: list[list[str]] = []
+
+    def _fake_run(cmd, *args, **kwargs):  # pragma: no cover - shim
+        captured_command.append(cmd)
+        return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+
+    schema_path = tmp_path / "schema.json"
+    schema_path.write_text("{}", encoding="utf-8")
+    cfg_path = tmp_path / "settings.json"
+    cfg_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(runner, "_resolve_schema_path", lambda: schema_path)
+
+    runner._run_schema_validation(cfg_path)
+
+    assert captured_command
+    command = captured_command[0]
+    assert "--schema-file" in command
+    assert str(schema_path) in command
+    assert str(cfg_path) in command

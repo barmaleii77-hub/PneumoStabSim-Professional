@@ -137,3 +137,16 @@ def test_depth_texture_activator_avoids_removed_qt_properties(
         assert token not in sanitized, (
             f"Legacy property {token} must not appear outside the guard block"
         )
+
+
+def test_depth_texture_activator_reports_safe_read_failures(
+    depth_texture_source: str,
+) -> None:
+    assert "safe read failed" in depth_texture_source
+
+
+def test_depth_texture_activator_logs_buffer_invocations(depth_texture_source: str) -> None:
+    assert (
+        'DepthTextureActivator:", label + "." + methodName + "() called"'
+        in depth_texture_source
+    )

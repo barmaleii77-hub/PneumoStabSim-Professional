@@ -53,7 +53,7 @@ from src.pneumo.system import create_standard_diagonal_system
 from src.pneumo.gas_state import apply_instant_volume_change
 from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import create_road_input_from_preset
-from src.road.scenarios import get_preset_by_name
+from src.road.scenarios import get_preset_by_name, resolve_preset_name
 from src.common.units import KELVIN_0C, PA_ATM
 from src.core.settings_manager import (
     create_default_gas_network,
@@ -1366,15 +1366,8 @@ class PhysicsWorker(QObject):
         else:
             preset = "test_sine"
 
-        alias_map = {
-            "standard": "urban_50kmh",
-            "полная динамика": "sine_sweep",
-            "только кинематика": "test_sine",
-            "тест пневматики": "test_sine",
-        }
-
-        lookup = alias_map.get(preset.lower(), preset)
-        if get_preset_by_name(lookup) is None:
+        lookup = resolve_preset_name(preset)
+        if lookup is None:
             self.logger.warning(
                 "WARNING: unknown road preset, falling back to default",
                 requested=preset,
