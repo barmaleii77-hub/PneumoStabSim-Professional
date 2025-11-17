@@ -126,8 +126,16 @@ def _get_path(payload: Mapping[str, Any], path: str) -> Any:
         raise KeyError("")
 
     node: Any = payload
+    traversed: list[str] = []
     for part in segments:
-        if not isinstance(node, Mapping) or part not in node:
+        traversed.append(part)
+        if not isinstance(node, Mapping):
+            joined = ".".join(traversed[:-1]) or "<root>"
+            raise SettingsValidationError(
+                f"Секция {joined} должна быть объектом для доступа к {path}"
+            )
+
+        if part not in node:
             raise KeyError(path)
         node = node[part]
     return node
