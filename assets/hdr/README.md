@@ -68,7 +68,7 @@ removed immediately._
    ```
 
 2. **Automatic normalization**: `MainWindow.normalizeHdrPath()` converts to canonical `file://` URL
-   - Searches in: `assets/hdr/`, `assets/qml/`, `assets/`, `project_root/`
+   - Searches in: `assets/hdr/`, `assets/hdri/`, `assets/qml/assets/`, `assets/`, `project_root/`
    - Returns: `file:///C:/.../assets/hdr/studio_small_09_2k.hdr`
    - Logs warnings if file not found
 
@@ -83,10 +83,12 @@ removed immediately._
 
 | Input format | Example | Result |
 |--------------|---------|--------|
-| Relative | `../hdr/studio.hdr` | `file:///.../assets/hdr/studio.hdr` |
-| Absolute | `C:/path/file.hdr` | `file:///C:/path/file.hdr` |
+| Relative | `../hdr/studio.hdr`, `../hdri/studio.exr`, `../qml/assets/hdr/custom.hdr` | Normalised to the first matching repository location with a `file://` prefix. |
+| Absolute | `C:/path/file.hdr`, `/tmp/custom.exr` | `file:///C:/path/file.hdr` (validated) | 
 | file:// URL | `file:///path/file.hdr` | `file:///path/file.hdr` (validated) |
-| Remote URL | `http://server/file.hdr` | `http://server/file.hdr` (unchanged) |
+| Remote URL | `http://server/file.hdr` | `http://server/file.hdr` (unchanged, marked as remote) |
+
+> ⚠️ Remote URLs are allowed for quick visual checks but are flagged as `remote` in telemetry and should not ship in production manifests.
 
 **See also**: `docs/HDR_PATHS_UNIFIED.md`, `docs/HDR_PATHS_QUICK_START.md`
 
@@ -107,12 +109,22 @@ removed immediately._
 `tests/unit/ui/test_main_window_hdr_paths.py`.
 
 Функция `normalizeHdrPath()` в слое Python (`src/ui/main_window_pkg/_hdr_paths.py`)
-выстраивает последовательность кандидатных путей (`assets/qml/`, `assets/hdr/`,
-`assets/`, корень проекта) и возвращает `file://` URL только при успешном
-нахождении файла. Если ни один кандидат не найден, в лог попадает предупреждение
-`normalizeHdrPath: HDR asset not found (input=…, candidates=…)`, а в UI
-очищается поле пути, что немедленно сигнализирует о проблеме с размещением
+выстраивает последовательность кандидатных путей (`assets/hdri/`, `assets/qml/`,
+`assets/hdr/`, `assets/`, корень проекта) и возвращает `file://` URL только при
+успешном нахождении файла. Если ни один кандидат не найден, в лог попадает
+предупреждение `normalizeHdrPath: HDR asset not found (input=…, candidates=…)`,
+а в UI очищается поле пути, что немедленно сигнализирует о проблеме с размещением
 ассета.
+
+### Validation & warnings
+
+- `make verify hdr-verify` запускает `python tools/verify_hdr_assets.py` и
+  проверяет manifest, SHA-256 и наличие Radiance заголовков. Используйте его
+  перед релизными сборками или добавлением новых путей в `config/app_settings.json`.
+- Все попытки разрешения путей пишутся в `logs/ibl/ibl_events.jsonl` с метками
+  `status=ok|missing|remote|empty` и списком кандидатов. Совмещайте эти записи с
+  UI-статусом `⚠ файл не найден`, чтобы быстро локализовать конфликты путей или
+  опечатки в конфигурации.
 
 ## Installation workflow
 
