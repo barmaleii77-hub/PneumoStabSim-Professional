@@ -140,10 +140,16 @@ Item {
                 return !!initialReflectionProbeSettings.enabled
             }
 
-            if (typeof initialSceneSettings !== "undefined" && initialSceneSettings
-                    && initialSceneSettings.graphics && initialSceneSettings.graphics.environment
-                    && initialSceneSettings.graphics.environment.reflection_enabled !== undefined) {
-                return !!initialSceneSettings.graphics.environment.reflection_enabled
+            if (typeof initialSceneSettings !== "undefined" && initialSceneSettings) {
+                if (initialSceneSettings.graphics && initialSceneSettings.graphics.environment
+                        && initialSceneSettings.graphics.environment.reflection_enabled !== undefined) {
+                    return !!initialSceneSettings.graphics.environment.reflection_enabled
+                }
+
+                if (initialSceneSettings.graphics && initialSceneSettings.graphics.reflection_probe
+                        && initialSceneSettings.graphics.reflection_probe.enabled !== undefined) {
+                    return !!initialSceneSettings.graphics.reflection_probe.enabled
+                }
             }
 
             return true
