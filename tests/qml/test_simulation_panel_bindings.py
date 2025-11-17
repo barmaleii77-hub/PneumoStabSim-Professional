@@ -48,6 +48,15 @@ def _color_tuple(qcolor: QColor) -> tuple[float, float, float, float]:
     )
 
 
+def _as_mapping(value):
+    if hasattr(value, "toVariant"):
+        try:
+            return value.toVariant()
+        except TypeError:
+            pass
+    return value
+
+
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
 def test_simulation_panel_flow_mappings(qapp) -> None:
@@ -109,25 +118,25 @@ def test_simulation_panel_flow_mappings(qapp) -> None:
 
         reservoir = panel.findChild(QObject, "reservoirView")
         assert reservoir is not None
-        line_pressures = reservoir.property("linePressures")
+        line_pressures = _as_mapping(reservoir.property("linePressures"))
         assert line_pressures["A1"] == pytest.approx(110_000.0, rel=1e-6)
         assert line_pressures["B1"] == pytest.approx(90_000.0, rel=1e-6)
 
-        line_valves = reservoir.property("lineValveStates")
+        line_valves = _as_mapping(reservoir.property("lineValveStates"))
         assert line_valves["A1"]["atmosphereOpen"] is True
         assert line_valves["B1"]["tankOpen"] is True
 
-        line_intensities = reservoir.property("lineIntensities")
+        line_intensities = _as_mapping(reservoir.property("lineIntensities"))
         assert line_intensities["A1"] == pytest.approx(0.625, rel=1e-6)
 
-        gradient_stops = panel.property("pressureGradientStops")
+        gradient_stops = _as_mapping(panel.property("pressureGradientStops"))
         assert len(gradient_stops) >= 3
         assert gradient_stops[0]["label"] == "Low"
         assert gradient_stops[1]["label"] == "Tank"
 
         scale = panel.findChild(QObject, "pressureScale")
         assert scale is not None
-        scale_gradient = scale.property("gradientStops")
+        scale_gradient = _as_mapping(scale.property("gradientStops"))
         assert scale_gradient[0]["label"] == "Low"
     finally:
         root.deleteLater()

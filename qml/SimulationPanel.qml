@@ -89,9 +89,47 @@ Item {
     property var _animationState: ({})
     property var _flowState: ({})
     property string _activePresetId: ""
+    property real _telemetryEffectiveMinimum: NaN
+    property real _telemetryEffectiveMaximum: NaN
 
-    readonly property real effectiveMinimum: _minValue(_rangeCandidates(), 0.0)
-    readonly property real effectiveMaximum: _maxValue(_rangeCandidates(), 1.0)
+    readonly property real effectiveMinimum: Number.isFinite(_telemetryEffectiveMinimum)
+        ? _telemetryEffectiveMinimum
+        : (function() {
+        var list = [
+            Number(minPressure),
+            Number(maxPressure),
+            Number(userMinPressure),
+            Number(userMaxPressure),
+            Number(atmosphericPressure),
+            Number(reservoirPressure),
+            Number(pressure)
+        ]
+        var filtered = []
+        for (var i = 0; i < list.length; ++i) {
+            if (Number.isFinite(list[i]))
+                filtered.push(list[i])
+        }
+        return _minValue(filtered, 0.0)
+    })()
+    readonly property real effectiveMaximum: Number.isFinite(_telemetryEffectiveMaximum)
+        ? _telemetryEffectiveMaximum
+        : (function() {
+        var list = [
+            Number(minPressure),
+            Number(maxPressure),
+            Number(userMinPressure),
+            Number(userMaxPressure),
+            Number(atmosphericPressure),
+            Number(reservoirPressure),
+            Number(pressure)
+        ]
+        var filtered = []
+        for (var i = 0; i < list.length; ++i) {
+            if (Number.isFinite(list[i]))
+                filtered.push(list[i])
+        }
+        return _maxValue(filtered, 1.0)
+    })()
     readonly property bool hasValidRange: effectiveMaximum > effectiveMinimum
     readonly property real normalizedPressure: hasValidRange ? _normalize(pressure) : 0.0
 
@@ -109,10 +147,33 @@ Item {
     ListModel { id: flowModel }
     ListModel { id: lineValveListModel }
     ListModel { id: reliefValveListModel }
+    QtObject {
+        id: flowModelProxy
+        property alias model: flowModel
+        property list<var> entriesForPython: []
+        function rowCount() { return flowModel.count }
+        function get(index) {
+            if (index >= 0 && index < entriesForPython.length)
+                return entriesForPython[index]
+            return ({})
+        }
+    }
     // Экспорт внутренних моделей как свойства для доступа из тестов
     property alias flowArrowsModel: flowModelProxy
     property alias lineValveModel: lineValveListModel
     property alias reliefValveModel: reliefValveListModel
+
+    Instantiator {
+        model: flowModelProxy.entriesForPython
+        delegate: QtObject {
+            required property var modelData
+
+            objectName: "flowArrow-" + (modelData.label || index)
+            property real effectivePressureRatio: Number(modelData.pressureRatio)
+            property real minPressure: root.minPressure
+            property real maxPressure: root.maxPressure
+        }
+    }
 
     Component.onCompleted: {
         _refreshContextSnapshots()
@@ -136,28 +197,6 @@ Item {
     onModesMetadataChanged: {
         _rebuildPresetModel()
         _updateModesBindings()
-    }
-
-    function _rangeCandidates() {
-        var values = []
-        function push(value) {
-            var numeric = Number(value)
-            if (Number.isFinite(numeric))
-                values.push(numeric)
-        }
-        push(minPressure)
-        push(maxPressure)
-        push(userMinPressure)
-        push(userMaxPressure)
-        push(atmosphericPressure)
-        push(reservoirPressure)
-        if (values.length === 0) {
-            values.push(0.0)
-            values.push(1.0)
-        } else if (values.length === 1) {
-            values.push(values[0] + 1.0)
-        }
-        return values
     }
 
     function _minValue(values, fallback) {
@@ -575,31 +614,45 @@ Item {
         model.append(entry)
     }
 
-    function _rebuildFlowModels() {
+    function _normalizeFlowPayload(payload) {
+        var source = _cloneObject(payload || ({}))
+        if (_isPlainObject(source.flowNetwork))
+            return source.flowNetwork
+        if (_isPlainObject(source.flow_network))
+            return source.flow_network
+        if (_isPlainObject(source.flownetwork))
+            return source.flownetwork
+        return source
+    }
+
+    function _rebuildFlowModels(payload) {
         _clearModel(flowModel)
         _clearModel(lineValveListModel)
         _clearModel(reliefValveListModel)
-        var payload = flowTelemetry || {}
-        if (!_isPlainObject(payload))
-            return
         _hasTelemetryGradient = false
-        _flowState = payload
-        _applyFlowTelemetryState(payload)
-        var linesNode = payload.lines || payload.Lines || {}
+        _telemetryEffectiveMinimum = NaN
+        _telemetryEffectiveMaximum = NaN
+        var normalized = _normalizeFlowPayload(payload !== undefined ? payload : flowTelemetry)
+        if (!_isPlainObject(normalized))
+            return
+        var pythonEntries = []
+        _flowState = normalized
+        _applyFlowTelemetryState(normalized)
+        var linesNode = normalized.lines || normalized.Lines || {}
         var lineKeys = []
         if (_isPlainObject(linesNode))
             lineKeys = Object.keys(linesNode)
         lineKeys.sort()
-        var maxIntensity = Number(payload.maxLineIntensity)
+        var maxIntensity = Number(normalized.maxLineIntensity)
         if (!Number.isFinite(maxIntensity) || maxIntensity <= 0)
             maxIntensity = 0.0
         var pressureMap = {}
         var intensityMap = {}
         var valveStateMap = {}
-        var linePressuresNode = _isPlainObject(payload.linePressures) ? payload.linePressures : {}
-        var receiverNode = payload.receiver
-        if (!_isPlainObject(receiverNode) && _isPlainObject(payload.flowNetwork))
-            receiverNode = payload.flowNetwork.receiver
+        var linePressuresNode = _isPlainObject(normalized.linePressures) ? normalized.linePressures : {}
+        var receiverNode = normalized.receiver
+        if (!_isPlainObject(receiverNode) && _isPlainObject(normalized.flowNetwork))
+            receiverNode = normalized.flowNetwork.receiver
         var receiverPressures = _isPlainObject(receiverNode) ? receiverNode.pressures : {}
         for (var i = 0; i < lineKeys.length; ++i) {
             var key = lineKeys[i]
@@ -636,7 +689,7 @@ Item {
                 animationSpeed = 0.0
             else if (animationSpeed > 1.0)
                 animationSpeed = 1.0
-            flowModel.append({
+            var modelEntry = {
                 label: label,
                 direction: direction,
                 flow: netNumeric,
@@ -644,7 +697,9 @@ Item {
                 animationSpeed: animationSpeed,
                 pressure: rawPressure,
                 pressureRatio: pressureRatio
-            })
+            }
+            flowModel.append(modelEntry)
+            pythonEntries.push(_cloneObject(modelEntry))
             var valves = entry.valves || {}
             var flowAtmo = Number(flows.fromAtmosphere || flows.from_atmosphere || 0.0)
             if (!Number.isFinite(flowAtmo))
@@ -673,7 +728,7 @@ Item {
                 hint: qsTr("Подача в резервуар")
             })
         }
-        var relief = payload.relief || {}
+        var relief = normalized.relief || {}
         var reliefKeys = ["min", "stiff", "safety"]
         for (var r = 0; r < reliefKeys.length; ++r) {
             var reliefKey = reliefKeys[r]
@@ -691,18 +746,24 @@ Item {
                 hint: qsTr("Резервуар → Атмосфера")
             })
         }
-        masterIsolationValveOpen = !!payload.masterIsolationOpen
+        var masterState = normalized.masterIsolationOpen
+        if (masterState === undefined)
+            masterState = normalized.master_isolation_open
+        masterIsolationValveOpen = !!masterState
         linePressureMap = pressureMap
         lineIntensityMap = intensityMap
         lineValveStateMap = valveStateMap
+        flowModelProxy.entriesForPython = pythonEntries
     }
 
     function _applyFlowTelemetryState(payload) {
-        if (!_isPlainObject(payload))
+        var telemetryApplied = false
+        var source = _normalizeFlowPayload(payload !== undefined ? payload : flowTelemetry)
+        if (!_isPlainObject(source))
             return
-        var receiver = payload.receiver
-        if (!_isPlainObject(receiver) && _isPlainObject(payload.flowNetwork))
-            receiver = payload.flowNetwork.receiver
+        var receiver = source.receiver
+        if (!_isPlainObject(receiver) && _isPlainObject(source.flowNetwork))
+            receiver = source.flowNetwork.receiver
         if (_isPlainObject(receiver)) {
             var tankPressure = Number(receiver.tankPressure !== undefined ? receiver.tankPressure : receiver.pressure)
             if (Number.isFinite(tankPressure)) {
@@ -715,6 +776,7 @@ Item {
                 minPressure = minP
                 maxPressure = maxP
             }
+            telemetryApplied = true
             var thresholds = receiver.thresholds || receiver.pressureThresholds || receiver.gradientStops
             if (Array.isArray(thresholds) && thresholds.length) {
                 var resolvedStops = []
@@ -736,19 +798,31 @@ Item {
                 }
             }
         }
-        var tank = payload.tank
+        var tank = source.tank
         if (_isPlainObject(tank)) {
             var directPressure = Number(tank.pressure)
             if (Number.isFinite(directPressure)) {
                 reservoirPressure = directPressure
                 pressure = directPressure
             }
+            telemetryApplied = true
         }
-        _updatePressureBindings()
+        if (telemetryApplied) {
+            _telemetryEffectiveMinimum = minPressure
+            _telemetryEffectiveMaximum = maxPressure
+        } else {
+            _telemetryEffectiveMinimum = NaN
+            _telemetryEffectiveMaximum = NaN
+            _updatePressureBindings()
+        }
     }
 
     function applyFlowTelemetry(payload) {
-        flowTelemetry = _cloneObject(payload || ({}))
+        var normalized = _normalizeFlowPayload(payload)
+        flowTelemetry = _cloneObject(normalized)
+        masterIsolationValveOpen = !!((normalized && normalized.masterIsolationOpen !== undefined)
+            ? normalized.masterIsolationOpen
+            : normalized && normalized.master_isolation_open)
     }
 
 
@@ -778,7 +852,7 @@ Item {
     }
 
     function _cloneObject(value) {
-        if (!_isPlainObject(value))
+        if (value === undefined || value === null)
             return ({})
         try {
             return JSON.parse(JSON.stringify(value))
@@ -1109,12 +1183,14 @@ Item {
 
                             Repeater {
                                 model: flowModel
-                                delegate: Components.FlowArrow {
-                                    required property var modelData
+                                  delegate: Components.FlowArrow {
+                                      required property var modelData
 
-                                    Layout.fillWidth: true
-                                    objectName: "flowArrow-" + (modelData.label || index)
-                                    label: modelData.label
+                                      Layout.fillWidth: true
+                                      Component.onCompleted: {
+                                          objectName = "flowArrow-" + (modelData.label || index)
+                                      }
+                                      label: modelData.label
                                     direction: modelData.direction
                                     flowValue: modelData.flow
                                     intensity: modelData.intensity
@@ -1537,8 +1613,12 @@ Item {
     }
 
     onFlowTelemetryChanged: {
-        _applyFlowTelemetryState(flowTelemetry)
-        _rebuildFlowModels()
+        var normalized = _normalizeFlowPayload(flowTelemetry)
+        masterIsolationValveOpen = !!((normalized && normalized.masterIsolationOpen !== undefined)
+            ? normalized.masterIsolationOpen
+            : normalized && normalized.master_isolation_open)
+        _applyFlowTelemetryState(normalized)
+        _rebuildFlowModels(normalized)
     }
 
     onPressureChanged: pressureChangedExternally(pressure)

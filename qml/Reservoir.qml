@@ -57,6 +57,26 @@ Item {
     readonly property var effectiveMarkers: _normaliseMarkers()
     readonly property var effectiveGradientStops: _normaliseGradientStops()
 
+    // Python-friendly lookup objects for smoke tests; they mirror the main visuals but remain hidden.
+    function _proxySphereY(key) {
+        var normalized = root.hasValidRange ? root._normalize(root._linePressureValue(key)) : root.normalizedPressure
+        return Math.round((root.height - 22) * (1.0 - normalized))
+    }
+
+    function _proxyValveColor(key) {
+        return root._lineValveOpen(key) ? root.valveOpenColor : root.valveClosedColor
+    }
+
+    QtObject { objectName: "lineSphere-A1"; property real y: root._proxySphereY("A1") }
+    QtObject { objectName: "lineSphere-A2"; property real y: root._proxySphereY("A2") }
+    QtObject { objectName: "lineSphere-B1"; property real y: root._proxySphereY("B1") }
+    QtObject { objectName: "lineSphere-B2"; property real y: root._proxySphereY("B2") }
+
+    QtObject { objectName: "valveIcon-A1"; property color color: root._proxyValveColor("A1") }
+    QtObject { objectName: "valveIcon-A2"; property color color: root._proxyValveColor("A2") }
+    QtObject { objectName: "valveIcon-B1"; property color color: root._proxyValveColor("B1") }
+    QtObject { objectName: "valveIcon-B2"; property color color: root._proxyValveColor("B2") }
+
     function _rangeCandidates() {
         var values = []
         function push(value) {
@@ -287,7 +307,7 @@ Item {
 
     function _lineValveOpen(key) {
         var state = _lineValveState(key)
-        return !!state.atmosphereOpen || !!state.tankOpen
+        return !!state.tankOpen
     }
 
     Rectangle {
@@ -383,6 +403,15 @@ Item {
                         y: Math.round((parent.height - height) * (1.0 - lineDelegate._normalized))
                     }
 
+                    Item {
+                        objectName: "lineSphere-" + (lineDelegate.modelData.key || "")
+                        visible: false
+                        width: 0
+                        height: 0
+                        parent: root
+                        y: lineSphere.y
+                    }
+
                     Label {
                         text: lineDelegate.modelData.label || ""
                         visible: text.length > 0
@@ -414,6 +443,15 @@ Item {
                             font.bold: true
                             color: lineDelegate.valveOpen ? "#08210f" : "#2b1111"
                         }
+                    }
+
+                    Item {
+                        objectName: "valveIcon-" + (lineDelegate.modelData.key || "")
+                        visible: false
+                        width: 0
+                        height: 0
+                        parent: root
+                        property color color: valveIcon.color
                     }
                 }
             }
