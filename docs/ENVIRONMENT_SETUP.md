@@ -5,6 +5,8 @@
 окружении. Используйте его как единую точку правды при настройке рабочих и
 headless-профилей.
 
+> Новое: см. также `docs/CLI.md` — различия между `--no-qml`, `--safe` и `--legacy`.
+
 ## 0. Пошаговая установка окружения
 
 ### Linux (Ubuntu 22.04+/headless контейнеры)
@@ -229,7 +231,7 @@ Baker.
 - `powershell -File scripts/setup_windows.ps1` — выполняет `uv sync`
   (опционально пропускается `-SkipUvSync`), устанавливает DirectX runtime и VC++
   зависимости через Chocolatey (отключается `-SkipSystem`), гарантирует наличие
-  колёс PySide6/`PyOpenGL` и экспортирует headless-настройки (`QT_QPA_PLATFORM=offscreen`,
+  колёс PySide6/`PyOpenGL` и активирует headless-профиль (`QT_QPA_PLATFORM=offscreen`,
   `QT_QUICK_BACKEND=rhi`, `QT_OPENGL=software`, `QSG_RHI_BACKEND=d3d11`).
 
 Оба скрипта записывают переменные в `GITHUB_ENV`, если он определён (GitHub
