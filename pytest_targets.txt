@@ -1,1 +1,1 @@
-# Intentionally empty so pytest uses default testpaths.
+# Intentionally empty to rely on default test discovery.

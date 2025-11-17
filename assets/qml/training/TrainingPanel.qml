@@ -1,12 +1,12 @@
-import QtQuick 6.10
-import QtQuick.Controls 6.10
-import QtQuick.Layouts 6.10
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
 import "../Panels/Common" as Common
 
 Pane {
     id: root
 
-    property var bridge: (typeof trainingBridge !== "undefined" ? trainingBridge : null)
+    property var bridge: null
     property string activePresetId: ""
     property var presetModel: []
     property var selectedDetails: ({})
@@ -93,7 +93,7 @@ Pane {
         }
 
         Label {
-            text: selectedDetails.description || qsTr("Выберите пресет, чтобы увидеть описание и параметры.")
+            text: root.selectedDetails.description || qsTr("Выберите пресет, чтобы увидеть описание и параметры.")
             wrapMode: Text.WordWrap
             color: Qt.rgba(0.8, 0.83, 0.92, 0.9)
             Layout.fillWidth: true
@@ -307,18 +307,22 @@ Pane {
 
     onBridgeChanged: loadFromBridge()
 
-    Component.onCompleted: loadFromBridge()
+    Component.onCompleted: {
+        if (!root.bridge && typeof trainingBridge !== "undefined")
+            root.bridge = trainingBridge
+        loadFromBridge()
+    }
 
     Connections {
-        target: bridge
+        target: root.bridge
         function onPresetsChanged() {
-            presetModel = bridge.presets
+            presetModel = root.bridge.presets
         }
         function onActivePresetChanged() {
-            activePresetId = bridge.activePresetId
+            activePresetId = root.bridge.activePresetId
         }
         function onSelectedPresetChanged() {
-            setSelected(bridge.selectedPresetSnapshot())
+            setSelected(root.bridge.selectedPresetSnapshot())
         }
     }
 }
