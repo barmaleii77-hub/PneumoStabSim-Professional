@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import os
+import types
+
 import pytest
+
+from src.app_runner import ApplicationRunner
 
 from src.ui.startup import (
     bootstrap_graphics_environment,
@@ -114,3 +119,102 @@ def test_bootstrap_graphics_environment_respects_pss_headless_flag() -> None:
     assert state.headless is True
     assert state.use_qml_3d is False
     assert env["QT_QPA_PLATFORM"] == "offscreen"
+
+
+class _DummySignal:
+    def __init__(self) -> None:
+        self._callback = None
+
+    def connect(self, callback):  # type: ignore[no-untyped-def]
+        self._callback = callback
+
+    def trigger(self) -> None:
+        if callable(self._callback):
+            self._callback()
+
+
+class _DummyQTimer:
+    def __init__(self, _parent: object | None = None) -> None:
+        self.timeout = _DummySignal()
+        self.single_shot: bool | None = None
+        self.started_with: int | None = None
+
+    def setSingleShot(self, value: bool) -> None:  # pragma: no cover - trivial
+        self.single_shot = value
+
+    def start(self, milliseconds: int) -> None:
+        self.started_with = milliseconds
+
+    @staticmethod
+    def singleShot(delay: int, callback):  # type: ignore[no-untyped-def]
+        if callable(callback):
+            callback()
+
+    def trigger(self) -> None:
+        self.timeout.trigger()
+
+
+class _DummyQtModule:
+    class QCoreApplication:
+        _instance = types.SimpleNamespace(exit_code=None, quit_called=False)
+
+        @classmethod
+        def instance(cls):  # pragma: no cover - trivial proxy
+            return cls._instance
+
+
+def test_runner_bootstrap_records_headless_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(os, "environ", {})
+
+    runner = ApplicationRunner(object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer)
+    runner.platform_slug = "linux"
+    runner.safe_mode_requested = False
+
+    state = runner._bootstrap_graphics_environment()
+
+    assert state.headless is True
+    assert runner._is_headless is True
+    assert runner.use_qml_3d_schema is False
+    assert os.environ["QT_QPA_PLATFORM"] == "offscreen"
+    assert os.environ["QSG_RHI_BACKEND"] == "opengl"
+    assert "bootstrap-headless:" in os.environ.get("PSS_POST_DIAG_TRACE", "")
+
+
+def test_runner_bootstrap_respects_safe_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(os, "environ", {"QT_QPA_PLATFORM": "xcb"})
+
+    runner = ApplicationRunner(object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer)
+    runner.platform_slug = "darwin"
+    runner.safe_mode_requested = True
+
+    state = runner._bootstrap_graphics_environment()
+
+    assert state.backend == "metal"
+    assert state.safe_mode is True
+    assert runner._is_headless is False
+    assert runner.use_qml_3d_schema is True
+    assert "QSG_RHI_BACKEND" not in os.environ
+
+
+def test_schedule_safe_exit_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(os, "environ", {})
+
+    qt_core = _DummyQtModule.QCoreApplication._instance
+
+    def _exit(code: int) -> None:  # pragma: no cover - trivial assignment
+        qt_core.exit_code = code
+
+    qt_core.exit = _exit
+    qt_core.quit = lambda: setattr(qt_core, "quit_called", True)
+
+    runner = ApplicationRunner(object, lambda *_, **__: None, _DummyQtModule, _DummyQTimer)
+    runner.app_instance = types.SimpleNamespace()
+
+    runner._schedule_safe_exit(
+        reason="test", log_message="log", console_message="console", timer_ms=5
+    )
+
+    assert isinstance(runner._safe_exit_timer, _DummyQTimer)
+    runner._safe_exit_timer.trigger()
+
+    assert qt_core.exit_code == 0
