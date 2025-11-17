@@ -16,6 +16,14 @@ Pane {
     height: 640
     padding: 24
 
+    /** Полный снимок телеметрии потоков от симулятора. */
+    property var flowTelemetry: ({})
+
+    /** Прокси к внутренним моделям, экспортируемые для автотестов. */
+    property alias flowArrowsModel: simulationPanel.flowArrowsModel
+    property alias lineValveModel: simulationPanel.lineValveModel
+    property alias reliefValveModel: simulationPanel.reliefValveModel
+
     signal geometryUpdatesApplied(var payload)
     signal shaderWarningRegistered(string effectId, string message)
     signal shaderWarningCleared(string effectId)
@@ -49,6 +57,12 @@ Pane {
         }
         return clone
     }
+
+    function applyFlowTelemetry(payload) {
+        flowTelemetry = payload
+    }
+
+    onFlowTelemetryChanged: simulationPanel.applyFlowTelemetry(flowTelemetry)
 
     function _hostWindow() {
         // qmllint disable unqualified
