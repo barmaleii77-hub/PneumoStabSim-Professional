@@ -97,6 +97,7 @@ Node {
     property int reflectionProbeQualityValue: ReflectionProbe.VeryHigh
     property int reflectionProbeRefreshModeValue: ReflectionProbe.EveryFrame
     property int reflectionProbeTimeSlicingValue: ReflectionProbe.IndividualFaces
+    readonly property bool reflectionProbeActive: !!reflectionProbeEnabled
 
     // ------------------------------------------------------------------
     // Convenience aliases
@@ -257,9 +258,9 @@ Node {
 
     Env.ProbeCompat {
         id: mainReflectionProbe
-        enabled: assembly.reflectionProbeEnabled
-        visible: assembly.reflectionProbeEnabled
-        parallaxCorrection: assembly.reflectionProbeEnabled
+        enabled: assembly.reflectionProbeActive
+        visible: assembly.reflectionProbeActive
+        parallaxCorrection: assembly.reflectionProbeActive
         quality: assembly.reflectionProbeQualityValue
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
@@ -278,14 +279,6 @@ Node {
                         Math.max(1.0, assembly.toSceneLength(track + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameHeight + beam + padding)),
                         Math.max(1.0, assembly.toSceneLength(frameLength + padding)))
-        }
-    }
-
-    Connections {
-        target: assembly
-        function onReflectionProbeEnabledChanged() {
-            mainReflectionProbe.enabled = assembly.reflectionProbeEnabled
-            mainReflectionProbe.parallaxCorrection = assembly.reflectionProbeEnabled
         }
     }
 
