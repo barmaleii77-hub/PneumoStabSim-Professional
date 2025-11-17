@@ -36,6 +36,7 @@ Item {
     property var linePressures: ({})
     property var lineValveStates: ({})
     property var lineIntensities: ({})
+    property var gradientStops: []
     property color valveOpenColor: Qt.rgba(0.32, 0.78, 0.48, 0.95)
     property color valveClosedColor: Qt.rgba(0.86, 0.33, 0.33, 0.95)
     property color lowPressureColor: Qt.rgba(0.26, 0.56, 0.94, 0.7)
@@ -54,6 +55,7 @@ Item {
     readonly property real normalizedPressure: hasValidRange ? _normalize(pressure) : 0.0
     readonly property real normalizedAtmosphere: hasValidRange ? _normalize(atmosphericPressure) : 0.0
     readonly property var effectiveMarkers: _normaliseMarkers()
+    readonly property var effectiveGradientStops: _normaliseGradientStops()
 
     function _rangeCandidates() {
         var values = []
@@ -114,6 +116,31 @@ Item {
         else if (ratio > 1.0)
             ratio = 1.0
         return ratio
+    }
+
+    function _normaliseGradientStops() {
+        var list = Array.isArray(gradientStops) && gradientStops.length ? gradientStops : []
+        var normalized = []
+        for (var i = 0; i < list.length; ++i) {
+            var entry = list[i] || {}
+            var value = Number(entry.value)
+            if (!Number.isFinite(value))
+                continue
+            var position = hasValidRange ? _normalize(value) : 0.0
+            if (!Number.isFinite(position))
+                position = 0.0
+            if (position < 0.0)
+                position = 0.0
+            else if (position > 1.0)
+                position = 1.0
+            normalized.push({
+                position: position,
+                color: entry.color !== undefined ? entry.color : Qt.rgba(0.28, 0.5, 0.82, 0.65),
+                label: entry.label !== undefined ? entry.label : ""
+            })
+        }
+        normalized.sort(function(a, b) { return a.position - b.position })
+        return normalized
     }
 
     function _defaultMarkers() {
@@ -197,6 +224,43 @@ Item {
         return _clampUnit(numeric)
     }
 
+    function _normalizeColor(color, fallback) {
+        try {
+            return Qt.lighter(color, 1.0)
+        } catch (error) {
+            return fallback
+        }
+    }
+
+    function _gradientColorForPressure(value) {
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            numeric = pressure
+        if (!Number.isFinite(numeric))
+            numeric = minPressure
+        var stops = effectiveGradientStops
+        if (!stops || stops.length < 2) {
+            var ratio = hasValidRange ? _clampUnit(_normalize(numeric)) : normalizedPressure
+            return _mixColor(lowPressureColor, highPressureColor, ratio)
+        }
+        var position = hasValidRange ? _clampUnit(_normalize(numeric)) : normalizedPressure
+        var previous = stops[0]
+        for (var i = 1; i < stops.length; ++i) {
+            var current = stops[i]
+            if (position <= current.position) {
+                var span = current.position - previous.position
+                var localRatio = span > 0 ? (position - previous.position) / span : 0.0
+                var colorA = _normalizeColor(previous.color, lowPressureColor)
+                var colorB = _normalizeColor(current.color, highPressureColor)
+                return _mixColor(colorA, colorB, localRatio)
+            }
+            previous = current
+        }
+        var last = stops[stops.length - 1]
+        var lastColor = _normalizeColor(last.color, highPressureColor)
+        return Qt.rgba(lastColor.r, lastColor.g, lastColor.b, lastColor.a)
+    }
+
     function _mixColor(colorA, colorB, ratio) {
         var clamped = _clampUnit(ratio)
         return Qt.rgba(
@@ -209,8 +273,7 @@ Item {
 
     function _lineColor(key) {
         var pressureValue = _linePressureValue(key)
-        var ratio = hasValidRange ? _clampUnit(_normalize(pressureValue)) : normalizedPressure
-        var baseColor = _mixColor(lowPressureColor, highPressureColor, ratio)
+        var baseColor = _gradientColorForPressure(pressureValue)
         var intensity = _lineIntensityValue(key)
         return Qt.rgba(baseColor.r, baseColor.g, baseColor.b, Math.min(0.95, 0.55 + 0.35 * intensity))
     }
@@ -246,13 +309,14 @@ Item {
 
         Rectangle {
             id: fluid
+            objectName: "reservoirFluid"
             anchors {
                 left: parent.left
                 right: parent.right
                 bottom: parent.bottom
             }
             height: Math.max(0, parent.height * root.normalizedPressure)
-            color: root.fluidColor
+            color: root._gradientColorForPressure(root.pressure)
             border.width: 0
             Behavior on height {
                 NumberAnimation {
@@ -312,6 +376,7 @@ Item {
                         id: lineSphere
                         width: 22
                         height: 22
+                        objectName: "lineSphere-" + (lineDelegate.modelData.key || "")
                         color: root._lineColor(lineDelegate.modelData.key)
                         borderColor: Qt.rgba(0.14, 0.22, 0.32, 0.9)
                         x: Math.round(parent.width * lineDelegate.modelData.anchor.x - width / 2)
@@ -333,6 +398,7 @@ Item {
                         id: valveIcon
                         width: 20
                         height: 20
+                        objectName: "valveIcon-" + (lineDelegate.modelData.key || "")
                         radius: 5
                         color: lineDelegate.valveOpen ? root.valveOpenColor : root.valveClosedColor
                         border.width: 1
