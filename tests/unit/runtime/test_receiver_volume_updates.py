@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from src.common.errors import ModelConfigError, ThermoError
 from src.runtime.sim_loop import PhysicsWorker
 from src.runtime.state import TankState
 from src.pneumo.enums import ReceiverVolumeMode
@@ -161,6 +162,8 @@ def test_receiver_state_set_volume_returns_updated_state() -> None:
     assert isinstance(update, ReceiverVolumeUpdate)
     assert update.volume == pytest.approx(0.03)
     assert update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+    assert state.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+    assert state.V == pytest.approx(0.03)
 
     expected_pressure = 101325.0 * ((0.02 / 0.03) ** 1.4)
     expected_temperature = 293.15 * ((0.02 / 0.03) ** 0.4)
@@ -181,3 +184,43 @@ def test_receiver_state_set_volume_returns_updated_state() -> None:
     assert no_recalc_update.pressure == pytest.approx(update.pressure)
     assert no_recalc_update.temperature == pytest.approx(update.temperature)
     assert no_recalc_update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+    assert second_state.mode is ReceiverVolumeMode.ADIABATIC_RECALC
+    assert second_state.V == pytest.approx(0.025)
+
+
+def test_receiver_state_set_volume_does_not_mutate_on_error() -> None:
+    spec = ReceiverSpec(V_min=0.01, V_max=0.5)
+    state = ReceiverState(
+        spec=spec,
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+
+    with pytest.raises(ModelConfigError):
+        state.set_volume(0.005, ReceiverVolumeMode.ADIABATIC_RECALC, recompute=False)
+
+    assert state.V == pytest.approx(0.02)
+    assert state.p == pytest.approx(101325.0)
+    assert state.T == pytest.approx(293.15)
+    assert state.mode is ReceiverVolumeMode.NO_RECALC
+
+
+def test_receiver_state_set_volume_recompute_error_restores_mode() -> None:
+    spec = ReceiverSpec(V_min=0.01, V_max=0.5)
+    state = ReceiverState(
+        spec=spec,
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+
+    with pytest.raises(ThermoError):
+        state.set_volume(0.8, ReceiverVolumeMode.ADIABATIC_RECALC)
+
+    assert state.mode is ReceiverVolumeMode.NO_RECALC
+    assert state.V == pytest.approx(0.02)
+    assert state.p == pytest.approx(101325.0)
+    assert state.T == pytest.approx(293.15)
