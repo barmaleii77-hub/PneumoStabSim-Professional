@@ -48,6 +48,13 @@ class Lever:
     cylinder_geom: CylinderGeom
     neutral_angle: float = 0.0
 
+    def _ensure_attachment(self) -> None:
+        """Synchronise the lever geometry with the cylinder description."""
+
+        attach = getattr(self.lever_geom, "attach_cylinder_geometry", None)
+        if callable(attach):
+            attach(self.cylinder_geom)
+
     def _cylinder_length(self, angle: float) -> float:
         """Return the distance between tail and rod joint for ``angle``."""
 
@@ -65,9 +72,12 @@ class Lever:
     def angle_to_displacement(self, angle: float) -> float:
         """Convert lever rotation to cylinder axis displacement."""
 
-        current_length = self._cylinder_length(angle)
-        neutral_length = self._cylinder_length(self.neutral_angle)
-        return current_length - neutral_length
+        self._ensure_attachment()
+
+        # Leverage the validated LeverGeom kinematics to keep both classes in sync.
+        displacement = self.lever_geom.angle_to_displacement(angle)
+        neutral = self.lever_geom.angle_to_displacement(self.neutral_angle)
+        return displacement - neutral
 
     def mechanical_advantage(self, angle: float, delta: float = 1e-4) -> float:
         """Return the instantaneous displacement/angle ratio.
@@ -76,6 +86,13 @@ class Lever:
         remains stable for the ranges enforced by the geometry validators.
         """
 
+        self._ensure_attachment()
+
+        advantage = getattr(self.lever_geom, "mechanical_advantage", None)
+        if callable(advantage):
+            return float(advantage(angle))
+
+        # Fallback to numerical derivative when a custom geometry is injected.
         disp_plus = self.angle_to_displacement(angle + delta)
         disp_minus = self.angle_to_displacement(angle - delta)
         return (disp_plus - disp_minus) / (2.0 * delta)

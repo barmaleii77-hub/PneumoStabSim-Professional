@@ -931,7 +931,7 @@ class PhysicsWorker(QObject):
                 receiver_state = getattr(self.pneumatic_system, "receiver", None)
                 if receiver_state is None:
                     raise AttributeError("Pneumatic system missing receiver state")
-                receiver_update = receiver_state.set_volume(volume, mode_enum)
+                receiver_update = receiver_state.set_volume(volume, mode=mode_enum)
                 mode_enum = receiver_update.mode
                 if not (preserve_user_mode and user_mode_token == "GEOMETRIC"):
                     applied_mode_token = receiver_update.mode.value
