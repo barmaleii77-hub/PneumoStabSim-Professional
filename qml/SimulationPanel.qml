@@ -110,7 +110,7 @@ Item {
     ListModel { id: lineValveListModel }
     ListModel { id: reliefValveListModel }
     // Экспорт внутренних моделей как свойства для доступа из тестов
-    property alias flowArrowsModel: flowModelProxy
+    property alias flowArrowsModel: flowModel
     property alias lineValveModel: lineValveListModel
     property alias reliefValveModel: reliefValveListModel
 

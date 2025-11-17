@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import os
+from pathlib import Path
 
 import pytest
 
@@ -120,6 +119,90 @@ def test_simulation_panel_flow_mappings(qapp) -> None:
         assert scale is not None
         scale_gradient = scale.property("gradientStops")
         assert scale_gradient[0]["label"] == "Low"
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_simulation_panel_smoke_hydraulics(qapp) -> None:
+    engine, component, root, panel = _load_simulation_panel()
+
+    try:
+        payload = {
+            "maxLineIntensity": 1.0,
+            "masterIsolationOpen": True,
+            "lines": {
+                "a1": {
+                    "direction": "intake",
+                    "netFlow": 0.35,
+                    "flowIntensity": 0.7,
+                    "valves": {"atmosphereOpen": True, "tankOpen": False},
+                },
+                "a2": {
+                    "direction": "intake",
+                    "netFlow": 0.12,
+                    "valves": {"atmosphereOpen": False, "tankOpen": True},
+                },
+                "b1": {
+                    "direction": "exhaust",
+                    "netFlow": -0.18,
+                    "flowIntensity": 0.35,
+                    "valves": {"atmosphereOpen": False, "tankOpen": True},
+                },
+                "b2": {
+                    "direction": "exhaust",
+                    "netFlow": -0.05,
+                    "valves": {"atmosphereOpen": True, "tankOpen": False},
+                },
+            },
+            "receiver": {
+                "pressures": {
+                    "a1": 150_000.0,
+                    "a2": 140_000.0,
+                    "b1": 130_000.0,
+                    "b2": 120_000.0,
+                },
+                "tankPressure": 145_000.0,
+                "minPressure": 110_000.0,
+                "maxPressure": 180_000.0,
+                "thresholds": [
+                    {"value": 120_000.0, "label": "Low", "color": "#2d6cc5"},
+                    {"value": 145_000.0, "label": "Nominal", "color": "#7bd67b"},
+                    {"value": 170_000.0, "label": "High", "color": "#e88a3a"},
+                ],
+            },
+        }
+
+        assert panel.setProperty("flowTelemetry", payload) is True
+        qapp.processEvents()
+
+        reservoir = panel.findChild(QObject, "reservoirView")
+        assert reservoir is not None
+        line_pressures = reservoir.property("linePressures")
+        assert {"A1", "A2", "B1", "B2"}.issubset(set(line_pressures.keys()))
+        assert line_pressures["A2"] == pytest.approx(140_000.0, rel=1e-6)
+
+        scale = panel.findChild(QObject, "pressureScale")
+        assert scale is not None
+        normalized_pressure = scale.property("normalizedPressure")
+        assert 0.0 <= normalized_pressure <= 1.0
+        gradient_stops = scale.property("gradientStops")
+        assert len(gradient_stops) >= 3
+
+        flow_model_obj = panel.property("flowArrowsModel")
+        assert flow_model_obj is not None
+        count = (
+            flow_model_obj.rowCount()
+            if hasattr(flow_model_obj, "rowCount")
+            else flow_model_obj.property("count")
+        )
+        assert count == 4
+        first_entry = flow_model_obj.get(0)
+        assert first_entry["label"] == "A1"
+        assert first_entry["pressureRatio"] > 0
     finally:
         root.deleteLater()
         component.deleteLater()
