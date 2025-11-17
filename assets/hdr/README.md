@@ -9,8 +9,9 @@ and packaged builds.
 
 `assets/hdr/hdr_manifest.json` mirrors the HDR panorama list from the technical
 specification. The manifest powers automated checksum validation and should be
-treated as the source of truth for licensing data. The table below summarises the
-expected files and their primary usage inside PneumoStabSim:
+treated as the source of truth for licensing data. Use it to download or validate
+HDRs even when the repository snapshot contains only metadata. The table below
+summarises the expected files and their primary usage inside PneumoStabSim:
 
 | File | Resolution | Source | License | Attribution | Primary use |
 | --- | --- | --- | --- | --- | --- |
@@ -135,6 +136,13 @@ removed immediately._
 3. Reference in settings using relative paths: `../hdr/filename.hdr`
 4. Let `normalizeHdrPath()` handle the rest automatically; UI отрисует статус сразу после обнаружения.
 5. Commit the updated inventory table whenever new lighting profiles are added and выполните `python -m tools.task_runner verify-hdr-assets --fetch-missing --force-rehash` перед пушем.
+
+**Example**
+```bash
+uv run python -m tools.task_runner verify-hdr-assets --fetch-missing
+cp .cache/hdr_assets/studio_small_09_2k.hdr assets/hdr/
+uv run python app.py --safe --ibl ../hdr/studio_small_09_2k.hdr
+```
 
 ## HDR dynamic range calibration
 
