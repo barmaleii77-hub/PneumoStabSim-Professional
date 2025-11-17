@@ -66,7 +66,7 @@ def detect_headless_environment(env: Mapping[str, str]) -> tuple[bool, tuple[str
     if not qpa:
         if not display_present:
             reasons.append("no-display-server")
-        reasons.append("qt-qpa-platform-missing")
+            reasons.append("qt-qpa-platform-missing")
     elif qpa in {"offscreen", "minimal", "minimal:tools=auto"}:
         reasons.append(f"qt-qpa-platform:{qpa}")
 

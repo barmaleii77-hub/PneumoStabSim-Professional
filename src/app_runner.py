@@ -8,8 +8,7 @@
 from __future__ import annotations
 
 from typing import Any  # moved earlier to avoid reordering impacts
-
-# ...existing code...
+from dataclasses import asdict
 
 import asyncio
 import json
@@ -32,6 +31,7 @@ from src.core.settings_validation import (
 )
 from src.core.settings_models import AppSettings, dump_settings
 from src.ui.qml_registration import register_qml_types
+from src.ui.startup import GraphicsBootstrapState, bootstrap_graphics_environment
 
 # Безопасные импорты диагностик: в тестах или минимальных окружениях модули
 # могут отсутствовать. В этом случае подставляем заглушки.
@@ -46,8 +46,6 @@ except Exception:  # pragma: no cover - заглушка для минималь
 # Удалён ранний импорт run_log_diagnostics, чтобы тесты могли мокаать
 # src.diagnostics.logs.run_log_diagnostics и перехватывать вызов.
 # Динамический импорт выполняется в методе _run_post_diagnostics().
-
-# ...existing code...
 
 if TYPE_CHECKING:
 
@@ -105,6 +103,9 @@ class ApplicationRunner:
             component="ApplicationRunner"
         )
 
+        self.platform_slug: str = self._detect_platform_slug()
+        self.graphics_state: GraphicsBootstrapState | None = None
+
         self.use_qml_3d_schema: bool = True
         self.use_legacy_ui: bool = False
         self.safe_mode_requested: bool = False
@@ -137,6 +138,12 @@ class ApplicationRunner:
             "QT_PLUGIN_PATH": qt_plugin_path or "<empty>",
             "PySide6": pyside_version,
         }
+
+    @staticmethod
+    def _detect_platform_slug() -> str:
+        """Return a stable platform identifier for bootstrap logic."""
+
+        return sys.platform
 
     @staticmethod
     def _format_startup_environment_message(snapshot: dict[str, str]) -> str:
@@ -185,6 +192,43 @@ class ApplicationRunner:
 
         if self.app_logger:
             self.app_logger.info(message, extra={"startup_environment": snapshot})
+
+    def _bootstrap_graphics_environment(self) -> GraphicsBootstrapState:
+        """Configure the Qt graphics backend and headless defaults early.
+
+        The method delegates environment calculation to
+        :func:`bootstrap_graphics_environment` so that unit tests can reason
+        about platform selection without loading the Qt bindings. It also
+        captures headless reasons in ``PSS_POST_DIAG_TRACE`` to guarantee that
+        post-diagnostics can explain why the UI was suppressed.
+        """
+
+        platform_slug = self.platform_slug or self._detect_platform_slug()
+        state = bootstrap_graphics_environment(
+            os.environ,
+            platform=platform_slug,
+            safe_mode=self.safe_mode_requested,
+        )
+
+        self.graphics_state = state
+
+        if state.headless:
+            self._is_headless = True
+            self._headless_reason = "|".join(state.headless_reasons) or "headless"
+            self._append_post_diag_trace(
+                f"bootstrap-headless:{self._headless_reason}"
+            )
+
+        if not state.use_qml_3d:
+            self.use_qml_3d_schema = False
+
+        if self.app_logger:
+            self.app_logger.info(
+                "Graphics bootstrap complete",
+                extra={"state": asdict(state)},
+            )
+
+        return state
 
     def _configure_default_surface_format(self) -> None:
         """Force the OpenGL RHI backend with depth/stencil buffers before QApplication.
@@ -530,12 +574,17 @@ class ApplicationRunner:
         app = self.QApplication(sys.argv)
         self.app_instance = app
 
-        self._is_headless = bool(
+        detected_headless = bool(
             getattr(app, "is_headless", False) or getattr(self.Qt, "is_headless", False)
         )
-        self._headless_reason = getattr(app, "headless_reason", None) or getattr(
+        detected_reason = getattr(app, "headless_reason", None) or getattr(
             self.Qt, "headless_reason", None
         )
+
+        if detected_headless:
+            self._is_headless = True
+            if detected_reason:
+                self._headless_reason = detected_reason
 
         # Если глобальные хуки не установлены (например, ошибка на этапе логгирования),
         # подключаем локальный перехватчик Qt сообщений как fallback.
@@ -1199,6 +1248,7 @@ class ApplicationRunner:
                         extra={"reasons": ["cli:no-qml"]},
                     )
 
+            self._bootstrap_graphics_environment()
             self._log_startup_environment()
 
             self.setup_high_dpi()
