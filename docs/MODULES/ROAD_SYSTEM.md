@@ -52,6 +52,12 @@
 - When **Custom** is chosen, the adjacent path field writes to
   `current.modes.custom_profile_path` through `SettingsManager`, keeping presets and user
   inputs in sync across sessions.
+- Simulation controls in the same panel now surface kinematics/dynamics and
+  isothermal/adiabatic toggles plus an **interference check** switch. All of these settings
+  flow into `current.modes.*` to ensure presets reflect the active physics combination.
+- Ambient temperature input is mirrored into both `current.modes.ambient_temperature_c` and
+  `current.pneumatic.atmo_temp`, so the road excitation context stays aligned with gas
+  properties managed by `SettingsManager`.
 - Interference checks and kinematic spring/damper toggles from the same panel persist under
   `current.modes.check_interference` and `current.modes.physics.*`, allowing the road profile
   selector to reflect the full simulation context when a session is restored.

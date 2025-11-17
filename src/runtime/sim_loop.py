@@ -1058,7 +1058,9 @@ class PhysicsWorker(QObject):
             if tank_pressure is not None
             else getattr(latest_state, "pressure", None)
         )
-        log_tank_mass = tank_mass if tank_mass is not None else getattr(latest_state, "mass", None)
+        log_tank_mass = (
+            tank_mass if tank_mass is not None else getattr(latest_state, "mass", None)
+        )
         log_tank_temperature = (
             tank_temperature
             if tank_temperature is not None

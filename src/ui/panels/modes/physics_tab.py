@@ -108,7 +108,9 @@ class PhysicsTab(QWidget):
             "Учитывать упругость в кинематических расчётах (предзагрузка, геометрия)."
         )
         self.include_springs_kinematics_check.toggled.connect(
-            lambda checked: self._on_option_changed("include_springs_kinematics", checked)
+            lambda checked: self._on_option_changed(
+                "include_springs_kinematics", checked
+            )
         )
 
         self.include_dampers_kinematics_check = QCheckBox("🔧 Демпферы в кинематике")
@@ -116,7 +118,9 @@ class PhysicsTab(QWidget):
             "Учитывать демпферы при вычислении кинематических смещений."
         )
         self.include_dampers_kinematics_check.toggled.connect(
-            lambda checked: self._on_option_changed("include_dampers_kinematics", checked)
+            lambda checked: self._on_option_changed(
+                "include_dampers_kinematics", checked
+            )
         )
 
         layout.addWidget(self.include_springs_check)
