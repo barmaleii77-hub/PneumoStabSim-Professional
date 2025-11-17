@@ -650,10 +650,8 @@ class GeometryPanel(QWidget):
     def get_parameters(self) -> dict[str, Any]:
         """Return the current geometry configuration as reflected by the UI."""
 
-        snapshot = self._collect_ui_snapshot()
         settings = self.get_geometry_settings()
-        snapshot.update(settings.to_config_dict())
-        return snapshot
+        return settings.to_config_dict()
 
     @Slot(str, float)
     def _on_parameter_live_change(self, param_name: str, value: float):

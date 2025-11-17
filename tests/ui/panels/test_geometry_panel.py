@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import math
+from importlib import import_module
 
 import pytest
+
+from src.ui.geometry_schema import GeometrySettings
+
+from ._slider_utils import get_slider_value, nudge_slider
 
 pytest.importorskip(
     "PySide6.QtWidgets",
@@ -12,22 +17,30 @@ pytest.importorskip(
     exc_type=ImportError,
 )
 
-from src.ui.panels.geometry import GeometryPanel
-from src.ui.geometry_schema import GeometrySettings
+PANEL_TARGETS = (
+    pytest.param("src.ui.panels.geometry", id="refactored"),
+    pytest.param("src.ui.panels.panel_geometry", id="legacy"),
+)
 
-from ._slider_utils import get_slider_value, nudge_slider
+
+@pytest.fixture(params=PANEL_TARGETS)
+def geometry_panel(request, qtbot: pytestqt.qtbot.QtBot):
+    module = import_module(request.param)
+    GeometryPanel = module.GeometryPanel
+    panel = GeometryPanel()
+    qtbot.addWidget(panel)
+    return panel
 
 
-def _get_wheelbase_slider(panel: GeometryPanel):
+def _get_wheelbase_slider(panel):
     if hasattr(panel, "frame_tab"):
         return panel.frame_tab.wheelbase_slider
     return panel.wheelbase_slider
 
 
 @pytest.mark.gui
-def test_get_parameters_returns_copy(qtbot: pytestqt.qtbot.QtBot) -> None:
-    panel = GeometryPanel()
-    qtbot.addWidget(panel)
+def test_get_parameters_returns_copy(geometry_panel, qtbot: pytestqt.qtbot.QtBot) -> None:
+    panel = geometry_panel
 
     snapshot = panel.get_parameters()
     settings = panel.get_geometry_settings()
@@ -48,10 +61,9 @@ def test_get_parameters_returns_copy(qtbot: pytestqt.qtbot.QtBot) -> None:
 @pytest.mark.gui
 @pytest.mark.parametrize("delta", [0.05, -0.05])
 def test_get_parameters_tracks_slider_updates(
-    qtbot: pytestqt.qtbot.QtBot, delta: float
+    geometry_panel, qtbot: pytestqt.qtbot.QtBot, delta: float
 ) -> None:
-    panel = GeometryPanel()
-    qtbot.addWidget(panel)
+    panel = geometry_panel
 
     slider = _get_wheelbase_slider(panel)
     initial = get_slider_value(slider)
