@@ -68,7 +68,7 @@ def _maybe_hold_window(scene, qapp) -> None:
 @pytest.mark.usefixtures("qapp")
 @pytest.mark.skipif(  # pytest-skip-ok: interactive preview skipped on headless backends
     headless_requested(),
-    reason="Manual canvas preview requires a visible window",
+    reason="Manual canvas preview requires a visible window [pytest-skip-ok]",
 )
 def test_canvas_animation_preview_window_visible(qapp, integration_reports_dir) -> None:
     """Open the Canvas schematic in a real window for Windows manual verification."""
