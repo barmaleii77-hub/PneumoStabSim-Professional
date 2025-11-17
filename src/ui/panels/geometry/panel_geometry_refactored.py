@@ -1,5 +1,5 @@
 """
-Geometry Panel - Refactored Coordinator (v2.0.1)
+Geometry Panel - Refactored Coordinator (v2.1.0)
 Тонкий координатор с делегированием работы вкладкам
 """
 

@@ -12,7 +12,7 @@
 - na: не применимо к данному релизу
 
 ## Current Version
-- Version: v2.0.1 (draft)
+- Version: v2.1.0 (draft)
 - Date: TBD
 - Branch: feature/hdr-assets-migration
 - Coverage threshold (COVERAGE_MIN_PERCENT): 75.0%
@@ -48,4 +48,4 @@
 4. Сформировать тег и релиз заметки.
 
 ## History
-- v2.0.1 (draft): initial matrix.
+- v2.1.0 (draft): initial matrix.

@@ -77,7 +77,7 @@ def get_version_info() -> dict[str, Any]:
     return {
         "module": "GeometryPanel",
         "refactored": _USING_REFACTORED,
-        "version": "2.0.1" if _USING_REFACTORED else "legacy",
+        "version": "2.1.0" if _USING_REFACTORED else "legacy",
         "coordinator_lines": 250 if _USING_REFACTORED else 850,
         "total_modules": 8 if _USING_REFACTORED else 1,
         "available": True,
