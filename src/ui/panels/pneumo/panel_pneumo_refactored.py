@@ -338,22 +338,38 @@ class PneumoPanel(QWidget):
 
             # Синхронизация UI (только затронутых элементов)
             mode_after = sm.get_volume_mode()
-            if mode_after != mode_before or volume_mode_update is not None:
-                # Комбо режимов
-                self.receiver_tab.volume_mode_combo.setCurrentIndex(
-                    0 if mode_after == "MANUAL" else 1
-                )
-                self.receiver_tab._apply_mode_visibility(mode_after)
-            if diameter_pending is not None:
-                self.receiver_tab.receiver_diameter_knob.setValue(
-                    sm.get_receiver_diameter()
-                )
-            if length_pending is not None:
-                self.receiver_tab.receiver_length_knob.setValue(
-                    sm.get_receiver_length()
-                )
-            if manual_volume_pending is not None and sm.get_volume_mode() == "MANUAL":
-                self.receiver_tab.manual_volume_knob.setValue(sm.get_manual_volume())
+            knob_block = (
+                self.receiver_tab.manual_volume_knob,
+                self.receiver_tab.receiver_diameter_knob,
+                self.receiver_tab.receiver_length_knob,
+            )
+            for knob in knob_block:
+                knob.blockSignals(True)
+            try:
+                if mode_after != mode_before or volume_mode_update is not None:
+                    # Комбо режимов
+                    self.receiver_tab.volume_mode_combo.setCurrentIndex(
+                        0 if mode_after == "MANUAL" else 1
+                    )
+                    self.receiver_tab._apply_mode_visibility(mode_after)
+                if diameter_pending is not None:
+                    self.receiver_tab.receiver_diameter_knob.setValue(
+                        sm.get_receiver_diameter()
+                    )
+                if length_pending is not None:
+                    self.receiver_tab.receiver_length_knob.setValue(
+                        sm.get_receiver_length()
+                    )
+                if (
+                    manual_volume_pending is not None
+                    and sm.get_volume_mode() == "MANUAL"
+                ):
+                    self.receiver_tab.manual_volume_knob.setValue(
+                        sm.get_manual_volume()
+                    )
+            finally:
+                for knob in knob_block:
+                    knob.blockSignals(False)
             # Обновляем расчётный объём отображения при геометрическом режиме
             if sm.get_volume_mode() == "GEOMETRIC":
                 self.receiver_tab._update_calculated_volume()

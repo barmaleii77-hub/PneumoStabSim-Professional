@@ -128,21 +128,37 @@ class PressuresTab(QWidget):
 
     def update_from_state(self) -> None:
         self._load_from_state()
-        self.cv_atmo_dp_knob.setValue(
-            self.state_manager.get_pressure_drop("cv_atmo_dp")
+        knobs = (
+            self.cv_atmo_dp_knob,
+            self.cv_tank_dp_knob,
+            self.relief_min_knob,
+            self.relief_stiff_knob,
+            self.relief_safety_knob,
         )
-        self.cv_tank_dp_knob.setValue(
-            self.state_manager.get_pressure_drop("cv_tank_dp")
-        )
-        self.relief_min_knob.setValue(
-            self.state_manager.get_relief_pressure("relief_min_pressure")
-        )
-        self.relief_stiff_knob.setValue(
-            self.state_manager.get_relief_pressure("relief_stiff_pressure")
-        )
-        self.relief_safety_knob.setValue(
-            self.state_manager.get_relief_pressure("relief_safety_pressure")
-        )
+
+        for knob in knobs:
+            knob.blockSignals(True)
+
+        try:
+            self.cv_atmo_dp_knob.setValue(
+                self.state_manager.get_pressure_drop("cv_atmo_dp")
+            )
+            self.cv_tank_dp_knob.setValue(
+                self.state_manager.get_pressure_drop("cv_tank_dp")
+            )
+            self.relief_min_knob.setValue(
+                self.state_manager.get_relief_pressure("relief_min_pressure")
+            )
+            self.relief_stiff_knob.setValue(
+                self.state_manager.get_relief_pressure("relief_stiff_pressure")
+            )
+            self.relief_safety_knob.setValue(
+                self.state_manager.get_relief_pressure("relief_safety_pressure")
+            )
+        finally:
+            for knob in knobs:
+                knob.blockSignals(False)
+
         self._update_hint_label()
         if not self.isVisible():
             self.show()

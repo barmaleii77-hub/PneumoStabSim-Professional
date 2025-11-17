@@ -397,6 +397,7 @@ class Knob(QWidget):
             value: New value
         """
         value = max(self._minimum, min(self._maximum, value))
+        previous = self.value()
 
         # Update both widgets
         dial_pos = self._value_to_dial(value)
@@ -409,6 +410,9 @@ class Knob(QWidget):
 
         self.dial.blockSignals(False)
         self.spinbox.blockSignals(False)
+
+        if value != previous:
+            self.valueChanged.emit(value)
 
     def value(self) -> float:
         """Get current value

@@ -567,15 +567,24 @@ class SettingsManager:
             resolved = candidate.resolve(strict=False)
         except Exception:
             resolved = candidate
+
+        # Use lower-case normalisation for consistent comparisons across platforms.
         normalised = resolved.as_posix().lower()
+        project_root = PROJECT_ROOT.resolve()
+        project_root_prefix = project_root.as_posix().lower().rstrip("/") + "/"
         relative_override: str | None = None
+
         if resolved.is_absolute():
             try:
-                relative = resolved.relative_to(PROJECT_ROOT)
+                relative = resolved.relative_to(project_root)
             except ValueError:
-                relative_override = None
+                # Fall back to a case-insensitive comparison: normalise both strings
+                # to lower-case and strip the repository prefix if it matches.
+                if normalised.startswith(project_root_prefix):
+                    relative_override = normalised[len(project_root_prefix) :]
             else:
                 relative_override = relative.as_posix().lower()
+
         if relative_override:
             return relative_override
         # Если путь соответствует формату диска, используем windows normalised напрямую

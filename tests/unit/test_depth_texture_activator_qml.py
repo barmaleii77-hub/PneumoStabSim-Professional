@@ -90,7 +90,9 @@ def test_depth_texture_activator_deduplicates_debug_logging(
     assert "_clearPropertyCache()" in depth_texture_source
 
 
-def test_depth_texture_activator_caches_property_checks(depth_texture_source: str) -> None:
+def test_depth_texture_activator_caches_property_checks(
+    depth_texture_source: str,
+) -> None:
     assert "property var _propertyPresenceCache" in depth_texture_source
     assert "_readCachedPresence" in depth_texture_source
     assert "_cachePresenceResult" in depth_texture_source
@@ -145,7 +147,9 @@ def test_depth_texture_activator_reports_safe_read_failures(
     assert "safe read failed" in depth_texture_source
 
 
-def test_depth_texture_activator_logs_buffer_invocations(depth_texture_source: str) -> None:
+def test_depth_texture_activator_logs_buffer_invocations(
+    depth_texture_source: str,
+) -> None:
     assert (
         'DepthTextureActivator:", label + "." + methodName + "() called"'
         in depth_texture_source
