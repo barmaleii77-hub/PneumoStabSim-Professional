@@ -135,6 +135,9 @@ class TestStepSize:
         w.show()
         w.setFocus(Qt.FocusReason.OtherFocusReason)
 
+        # Новый билд обязан экспортировать публичное свойство ``step``
+        assert hasattr(w, "step") or hasattr(type(w), "step")
+
         initial_step = _step_property_value(w)
         if initial_step is not None:
             assert math.isclose(initial_step, 1.0, rel_tol=1e-9, abs_tol=1e-9)
@@ -172,6 +175,19 @@ class TestStepSize:
         qtbot.wait(5)
         assert math.isclose(w.value(), old + 0.2)
         assert change_probe.count() >= 1
+
+    def test_step_property_falls_back_to_spinbox_single_step(self):
+        class LegacySlider:
+            def __init__(self) -> None:
+                class DummySpinbox:
+                    def singleStep(self) -> float:
+                        return 0.25
+
+                self.value_spinbox = DummySpinbox()
+
+        fallback_value = _step_property_value(LegacySlider())
+        assert fallback_value is not None
+        assert math.isclose(fallback_value, 0.25, rel_tol=1e-9, abs_tol=1e-9)
 
 
 class TestUnitsPropagation:
