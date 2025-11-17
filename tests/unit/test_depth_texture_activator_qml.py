@@ -90,6 +90,13 @@ def test_depth_texture_activator_deduplicates_debug_logging(
     assert "_clearPropertyCache()" in depth_texture_source
 
 
+def test_depth_texture_activator_caches_property_checks(depth_texture_source: str) -> None:
+    assert "property var _propertyPresenceCache" in depth_texture_source
+    assert "_readCachedPresence" in depth_texture_source
+    assert "_cachePresenceResult" in depth_texture_source
+    assert "property presence check failed" in depth_texture_source
+
+
 def test_depth_texture_activator_skips_legacy_properties(
     depth_texture_source: str,
 ) -> None:
