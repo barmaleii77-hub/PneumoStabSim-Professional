@@ -47,6 +47,8 @@ ensure the master plan accurately reflects the intended scope.
 - **Linters & formatters**: `ruff`, `mypy`, `qmllint` (QML), optional
   `clang-format` for C++ interop.
 - **Testing**: `pytest` (with `pytest-qt`) and scenario runners under `tests/`.
+- **Unified test entrypoint**: run `python scripts/testing_entrypoint.py` from the
+  repo root to sync dependencies and execute the standard verification suite.
 - **Logging**: Use `structlog` JSON logger configured in `src/diagnostics`.
 - **Configuration**: `config/app_settings.json` validated against
   `schemas/settings/app_settings.schema.json`; prefer using `src/core/settings_service.py`
