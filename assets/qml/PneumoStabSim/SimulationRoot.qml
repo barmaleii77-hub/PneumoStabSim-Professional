@@ -132,7 +132,25 @@ Item {
 
     // Reflection probe
     // Инициализация состояния учитывает initialReflectionProbeSettings ещё до Component.onCompleted
-    property bool reflectionProbeEnabledState: (typeof initialReflectionProbeSettings !== 'undefined' && initialReflectionProbeSettings && initialReflectionProbeSettings.enabled !== undefined) ? !!initialReflectionProbeSettings.enabled : true
+    property bool reflectionProbeEnabledState: {
+        function _reflectionEnabledFromSettings() {
+            if (typeof initialReflectionProbeSettings !== "undefined"
+                    && initialReflectionProbeSettings
+                    && initialReflectionProbeSettings.enabled !== undefined) {
+                return !!initialReflectionProbeSettings.enabled
+            }
+
+            if (typeof initialSceneSettings !== "undefined" && initialSceneSettings
+                    && initialSceneSettings.graphics && initialSceneSettings.graphics.environment
+                    && initialSceneSettings.graphics.environment.reflection_enabled !== undefined) {
+                return !!initialSceneSettings.graphics.environment.reflection_enabled
+            }
+
+            return true
+        }
+
+        return _reflectionEnabledFromSettings()
+    }
     property bool reflectionProbeEnabledOverrideActive: false
     property bool reflectionProbeEnabledOverride: true
     property real reflectionProbePaddingM: 0.0
