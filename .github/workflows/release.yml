@@ -2,6 +2,8 @@ name: Release Packaging
 
 on:
   push:
+    branches:
+      - feature/hdr-assets-migration
     tags:
       - 'v*'
   workflow_dispatch:
