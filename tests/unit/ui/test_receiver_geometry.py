@@ -96,6 +96,7 @@ def _make_physics_worker() -> PhysicsWorker:
     worker.error_occurred = _DummySignal()
     worker.receiver_volume = 0.02
     worker.receiver_volume_mode = "MANUAL"
+    worker.preserve_user_volume_mode = True
     worker._latest_tank_state = TankState(
         pressure=101325.0,
         temperature=293.15,
