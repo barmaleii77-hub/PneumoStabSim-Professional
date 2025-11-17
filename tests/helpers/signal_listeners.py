@@ -5,16 +5,11 @@ from typing import Any
 
 from PySide6.QtCore import QEventLoop, QTimer
 
+_QT_SIGNAL_SPY: type | None = None
+
 
 class SignalListener:
-    """Lightweight replacement for :class:`PySide6.QtTest.QSignalSpy`.
-
-    The helper stores every emission payload and exposes a small subset of the
-    ``QSignalSpy`` interface used throughout the test-suite: ``count()``,
-    ``__len__``, ``__getitem__`` and ``at()``.  Signals can emit zero or more
-    arguments; they are captured as tuples to provide index-based access that
-    mirrors the behaviour of ``QSignalSpy``.
-    """
+    """Lightweight replacement for :class:`PySide6.QtTest.QSignalSpy`."""
 
     # Qt 6.7+ stores signal connections as weak references; exposing a weakref
     # slot ensures ``SignalListener`` instances can be used directly without
@@ -77,15 +72,63 @@ class SignalListener:
         return len(self._records) > initial_count
 
 
-class SignalSpy(SignalListener):
-    """Minimal drop-in alternative to :class:`QSignalSpy`.
+class SignalSpy:
+    """Minimal drop-in alternative to :class:`QSignalSpy`."""
 
-    PySide6 community wheels occasionally omit ``QtTest``; this wrapper mirrors
-    the subset of behaviour relied upon in the suite while keeping the public
-    name aligned with upstream documentation.
-    """
+    __slots__ = ("_delegate", "_listener", "__weakref__")
 
-    __slots__ = ()
+    def __init__(self, signal: Any) -> None:
+        delegate = _QT_SIGNAL_SPY
+        self._delegate = delegate(signal) if delegate is not None else None
+        self._listener = None if self._delegate is not None else SignalListener(signal)
+
+    def count(self) -> int:
+        if self._delegate is not None:
+            return int(self._delegate.count())
+        assert self._listener is not None
+        return self._listener.count()
+
+    def __len__(self) -> int:
+        return self.count()
+
+    def _normalize(self, payload: Any) -> tuple[Any, ...]:  # pragma: no cover - tiny helper
+        if isinstance(payload, (list, tuple)):
+            return tuple(payload)
+        return (payload,)
+
+    def __getitem__(self, index: int) -> tuple[Any, ...]:
+        if self._delegate is not None:
+            return self._normalize(self._delegate[index])
+        assert self._listener is not None
+        return self._listener[index]
+
+    def at(self, index: int) -> tuple[Any, ...]:
+        if self._delegate is not None:
+            return self._normalize(self._delegate.at(index))
+        assert self._listener is not None
+        return self._listener.at(index)
+
+    def arguments(self) -> Sequence[tuple[Any, ...]]:
+        if self._delegate is not None:
+            return tuple(self._normalize(entry) for entry in self._delegate)
+        assert self._listener is not None
+        return self._listener.arguments()
+
+    def clear(self) -> None:
+        if self._delegate is not None:
+            self._delegate.clear()
+        else:
+            assert self._listener is not None
+            self._listener.clear()
+
+    def wait(self, timeout_ms: int = 500) -> bool:
+        if self._delegate is not None:
+            return bool(self._delegate.wait(timeout_ms))
+        assert self._listener is not None
+        return self._listener.wait(timeout_ms)
 
 
-__all__ = ["SignalListener", "SignalSpy"]
+QSignalSpy = SignalSpy
+
+
+__all__ = ["QSignalSpy", "SignalListener", "SignalSpy"]
