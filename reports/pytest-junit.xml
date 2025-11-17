@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="18" failures="0" skipped="39" tests="57" time="12.952" timestamp="2025-11-17T17:26:44.775642+00:00" hostname="7fd816f7bd35"><testcase classname="" name="tests.integration.test_simulation_contracts" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/integration/test_simulation_contracts.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/integration/test_simulation_contracts.py:10: in &lt;module&gt;
+    from tests.helpers.fake_components import (
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.pneumo.test_gas_network" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/pneumo/test_gas_network.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/pneumo/test_gas_network.py:10: in &lt;module&gt;
+    from tests.helpers.pneumo_network import build_default_system_and_network
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.qml.test_simulation_panel_bindings" time="0.000"><error message="collection failure">tests/qml/test_simulation_panel_bindings.py:9: in &lt;module&gt;
+    require_qt_modules("PySide6.QtQml", "PySide6.QtQuick")
+        Path       = &lt;class 'pathlib._local.Path'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = '/workspace/PneumoStabSim-Professional/tests/qml/__pycache__/test_simulation_panel_bindings.cpython-313.pyc'
+        __doc__    = None
+        __file__   = '/workspace/PneumoStabSim-Professional/tests/qml/test_simulation_panel_bindings.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x7fa3937c0d70&gt;
+        __name__   = 'test_simulation_panel_bindings'
+        __package__ = ''
+        __spec__   = ModuleSpec(name='test_simulation_panel_bindings', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x7fa3937c0d70&gt;, origin='/workspace/PneumoStabSim-Professional/tests/qml/test_simulation_panel_bindings.py')
+        os         = &lt;module 'os' (frozen)&gt;
+        pytest     = &lt;module 'pytest' from '/workspace/PneumoStabSim-Professional/.venv/lib/python3.13/site-packages/pytest/__init__.py'&gt;
+        require_qt_modules = &lt;function require_qt_modules at 0x7fa37a720860&gt;
+tests/helpers/qt.py:86: in require_qt_modules
+    _fail_missing_runtime("Required Qt modules are missing", errors)
+        errors     = ['PySide6.QtQuick: libGL.so.1: cannot open shared object file: No such file or directory']
+        loaded     = [&lt;module 'PySide6.QtQml' from '/workspace/PneumoStabSim-Professional/.venv/lib/python3.13/site-packages/PySide6/QtQml.abi3.so'&gt;]
+        module_name = 'PySide6.QtQuick'
+        module_names = ('PySide6.QtQml', 'PySide6.QtQuick')
+tests/helpers/qt.py:42: in _fail_missing_runtime
+    pytest.fail(instructions)
+E   Failed: Required Qt modules are missing
+E   
+E   Missing modules:
+E     - PySide6.QtQuick: libGL.so.1: cannot open shared object file: No such file or directory
+E   
+E   Execute `python -m tools.cross_platform_test_prep --use-uv --run-tests` to
+E   install the required Python and system dependencies before retrying.
+        instructions = 'Required Qt modules are missing\n\nMissing modules:\n  - PySide6.QtQuick: libGL.so.1: cannot open shared object file:...ross_platform_test_prep --use-uv --run-tests` to\ninstall the required Python and system dependencies before retrying.'
+        missing    = ['PySide6.QtQuick: libGL.so.1: cannot open shared object file: No such file or directory']
+        reason     = 'Required Qt modules are missing'</error></testcase><testcase classname="" name="tests.scenarios.test_diagonal_coupling" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/scenarios/test_diagonal_coupling.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/scenarios/test_diagonal_coupling.py:7: in &lt;module&gt;
+    from tests.helpers.pneumo_network import build_default_system_and_network
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.simulation.test_training_preset_bridge" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/simulation/test_training_preset_bridge.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/simulation/test_training_preset_bridge.py:13: in &lt;module&gt;
+    from tests.helpers import SignalListener
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.test_geometry_validation" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/test_geometry_validation.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/test_geometry_validation.py:10: in &lt;module&gt;
+    from src.ui.main_window_pkg.main_window_refactored import MainWindow
+src/ui/main_window_pkg/main_window_refactored.py:15: in &lt;module&gt;
+    from PySide6.QtWidgets import QMainWindow, QLabel
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.camera.test_orbit_controller" time="0.000"><error message="collection failure">tests/ui/camera/test_orbit_controller.py:10: in &lt;module&gt;
+    QtCore, *_ = require_qt_modules("PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Any        = typing.Any
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = '/workspace/PneumoStabSim-Professional/tests/ui/camera/__pycache__/test_orbit_controller.cpython-313.pyc'
+        __doc__    = None
+        __file__   = '/workspace/PneumoStabSim-Professional/tests/ui/camera/test_orbit_controller.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x7fa3937c0d70&gt;
+        __name__   = 'tests.ui.camera.test_orbit_controller'
+        __package__ = 'tests.ui.camera'
+        __spec__   = ModuleSpec(name='tests.ui.camera.test_orbit_controller', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x7fa3937c0d70&gt;, origin='/workspace/PneumoStabSim-Professional/tests/ui/camera/test_orbit_controller.py')
+        annotations = _Feature((3, 7, 0, 'beta', 1), None, 16777216)
+        json       = &lt;module 'json' from '/root/.pyenv/versions/3.13.8/lib/python3.13/json/__init__.py'&gt;
+        pytest     = &lt;module 'pytest' from '/workspace/PneumoStabSim-Professional/.venv/lib/python3.13/site-packages/pytest/__init__.py'&gt;
+        require_qt_modules = &lt;function require_qt_modules at 0x7fa37a720860&gt;
+tests/helpers/qt.py:86: in require_qt_modules
+    _fail_missing_runtime("Required Qt modules are missing", errors)
+        errors     = ['PySide6.QtGui: libGL.so.1: cannot open shared object file: No such file or directory', 'PySide6.QtWidgets: libGL.so.1: cannot open shared object file: No such file or directory']
+        loaded     = [&lt;module 'PySide6.QtCore' from '/workspace/PneumoStabSim-Professional/.venv/lib/python3.13/site-packages/PySide6/QtCore.abi3.so'&gt;]
+        module_name = 'PySide6.QtWidgets'
+        module_names = ('PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets')
+tests/helpers/qt.py:42: in _fail_missing_runtime
+    pytest.fail(instructions)
+E   Failed: Required Qt modules are missing
+E   
+E   Missing modules:
+E     - PySide6.QtGui: libGL.so.1: cannot open shared object file: No such file or directory
+E     - PySide6.QtWidgets: libGL.so.1: cannot open shared object file: No such file or directory
+E   
+E   Execute `python -m tools.cross_platform_test_prep --use-uv --run-tests` to
+E   install the required Python and system dependencies before retrying.
+        instructions = 'Required Qt modules are missing\n\nMissing modules:\n  - PySide6.QtGui: libGL.so.1: cannot open shared object file: N...ross_platform_test_prep --use-uv --run-tests` to\ninstall the required Python and system dependencies before retrying.'
+        missing    = ['PySide6.QtGui: libGL.so.1: cannot open shared object file: No such file or directory', 'PySide6.QtWidgets: libGL.so.1: cannot open shared object file: No such file or directory']
+        reason     = 'Required Qt modules are missing'</error></testcase><testcase classname="" name="tests.ui.panels.test_geometry_panel" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_geometry_panel.py', 14, 'Skipped: PySide6 is required for GeometryPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_geometry_panel_payload" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_geometry_panel_payload.py', 9, 'Skipped: PySide6 is required for GeometryPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_graphics_panel_payload" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_graphics_panel_payload.py', 9, 'Skipped: PySide6 is required for GraphicsPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_lighting_tab_defaults" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_lighting_tab_defaults.py', 5, 'Skipped: PySide6 is required for LightingTab tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_modes_panel" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_modes_panel.py', 7, 'Skipped: PySide6 is required for ModesPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_panel_history" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_panel_history.py', 7, "Skipped: could not import 'PySide6.QtWidgets': libGL.so.1: cannot open shared object file: No such file or directory")</skipped></testcase><testcase classname="" name="tests.ui.panels.test_pneumo_panel_legacy" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_pneumo_panel_legacy.py', 7, 'Skipped: PySide6 is required for PneumoPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_pneumo_panel_payload" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_pneumo_panel_payload.py', 7, 'Skipped: PySide6 is required for PneumoPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_road_panel" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_road_panel.py', 7, 'Skipped: PySide6 is required for RoadPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_stabilizer_panel" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_stabilizer_panel.py', 7, 'Skipped: PySide6 is required for StabilizerPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.panels.test_tonemapping_panel" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/panels/test_tonemapping_panel.py', 9, 'Skipped: PySide6 is required for TonemappingPanel tests')</skipped></testcase><testcase classname="" name="tests.ui.test_bridge_state_indicators" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_bridge_state_indicators.py', 11, 'Skipped: PySide6 QtQuick3D module is required to instantiate SimulationRoot')</skipped></testcase><testcase classname="" name="tests.ui.test_canvas_animation_preview" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_canvas_animation_preview.py', 13, 'Skipped: PySide6/QtQuick is required to render the Canvas schematic')</skipped></testcase><testcase classname="" name="tests.ui.test_effect_shaders" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_effect_shaders.py', 17, 'Skipped: PySide6 QtQuick module is required for effect shader tests; install libgl1/libegl1')</skipped></testcase><testcase classname="" name="tests.ui.test_environment_qml_sync" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_environment_qml_sync.py', 12, 'Skipped: PySide6 QtWidgets module is required for environment sync tests')</skipped></testcase><testcase classname="" name="tests.ui.test_environment_tab_hdr_stress" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_environment_tab_hdr_stress.py', 3, 'Skipped: PySide6 QtWidgets module is required for environment tab stress tests')</skipped></testcase><testcase classname="" name="tests.ui.test_environment_tab_ibl_dependencies" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_environment_tab_ibl_dependencies.py', 3, 'Skipped: PySide6 QtWidgets module is required for graphics tab tests')</skipped></testcase><testcase classname="" name="tests.ui.test_file_cycler_widget" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_file_cycler_widget.py', 10, 'Skipped: PySide6 QtWidgets module is required for FileCyclerWidget tests')</skipped></testcase><testcase classname="" name="tests.ui.test_flow_network_visualization" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_flow_network_visualization.py', 6, 'Skipped: PySide6 QtQuick3D module is required for FlowNetwork tests')</skipped></testcase><testcase classname="" name="tests.ui.test_flow_shader_fallback" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_flow_shader_fallback.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_flow_shader_fallback.py:6: in &lt;module&gt;
+    from tests.helpers import require_qt_modules
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_geometry_cylinder_tab" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_geometry_cylinder_tab.py', 3, 'Skipped: PySide6 QtWidgets module is required for geometry cylinder tab tests')</skipped></testcase><testcase classname="" name="tests.ui.test_graphics_panel_legacy_fallback" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_graphics_panel_legacy_fallback.py', 6, 'Skipped: PySide6 QtWidgets module is required for graphics panel tests')</skipped></testcase><testcase classname="" name="tests.ui.test_graphics_scene_quality_tabs" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_graphics_scene_quality_tabs.py', 5, 'Skipped: PySide6 QtWidgets module is required for graphics tab tests')</skipped></testcase><testcase classname="" name="tests.ui.test_main_qml_screenshots" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_main_qml_screenshots.py', 9, 'Skipped: PySide6 is required to capture QtQuick screenshots')</skipped></testcase><testcase classname="" name="tests.ui.test_post_effects_bypass_fail_safe" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_post_effects_bypass_fail_safe.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_post_effects_bypass_fail_safe.py:9: in &lt;module&gt;
+    from tests.helpers import require_qt_modules
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_qml_bridge" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_qml_bridge.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_qml_bridge.py:11: in &lt;module&gt;
+    from tests.helpers import SignalListener
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_qml_signals" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_qml_signals.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_qml_signals.py:18: in &lt;module&gt;
+    from tests.helpers import SignalListener
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_range_slider_plan_regressions" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_range_slider_plan_regressions.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_range_slider_plan_regressions.py:7: in &lt;module&gt;
+    from tests.helpers.signal_listeners import SignalListener
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_range_slider_widget" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_range_slider_widget.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_range_slider_widget.py:21: in &lt;module&gt;
+    from tests.helpers.signal_listeners import SignalListener
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_realism_environment_settings" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_realism_environment_settings.py', 13, "Skipped: could not import 'PySide6.QtQuick': libGL.so.1: cannot open shared object file: No such file or directory")</skipped></testcase><testcase classname="" name="tests.ui.test_safe_mode_startup" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_safe_mode_startup.py', 12, "Skipped: could not import 'PySide6.QtWidgets': libGL.so.1: cannot open shared object file: No such file or directory")</skipped></testcase><testcase classname="" name="tests.ui.test_shader_fallback_selection" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_shader_fallback_selection.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_shader_fallback_selection.py:10: in &lt;module&gt;
+    from tests.helpers import require_qt_modules
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.ui.test_shared_materials_fallback" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_shared_materials_fallback.py', 12, "Skipped: could not import 'PySide6.QtQuick': libGL.so.1: cannot open shared object file: No such file or directory")</skipped></testcase><testcase classname="" name="tests.ui.test_simulation_root_shader_warnings" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_simulation_root_shader_warnings.py', 10, 'Skipped: PySide6 QtQuick3D module is required to instantiate SimulationRoot')</skipped></testcase><testcase classname="" name="tests.ui.test_telemetry_chart_panel_integration" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/ui/test_telemetry_chart_panel_integration.py', 7, 'Skipped: PySide6 QtCharts module is required for telemetry panel tests')</skipped></testcase><testcase classname="" name="tests.ui.test_telemetry_data_bridge" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/ui/test_telemetry_data_bridge.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/ui/test_telemetry_data_bridge.py:18: in &lt;module&gt;
+    from tests.helpers import SignalListener
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.unit.physics.test_gas_network" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/unit/physics/test_gas_network.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/unit/physics/test_gas_network.py:13: in &lt;module&gt;
+    from tests.helpers.pneumo_network import build_default_system_and_network
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.unit.test_geometry_settings_flow" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/test_geometry_settings_flow.py', 6, 'Skipped: PySide6 QtGui module is required for geometry bridge tests')</skipped></testcase><testcase classname="" name="tests.unit.test_lazy_module_wrapped" time="0.000"><error message="collection failure">ImportError while importing test module '/workspace/PneumoStabSim-Professional/tests/unit/test_lazy_module_wrapped.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/unit/test_lazy_module_wrapped.py:9: in &lt;module&gt;
+    from tests.helpers.faux_inspect_module import fake_unwrap
+tests/helpers/__init__.py:4: in &lt;module&gt;
+    from .signal_listeners import QSignalSpy, SignalListener, SignalSpy
+tests/helpers/signal_listeners.py:19: in &lt;module&gt;
+    _QT_SIGNAL_SPY: type | None = _load_qsignalspy()
+                                  ^^^^^^^^^^^^^^^^^^
+tests/helpers/signal_listeners.py:15: in _load_qsignalspy
+    module = import_module("PySide6.QtTest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.pyenv/versions/3.13.8/lib/python3.13/importlib/__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory</error></testcase><testcase classname="" name="tests.unit.ui.pneumo.test_panel_hints" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/pneumo/test_panel_hints.py', 8, 'Skipped: PySide6 is required for PneumoPanel hint tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_custom_cylinder_geometry" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_custom_cylinder_geometry.py', 5, 'Skipped: PySide6 QtQuick3D module is required for procedural geometry tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_environment_tab" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_environment_tab.py', 3, 'Skipped: PySide6 QtWidgets module is required for EnvironmentTab tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_graphics_widgets" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_graphics_widgets.py', 5, 'Skipped: PySide6 QtWidgets module is required for LabeledSlider tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_knob" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_knob.py', 5, 'Skipped: PySide6 QtWidgets module is required for Knob widget tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_linear_cylinder" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_linear_cylinder.py', 7, 'Skipped: PySide6 QtQuick3D module is required for LinearCylinder tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_linear_cylinder_orientation" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_linear_cylinder_orientation.py', 8, 'Skipped: PySide6 QtQuick3D module is required for LinearCylinder orientation tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_main_window_batch_updates" time="0.000"><error message="collection failure">tests/unit/ui/test_main_window_batch_updates.py:10: in &lt;module&gt;
+    from src.ui.main_window_legacy import MainWindow
+        Any        = typing.Any
+        Mock       = &lt;class 'unittest.mock.Mock'&gt;
+        SimpleNamespace = &lt;class 'types.SimpleNamespace'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = '/workspace/PneumoStabSim-Professional/tests/unit/ui/__pycache__/test_main_window_batch_updates.cpython-313.pyc'
+        __doc__    = 'Tests for ``MainWindow._push_batched_updates`` fallback behaviour.'
+        __file__   = '/workspace/PneumoStabSim-Professional/tests/unit/ui/test_main_window_batch_updates.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x7fa3937c0d70&gt;
+        __name__   = 'tests.unit.ui.test_main_window_batch_updates'
+        __package__ = 'tests.unit.ui'
+        __spec__   = ModuleSpec(name='tests.unit.ui.test_main_window_batch_updates', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHo...ect at 0x7fa3937c0d70&gt;, origin='/workspace/PneumoStabSim-Professional/tests/unit/ui/test_main_window_batch_updates.py')
+        pytest     = &lt;module 'pytest' from '/workspace/PneumoStabSim-Professional/.venv/lib/python3.13/site-packages/pytest/__init__.py'&gt;
+src/ui/main_window_legacy.py:5: in &lt;module&gt;
+    from PySide6.QtWidgets import (
+E   ImportError: libGL.so.1: cannot open shared object file: No such file or directory
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = '/workspace/PneumoStabSim-Professional/src/ui/__pycache__/main_window_legacy.cpython-313.pyc'
+        __doc__    = 'Main window for PneumoStabSim application\nQt Quick3D rendering with QQuickWidget (no createWindowContainer)\nРУССКИЙ ИНТЕРФЕЙС (Russian UI).'
+        __file__   = '/workspace/PneumoStabSim-Professional/src/ui/main_window_legacy.py'
+        __loader__ = &lt;_frozen_importlib_external.SourceFileLoader object at 0x7fa3798aaf30&gt;
+        __name__   = 'src.ui.main_window_legacy'
+        __package__ = 'src.ui'
+        __spec__   = ModuleSpec(name='src.ui.main_window_legacy', loader=&lt;_frozen_importlib_external.SourceFileLoader object at 0x7fa3798aaf30&gt;, origin='/workspace/PneumoStabSim-Professional/src/ui/main_window_legacy.py')
+
+During handling of the above exception, another exception occurred:
+tests/unit/ui/test_main_window_batch_updates.py:12: in &lt;module&gt;
+    pytest.fail(
+E   Failed: Qt runtime dependencies must be available for main window tests. Run `python -m tools.cross_platform_test_prep --use-uv --run-tests`: libGL.so.1: cannot open shared object file: No such file or directory
+        Any        = typing.Any
+        Mock       = &lt;class 'unittest.mock.Mock'&gt;
+        SimpleNamespace = &lt;class 'types.SimpleNamespace'&gt;
+        __builtins__ = &lt;builtins&gt;
+        __cached__ = '/workspace/PneumoStabSim-Professional/tests/unit/ui/__pycache__/test_main_window_batch_updates.cpython-313.pyc'
+        __doc__    = 'Tests for ``MainWindow._push_batched_updates`` fallback behaviour.'
+        __file__   = '/workspace/PneumoStabSim-Professional/tests/unit/ui/test_main_window_batch_updates.py'
+        __loader__ = &lt;_pytest.assertion.rewrite.AssertionRewritingHook object at 0x7fa3937c0d70&gt;
+        __name__   = 'tests.unit.ui.test_main_window_batch_updates'
+        __package__ = 'tests.unit.ui'
+        __spec__   = ModuleSpec(name='tests.unit.ui.test_main_window_batch_updates', loader=&lt;_pytest.assertion.rewrite.AssertionRewritingHo...ect at 0x7fa3937c0d70&gt;, origin='/workspace/PneumoStabSim-Professional/tests/unit/ui/test_main_window_batch_updates.py')
+        pytest     = &lt;module 'pytest' from '/workspace/PneumoStabSim-Professional/.venv/lib/python3.13/site-packages/pytest/__init__.py'&gt;</error></testcase><testcase classname="" name="tests.unit.ui.test_materials_tab" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_materials_tab.py', 6, 'Skipped: PySide6 QtWidgets module is required for MaterialsTab tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_qml_paths_case" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_qml_paths_case.py', 9, 'Skipped: PySide6 QtQuick module is required for QML path case tests')</skipped></testcase><testcase classname="" name="tests.unit.ui.test_ui_setup_scene_defaults" time="0.000"><skipped message="collection skipped">('/workspace/PneumoStabSim-Professional/tests/unit/ui/test_ui_setup_scene_defaults.py', 9, 'Skipped: PySide6 QtQuick module is required for UISetup scene suspension tests')</skipped></testcase></testsuite></testsuites>
