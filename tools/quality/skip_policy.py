@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 _TRUTHY = {"1", "true", "yes", "on"}
+EXPECTED_SKIP_TOKEN = "pytest-skip-ok"
 
 
 @dataclass(slots=True)
@@ -104,6 +105,26 @@ def collect_skipped_tests(
                     )
                 )
     return skipped
+
+
+def partition_skipped_tests(
+    entries: Sequence[SkippedTestCase], *, token: str = EXPECTED_SKIP_TOKEN
+) -> tuple[list[SkippedTestCase], list[SkippedTestCase]]:
+    """Separate acknowledged and unexpected skipped tests.
+
+    Skips that mention the ``token`` (``pytest-skip-ok`` by default) are treated
+    as intentionally documented and will not trigger CI failures. All other
+    skips remain candidates for policy enforcement.
+    """
+
+    acknowledged: list[SkippedTestCase] = []
+    unexpected: list[SkippedTestCase] = []
+    for entry in entries:
+        if token in entry.message:
+            acknowledged.append(entry)
+        else:
+            unexpected.append(entry)
+    return acknowledged, unexpected
 
 
 def write_skipped_summary(
@@ -232,14 +253,19 @@ def main(argv: Sequence[str] | None = None) -> None:
     skipped_cases = collect_skipped_tests(
         junit_paths, project_root=context.project_root
     )
+    acknowledged, unexpected = partition_skipped_tests(skipped_cases)
     summary_path = write_skipped_summary(
-        skipped_cases,
+        unexpected,
         summary_path=args.summary,
         step_summary_path=context.step_summary_path,
         project_root=context.project_root,
     )
+    if acknowledged:
+        print(
+            f"[skip-policy] Skips acknowledged via '{EXPECTED_SKIP_TOKEN}': {len(acknowledged)}"
+        )
     violation = evaluate_skip_policy(
-        skipped_cases, context=context, summary_path=summary_path
+        unexpected, context=context, summary_path=summary_path
     )
     if violation:
         print(f"[skip-policy] {violation}", file=sys.stderr)

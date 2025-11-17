@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+from tools.quality.skip_policy import EXPECTED_SKIP_TOKEN
+
 _FORBIDDEN_MARKERS: tuple[tuple[str, ...], ...] = (
     ("pytest", "skip"),
     ("pytest", "xfail"),
@@ -23,7 +25,7 @@ _FORBIDDEN_MARKERS: tuple[tuple[str, ...], ...] = (
     ("pytest", "mark", "xfail"),
 )
 _FORBIDDEN_NAMES: frozenset[str] = frozenset({"skip", "xfail"})
-_OVERRIDE_TOKEN = "pytest-skip-ok"
+_OVERRIDE_TOKEN = EXPECTED_SKIP_TOKEN
 
 
 @dataclass(slots=True)
