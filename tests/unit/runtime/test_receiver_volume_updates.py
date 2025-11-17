@@ -96,7 +96,7 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     pneumo_tank = worker._test_pneumo_tank  # type: ignore[attr-defined]
 
     assert worker.receiver_volume == pytest.approx(new_volume)
-    assert worker.receiver_volume_mode == "GEOMETRIC"
+    assert worker.receiver_volume_mode == ReceiverVolumeMode.ADIABATIC_RECALC.value
     assert worker.pneumatic_system.receiver.mode is ReceiverVolumeMode.ADIABATIC_RECALC
     assert worker.pneumatic_system.receiver.V == pytest.approx(new_volume)
     assert worker.pneumatic_system.receiver.p == pytest.approx(expected_pressure)
@@ -127,7 +127,7 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     )
     assert log_record is not None, "Receiver volume update log entry is missing"
     assert log_record.volume_m3 == pytest.approx(new_volume)
-    assert log_record.mode == "GEOMETRIC"
+    assert log_record.mode == ReceiverVolumeMode.ADIABATIC_RECALC.value
     assert log_record.receiver_pressure_pa == pytest.approx(expected_pressure)
     assert log_record.receiver_temperature_k == pytest.approx(expected_temperature)
     assert log_record.pneumatic_tank_volume_m3 == pytest.approx(new_volume)
@@ -140,7 +140,7 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert signal_emissions, "Receiver volume changed signal must fire"
     sig_volume, sig_mode, sig_update = signal_emissions[-1]
     assert sig_volume == pytest.approx(new_volume)
-    assert sig_mode == "GEOMETRIC"
+    assert sig_mode == ReceiverVolumeMode.ADIABATIC_RECALC.value
     assert isinstance(sig_update, ReceiverVolumeUpdate)
     assert sig_update.volume == pytest.approx(new_volume)
     assert sig_update.mode is ReceiverVolumeMode.ADIABATIC_RECALC

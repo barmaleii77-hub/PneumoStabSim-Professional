@@ -178,30 +178,35 @@ class ReceiverState:
             except KeyError as exc:  # pragma: no cover - defensive guard
                 raise ThermoError(f"Unknown receiver volume mode: {mode}") from exc
 
-        previous_mode = self.mode
+        previous_state = ReceiverVolumeUpdate(
+            volume=self.V,
+            pressure=self.p,
+            temperature=self.T,
+            mode=self.mode,
+        )
 
-        if recompute:
-            if not (self.spec.V_min <= new_volume <= self.spec.V_max):
-                raise ThermoError(
-                    f"New volume {new_volume} outside valid range"
-                    f" [{self.spec.V_min}, {self.spec.V_max}]"
+        if not (self.spec.V_min <= new_volume <= self.spec.V_max):
+            raise ThermoError(
+                f"New volume {new_volume} outside valid range"
+                f" [{self.spec.V_min}, {self.spec.V_max}]"
+            ) if recompute else ModelConfigError(
+                "Volume {0} outside valid range [{1}, {2}]".format(
+                    new_volume, self.spec.V_min, self.spec.V_max
                 )
+            )
 
-            try:
-                self.mode = resolved_mode
-                self.apply_instant_volume_change(new_volume)
-            except Exception:
-                self.mode = previous_mode
-                raise
-        else:
-            if not (self.spec.V_min <= new_volume <= self.spec.V_max):
-                raise ModelConfigError(
-                    "Volume {0} outside valid range [{1}, {2}]".format(
-                        new_volume, self.spec.V_min, self.spec.V_max
-                    )
-                )
+        try:
             self.mode = resolved_mode
-            self.V = new_volume
+            if recompute:
+                self.apply_instant_volume_change(new_volume)
+            else:
+                self.V = new_volume
+        except Exception:
+            self.V = previous_state.volume
+            self.p = previous_state.pressure
+            self.T = previous_state.temperature
+            self.mode = previous_state.mode
+            raise
 
         return ReceiverVolumeUpdate(
             volume=self.V,
