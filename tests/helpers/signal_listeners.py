@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from importlib import import_module, util
 from typing import Any
 
 from PySide6.QtCore import QEventLoop, QTimer
 
-_QT_SIGNAL_SPY: type | None = None
+
+def _load_qsignalspy() -> type | None:
+    spec = util.find_spec("PySide6.QtTest")
+    if spec is None:
+        return None
+
+    module = import_module("PySide6.QtTest")
+    return getattr(module, "QSignalSpy", None)
+
+
+_QT_SIGNAL_SPY: type | None = _load_qsignalspy()
 
 
 class SignalListener:
