@@ -911,12 +911,9 @@ class PhysicsWorker(QObject):
                 else:
                     getattr(logger_obj, level)(fallback_message)
 
-        # Store volume and mode for gas network updates
-        self.receiver_volume = volume
         mode_token = str(mode).upper()
-        self.receiver_volume_mode = mode_token
-
         mode_enum = self._resolve_receiver_mode(mode_token)
+        applied_mode_token = mode_enum.value
 
         receiver_update: ReceiverVolumeUpdate | None = None
 
@@ -930,6 +927,7 @@ class PhysicsWorker(QObject):
                     raise AttributeError("Pneumatic system missing receiver state")
                 receiver_update = receiver_state.set_volume(volume, mode_enum)
                 mode_enum = receiver_update.mode
+                applied_mode_token = receiver_update.mode.value
                 receiver_pressure = receiver_update.pressure
                 receiver_temperature = receiver_update.temperature
 
@@ -998,7 +996,7 @@ class PhysicsWorker(QObject):
 
         log_payload = {
             "volume_m3": float(volume),
-            "mode": mode_token,
+            "mode": applied_mode_token,
             "tank_pressure_pa": tank_pressure,
             "tank_mass_kg": tank_mass,
             "tank_temperature_k": tank_temperature,
@@ -1043,11 +1041,15 @@ class PhysicsWorker(QObject):
 
         update_payload = receiver_update
 
+        # Store canonical values after successful update generation
+        self.receiver_volume = float(update_payload.volume)
+        self.receiver_volume_mode = applied_mode_token
+
         signal_obj = getattr(self, "receiver_volume_changed", None)
         emit = getattr(signal_obj, "emit", None)
         if callable(emit):
             try:
-                emit(float(self.receiver_volume), mode_token, update_payload)
+                emit(float(self.receiver_volume), applied_mode_token, update_payload)
             except Exception as exc:  # pragma: no cover - defensive logging
                 _log_with_context(
                     "warning",
