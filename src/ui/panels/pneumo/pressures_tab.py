@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -189,13 +191,41 @@ class PressuresTab(QWidget):
 
     def _on_pressure_drop_changed(self, name: str, value: float) -> None:
         self.state_manager.set_pressure_drop(name, value)
-        self.parameter_changed.emit(name, self.state_manager.get_pressure_drop(name))
+        actual = self.state_manager.get_pressure_drop(name)
+        if not math.isclose(actual, value, rel_tol=1e-9, abs_tol=1e-9):
+            knob = self._pressure_drop_knob_for(name)
+            knob.blockSignals(True)
+            try:
+                knob.setValue(actual)
+            finally:
+                knob.blockSignals(False)
+        self.parameter_changed.emit(name, actual)
         self._update_hint_label()
 
     def _on_relief_changed(self, name: str, value: float) -> None:
         self.state_manager.set_relief_pressure(name, value)
-        self.parameter_changed.emit(name, self.state_manager.get_relief_pressure(name))
+        actual = self.state_manager.get_relief_pressure(name)
+        if not math.isclose(actual, value, rel_tol=1e-9, abs_tol=1e-9):
+            knob = self._relief_knob_for(name)
+            knob.blockSignals(True)
+            try:
+                knob.setValue(actual)
+            finally:
+                knob.blockSignals(False)
+        self.parameter_changed.emit(name, actual)
         self._update_hint_label()
+
+    def _pressure_drop_knob_for(self, name: str) -> Knob:
+        if name == "cv_atmo_dp":
+            return self.cv_atmo_dp_knob
+        return self.cv_tank_dp_knob
+
+    def _relief_knob_for(self, name: str) -> Knob:
+        if name == "relief_min_pressure":
+            return self.relief_min_knob
+        if name == "relief_stiff_pressure":
+            return self.relief_stiff_knob
+        return self.relief_safety_knob
 
     def _apply_units_to_knobs(self, units: str) -> None:
         base_units = DEFAULT_PNEUMATIC["pressure_units"]

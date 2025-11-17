@@ -211,6 +211,7 @@ class PneumoStateManager:
         )
         self._state = merged
         self._normalise_if_legacy()
+        self._enforce_state_invariants()
 
     # ------------------------------------------------------------------- utils
     def _normalise_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -218,6 +219,35 @@ class PneumoStateManager:
         # Treat the canonical snapshot as si_v2 storage to coerce types and
         # rescale values consistently (e.g. legacy mm -> m conversions).
         return self._convert_from_storage(canonical, units_version="si_v2")
+
+    def _enforce_state_invariants(self) -> None:
+        """Clamp critical parameters to safe ranges and record hints."""
+
+        limits = self.get_volume_limits()
+        self._apply_volume_limits(limits, preserve_hint=True)
+
+        if self.get_volume_mode() == "MANUAL":
+            self.set_manual_volume(self.get_manual_volume())
+        else:
+            self._recompute_volume_if_needed()
+
+        self.set_receiver_diameter(self.get_receiver_diameter())
+        self.set_receiver_length(self.get_receiver_length())
+
+        for key in ("cv_atmo_dp", "cv_tank_dp"):
+            self.set_pressure_drop(key, self.get_pressure_drop(key))
+
+        for key in (
+            "relief_min_pressure",
+            "relief_stiff_pressure",
+            "relief_safety_pressure",
+        ):
+            self.set_relief_pressure(key, self.get_relief_pressure(key))
+
+        self.set_polytropic_heat_transfer(self.get_polytropic_heat_transfer())
+        self.set_polytropic_exchange_area(self.get_polytropic_exchange_area())
+        self.set_leak_coefficient(self.get_leak_coefficient())
+        self.set_leak_reference_area(self.get_leak_reference_area())
 
     def _normalise_if_legacy(self) -> None:
         if self._storage_units_version == "si_v2":
@@ -311,7 +341,9 @@ class PneumoStateManager:
             )
         )
 
-    def _apply_volume_limits(self, payload: Mapping[str, Any]) -> dict[str, float]:
+    def _apply_volume_limits(
+        self, payload: Mapping[str, Any], *, preserve_hint: bool = False
+    ) -> dict[str, float]:
         current = self.get_volume_limits()
         defaults = DEFAULT_PNEUMATIC["receiver_volume_limits"]
 
@@ -355,7 +387,7 @@ class PneumoStateManager:
                     f"{min_value:.3f}–{max_value:.3f} м³."
                 ),
             )
-        else:
+        elif not preserve_hint:
             self._record_hint("receiver_volume_limits", None)
 
         # Ensure the active manual volume still satisfies the updated limits.
@@ -735,6 +767,12 @@ class PneumoStateManager:
 
         volume = float(self._state.get("receiver_volume", 0.0))
         limits = self.get_volume_limits()
+        if limits["min_m3"] <= 0:
+            errors.append("Минимальный объём ресивера должен быть больше нуля")
+        if limits["max_m3"] <= 0:
+            errors.append("Максимальный объём ресивера должен быть больше нуля")
+        if limits["max_m3"] <= limits["min_m3"]:
+            errors.append("Максимальный объём ресивера должен превышать минимальный")
         if self.get_volume_mode() == "MANUAL":
             if not (limits["min_m3"] <= volume <= limits["max_m3"]):
                 errors.append(
@@ -750,9 +788,9 @@ class PneumoStateManager:
         p_min = self.get_relief_pressure("relief_min_pressure")
         p_stiff = self.get_relief_pressure("relief_stiff_pressure")
         p_safe = self.get_relief_pressure("relief_safety_pressure")
-        if p_min and p_stiff and p_min >= p_stiff:
+        if p_min >= p_stiff:
             errors.append("Мин. сброс должен быть меньше давления сброса жёсткости")
-        if p_stiff and p_safe and p_stiff >= p_safe:
+        if p_stiff >= p_safe:
             errors.append("Давление сброса жёсткости должно быть меньше аварийного")
 
         throttle_min = self.get_valve_diameter("throttle_min_dia")
@@ -886,7 +924,9 @@ class PneumoStateManager:
     def update_from(self, updates: dict[str, Any]) -> None:
         for key, value in updates.items():
             self._apply_update(key, value)
+        self._enforce_state_invariants()
 
     def update_many(self, pairs: Iterable[tuple[str, Any]]) -> None:
         for key, value in pairs:
             self._apply_update(key, value)
+        self._enforce_state_invariants()
