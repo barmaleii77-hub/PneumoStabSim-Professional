@@ -98,7 +98,12 @@ jobs:
         run: bash scripts/xvfb_wrapper.sh uv run python final_readiness_test.py
 
       - name: Run pytest suite
-        run: bash scripts/xvfb_wrapper.sh uv run pytest --maxfail=1
+        run: |
+          mkdir -p reports/tests
+          bash scripts/xvfb_wrapper.sh uv run pytest --maxfail=1 --junitxml=reports/tests/regression_pytest.xml
+
+      - name: Enforce skip policy for regression pytest run
+        run: uv run python -m tools.ci_tasks check-skips --reports-dir reports/tests --require-report
 
       - name: Execute physics regression case
         run: uv run python tools/run_test_case.py standard-suspension-balance --output-dir reports/tests

@@ -592,9 +592,10 @@ def _finalise_coverage_reports() -> Path | None:
     return COVERAGE_JSON_PATH
 
 
-def _collect_skipped_tests() -> list[SkippedTestCase]:
+def _collect_skipped_tests(report_root: Path | None = None) -> list[SkippedTestCase]:
+    reports_dir = Path(report_root) if report_root is not None else PYTEST_REPORT_ROOT
     skipped: list[SkippedTestCase] = []
-    for xml_file in sorted(PYTEST_REPORT_ROOT.glob("*.xml")):
+    for xml_file in sorted(reports_dir.glob("*.xml")):
         try:
             tree = ET.parse(xml_file)
         except (ET.ParseError, FileNotFoundError):
@@ -628,8 +629,11 @@ def _collect_skipped_tests() -> list[SkippedTestCase]:
     return skipped
 
 
-def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
-    summary_path = PYTEST_REPORT_ROOT / "skipped_tests_summary.md"
+def _write_skipped_summary(
+    entries: list[SkippedTestCase], reports_dir: Path | None = None
+) -> Path | None:
+    report_root = Path(reports_dir) if reports_dir is not None else PYTEST_REPORT_ROOT
+    summary_path = report_root / "skipped_tests_summary.md"
     if not entries:
         if summary_path.exists():
             try:
@@ -660,8 +664,18 @@ def _write_skipped_summary(entries: list[SkippedTestCase]) -> Path | None:
     return summary_path
 
 
-def _enforce_ci_skip_policy(entries: list[SkippedTestCase]) -> None:
-    summary_path = _write_skipped_summary(entries)
+def _enforce_ci_skip_policy(
+    entries: list[SkippedTestCase],
+    reports_dir: Path | None = None,
+    *,
+    require_report: bool = False,
+) -> None:
+    summary_path = _write_skipped_summary(entries, reports_dir)
+    reports_root = Path(reports_dir) if reports_dir is not None else PYTEST_REPORT_ROOT
+    if require_report and not any(reports_root.glob("*.xml")):
+        raise TaskError(
+            f"No JUnit reports found under {_relative_display(reports_root)} to validate skipped tests."
+        )
     if not entries:
         return
     in_ci = _env_flag("CI", default=False) or bool(os.environ.get("GITHUB_ACTIONS"))
@@ -1206,6 +1220,14 @@ def task_verify() -> None:
     task_post_analysis()
 
 
+def task_check_skips(*, reports_dir: Path | None, require_report: bool) -> None:
+    report_root = Path(reports_dir) if reports_dir is not None else PYTEST_REPORT_ROOT
+    skipped_cases = _collect_skipped_tests(report_root)
+    _enforce_ci_skip_policy(
+        skipped_cases, reports_dir=report_root, require_report=require_report
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="CI task runner for PneumoStabSim Professional"
@@ -1227,6 +1249,20 @@ def build_parser() -> argparse.ArgumentParser:
         "verify", help="Run lint, typecheck, qml-lint, and tests in sequence"
     )
     subparsers.add_parser("security", help="Run bandit security scanner")
+    parser_check_skips = subparsers.add_parser(
+        "check-skips", help="Enforce skip policy against existing JUnit reports"
+    )
+    parser_check_skips.add_argument(
+        "--reports-dir",
+        type=Path,
+        default=PYTEST_REPORT_ROOT,
+        help="Directory containing pytest JUnit XML reports",
+    )
+    parser_check_skips.add_argument(
+        "--require-report",
+        action="store_true",
+        help="Fail if no JUnit reports are present in the reports directory",
+    )
     return parser
 
 
@@ -1245,7 +1281,12 @@ def main(argv: Sequence[str] | None = None) -> None:
         "verify": task_verify,
         "security": task_security,
     }
-    task = task_map[args.command]
+    if args.command == "check-skips":
+        task = lambda: task_check_skips(  # noqa: E731
+            reports_dir=args.reports_dir, require_report=args.require_report
+        )
+    else:
+        task = task_map[args.command]
     RECORDER.start(args.command)
     exit_code = 0
     unexpected_error: BaseException | None = None

@@ -1,1 +1,2 @@
-# Intentionally empty so pytest uses default testpaths.
+# Intentionally empty so pytest uses default testpaths; this file only appends
+# extra suites and must not be used to narrow test selection.

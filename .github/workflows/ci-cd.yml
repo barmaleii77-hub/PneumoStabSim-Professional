@@ -147,6 +147,10 @@ jobs:
             echo "PYTEST_PREFIX=" >> "$GITHUB_ENV"
           fi
 
+      - name: Prepare test reports directory
+        shell: bash
+        run: mkdir -p reports/tests
+
       - name: Run smoke/integration verification
         shell: bash
         run: |
@@ -160,28 +164,32 @@ jobs:
         shell: bash
         run: |
           if [ -n "${PYTEST_PREFIX:-}" ]; then
-            ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml
+            ${PYTEST_PREFIX} pytest tests/unit/ -v --cov=src --cov-report=xml --junitxml=reports/tests/unit_direct.xml
           else
-            pytest tests/unit/ -v --cov=src --cov-report=xml
+            pytest tests/unit/ -v --cov=src --cov-report=xml --junitxml=reports/tests/unit_direct.xml
           fi
 
       - name: Run integration tests
         shell: bash
         run: |
           if [ -n "${PYTEST_PREFIX:-}" ]; then
-            ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+            ${PYTEST_PREFIX} pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append --junitxml=reports/tests/integration_direct.xml
           else
-            pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append
+            pytest tests/integration/ -v --cov=src --cov-report=xml --cov-append --junitxml=reports/tests/integration_direct.xml
           fi
 
       - name: Run system tests
         shell: bash
         run: |
           if [ -n "${PYTEST_PREFIX:-}" ]; then
-            ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+            ${PYTEST_PREFIX} pytest tests/system/ -v --cov=src --cov-report=xml --cov-append --junitxml=reports/tests/system_direct.xml
           else
-            pytest tests/system/ -v --cov=src --cov-report=xml --cov-append
+            pytest tests/system/ -v --cov=src --cov-report=xml --cov-append --junitxml=reports/tests/system_direct.xml
           fi
+
+      - name: Enforce skip policy for direct pytest runs
+        shell: bash
+        run: python -m tools.ci_tasks check-skips --reports-dir reports/tests --require-report
 
       - name: Upload smoke/integration logs
         if: always()
