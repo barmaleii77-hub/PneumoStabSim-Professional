@@ -148,6 +148,69 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert sig_update.temperature == pytest.approx(expected_temperature)
 
 
+def test_set_receiver_volume_updates_latest_state_without_gas_network(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """PhysicsWorker should still update latest tank state and emit signals."""
+
+    worker = _make_worker()
+    worker.gas_network = None
+    caplog.set_level(logging.INFO, logger="test.physics_worker")
+
+    receiver_spec = ReceiverSpec(V_min=0.01, V_max=0.5)
+    receiver_state = ReceiverState(
+        spec=receiver_spec,
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+    pneumo_tank = _StubPneumoTank(0.02)
+    worker.pneumatic_system = SimpleNamespace(
+        receiver=receiver_state,
+        tank=pneumo_tank,
+    )
+
+    new_volume = 0.03
+    expected_pressure = receiver_state.p * ((receiver_state.V / new_volume) ** 1.4)
+    expected_temperature = receiver_state.T * ((receiver_state.V / new_volume) ** 0.4)
+
+    update = worker.set_receiver_volume(new_volume, "geometric")
+
+    assert isinstance(update, ReceiverVolumeUpdate)
+    assert update.pressure == pytest.approx(expected_pressure)
+    assert update.temperature == pytest.approx(expected_temperature)
+
+    latest_state = worker._latest_tank_state
+    assert latest_state.volume == pytest.approx(new_volume)
+    assert latest_state.pressure == pytest.approx(expected_pressure)
+    assert latest_state.temperature == pytest.approx(expected_temperature)
+
+    log_record = next(
+        (
+            record
+            for record in caplog.records
+            if "Receiver volume updated" in record.message
+        ),
+        None,
+    )
+    assert log_record is not None, "Receiver volume update log entry is missing"
+    assert log_record.tank_pressure_pa == pytest.approx(expected_pressure)
+    assert log_record.tank_temperature_k == pytest.approx(expected_temperature)
+    assert log_record.pneumatic_tank_volume_m3 == pytest.approx(new_volume)
+    assert log_record.receiver_pressure_pa == pytest.approx(expected_pressure)
+    assert log_record.receiver_temperature_k == pytest.approx(expected_temperature)
+
+    signal_emissions = worker.receiver_volume_changed.emitted
+    assert signal_emissions, "Receiver volume changed signal must fire"
+    sig_volume, sig_mode, sig_update = signal_emissions[-1]
+    assert sig_volume == pytest.approx(new_volume)
+    assert sig_mode == ReceiverVolumeMode.ADIABATIC_RECALC.value
+    assert isinstance(sig_update, ReceiverVolumeUpdate)
+    assert sig_update.pressure == pytest.approx(expected_pressure)
+    assert sig_update.temperature == pytest.approx(expected_temperature)
+
+
 def test_receiver_state_set_volume_returns_updated_state() -> None:
     spec = ReceiverSpec(V_min=0.01, V_max=0.5)
     state = ReceiverState(
