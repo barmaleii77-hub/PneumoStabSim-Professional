@@ -43,6 +43,11 @@ Item {
      */
     property real animationSpeed: NaN
 
+    /** Lower bound used to normalise pressure colours. */
+    property real minPressure: NaN
+    /** Upper bound used to normalise pressure colours. */
+    property real maxPressure: NaN
+
     /** Absolute line pressure (Па). */
     property real linePressure: NaN
 
@@ -51,6 +56,8 @@ Item {
 
     /** Normalised pressure ratio [0, 1] used for colour blending. */
     property real pressureRatio: 0.0
+    /** Derived pressure ratio computed from line/reference pressure when possible. */
+    readonly property real effectivePressureRatio: _effectivePressureRatio()
 
     /** Highlight phase accumulator, driven by the animation. */
     property real phase: 0.0
@@ -83,11 +90,7 @@ Item {
     readonly property real _clampedPressureRatio: {
         var numeric = Number(pressureRatio)
         if (!Number.isFinite(numeric))
-            numeric = 0.0
-        if (numeric < 0.0)
-            numeric = 0.0
-        if (numeric > 1.0)
-            numeric = 1.0
+            numeric = NaN
         return numeric
     }
 
@@ -126,6 +129,28 @@ Item {
         )
     }
 
+    function _effectivePressureRatio() {
+        var normalized = _clampedPressureRatio
+        var hasOverride = Number.isFinite(normalized)
+        if (!hasOverride) {
+            var minP = Number(minPressure)
+            var maxP = Number(maxPressure)
+            var lineP = Number(linePressure)
+            if (Number.isFinite(minP) && Number.isFinite(maxP) && maxP > minP && Number.isFinite(lineP)) {
+                normalized = (lineP - minP) / (maxP - minP)
+                if (!Number.isFinite(normalized))
+                    normalized = 0.0
+                if (normalized < 0.0)
+                    normalized = 0.0
+                else if (normalized > 1.0)
+                    normalized = 1.0
+            } else {
+                normalized = 0.0
+            }
+        }
+        return normalized
+    }
+
     function _colorToCss(color) {
         return "rgba(" + Math.round(color.r * 255) + ", "
             + Math.round(color.g * 255) + ", " + Math.round(color.b * 255) + ", "
@@ -133,7 +158,7 @@ Item {
     }
 
     function _gradientColors() {
-        var ratio = _clampedPressureRatio
+        var ratio = effectivePressureRatio
         var intakeStart = Qt.rgba(0.16, 0.44, 0.9, 0.55)
         var intakeEnd = Qt.rgba(0.35, 0.82, 1.0, 0.9)
         var exhaustStart = Qt.rgba(0.88, 0.36, 0.28, 0.55)
@@ -319,6 +344,8 @@ Item {
         function onPressureRatioChanged() { arrowCanvas.requestPaint() }
         function onLinePressureChanged() { arrowCanvas.requestPaint() }
         function onReferencePressureChanged() { arrowCanvas.requestPaint() }
+        function onMinPressureChanged() { arrowCanvas.requestPaint() }
+        function onMaxPressureChanged() { arrowCanvas.requestPaint() }
         function onVisibleChanged() { root._refreshAnimationRunning() }
     }
 

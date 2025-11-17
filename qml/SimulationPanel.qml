@@ -1069,6 +1069,7 @@ Item {
                 atmosphericPressure: root.atmosphericPressure
                 pressure: root.reservoirPressure
                 markers: root.pressureMarkers
+                gradientStops: root.pressureGradientStops
                 linePressures: root.linePressureMap
                 lineValveStates: root.lineValveStateMap
                 lineIntensities: root.lineIntensityMap
@@ -1112,11 +1113,14 @@ Item {
                                     required property var modelData
 
                                     Layout.fillWidth: true
+                                    objectName: "flowArrow-" + (modelData.label || index)
                                     label: modelData.label
                                     direction: modelData.direction
                                     flowValue: modelData.flow
                                     intensity: modelData.intensity
                                     animationSpeed: modelData.animationSpeed
+                                    minPressure: root.minPressure
+                                    maxPressure: root.maxPressure
                                     linePressure: modelData.pressure
                                     referencePressure: root.reservoirPressure
                                     pressureRatio: modelData.pressureRatio
