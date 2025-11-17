@@ -482,3 +482,14 @@ class RoadPanel(QWidget):
             "preset": self.current_preset,
             "has_profile": bool(self.current_csv_path or self.current_preset),
         }
+
+    def get_parameters(self) -> dict:
+        """Return a snapshot of the panel state for testing and syncing."""
+
+        return {
+            "csv_path": self.current_csv_path,
+            "preset": self.current_preset,
+            "has_profile": bool(self.current_csv_path or self.current_preset),
+            "assignment_enabled": self.apply_all_button.isEnabled(),
+            "info": self.info_text.toPlainText(),
+        }

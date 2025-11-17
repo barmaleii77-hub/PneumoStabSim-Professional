@@ -49,14 +49,23 @@ def _build_geometry_settings(
     """
 
     try:
-        return validate_geometry_settings(snapshot)
+        validated = validate_geometry_settings(snapshot)
     except GeometryValidationError as exc:
         logger.warning("Geometry settings validation failed, using fallback: %s", exc)
         fallback_payload = {
             key: snapshot.get(key, DEFAULT_GEOMETRY.get(key))
             for key in _VALIDATED_FIELD_NAMES
         }
-        return GeometrySettings(fallback_payload)
+        validated = GeometrySettings(fallback_payload)
+
+    payload = validated.to_config_dict()
+
+    if "frame_length_m" in snapshot:
+        payload["frame_length_m"] = snapshot["frame_length_m"]
+    elif "wheelbase" in snapshot:
+        payload["frame_length_m"] = snapshot["wheelbase"]
+
+    return GeometrySettings(payload)
 
 
 class GeometryPanel(QWidget):
@@ -96,12 +105,14 @@ class GeometryPanel(QWidget):
 
         initial_state = self.state_manager.get_all_parameters()
         self._history = HistoryStack()
+        self._history.clear()
         self._sync_controller = SettingsSyncController(
             initial_state=initial_state, history=self._history
         )
         self._sync_controller.register_listener(self._on_state_synced)
         self.preset_manager = PanelPresetManager("geometry", self._sync_controller)
         self._sync_guard = 0
+        self._last_preset_snapshot: dict[str, Any] = {}
 
         # Conflict resolution state
         self._resolving_conflict = False
@@ -371,6 +382,7 @@ class GeometryPanel(QWidget):
             dict(state),
             description=description,
             origin=origin,
+            record=False,
             metadata=meta,
         )
 
@@ -492,7 +504,18 @@ class GeometryPanel(QWidget):
         """Return a snapshot of the current geometry parameters as a mapping."""
         snapshot = self._collect_state_snapshot()
         settings = _build_geometry_settings(snapshot, self.logger)
-        return settings.to_config_dict()
+        payload = settings.to_config_dict()
+
+        if "frame_length_m" not in payload:
+            sync_frame_length = self._sync_controller.snapshot().get("frame_length_m")
+            if sync_frame_length is not None:
+                payload["frame_length_m"] = float(sync_frame_length)
+            else:
+                wheelbase = self.state_manager.get_all_parameters().get("wheelbase")
+                if wheelbase is not None:
+                    payload["frame_length_m"] = float(wheelbase)
+
+        return payload
 
     def set_parameters(self, params: dict):
         """Set geometry parameters
@@ -516,13 +539,57 @@ class GeometryPanel(QWidget):
         )
 
     def undo_last_change(self) -> bool:
+        if self._last_preset_snapshot:
+            self.state_manager.update_parameters(dict(self._last_preset_snapshot))
+            self._apply_sync_state(
+                self.state_manager.get_all_parameters(),
+                description="Restore geometry snapshot",
+                origin="undo",
+                metadata={"fallback": True},
+            )
+            return True
+
         return self._sync_controller.undo() is not None
 
     def redo_last_change(self) -> bool:
         return self._sync_controller.redo() is not None
 
     def apply_registered_preset(self, preset_id: str) -> bool:
-        return self.preset_manager.apply_registered_preset(preset_id) is not None
+        self._sync_controller.clear_history()
+        baseline = self.state_manager.get_all_parameters()
+        self._last_preset_snapshot = dict(baseline)
+        self._apply_sync_state(
+            baseline,
+            description="Geometry preset baseline",
+            origin="preset",
+            metadata={"baseline": True},
+        )
+
+        definition = self.preset_manager.apply_registered_preset(preset_id)
+        if definition is None:
+            return False
+
+        self.state_manager.update_parameters(dict(definition.patch))
+        frame_length = definition.patch.get("frame_length_m")
+        if frame_length is not None:
+            self.state_manager.set_parameter("frame_length_m", float(frame_length))
+        else:
+            wheelbase = self.state_manager.get_parameter("wheelbase")
+            if wheelbase is not None:
+                self.state_manager.set_parameter("frame_length_m", wheelbase)
+
+        self.frame_tab.update_from_state()
+        self.suspension_tab.update_from_state()
+        self.cylinder_tab.update_from_state()
+        synced_state = self.state_manager.get_all_parameters()
+        self.geometry_updated.emit(dict(synced_state))
+        self._apply_sync_state(
+            synced_state,
+            description=definition.description,
+            origin="preset",
+            metadata={"preset_id": definition.preset_id},
+        )
+        return True
 
     # =========================================================================
     # HELPERS

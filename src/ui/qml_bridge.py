@@ -289,9 +289,15 @@ class QMLBridge:
         if not params:
             return
 
-        queue: dict[str, dict[str, Any]] = getattr(window, "_qml_update_queue", {})
-        if not queue:
-            window._qml_update_queue = queue
+        queue: dict[str, dict[str, Any]] | None = getattr(
+            window, "_qml_update_queue", None
+        )
+        if queue is None:
+            queue = {}
+            try:
+                setattr(window, "_qml_update_queue", queue)
+            except Exception:  # pragma: no cover - fallback for lightweight stubs
+                pass
 
         target = queue.setdefault(key, {})
         QMLBridge._deep_merge_dicts(target, params)
