@@ -60,6 +60,7 @@ class LeverGeom:
     d_frame_to_lever_hinge: float  # Расстояние от рамы до оси рычага (м)
 
     _cylinder_geom: "CylinderGeom | None" = field(default=None, init=False, repr=False)
+    _attached_geom: "CylinderGeom | None" = field(default=None, init=False, repr=False)
     _neutral_length: float | None = field(default=None, init=False, repr=False)
     _axis_unit: tuple[float, float, float] | None = field(
         default=None, init=False, repr=False
@@ -82,6 +83,12 @@ class LeverGeom:
         """Return the currently attached cylinder geometry if present."""
 
         return self._cylinder_geom
+
+    @property
+    def attached_geom(self) -> "CylinderGeom | None":
+        """Compatibility alias for the attached cylinder geometry."""
+
+        return self._attached_geom
 
     @property
     def neutral_length(self) -> float | None:
@@ -176,6 +183,7 @@ class LeverGeom:
             )
 
         self._cylinder_geom = geometry
+        self._attached_geom = geometry
 
         lever_arm = self.rod_joint_frac * self.L_lever
         tail_point = (0.0, geometry.Y_tail, geometry.Z_axle)
