@@ -135,6 +135,8 @@ class SettingsService:
         self._cache_dict: dict[str, Any] | None = None
         self._cache_model: AppSettings | _LooseAppSettings | None = None
         self._schema_cache: dict[str, Any] | None = None
+        self._schema_mtime: float | None = None
+        self._schema_path_cached: Path | None = None
         self._validator: Any | None = None
         self._unknown_paths: set[str] = set()
         self._last_modified_snapshot: str | None = None
@@ -1033,13 +1035,43 @@ class SettingsService:
 
     def _read_schema(self) -> dict[str, Any]:
         """Read and cache JSON schema."""
-        if self._schema_cache is None:
-            path = self.resolve_schema_path()
-            if not path.exists():
-                raise SettingsValidationError(f"Settings schema not found at '{path}'")
+        path = self.resolve_schema_path()
+
+        try:
+            mtime = path.stat().st_mtime
+        except FileNotFoundError as exc:
+            raise SettingsValidationError(
+                f"Settings schema not found at '{path}'"
+            ) from exc
+
+        cache_fresh = (
+            self._schema_cache is not None
+            and self._schema_path_cached == path
+            and self._schema_mtime == mtime
+        )
+        if cache_fresh:
+            return self._schema_cache  # type: ignore[return-value]
+
+        try:
             with path.open("r", encoding="utf-8") as stream:
-                self._schema_cache = json.load(stream)
-        return self._schema_cache
+                schema_payload = json.load(stream)
+        except json.JSONDecodeError as exc:
+            raise SettingsValidationError(
+                (
+                    "Settings schema at "
+                    f"'{path}' contains invalid JSON: {exc.msg} (line {exc.lineno}, column {exc.colno})"
+                )
+            ) from exc
+        except OSError as exc:
+            raise SettingsValidationError(
+                f"Failed to read settings schema at '{path}': {exc.strerror or exc}"  # type: ignore[arg-type]
+            ) from exc
+
+        self._schema_cache = schema_payload
+        self._schema_mtime = mtime
+        self._schema_path_cached = path
+        self._validator = None
+        return schema_payload
 
     def _get_validator(self) -> Any:
         """Get or create JSON schema validator."""

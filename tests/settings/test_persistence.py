@@ -68,6 +68,27 @@ def test_load_invalid_json_raises_settings_error(tmp_path: Path) -> None:
     assert str(invalid_file) in message
 
 
+def test_invalid_schema_json_is_reported(
+    tmp_path: Path, settings_payload: dict[str, Any]
+) -> None:
+    schema_path = tmp_path / "app_settings.schema.json"
+    schema_path.write_text("{invalid schema json}", encoding="utf-8")
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    service = SettingsService(settings_path=settings_path, schema_path=schema_path)
+
+    with pytest.raises(SettingsValidationError) as exc_info:
+        service.load(use_cache=False)
+
+    message = str(exc_info.value)
+    assert "contains invalid JSON" in message
+    assert str(schema_path) in message
+
+
 @pytest.fixture()
 def event_bus_override() -> EventBus:
     """Provide an isolated :class:`EventBus` override for published events."""
@@ -99,6 +120,43 @@ def test_load_uses_cache_until_explicit_reload(settings_file: Path) -> None:
 
     refreshed = dump_settings(service.load(use_cache=False))
     assert refreshed["metadata"]["version"] == "9.9.9"
+
+
+def test_schema_reload_is_triggered_on_change(
+    tmp_path: Path, settings_payload: dict[str, Any]
+) -> None:
+    schema_path = tmp_path / "app_settings.schema.json"
+    schema_payload = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    schema_path.write_text(
+        json.dumps(schema_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    service = SettingsService(settings_path=settings_path, schema_path=schema_path)
+
+    # Initial validation should succeed using the baseline schema copy.
+    service.load(use_cache=False)
+
+    mutated_schema = deepcopy(schema_payload)
+    metadata_schema: dict[str, Any] = mutated_schema.get("properties", {}).get(
+        "metadata", {}
+    )
+    metadata_schema.setdefault("properties", {})["extra_check"] = {"type": "string"}
+    metadata_schema.setdefault("required", []).append("extra_check")
+    mutated_schema.setdefault("properties", {})["metadata"] = metadata_schema
+
+    schema_path.write_text(
+        json.dumps(mutated_schema, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    with pytest.raises(SettingsValidationError) as exc_info:
+        service.load(use_cache=False)
+
+    assert "extra_check" in str(exc_info.value)
 
 
 def test_load_does_not_modify_file(settings_file: Path) -> None:

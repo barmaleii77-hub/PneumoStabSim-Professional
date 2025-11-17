@@ -107,6 +107,18 @@ def test_depth_texture_activator_skips_legacy_properties(
     assert "legacy property skipped" in depth_texture_source
 
 
+def test_depth_texture_activator_short_circuits_legacy_checks(
+    depth_texture_source: str,
+) -> None:
+    has_property_start = depth_texture_source.index("function _hasProperty")
+    try_set_property_start = depth_texture_source.index(
+        "function _trySetProperty", has_property_start
+    )
+    has_property_block = depth_texture_source[has_property_start:try_set_property_start]
+
+    assert "_legacyDepthProperties.indexOf(propertyName) !== -1" in has_property_block
+
+
 def test_depth_texture_activator_avoids_removed_qt_properties(
     depth_texture_source: str,
 ) -> None:
