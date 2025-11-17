@@ -52,6 +52,21 @@ jobs:
           QT_VERSION: ${{ env.QT_VERSION }}
         run: bash ./scripts/setup_linux.sh --qt-version ${{ env.QT_VERSION }} --skip-qt
 
+      - name: Ensure Linux PySide6 runtime
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          QT_PREFIX=${QT_VERSION%.*}
+          uv pip install --upgrade --no-cache-dir \
+            "PySide6==${QT_PREFIX}.*" \
+            "PySide6-Addons==${QT_PREFIX}.*" \
+            "PySide6-Essentials==${QT_PREFIX}.*" \
+            "shiboken6==${QT_PREFIX}.*" \
+            "PyOpenGL==3.1.10" \
+            "PyOpenGL-accelerate==3.1.10" \
+            numpy pytest-qt
+
       - name: Bootstrap Windows environment
         if: runner.os == 'Windows'
         shell: pwsh
@@ -125,6 +140,12 @@ jobs:
             echo "- QT_PLUGIN_PATH=${QT_PLUGIN_PATH:-n/a}";
             echo "- QML2_IMPORT_PATH=${QML2_IMPORT_PATH:-n/a}";
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run final readiness test (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: bash scripts/xvfb_wrapper.sh uv run python final_readiness_test.py
 
       - name: Run make full_verify (Linux)
         if: runner.os == 'Linux'
