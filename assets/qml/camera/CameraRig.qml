@@ -92,8 +92,8 @@ Node {
     // POSITION & ROTATION (bind to CameraState)
     // ===============================================================
 
-    position: toSceneVector(cameraState.pivot)
-    eulerRotation: Qt.vector3d(cameraState.pitchDeg, cameraState.yawDeg, 0)
+    position: toSceneVector(cameraRig.cameraState.pivot)
+    eulerRotation: Qt.vector3d(cameraRig.cameraState.pitchDeg, cameraRig.cameraState.yawDeg, 0)
 
     // ===============================================================
     // PAN NODE (local camera offset)
@@ -103,8 +103,8 @@ Node {
         id: localPanNode
 
         position: Qt.vector3d(
-            toSceneLength(cameraState.panX),
-            toSceneLength(cameraState.panY),
+            cameraRig.toSceneLength(cameraRig.cameraState.panX),
+            cameraRig.toSceneLength(cameraRig.cameraState.panY),
             0
         )
 
@@ -119,13 +119,13 @@ Node {
             position: Qt.vector3d(
                 0,
                 0,
-                Math.max(0.0001, toSceneLength(cameraState.distance))
+                Math.max(0.0001, cameraRig.toSceneLength(cameraRig.cameraState.distance))
             )
 
             // Camera properties (bind to CameraState)
-            fieldOfView: cameraState.fov
-            clipNear: Math.max(0.0001, toSceneLength(cameraState.nearPlane))
-            clipFar: Math.max(0.1, toSceneLength(cameraState.farPlane))
+            fieldOfView: cameraRig.cameraState.fov
+            clipNear: Math.max(0.0001, cameraRig.toSceneLength(cameraRig.cameraState.nearPlane))
+            clipFar: Math.max(0.1, cameraRig.toSceneLength(cameraRig.cameraState.farPlane))
 
             // ===============================================================
             // CAMERA INFO (for debugging)
