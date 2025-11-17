@@ -1031,3 +1031,17 @@ class EnvironmentTab(QWidget):
             label = Path(path).name if path else "—"
             widget.setText(label or "—")
             widget.setToolTip(path or "")
+
+    def _on_hdr_source_changed(self, path: str) -> None:
+        """Handle HDR selection updates and keep status/normalisation in sync."""
+
+        normalized = self._normalize_hdr_path(path)
+        try:
+            selector = self._require_control("ibl.file")
+        except KeyError:
+            selector = None
+
+        if isinstance(selector, FileCyclerWidget):
+            selector.set_current_data(normalized, emit=False)
+        self._refresh_hdr_status(normalized)
+        self._on_control_changed("ibl_source", normalized)

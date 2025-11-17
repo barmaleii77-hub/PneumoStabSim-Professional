@@ -209,6 +209,42 @@ def relief_valve_reference():
     )
 
 
+@pytest.fixture
+def training_preset_bridge(settings_manager):
+    """Provide a TrainingPresetBridge instance for UI and simulation tests."""
+
+    from src.ui.bridge import TrainingPresetBridge
+
+    bridge = TrainingPresetBridge(settings_manager=settings_manager)
+    yield bridge
+    try:
+        bridge.deleteLater()
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def simulation_harness():
+    """Lightweight simulation harness stub used by preset bridge tests."""
+
+    def _run(runtime_ms: int = 0) -> dict[str, float | int]:
+        duration = max(0, int(runtime_ms))
+        steps = max(1, duration // 2 or 1)
+        return {
+            "duration_ms": duration,
+            "runtime_ms": duration,
+            "steps": steps,
+            "avg_step_time_ms": 0.5,
+            "fps_actual": 60.0,
+            "realtime_factor": 1.0,
+            "frames_dropped": 0,
+            "integration_failures": 0,
+            "efficiency": 0.99,
+        }
+
+    return _run
+
+
 # Enhanced qtbot fallback implementing required methods used by tests
 @pytest.fixture
 def qtbot(qapp):
