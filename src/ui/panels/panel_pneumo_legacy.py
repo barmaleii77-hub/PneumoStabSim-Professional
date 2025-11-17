@@ -24,7 +24,8 @@ from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import Knob
-from .state_manager import PneumoStateManager
+# Исправлено: менеджер состояния расположен в подпакете pneumo
+from .pneumo.state_manager import PneumoStateManager
 from src.common.settings_manager import get_settings_manager
 
 
