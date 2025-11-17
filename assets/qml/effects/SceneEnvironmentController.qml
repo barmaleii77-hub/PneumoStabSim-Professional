@@ -851,7 +851,7 @@ ExtendedSceneEnvironment {
 
     Component.onCompleted: {
         root._runStartupSynchronization()
-        Qt.callLater(root._updateBufferRequirements)
+        Qt.callLater(_updateBufferRequirements)
     }
 
     function toSceneLength(value) {
