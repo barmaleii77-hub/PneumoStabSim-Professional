@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -60,4 +61,48 @@ def test_settings_service_migrates_real_legacy_payload(tmp_path: Path) -> None:
     assert defaults_geometry["lever_length_m"] == pytest.approx(0.55)
     assert defaults_geometry["lever_length"] == pytest.approx(0.55)
 
-    assert payload["legacy"] == {"unused": True}
+    assert payload.get("legacy") is None
+    assert payload["metadata"].get("legacy_snapshot") == {"unused": True}
+
+
+def test_settings_service_restores_environment_ranges_from_metadata(
+    tmp_path: Path,
+) -> None:
+    """Environment slider ranges from metadata should populate current graphics."""
+
+    baseline = json.loads(LEGACY_SETTINGS.read_text(encoding="utf-8"))
+
+    # Remove any baked-in ranges to force the migration path
+    graphics_current = baseline.setdefault("current", {}).setdefault("graphics", {})
+    graphics_current.pop("environment_ranges", None)
+    defaults_graphics = baseline.setdefault("defaults_snapshot", {}).setdefault(
+        "graphics", {}
+    )
+    defaults_graphics.pop("environment_ranges", None)
+
+    # Legacy metadata shape still respected by migration helpers
+    baseline.setdefault("metadata", {})["environment_slider_ranges"] = {
+        "ibl_intensity": {"min": 0.25, "max": 9.5, "step": 0.25, "decimals": 2},
+        "ibl_rotation": {"min": -720.0, "max": 720.0, "step": 90.0},
+    }
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    service = SettingsService(settings_path=settings_path, schema_path=SCHEMA_PATH)
+
+    payload = dump_settings(service.load())
+
+    ranges = payload["current"]["graphics"]["environment_ranges"]
+    assert ranges["ibl_intensity"]["min"] == pytest.approx(0.25)
+    assert ranges["ibl_intensity"]["max"] == pytest.approx(9.5)
+    assert ranges["ibl_intensity"]["step"] == pytest.approx(0.25)
+    assert ranges["ibl_intensity"].get("decimals") == 2
+
+    assert ranges["ibl_rotation"]["min"] == pytest.approx(-720.0)
+    assert ranges["ibl_rotation"]["max"] == pytest.approx(720.0)
+    assert ranges["ibl_rotation"]["step"] == pytest.approx(90.0)
+    assert payload.get("legacy") is None
+    assert payload["metadata"].get("legacy_snapshot") == {"unused": True}

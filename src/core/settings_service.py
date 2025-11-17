@@ -10,6 +10,7 @@ from __future__ import annotations
 # Стандартные импорты
 import json
 import logging
+import math
 import os
 import re
 from copy import deepcopy
@@ -52,6 +53,74 @@ LEGACY_GEOMETRY_MESH_EXTRAS: set[str] = {
 # Дополнительные разрешённые легаси‑ключи геометрии, которые больше не описаны в схеме,
 # но всё ещё могут встречаться в старых app_settings.json и тестовых фикстурах.
 LEGACY_GEOMETRY_ALLOWED_KEYS: set[str] = {"max_susp_travel_m", "max_susp_travel"}
+GEOMETRY_KEY_ALIASES: dict[str, str] = {
+    "frame_length_mm": "frame_length_m",
+    "frame_length": "frame_length_m",
+    "frame_height_mm": "frame_height_m",
+    "frame_height": "frame_height_m",
+    "frame_beam_size_mm": "frame_beam_size_m",
+    "frame_beam_size": "frame_beam_size_m",
+    "lever_length_mm": "lever_length_m",
+    "lever_length_visual_mm": "lever_length_m",
+    "lever_length_visual": "lever_length_m",
+    "cylinder_body_length_mm": "cylinder_body_length_m",
+    "cylinder_body_length": "cylinder_body_length_m",
+    "tail_rod_length_mm": "tail_rod_length_m",
+    "tail_rod_length": "tail_rod_length_m",
+    "track_width_mm": "track",
+    "track_width": "track",
+    "frame_to_pivot_mm": "frame_to_pivot",
+    "cyl_diam_mm": "cyl_diam_m",
+    "cyl_diam": "cyl_diam_m",
+    "stroke_mm": "stroke_m",
+    "stroke": "stroke_m",
+    "dead_gap_mm": "dead_gap_m",
+    "dead_gap": "dead_gap_m",
+    "rod_diameter_front_mm": "rod_diameter_m",
+    "rod_diameter_rear_mm": "rod_diameter_rear_m",
+    "rod_diameter_rear": "rod_diameter_rear_m",
+    "rod_diameter_mm": "rod_diameter_m",
+    "rod_diameter": "rod_diameter_m",
+    "piston_rod_length_mm": "piston_rod_length_m",
+    "piston_rod_length": "piston_rod_length_m",
+    "piston_thickness_mm": "piston_thickness_m",
+    "piston_thickness": "piston_thickness_m",
+    "wheelbase_mm": "wheelbase",
+    "wheel_base_mm": "wheelbase",
+    "wheel_base": "wheelbase",
+}
+GEOMETRY_LINEAR_KEYS: dict[str, None] = {
+    "frame_beam_size_m": None,
+    "frame_length_m": None,
+    "lever_length_m": None,
+    "cyl_diam_m": None,
+    "stroke_m": None,
+    "dead_gap_m": None,
+    "rod_diameter_m": None,
+    "rod_diameter_rear_m": None,
+    "piston_rod_length_m": None,
+    "piston_thickness_m": None,
+    "cylinder_body_length_m": None,
+    "tail_rod_length_m": None,
+}
+GEOMETRY_MIRROR_KEYS: dict[str, str] = {"lever_length": "lever_length_m"}
+
+# Allow legacy millimetre-era keys so migration can normalise them safely
+LEGACY_GEOMETRY_ALLOWED_KEYS |= set(GEOMETRY_KEY_ALIASES.keys())
+
+
+def _scale_mm_value(value: Any) -> tuple[Any, bool]:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return value, False
+
+    if math.isclose(numeric, 0.0):
+        return numeric, False
+    if abs(numeric) < 10.0:
+        return numeric, False
+
+    return numeric / 1000.0, True
 
 
 class _RelaxedAppSettings(AppSettings):
@@ -469,7 +538,8 @@ class SettingsService:
                 geometry["lever_length"] = (
                     float(lever_m_value) if lever_m_value is not None else 0.0
                 )
-            geometry.pop("lever_length_m", None)
+            if "lever_length" in geometry and "lever_length_m" not in geometry:
+                geometry["lever_length_m"] = geometry["lever_length"]
             # Новая миграция: max_susp_travel_m → max_susp_travel
             if "max_susp_travel" not in geometry and "max_susp_travel_m" in geometry:
                 max_travel_value = geometry.get("max_susp_travel_m")
@@ -477,6 +547,42 @@ class SettingsService:
                     float(max_travel_value) if max_travel_value is not None else 0.0
                 )
             geometry.pop("max_susp_travel_m", None)
+
+        def _convert_geometry_units(section: MutableMapping[str, Any]) -> None:
+            geometry = section.get("geometry")
+            if not isinstance(geometry, MutableMapping):
+                return
+
+            original_keys = set(geometry.keys())
+
+            for src, dst in GEOMETRY_KEY_ALIASES.items():
+                if src not in geometry:
+                    continue
+                if dst not in geometry:
+                    geometry[dst] = deepcopy(geometry[src])
+                if src != dst:
+                    geometry.pop(src, None)
+
+            for key in GEOMETRY_LINEAR_KEYS:
+                if key not in geometry:
+                    continue
+                try:
+                    numeric = float(geometry[key])
+                except (TypeError, ValueError):
+                    continue
+                aliases = [
+                    src for src, dst in GEOMETRY_KEY_ALIASES.items() if dst == key
+                ]
+                if any(src in original_keys and src.endswith("_mm") for src in aliases):
+                    scaled, did_convert = _scale_mm_value(numeric)
+                    if did_convert:
+                        geometry[key] = scaled
+
+            for src, mirror in GEOMETRY_MIRROR_KEYS.items():
+                if src in geometry and mirror not in geometry:
+                    geometry[mirror] = deepcopy(geometry[src])
+                elif mirror in geometry and src not in geometry:
+                    geometry[src] = deepcopy(geometry[mirror])
 
         def _prune_legacy_geometry_mesh(section: MutableMapping[str, Any]) -> None:
             geometry = section.get("geometry")
@@ -580,10 +686,134 @@ class SettingsService:
             if new_ranges:
                 curr_graphics["environment_ranges"] = new_ranges
 
+        def _ensure_materials_section(
+            target: MutableMapping[str, Any],
+            fallback: MutableMapping[str, Any] | None = None,
+        ) -> None:
+            graphics = target.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+            materials = graphics.get("materials")
+            if isinstance(materials, MutableMapping):
+                return
+            source_materials: MutableMapping[str, Any] | None = None
+            if isinstance(fallback, MutableMapping):
+                fb_graphics = fallback.get("graphics")
+                if isinstance(fb_graphics, MutableMapping):
+                    src = fb_graphics.get("materials")
+                    if isinstance(src, MutableMapping):
+                        source_materials = src
+            if source_materials:
+                materials = {k: deepcopy(v) for k, v in source_materials.items()}
+                for name, entry in materials.items():
+                    if isinstance(entry, MutableMapping) and "id" not in entry:
+                        entry["id"] = name
+                graphics["materials"] = materials
+            else:
+                graphics["materials"] = {
+                    name: {"id": name} for name in DEFAULT_REQUIRED_MATERIALS
+                }
+
+        def _normalize_environment(section: MutableMapping[str, Any]) -> None:
+            graphics = section.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+            environment = graphics.get("environment")
+            if not isinstance(environment, MutableMapping):
+                return
+
+            def _canonical_path(value: str) -> str:
+                if len(value) >= 2 and value[1] == ":":
+                    return value.replace("\\", "/").lower()
+                if len(value) >= 2 and value[1] == "/" and value[0].isalpha():
+                    return f"{value[0].lower()}:{value[1:].lower()}"
+                return value.replace("\\", "/")
+
+            if (
+                "skybox_brightness" not in environment
+                and "probeBrightness" in environment
+            ):
+                environment["skybox_brightness"] = environment.pop("probeBrightness")
+            if (
+                "skybox_brightness" not in environment
+                and "probe_brightness" in environment
+            ):
+                environment["skybox_brightness"] = environment.pop("probe_brightness")
+            if "ibl_source" not in environment and "iblSource" in environment:
+                raw = str(environment.pop("iblSource"))
+                raw_posix = raw.replace("\\", "/")
+                project_name = Path(__file__).resolve().parents[2].name.lower()
+                lower_raw = raw_posix.lower()
+                marker = project_name + "/"
+                if marker in lower_raw:
+                    suffix = raw_posix[lower_raw.index(marker) + len(marker) :]
+                    environment["ibl_source"] = _canonical_path(suffix)
+                else:
+                    resolved = Path(raw_posix).resolve(strict=False)
+                    project_root = Path(__file__).resolve().parents[2]
+                    try:
+                        relative = resolved.relative_to(project_root).as_posix()
+                        environment["ibl_source"] = _canonical_path(relative)
+                    except Exception:
+                        environment["ibl_source"] = _canonical_path(resolved.as_posix())
+
+        def _normalize_effects(section: MutableMapping[str, Any]) -> None:
+            graphics = section.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+            effects = graphics.get("effects")
+            if not isinstance(effects, MutableMapping):
+                return
+            mapping = {
+                "tonemapActive": "tonemap_enabled",
+                "tonemapenabled": "tonemap_enabled",
+                "bloomHDRMaximum": "bloom_hdr_max",
+                "colorBrightness": "adjustment_brightness",
+                "motionBlurEnabled": "motion_blur",
+            }
+            for src, dst in mapping.items():
+                if dst not in effects and src in effects:
+                    effects[dst] = effects[src]
+                effects.pop(src, None)
+
+        def _normalize_camera(section: MutableMapping[str, Any]) -> None:
+            graphics = section.get("graphics")
+            if not isinstance(graphics, MutableMapping):
+                return
+            camera = graphics.get("camera")
+            if not isinstance(camera, MutableMapping):
+                return
+            if "manual_camera" not in camera and "manualMode" in camera:
+                camera["manual_camera"] = camera["manualMode"]
+            camera.pop("manualMode", None)
+
         # Sections: current / defaults_snapshot
         current = _ensure_dict(payload, "current")
         defaults = _ensure_dict(payload, "defaults_snapshot")
         metadata = _ensure_dict(payload, "metadata")
+
+        legacy_block = payload.pop("legacy", None)
+        if legacy_block:
+            metadata.setdefault("legacy_snapshot", legacy_block)
+
+        # Normalise units version for legacy payloads. Если поле отсутствует,
+        # даём схеме возможность отлавливать ошибку (см. unit-тесты), но
+        # нормализуем устаревшие значения.
+        units_version_raw = metadata.get("units_version", _MISSING)
+        if units_version_raw is not _MISSING:
+            units_version = str(units_version_raw).strip() or "legacy"
+            if units_version != "si_v2":
+                metadata["units_version"] = "si_v2"
+
+        # 0) Promote legacy geometry aliases and millimetre values
+        _convert_geometry_units(current)
+        _convert_geometry_units(defaults)
+        _normalize_environment(current)
+        _normalize_environment(defaults)
+        _normalize_effects(current)
+        _normalize_effects(defaults)
+        _normalize_camera(current)
+        _normalize_camera(defaults)
 
         # 1) Reflection probe unification
         _migrate_reflection(current)
@@ -605,6 +835,8 @@ class SettingsService:
 
         # 6) Ensure current.graphics.environment_ranges exists
         _ensure_current_environment_ranges(metadata, current, defaults)
+        _ensure_materials_section(current, defaults)
+        _ensure_materials_section(defaults, current)
 
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None
