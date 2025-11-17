@@ -187,7 +187,9 @@ def test_assemble_forces_uses_settings_for_suspension(
     # Configure distinctive suspension parameters to verify they are applied.
     override = json.loads(json.dumps(original_settings))
     # Ensure nested keys exist without changing repository config
-    override.setdefault("current", {}).setdefault("physics", {}).setdefault("suspension", {})
+    override.setdefault("current", {}).setdefault("physics", {}).setdefault(
+        "suspension", {}
+    )
     override["current"]["physics"]["suspension"]["spring_constant"] = 1234.0
     override["current"]["physics"]["suspension"]["damper_coefficient"] = 56.0
 

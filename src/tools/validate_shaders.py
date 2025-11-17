@@ -560,7 +560,11 @@ def _wrap_python_qsb_if_needed(command: Sequence[str]) -> list[str]:
 
     # If file already declares encoding, keep original
     head = data.splitlines()[:2]
-    if any(line.strip().startswith(b"# -*- coding:") or line.strip().startswith(b"# coding=") for line in head):
+    if any(
+        line.strip().startswith(b"# -*- coding:")
+        or line.strip().startswith(b"# coding=")
+        for line in head
+    ):
         return cmd
 
     enc = locale.getpreferredencoding(False) or "cp1252"

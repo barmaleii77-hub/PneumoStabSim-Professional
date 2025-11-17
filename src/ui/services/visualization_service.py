@@ -222,7 +222,9 @@ class VisualizationService(VisualizationServiceProtocol):
             # - значения с «заглушками» из app_settings (|z| >= 99) → 0.5
             # - положительные значения остаются без изменений
             try:
-                pivot = telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
+                pivot = (
+                    telemetry.get("pivot") if isinstance(telemetry, Mapping) else None
+                )
                 if isinstance(pivot, Mapping):
                     z_val = pivot.get("z")
                     new_z: float

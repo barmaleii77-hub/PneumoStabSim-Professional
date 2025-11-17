@@ -35,7 +35,9 @@ def _log(message: str) -> None:
         log.write(f"{message}\n")
 
 
-def _stream_command(command: Sequence[str], *, env: dict[str, str] | None = None) -> None:
+def _stream_command(
+    command: Sequence[str], *, env: dict[str, str] | None = None
+) -> None:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with REPORT_PATH.open("a", encoding="utf-8") as log:
         log.write(f"$ {' '.join(command)}\n")

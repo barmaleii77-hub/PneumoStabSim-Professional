@@ -18,12 +18,18 @@ from typing import Any
 
 def _lazy_import_builders() -> tuple[Any, Any]:
     try:
-        from src.ui.panels.graphics.defaults import build_defaults, build_quality_presets  # type: ignore
+        from src.ui.panels.graphics.defaults import (
+            build_defaults,
+            build_quality_presets,
+        )  # type: ignore
     except Exception:
+
         def _empty_defaults() -> dict[str, Any]:
             return {}
+
         def _empty_presets() -> dict[str, Any]:
             return {}
+
         return _empty_defaults, _empty_presets
     return build_defaults, build_quality_presets
 
@@ -83,9 +89,20 @@ def migrate_defaults_to_json(settings_path: Path, *, dry_run: bool) -> dict[str,
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Миграция defaults.py → app_settings.json")
-    parser.add_argument("--output", type=Path, default=Path("config/app_settings.json"), help="Путь для файла настроек")
-    parser.add_argument("--dry-run", action="store_true", help="Не записывать на диск, только показать статистику")
+    parser = argparse.ArgumentParser(
+        description="Миграция defaults.py → app_settings.json"
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("config/app_settings.json"),
+        help="Путь для файла настроек",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Не записывать на диск, только показать статистику",
+    )
     return parser
 
 
@@ -105,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         print("[dry-run] Изменения НЕ сохранены.")
     else:
         size = args.output.stat().st_size
-        print(f"Размер файла: {size:,} байт ({size/1024:.1f} KB)")
+        print(f"Размер файла: {size:,} байт ({size / 1024:.1f} KB)")
     return 0
 
 
@@ -115,5 +132,6 @@ if __name__ == "__main__":  # pragma: no cover
     except Exception as e:  # pragma: no cover
         print(f"\n❌ ОШИБКА: {e}")
         import traceback
+
         traceback.print_exc()
         raise SystemExit(1)

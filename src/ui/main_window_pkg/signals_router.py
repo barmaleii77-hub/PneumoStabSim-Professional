@@ -1417,7 +1417,11 @@ class SignalsRouter:
         if thermo_mode:
             modes_updates["thermo_mode"] = str(thermo_mode)
 
-        for optional_key in ("road_profile", "custom_profile_path", "check_interference"):
+        for optional_key in (
+            "road_profile",
+            "custom_profile_path",
+            "check_interference",
+        ):
             if optional_key in preset:
                 modes_updates[optional_key] = preset.get(optional_key)
 
@@ -1462,7 +1466,9 @@ class SignalsRouter:
             value = normalise_mode_value(mode_key, new_mode)
             if not value:
                 SignalsRouter.logger.debug(
-                    "Ignored unsupported mode value: type=%s value=%s", mode_type, new_mode
+                    "Ignored unsupported mode value: type=%s value=%s",
+                    mode_type,
+                    new_mode,
                 )
                 return
 

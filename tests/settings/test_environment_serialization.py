@@ -57,5 +57,7 @@ def test_environment_slider_ranges_round_trip_preserves_depth_controls() -> None
 
     for alias in ("fog_depth_near", "fog_depth_far", "fog_depth_curve"):
         assert alias in serialised_metadata
-        model_entry = getattr(slider_model, alias).model_dump(mode="python", round_trip=True, exclude_none=True)
+        model_entry = getattr(slider_model, alias).model_dump(
+            mode="python", round_trip=True, exclude_none=True
+        )
         assert serialised_metadata[alias] == model_entry

@@ -447,8 +447,13 @@ class UISetup:
             for key in _SCENE_REQUIRED_KEYS:
                 value = payload.get(key)
                 normalised_value: Any | None = None
+                used_fallback = False
 
-                if key in _SCENE_FLOAT_KEYS and isinstance(value, (int, float)) and not isinstance(value, bool):
+                if (
+                    key in _SCENE_FLOAT_KEYS
+                    and isinstance(value, (int, float))
+                    and not isinstance(value, bool)
+                ):
                     normalised_value = float(value)
                 elif key.endswith("_color"):
                     normalised_value = _coerce_scene_color(value)
@@ -461,18 +466,23 @@ class UISetup:
                                 candidate, bool
                             ):
                                 normalised_value = float(candidate)
+                                used_fallback = True
                                 break
                         elif key.endswith("_color"):
                             candidate_color = _coerce_scene_color(candidate)
                             if candidate_color:
                                 normalised_value = candidate_color
+                                used_fallback = True
                                 break
                         elif candidate is not None:
                             normalised_value = candidate
+                            used_fallback = True
                             break
 
                 if normalised_value is None:
                     normalised_value = _SCENE_DEFAULTS.get(key)
+                    missing_keys.append(key)
+                elif used_fallback:
                     missing_keys.append(key)
 
                 normalised[key] = normalised_value
@@ -844,10 +854,16 @@ class UISetup:
             # На Windows принудительно используем Direct3D 11 для Qt Quick (устранение пустого канваса)
             try:
                 if os.name == "nt":
-                    QQuickWindow.setGraphicsApi(QSGRendererInterface.GraphicsApi.Direct3D11)
-                    UISetup.logger.info("    [QML] Forcing GraphicsApi=Direct3D11 on Windows")
+                    QQuickWindow.setGraphicsApi(
+                        QSGRendererInterface.GraphicsApi.Direct3D11
+                    )
+                    UISetup.logger.info(
+                        "    [QML] Forcing GraphicsApi=Direct3D11 on Windows"
+                    )
             except Exception as force_exc:
-                UISetup.logger.debug("    ⚠️ Unable to force D3D11 GraphicsApi: %s", force_exc)
+                UISetup.logger.debug(
+                    "    ⚠️ Unable to force D3D11 GraphicsApi: %s", force_exc
+                )
 
             # Используем QQuickView вместо QQuickWidget для стабильного Qt Quick 3D
             quick_view = QQuickView()
@@ -859,7 +875,10 @@ class UISetup:
             context.setContextProperty("window", window)
             # Импорт пути, как и ранее
             from PySide6.QtCore import QLibraryInfo
-            qml_import_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
+
+            qml_import_path = QLibraryInfo.path(
+                QLibraryInfo.LibraryPath.Qml2ImportsPath
+            )
             engine.addImportPath(str(qml_import_path))
             engine.addImportPath(QML_RELATIVE_ROOT.as_posix())
             if QML_ABSOLUTE_ROOT.exists():
@@ -875,7 +894,9 @@ class UISetup:
             status = quick_view.status()
             if status == QQuickView.Error:
                 errors = quick_view.errors()
-                UISetup.logger.error("    ❌ QML status=Error: %s", UISetup._format_qml_errors(errors))
+                UISetup.logger.error(
+                    "    ❌ QML status=Error: %s", UISetup._format_qml_errors(errors)
+                )
                 raise RuntimeError("QML load failed")
 
             # Контейнер для встраивания в QWidget layout
@@ -901,7 +922,10 @@ class UISetup:
                 engine_paths = [str(p) for p in engine.importPathList()]  # type: ignore[attr-defined]
                 UISetup.logger.info("    [QML] Engine import paths: %s", engine_paths)
                 if quick_view.status() == QQuickView.Error:
-                    UISetup.logger.error("    ❌ QML status=Error: %s", UISetup._format_qml_errors(quick_view.errors()))
+                    UISetup.logger.error(
+                        "    ❌ QML status=Error: %s",
+                        UISetup._format_qml_errors(quick_view.errors()),
+                    )
             except Exception:
                 pass
 
@@ -1047,11 +1071,16 @@ class UISetup:
                 status_now = quick_view.status()
                 if status_now == QQuickView.Error:
                     errors = quick_view.errors()
-                    UISetup.logger.error("    ❌ QML status=Error: %s", UISetup._format_qml_errors(errors))
+                    UISetup.logger.error(
+                        "    ❌ QML status=Error: %s",
+                        UISetup._format_qml_errors(errors),
+                    )
                 engine_paths = [str(p) for p in engine.importPathList()]  # type: ignore[attr-defined]
                 UISetup.logger.info("    [QML] Engine import paths: %s", engine_paths)
             except Exception as diag_exc:
-                UISetup.logger.debug("    ⚠️ Unable to dump QML diagnostics: %s", diag_exc)
+                UISetup.logger.debug(
+                    "    ⚠️ Unable to dump QML diagnostics: %s", diag_exc
+                )
 
             # Check status
             status = quick_view.status()

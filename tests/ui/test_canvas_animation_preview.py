@@ -40,7 +40,11 @@ def _normalise_angle_delta(start: float, end: float) -> float:
 
 def _resolve_hold_seconds() -> float:
     default_hold = 0.0
-    if sys.platform.startswith("win") and not os.environ.get("CI") and not headless_requested():
+    if (
+        sys.platform.startswith("win")
+        and not os.environ.get("CI")
+        and not headless_requested()
+    ):
         default_hold = 2.0
     return float(os.environ.get("PSS_CANVAS_TEST_HOLD_SECONDS", default_hold) or 0)
 
@@ -62,7 +66,10 @@ def _maybe_hold_window(scene, qapp) -> None:
 
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
-@pytest.mark.skipif(headless_requested(), reason="Manual canvas preview requires a visible window")
+@pytest.mark.skipif(  # pytest-skip-ok: interactive preview skipped on headless backends
+    headless_requested(),
+    reason="Manual canvas preview requires a visible window",
+)
 def test_canvas_animation_preview_window_visible(qapp, integration_reports_dir) -> None:
     """Open the Canvas schematic in a real window for Windows manual verification."""
 
