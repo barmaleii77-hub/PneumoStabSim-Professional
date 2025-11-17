@@ -142,6 +142,29 @@ def load_main_scene(
     return _initialise_view(qapp, qml_path=qml_path, width=width, height=height)
 
 
+def load_qml_scene(
+    qapp,
+    *,
+    qml_file: Path | str,
+    width: int = 800,
+    height: int = 450,
+) -> QMLScene:
+    """Load an arbitrary QML scene into a visible ``QQuickView``.
+
+    This helper mirrors :func:`load_main_scene` but accepts an explicit QML file
+    path so Windows desktop runs can preview bespoke scenes (e.g. animated
+    Canvas schematics) without modifying the main entry point. The window is
+    shown immediately to make the rendered content visible for manual
+    inspection while still working in headless CI environments.
+    """
+
+    qml_path = Path(qml_file).resolve()
+    if not qml_path.exists():
+        raise FileNotFoundError(qml_path)
+
+    return _initialise_view(qapp, qml_path=qml_path, width=width, height=height)
+
+
 def ensure_simulation_panel_ready(
     scene: QMLScene, qapp, timeout_ms: int = 4000
 ) -> QObject:
