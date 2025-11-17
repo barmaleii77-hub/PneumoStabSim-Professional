@@ -7,7 +7,7 @@ on:
     branches:
       - develop
       - 'feature/*'
-      - 'feature/hdr-assets-migration'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs autonomous checks
   workflow_dispatch:
 
 env:

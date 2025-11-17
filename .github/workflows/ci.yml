@@ -2,9 +2,17 @@ name: Continuous Integration
 
 on:
   push:
-    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs CI
   pull_request:
-    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs CI
   workflow_dispatch:
 
 env:

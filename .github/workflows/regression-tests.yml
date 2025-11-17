@@ -6,7 +6,7 @@ on:
       - develop
       - main
       - 'feature/*'
-      - 'feature/hdr-assets-migration'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs regression tests
     paths:
       - "src/**"
       - "tests/**"
@@ -18,7 +18,7 @@ on:
       - develop
       - main
       - 'feature/*'
-      - 'feature/hdr-assets-migration'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs regression tests
     paths:
       - "src/**"
       - "tests/**"

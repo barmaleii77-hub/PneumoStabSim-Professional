@@ -2,9 +2,17 @@ name: Windows smoke test
 
 on:
   push:
-    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs smoke tests
   pull_request:
-    branches: [main, develop, 'feature/*', 'feature/hdr-assets-migration']
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs smoke tests
   workflow_dispatch:
 
 env:

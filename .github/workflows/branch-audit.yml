@@ -8,7 +8,7 @@ on:
       - main
       - develop
       - 'feature/*'
-      - 'feature/hdr-assets-migration'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch stays monitored
   workflow_dispatch:
 
 permissions:
