@@ -17,7 +17,11 @@ def block_pyside_import(monkeypatch) -> None:
     original_import = builtins.__import__
 
     def _guarded_import(  # type: ignore[override]
-        name: str, globals: dict | None = None, locals: dict | None = None, fromlist: Iterable[str] = (), level: int = 0
+        name: str,
+        globals: dict | None = None,
+        locals: dict | None = None,
+        fromlist: Iterable[str] = (),
+        level: int = 0,
     ) -> ModuleType:
         if name.startswith("PySide6"):
             raise ImportError("PySide6 import blocked for smoke test")

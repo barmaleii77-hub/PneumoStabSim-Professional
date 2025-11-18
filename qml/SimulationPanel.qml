@@ -34,6 +34,12 @@ Item {
      */
     property var contextScene: typeof initialSceneSettings !== "undefined" ? initialSceneSettings : ({})
 
+    /**
+     * Базовые параметры геометрии для Accordion (wheelbase/track/etc.).
+     * См. config/app_settings.json → current.geometry.
+     */
+    property var contextGeometry: typeof initialGeometrySettings !== "undefined" ? initialGeometrySettings : ({})
+
     property var contextModes: typeof initialModesSettings !== "undefined" ? initialModesSettings : ({})
     property var contextAnimation: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : ({})
     property var modesMetadata: ({})
@@ -94,6 +100,7 @@ Item {
     property var _animationDefaults: ({})
     property var _animationState: ({})
     property var _flowState: ({})
+    property var _geometryDefaults: ({})
     property string _activePresetId: ""
     property real _telemetryEffectiveMinimum: NaN
     property real _telemetryEffectiveMaximum: NaN
@@ -193,6 +200,8 @@ Item {
         _updateModesBindings()
         _updateAnimationBindings()
         _rebuildFlowModels()
+        _geometryDefaults = _normalizeGeometryPayload(contextGeometry)
+        applyGeometryParameters(_geometryDefaults)
     }
 
     onContextModesChanged: {
@@ -642,7 +651,27 @@ Item {
 
     function _normalizeGeometryPayload(payload) {
         var candidate = _cloneObject(payload || ({}))
-        return _isPlainObject(candidate) ? candidate : ({})
+        var baseline = _isPlainObject(contextGeometry) ? contextGeometry : ({})
+        var normalized = _mergeObjects(baseline, _isPlainObject(candidate) ? candidate : ({}))
+        var sanitized = {}
+        var scalarKeys = [
+            "wheelbase",
+            "track",
+            "lever_length",
+            "stroke_m",
+            "cyl_diam_m",
+            "rod_diameter_m",
+            "rod_diameter_rear_m"
+        ]
+        for (var i = 0; i < scalarKeys.length; ++i) {
+            var key = scalarKeys[i]
+            var numeric = Number(normalized[key])
+            if (Number.isFinite(numeric))
+                sanitized[key] = numeric
+        }
+        if (normalized.link_rod_diameters !== undefined)
+            sanitized.link_rod_diameters = !!normalized.link_rod_diameters
+        return _mergeObjects(normalized, sanitized)
     }
 
     function _normalizeFlowPayload(payload) {
@@ -1080,6 +1109,10 @@ Item {
         var sceneUpdate = _extractSceneCategory(payload)
         if (_isPlainObject(sceneUpdate))
             _sceneState = _mergeObjects(_sceneState, sceneUpdate)
+
+        var geometryUpdate = _extractCategory(payload, ["geometry"])
+        if (_isPlainObject(geometryUpdate))
+            applyGeometryParameters(geometryUpdate)
 
         if (hasPneumoUpdate)
             _updateAnimationBindings()
