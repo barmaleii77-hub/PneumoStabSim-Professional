@@ -207,7 +207,7 @@ Item {
          fog: Fog {
              enabled: fogHelpersSupported && root.fogEnabled
              color: root.fogColor
-             density: root.fogDensity
+             density: (typeof root.fogDensity === "number") ? root.fogDensity : 0.06
              depthEnabled: fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
              depthCurve: root.fogDepthCurve
              depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
