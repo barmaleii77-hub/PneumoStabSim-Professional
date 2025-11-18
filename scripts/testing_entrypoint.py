@@ -159,8 +159,6 @@ def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
         "--locked",
         "--",
         "pytest",
-        "-p",
-        "pytestqt.plugin",
         "tests/integration",
         "tests/performance",
         "--maxfail",
