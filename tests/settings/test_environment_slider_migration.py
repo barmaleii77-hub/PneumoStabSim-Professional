@@ -63,3 +63,71 @@ def test_settings_service_rehydrates_environment_ranges_from_metadata(
     meta_ranges = payload["metadata"].get("environment_slider_ranges", {})
     assert meta_ranges["ibl_intensity"].get("decimals") is None
     assert meta_ranges["fog_density"]["decimals"] == 3
+
+
+def test_settings_service_backfills_missing_environment_ranges_from_defaults(
+    tmp_path: Path,
+) -> None:
+    baseline = json.loads(
+        (REPO_ROOT / "config" / "app_settings.json").read_text(encoding="utf-8")
+    )
+
+    current_ranges = baseline["current"]["graphics"]["environment_ranges"]
+    defaults_ranges = baseline["defaults_snapshot"]["graphics"]["environment_ranges"]
+
+    # Имитируем частично утерянную секцию: оставляем только ключ освещения и меняем
+    # диапазон, чтобы убедиться, что он не перетирается.
+    preserved_key = "ibl_intensity"
+    preserved_original = current_ranges[preserved_key]["max"]
+    current_ranges[preserved_key]["max"] = preserved_original + 1.0
+
+    removed_keys = ["fog_density", "ao_softness"]
+    for key in removed_keys:
+        current_ranges.pop(key, None)
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    service = SettingsService(settings_path=settings_path, schema_path=SCHEMA_PATH)
+    payload = dump_settings(service.load())
+    ranges = payload["current"]["graphics"]["environment_ranges"]
+
+    # Удалённые ключи должны восстановиться из defaults_snapshot
+    for key in removed_keys:
+        assert key in ranges
+        assert ranges[key] == defaults_ranges[key]
+
+    # Существующие значения не перезаписываются
+    assert ranges[preserved_key]["max"] == preserved_original + 1.0
+
+
+def test_settings_service_prefers_metadata_when_defaults_lack_range(
+    tmp_path: Path,
+) -> None:
+    baseline = json.loads(
+        (REPO_ROOT / "config" / "app_settings.json").read_text(encoding="utf-8")
+    )
+
+    target_key = "probe_horizon"
+    replacement_range = {"min": -2.0, "max": 2.0, "step": 0.25}
+
+    baseline["defaults_snapshot"]["graphics"]["environment_ranges"].pop(
+        target_key, None
+    )
+    baseline["current"]["graphics"]["environment_ranges"].pop(target_key, None)
+    baseline.setdefault("metadata", {}).setdefault("environment_slider_ranges", {})[
+        target_key
+    ] = replacement_range
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(baseline, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    service = SettingsService(settings_path=settings_path, schema_path=SCHEMA_PATH)
+    payload = dump_settings(service.load())
+
+    ranges = payload["current"]["graphics"]["environment_ranges"]
+    assert ranges[target_key] == replacement_range

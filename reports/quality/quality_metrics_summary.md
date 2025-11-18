@@ -1,13 +1,13 @@
 # Quality Metrics Summary
 
-- Timestamp: 2025-11-17T17:37:57.422439+00:00
-- Coverage: percent=44.14, lines_covered=15094, lines_total=34194
-- Test totals: cases=657, duration=221.907s
+- Timestamp: 2025-11-18T04:22:49.809409+00:00
+- Coverage: percent=44.16, lines_covered=15119, lines_total=34238
+- Test totals: cases=670, duration=235.505s
 
 ## Suites
-- integration_cases: 34
-- integration_duration_seconds: 7.424
-- ui_cases: 200
-- ui_duration_seconds: 194.563
-- unit_cases: 423
-- unit_duration_seconds: 19.920
+- integration_cases: 39
+- integration_duration_seconds: 10.586
+- ui_cases: 204
+- ui_duration_seconds: 203.432
+- unit_cases: 427
+- unit_duration_seconds: 21.487

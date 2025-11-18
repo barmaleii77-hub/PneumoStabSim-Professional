@@ -550,19 +550,26 @@ class SettingsService:
             curr: MutableMapping[str, Any],
             defs: MutableMapping[str, Any],
         ) -> None:
-            """Убедиться, что current.graphics.environment_ranges присутствует.
+            """Убедиться, что current.graphics.environment_ranges заполнен ключами.
 
             Источники по приоретету:
             1) defaults_snapshot.graphics.environment_ranges
             2) metadata.environment_slider_ranges
-            Создаём раздел, не перетирая существующие ключи.
+
+            Обновляет существующую мапу *не перетирая* текущие значения и
+            не создаёт новую, если раздел graphics отсутствует.
             """
+
             curr_graphics = curr.get("graphics")
             if not isinstance(curr_graphics, MutableMapping):
                 return
+
             curr_ranges = curr_graphics.get("environment_ranges")
-            if isinstance(curr_ranges, MutableMapping) and curr_ranges:
-                return
+            if isinstance(curr_ranges, MutableMapping):
+                target_ranges = curr_ranges
+            else:
+                target_ranges = {}
+                curr_graphics["environment_ranges"] = target_ranges
 
             # Кандидаты-источники
             defs_graphics = (
@@ -575,19 +582,17 @@ class SettingsService:
             )
             meta_ranges = meta.get("environment_slider_ranges")
 
-            new_ranges: MutableMapping[str, Any] = {}
-            if isinstance(defs_ranges, MutableMapping) and defs_ranges:
-                for k, v in defs_ranges.items():
-                    if isinstance(v, MutableMapping):
-                        new_ranges[k] = deepcopy(v)
-            elif isinstance(meta_ranges, MutableMapping) and meta_ranges:
-                for k, v in meta_ranges.items():
-                    if isinstance(v, MutableMapping):
-                        # карта meta использует те же поля
-                        new_ranges[k] = deepcopy(v)
+            def _populate_missing(source: MutableMapping[str, Any] | None) -> None:
+                if not isinstance(source, MutableMapping):
+                    return
+                for key, value in source.items():
+                    if key in target_ranges:
+                        continue
+                    if isinstance(value, MutableMapping):
+                        target_ranges[key] = deepcopy(value)
 
-            if new_ranges:
-                curr_graphics["environment_ranges"] = new_ranges
+            _populate_missing(defs_ranges)
+            _populate_missing(meta_ranges)
 
         # Sections: current / defaults_snapshot
         current = _ensure_dict(payload, "current")

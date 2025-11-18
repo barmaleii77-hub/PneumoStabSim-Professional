@@ -211,3 +211,35 @@ def test_depth_texture_activator_tracks_error_guard_flags(
 ) -> None:
     assert "property bool _missingViewLogged" in depth_texture_source
     assert "property bool _apiUnavailableLogged" in depth_texture_source
+
+
+def test_depth_texture_activator_log_status_uses_safe_reads(
+    depth_texture_source: str,
+) -> None:
+    status_start = depth_texture_source.index("function logStatus(view3d)")
+    status_end = depth_texture_source.index("function _setViewFlags")
+    status_block = depth_texture_source[status_start:status_end]
+
+    assert "_safeRead(function () { return view3d.renderSettings })" in status_block
+    assert "_safeRead(function () { return view3d.environment })" in status_block
+
+    for guard in (
+        '_hasProperty(view3d, "velocityTextureEnabled")',
+        '_hasProperty(renderSettings, "velocityTextureEnabled")',
+        '_hasProperty(environment, "velocityTextureEnabled")',
+    ):
+        assert guard in status_block
+
+
+def test_depth_texture_activator_invokes_depth_before_velocity_buffers(
+    depth_texture_source: str,
+) -> None:
+    activation_block = depth_texture_source[
+        depth_texture_source.index(
+            "function activate(view3d)"
+        ) : depth_texture_source.index("function isDepthAvailable")
+    ]
+
+    depth_call = activation_block.index("_invokeDepthBufferMethods")
+    velocity_call = activation_block.index("_invokeVelocityBufferMethods")
+    assert depth_call < velocity_call
