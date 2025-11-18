@@ -17,8 +17,9 @@ import QtQuick3D.Helpers 6.10
 Item {
     id: root
 
-    width: 960
-    height: 640
+    implicitWidth: 960
+    implicitHeight: 640
+    anchors.fill: parent ? parent : undefined
 
     // ---------------------------------------------------------------------
     // Public API and observability

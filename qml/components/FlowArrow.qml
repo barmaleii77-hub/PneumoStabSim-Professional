@@ -8,6 +8,8 @@ import "../singletons" as Singletons
 Item {
     id: root
 
+    baselineOffset: titleLabel.baselineOffset
+
     implicitWidth: 200
     implicitHeight: 68
 
