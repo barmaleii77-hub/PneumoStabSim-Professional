@@ -422,7 +422,6 @@ Item {
             clipNear: root.clipNear
             fieldOfView: root.fieldOfViewDeg
             position: _orbitPosition()
-            lookAt: Qt.vector3d(orbitTarget.x, orbitTarget.y, orbitTarget.z)
         }
 
         Node {
@@ -474,8 +473,6 @@ Item {
             scale: Qt.vector3d(10, 1, 10)
             geometry: GridGeometry {
                 id: helperGeometry
-                gridSpacing: root.gridSpacing
-                minorGridlinesPerMajor: Math.max(1, Math.floor(1 / gridMinorScale))
             }
             materials: DefaultMaterial {
                 diffuseColor: Qt.rgba(0.18, 0.24, 0.28, 0.35)
@@ -567,11 +564,8 @@ Item {
 
         AxisHelper {
             id: axisHelper
-            anchors.margins: 8
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            width: 96
-            height: 96
+            position: Qt.vector3d(-8, -8, 0)
+            scale: Qt.vector3d(1, 1, 1)
             visible: helpersVisible
         }
     }

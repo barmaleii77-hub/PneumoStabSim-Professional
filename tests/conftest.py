@@ -80,6 +80,20 @@ def _path_snapshot() -> None:
 
 
 @pytest.fixture(scope="session")
+def baseline_images_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Provide baseline render artifacts for visual regression tests."""
+
+    from PIL import Image
+
+    base_dir = tmp_path_factory.mktemp("baseline_images")
+    reference_path = base_dir / "qt_scene_reference.png"
+    if not reference_path.exists():
+        reference_image = Image.new("RGB", (8, 8), color=(120, 160, 200))
+        reference_image.save(reference_path)
+    return reference_path.parent
+
+
+@pytest.fixture(scope="session")
 def headless_env() -> dict[str, str]:
     """Apply Qt headless defaults to the process environment."""
 

@@ -64,7 +64,7 @@ Pane {
 
     property var _pendingFlowTelemetry: null
     property var _pendingGeometry: null
-    property bool _loadRequested: false
+    property bool _loadRequested: true
 
     // Rollback hooks exposed for bridge-driven undo flows
     signal undoPostEffects()
