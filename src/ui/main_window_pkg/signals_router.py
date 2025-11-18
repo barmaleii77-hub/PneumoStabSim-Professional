@@ -1847,13 +1847,14 @@ class SignalsRouter:
 
     @staticmethod
     def handle_accordion_field_validation_state(
-        window: "MainWindow",
-        panel_id: str,
-        field: str,
-        state: str,
-        message: str,
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
     ) -> None:
-        """Persist accordion validation state and surface it to the status bar."""
+        """Record accordion field validation state and surface status updates.
+
+        This helper keeps a simple in-memory map on the window for the latest
+        validation results and mirrors the notification shown to the status bar
+        so that UI tests can assert on the most recent feedback.
+        """
 
         field_key = (field or "").strip()
         if not field_key:
@@ -1863,38 +1864,25 @@ class SignalsRouter:
         normalized_state = (state or "").strip().lower() or "unknown"
         resolved_message = (message or "").strip()
 
-        if (
-            not hasattr(window, "_accordion_validation_states")
-            or window._accordion_validation_states is None
-        ):
+        if not hasattr(window, "_accordion_validation_states"):
             window._accordion_validation_states = {}
 
-        payload: dict[str, Any] = {
-            "panel": panel_key,
-            "field": field_key,
+        window._accordion_validation_states[(panel_key, field_key)] = {
             "state": normalized_state,
+            "message": resolved_message,
         }
-        if resolved_message:
-            payload["message"] = resolved_message
 
-        window._accordion_validation_states[(panel_key, field_key)] = payload
+        SignalsRouter.handle_accordion_validation_changed(
+            window, panel_key, field_key, normalized_state, resolved_message
+        )
 
-        logger = getattr(window, "logger", SignalsRouter.logger)
         status_bar = getattr(window, "status_bar", None)
-
-        if normalized_state in {"error", "invalid"}:
-            logger.error(
-                "Accordion validation error", extra={"accordion_validation": payload}
-            )
-            if status_bar is not None:
-                status_bar.showMessage(
-                    resolved_message or f"{panel_key}.{field_key} validation error",
-                    6000,
-                )
-        else:
-            logger.info(
-                "Accordion validation state", extra={"accordion_validation": payload}
-            )
+        if (
+            status_bar is not None
+            and resolved_message
+            and normalized_state in {"error", "invalid"}
+        ):
+            status_bar.showMessage(resolved_message, 6000)
 
     @staticmethod
     def handle_accordion_validation_changed(
