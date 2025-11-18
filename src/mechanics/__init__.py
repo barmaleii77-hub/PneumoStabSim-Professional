@@ -23,12 +23,12 @@ from .kinematics import (
 )
 
 __all__ = [
-    "Lever", 
-    "Spring", 
-    "Damper", 
-    "PneumaticCylinder", 
-    "LeverGeom", 
-    "CylinderGeom", 
+    "Lever",
+    "Spring",
+    "Damper",
+    "PneumaticCylinder",
+    "LeverGeom",
+    "CylinderGeom",
     "SuspensionLinkage",
     "ConstraintMode",
     "GeometricBounds",

@@ -1025,7 +1025,7 @@ class PhysicsWorker(QObject):
                     {"error": str(exc)},
                     exc_info=True,
                 )
-                if 'tank_snapshot' in locals():
+                if "tank_snapshot" in locals():
                     self.gas_network.tank = tank_snapshot
                 self.error_occurred.emit(str(exc))
                 return None

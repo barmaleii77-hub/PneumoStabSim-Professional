@@ -212,6 +212,33 @@ def test_scene_tab_roundtrip_preserves_types(qapp):
 
 
 @pytest.mark.gui
+def test_scene_tab_uses_metadata_defaults(qapp):
+    metadata_defaults = {
+        "scale_factor": 1.75,
+        "exposure": 2.5,
+        "default_clear_color": "#ABCDEF",
+        "model_base_color": "#FEDCBA",
+        "model_roughness": 0.35,
+        "model_metalness": 0.15,
+        "suspension": {"rod_warning_threshold_m": 0.0015},
+    }
+
+    tab = SceneTab(metadata_defaults=metadata_defaults)
+
+    state = tab.get_state()
+
+    assert math.isclose(state["scale_factor"], 1.75, rel_tol=1e-6)
+    assert math.isclose(state["exposure"], 2.5, rel_tol=1e-6)
+    assert state["default_clear_color"] == "#abcdef"
+    assert state["model_base_color"] == "#fedcba"
+    assert math.isclose(state["model_roughness"], 0.35, rel_tol=1e-6)
+    assert math.isclose(state["model_metalness"], 0.15, rel_tol=1e-6)
+    assert math.isclose(
+        state["suspension"]["rod_warning_threshold_m"], 0.0015, rel_tol=1e-6
+    )
+
+
+@pytest.mark.gui
 def test_scene_tab_save_current_persists_to_settings(monkeypatch, tmp_path, qapp):
     from src.common import settings_manager as settings_manager_module
 

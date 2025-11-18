@@ -232,7 +232,9 @@ def headless_qt_modules():
         qt_widgets = types.SimpleNamespace(
             QApplication=_StubQApplication, __spec__=_spec("PySide6.QtWidgets")
         )
-        qt_test = types.SimpleNamespace(QTest=_StubQTest, __spec__=_spec("PySide6.QtTest"))
+        qt_test = types.SimpleNamespace(
+            QTest=_StubQTest, __spec__=_spec("PySide6.QtTest")
+        )
         qt_gui = types.SimpleNamespace(
             QMouseEvent=_StubQMouseEvent,
             QKeyEvent=_StubQKeyEvent,
