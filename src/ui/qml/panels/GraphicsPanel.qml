@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Controls.Basic 6.10
+import QtQuick.Dialogs 6.10
 import QtQuick.Layouts 6.10
 
 Item {
@@ -16,6 +17,26 @@ Item {
     property color borderColor: "#293542"
     property color textColor: "#E6EEF5"
     property color mutedTextColor: "#A9B7C6"
+
+    /**
+     * Снапшот сценических параметров, которые нужно редактировать через UI.
+     * Ожидается структура config/app_settings.json → current.graphics.scene.
+     */
+    property var sceneSettings: ({})
+
+    /**
+     * Базовые значения для отображения подсказок и кнопки Reset.
+     */
+    property var sceneDefaults: ({})
+
+    /**
+     * Сигнал обновления состояния (для привязки к SettingsManager/QML bridge).
+     */
+    signal sceneChanged(var payload)
+
+    property var _sceneState: ({})
+    property bool _syncingSceneControls: false
+    property var _sceneControls: null
 
     property alias currentTab: tabBar.currentIndex
     readonly property var tabs: [
@@ -132,6 +153,306 @@ Item {
             ]
         }
     ]
+
+    function _clone(value) {
+        return value === undefined || value === null ? {} : JSON.parse(JSON.stringify(value))
+    }
+
+    function _mergeSceneState(base, override) {
+        var target = _clone(base)
+        var patch = _clone(override)
+        for (var key in patch) {
+            if (key === "suspension" && patch[key] && typeof patch[key] === "object") {
+                target.suspension = target.suspension && typeof target.suspension === "object"
+                    ? target.suspension
+                    : {}
+                for (var nested in patch[key])
+                    target.suspension[nested] = patch[key][nested]
+                continue
+            }
+            target[key] = patch[key]
+        }
+        if (!target.suspension)
+            target.suspension = {}
+        return target
+    }
+
+    function _sceneNumber(key, fallback) {
+        var candidate = _sceneState[key]
+        var numeric = Number(candidate)
+        return Number.isFinite(numeric) ? numeric : fallback
+    }
+
+    function _sceneColor(key, fallback) {
+        var candidate = _sceneState[key]
+        if (typeof candidate === "string" && candidate.length)
+            return candidate
+        return fallback
+    }
+
+    function _setSceneValue(key, value) {
+        if (_syncingSceneControls)
+            return
+        _sceneState[key] = value
+        sceneSettings = exportSceneSettings()
+        sceneChanged(sceneSettings)
+    }
+
+    function _setSuspensionValue(key, value) {
+        if (_syncingSceneControls)
+            return
+        _sceneState.suspension = _sceneState.suspension || {}
+        _sceneState.suspension[key] = value
+        sceneSettings = exportSceneSettings()
+        sceneChanged(sceneSettings)
+    }
+
+    function exportSceneSettings() {
+        return _clone(_sceneState)
+    }
+
+    function applySceneState(payload) {
+        var incoming = payload || sceneSettings
+        sceneSettings = incoming
+        _sceneState = _mergeSceneState(sceneDefaults, incoming)
+        _syncSceneControls()
+    }
+
+    function resetSceneToDefaults() {
+        _sceneState = _mergeSceneState(sceneDefaults, {})
+        _syncSceneControls()
+        sceneSettings = exportSceneSettings()
+        sceneChanged(sceneSettings)
+    }
+
+    function _syncSceneControls() {
+        var controls = _sceneControls
+        if (!controls)
+            return
+        _syncingSceneControls = true
+        try {
+            controls.scaleSlider.value = _sceneNumber("scale_factor", 1.0)
+            controls.exposureSlider.value = _sceneNumber("exposure", 1.0)
+            controls.clearColorSwatch.color = _sceneColor("default_clear_color", "#1b1f27")
+            controls.baseColorSwatch.color = _sceneColor("model_base_color", "#9da3aa")
+            controls.roughnessSlider.value = _sceneNumber("model_roughness", 0.42)
+            controls.metalnessSlider.value = _sceneNumber("model_metalness", 0.82)
+            controls.suspensionThresholdSlider.value = Number(
+                _sceneState.suspension && _sceneState.suspension.rod_warning_threshold_m
+            ) || 0.001
+        } finally {
+            _syncingSceneControls = false
+        }
+    }
+
+    function _registerSceneControls(controls) {
+        _sceneControls = controls
+        _syncSceneControls()
+    }
+
+    onSceneDefaultsChanged: applySceneState(sceneSettings)
+    onSceneSettingsChanged: applySceneState(sceneSettings)
+    Component.onCompleted: applySceneState(sceneSettings)
+
+    Component {
+        id: sceneDefaultsComponent
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Scale")
+                    color: root.textColor
+                    Layout.preferredWidth: 120
+                }
+                Slider {
+                    id: scaleSlider
+                    Layout.fillWidth: true
+                    from: 0.25
+                    to: 5.0
+                    stepSize: 0.05
+                    onValueChanged: root._setSceneValue("scale_factor", value)
+                }
+                Label {
+                    id: scaleValueLabel
+                    text: scaleSlider.value.toFixed(2)
+                    color: root.textColor
+                    Layout.preferredWidth: 60
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Exposure")
+                    color: root.textColor
+                    Layout.preferredWidth: 120
+                }
+                Slider {
+                    id: exposureSlider
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 16.0
+                    stepSize: 0.1
+                    onValueChanged: root._setSceneValue("exposure", value)
+                }
+                Label {
+                    id: exposureValueLabel
+                    text: exposureSlider.value.toFixed(2)
+                    color: root.textColor
+                    Layout.preferredWidth: 60
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Clear color")
+                    color: root.textColor
+                    Layout.preferredWidth: 120
+                }
+                Rectangle {
+                    id: clearColorSwatch
+                    Layout.preferredWidth: 48
+                    Layout.preferredHeight: 24
+                    radius: 4
+                    border.color: root.borderColor
+                    border.width: 1
+                }
+                Button {
+                    text: qsTr("Choose")
+                    onClicked: clearColorDialog.open()
+                }
+                ColorDialog {
+                    id: clearColorDialog
+                    title: qsTr("Select clear color")
+                    selectedColor: clearColorSwatch.color
+                    onAccepted: root._setSceneValue(
+                                    "default_clear_color",
+                                    clearColorDialog.selectedColor.toString()
+                                )
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Model base color")
+                    color: root.textColor
+                    Layout.preferredWidth: 120
+                }
+                Rectangle {
+                    id: baseColorSwatch
+                    Layout.preferredWidth: 48
+                    Layout.preferredHeight: 24
+                    radius: 4
+                    border.color: root.borderColor
+                    border.width: 1
+                }
+                Button {
+                    text: qsTr("Choose")
+                    onClicked: baseColorDialog.open()
+                }
+                ColorDialog {
+                    id: baseColorDialog
+                    title: qsTr("Select model color")
+                    selectedColor: baseColorSwatch.color
+                    onAccepted: root._setSceneValue(
+                                    "model_base_color",
+                                    baseColorDialog.selectedColor.toString()
+                                )
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Roughness")
+                    color: root.textColor
+                    Layout.preferredWidth: 120
+                }
+                Slider {
+                    id: roughnessSlider
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 1.0
+                    stepSize: 0.01
+                    onValueChanged: root._setSceneValue("model_roughness", value)
+                }
+                Label {
+                    text: roughnessSlider.value.toFixed(2)
+                    color: root.textColor
+                    Layout.preferredWidth: 60
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Metalness")
+                    color: root.textColor
+                    Layout.preferredWidth: 120
+                }
+                Slider {
+                    id: metalnessSlider
+                    Layout.fillWidth: true
+                    from: 0.0
+                    to: 1.0
+                    stepSize: 0.01
+                    onValueChanged: root._setSceneValue("model_metalness", value)
+                }
+                Label {
+                    text: metalnessSlider.value.toFixed(2)
+                    color: root.textColor
+                    Layout.preferredWidth: 60
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Label {
+                    text: qsTr("Rod warning threshold (m)")
+                    color: root.textColor
+                    Layout.preferredWidth: 180
+                }
+                Slider {
+                    id: suspensionThresholdSlider
+                    Layout.fillWidth: true
+                    from: 0.0001
+                    to: 0.02
+                    stepSize: 0.0001
+                    onValueChanged: root._setSuspensionValue(
+                                      "rod_warning_threshold_m",
+                                      value
+                                  )
+                }
+                Label {
+                    text: suspensionThresholdSlider.value.toFixed(4)
+                    color: root.textColor
+                    Layout.preferredWidth: 80
+                }
+            }
+
+            Component.onCompleted: root._registerSceneControls({
+                scaleSlider: scaleSlider,
+                exposureSlider: exposureSlider,
+                clearColorSwatch: clearColorSwatch,
+                baseColorSwatch: baseColorSwatch,
+                roughnessSlider: roughnessSlider,
+                metalnessSlider: metalnessSlider,
+                suspensionThresholdSlider: suspensionThresholdSlider
+            })
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -275,6 +596,12 @@ Item {
                                         Accessible.role: Accessible.StaticText
                                         Accessible.name: qsTr(sectionGroup.section.hint)
                                     }
+
+                                    Loader {
+                                        Layout.fillWidth: true
+                                        active: sectionGroup.section.key === "sceneDefaults"
+                                        sourceComponent: sceneDefaultsComponent
+                                    }
                                 }
                             }
                         }
@@ -308,6 +635,7 @@ Item {
                 }
                 ToolTip.visible: hovered
                 ToolTip.text: qsTr("Revert all tabs to the active profile defaults.")
+                onClicked: root.resetSceneToDefaults()
             }
 
             Button {

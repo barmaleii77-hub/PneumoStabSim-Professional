@@ -41,6 +41,30 @@ def test_scene_state_roundtrip(tmp_path: Path) -> None:
     assert manager.get("graphics.scene.exposure") == pytest.approx(updated_exposure)
 
 
+def test_scene_state_persists_colors_and_suspension(tmp_path: Path) -> None:
+    settings_path = tmp_path / "settings.json"
+    _copy_settings_payload(settings_path)
+
+    manager = SettingsManager(settings_file=settings_path)
+    state_manager = GraphicsStateManager(settings_manager=manager)
+
+    scene_state = state_manager.load_state("scene") or {}
+    scene_state["default_clear_color"] = "#abcdef"
+    scene_state["model_base_color"] = "#fedcba"
+    scene_state.setdefault("suspension", {})["rod_warning_threshold_m"] = 0.0034
+
+    state_manager.save_state("scene", scene_state)
+
+    restored = state_manager.load_state("scene") or {}
+    assert restored.get("default_clear_color") == "#abcdef"
+    assert restored.get("model_base_color") == "#fedcba"
+
+    threshold = restored.get("suspension", {}).get("rod_warning_threshold_m")
+    assert threshold == pytest.approx(0.0034)
+    assert manager.get("graphics.scene.default_clear_color") == "#abcdef"
+    assert manager.get("graphics.scene.model_base_color") == "#fedcba"
+
+
 def test_load_all_includes_scene(tmp_path: Path) -> None:
     settings_path = tmp_path / "settings.json"
     _copy_settings_payload(settings_path)
