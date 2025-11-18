@@ -655,6 +655,7 @@
         "quality": {"$ref": "#/$defs/QualitySettings"},
         "camera": {"$ref": "#/$defs/CameraSettings"},
         "materials": {"$ref": "#/$defs/MaterialsSettings"},
+        "materials_previous": {"$ref": "#/$defs/MaterialsSettings"},
         "effects": {"$ref": "#/$defs/EffectsSettings"},
         "scene": {"$ref": "#/$defs/SceneSettings"},
         "environment_ranges": {"$ref": "#/$defs/EnvironmentSliderRanges"}

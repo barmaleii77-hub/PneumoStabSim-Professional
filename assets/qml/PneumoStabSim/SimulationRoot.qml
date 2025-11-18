@@ -64,6 +64,8 @@ Item {
     // Core state mirrors
     property var geometryState: ({})
     property var simulationState: ({})
+    property var materialsState: ({})
+    property var previousMaterialsState: ({})
     property var threeDState: ({})
     property var flowTelemetry: ({})
     property var receiverTelemetry: ({})
@@ -288,7 +290,14 @@ Item {
         _storeLastUpdate("animation", payload)
     }
     function applyLightingUpdates(params) { _logBatchEvent("function_called","applyLightingUpdates"); var normalized=_normaliseState(params); _storeLastUpdate("lighting",normalized) }
-    function applyMaterialUpdates(params) { _logBatchEvent("function_called","applyMaterialUpdates"); var normalized=_normaliseState(params); _storeLastUpdate("materials",normalized) }
+    function applyMaterialUpdates(params) {
+        _logBatchEvent("function_called","applyMaterialUpdates")
+        var normalized = _normaliseState(params)
+        previousMaterialsState = _cloneObject(materialsState)
+        materialsState = _deepMerge(materialsState, normalized)
+        _storeLastUpdate("materials", normalized)
+        return materialsState
+    }
 
     function applyEnvironmentUpdates(params) {
         _logBatchEvent("function_called","applyEnvironmentUpdates")
@@ -341,6 +350,13 @@ Item {
         var normalized = _normaliseState(params)
         effectsState = _deepMerge(effectsState, normalized)
         _storeLastUpdate("effects", normalized)
+    }
+
+    function rollbackMaterials() {
+        if (_isEmptyMap(previousMaterialsState)) return materialsState
+        materialsState = _cloneObject(previousMaterialsState)
+        _storeLastUpdate("materials", materialsState)
+        return materialsState
     }
     function applyRenderSettings(params) {
         _logBatchEvent("function_called","applyRenderSettings")
