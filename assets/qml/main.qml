@@ -26,6 +26,7 @@ Item {
     signal shaderStatusDumpRequested(var payload)
     signal accordionPresetActivated(string panelId, string presetId)
     signal accordionFieldCommitted(string panelId, string field, var value)
+    signal accordionValidationChanged(string panelId, string field, string state, string message)
 
     // qmllint disable unqualified
     readonly property var hostWindow: (typeof globalThis !== "undefined" && globalThis.window !== undefined) ? globalThis.window : null
@@ -688,6 +689,9 @@ Item {
         }
         onAccordionFieldCommitted: function(panelId, field, value) {
             root.accordionFieldCommitted(panelId, field, value)
+        }
+        onAccordionValidationChanged: function(panelId, field, state, message) {
+            root.accordionValidationChanged(panelId, field, state, message)
         }
     }
 
