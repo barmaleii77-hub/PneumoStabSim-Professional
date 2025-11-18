@@ -26,7 +26,7 @@ Item {
     signal shaderStatusDumpRequested(var payload)
     signal accordionPresetActivated(string panelId, string presetId)
     signal accordionFieldCommitted(string panelId, string field, var value)
-    signal accordionFieldValidationStateChanged(string panelId, string field, string state, string message)
+    signal accordionValidationChanged(string panelId, string field, string state, string message)
 
     // qmllint disable unqualified
     readonly property var hostWindow: (typeof globalThis !== "undefined" && globalThis.window !== undefined) ? globalThis.window : null
@@ -222,22 +222,19 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-             fog: Fog {
-                id: environmentFog
-                readonly property bool supportsDensity: "density" in environmentFog
-                readonly property bool supportsFogDensityAlias: "fogDensity" in environmentFog
+         fog: Fog {
+             id: environmentFog
 
-                enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
-                color: root.fogColor
+             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
+             color: root.fogColor
+             density: root.fogDensity
 
-                Component.onCompleted: {
-                    if (!supportsDensity && !supportsFogDensityAlias) {
-                        console.warn("[main.qml] Fog component is missing density properties; defaulting to zero")
-                        environmentFog.enabled = false
-                        return
-                    }
-                    root._applyFogDensityBinding()
-                }
+             Component.onCompleted: {
+                 if (!("density" in environmentFog)) {
+                     console.warn("[main.qml] Fog component is missing density property; disabling fog")
+                     environmentFog.enabled = false
+                 }
+             }
 
              depthEnabled: environmentDefaults.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
              depthCurve: root.fogDepthCurve
@@ -696,8 +693,8 @@ Item {
         onAccordionFieldCommitted: function(panelId, field, value) {
             root.accordionFieldCommitted(panelId, field, value)
         }
-        onAccordionFieldValidationStateChanged: function(panelId, field, state, message) {
-            root.accordionFieldValidationStateChanged(panelId, field, state, message)
+        onAccordionValidationChanged: function(panelId, field, state, message) {
+            root.accordionValidationChanged(panelId, field, state, message)
         }
     }
 

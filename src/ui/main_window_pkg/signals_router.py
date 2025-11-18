@@ -1846,10 +1846,10 @@ class SignalsRouter:
             SignalsRouter._push_simulation_state(window)
 
     @staticmethod
-    def handle_accordion_field_validation_state(
+    def handle_accordion_validation_changed(
         window: "MainWindow", panel_id: str, field: str, state: str, message: str
     ) -> None:
-        """Track validation state emitted by shared accordion fields."""
+        """Handle validation state updates coming from accordion-driven panels."""
 
         field_key = (field or "").strip()
         if not field_key:
@@ -1857,37 +1857,32 @@ class SignalsRouter:
 
         panel_key = (panel_id or "").strip() or "panels"
         normalized_state = (state or "").strip().lower() or "unknown"
-        message_text = "" if message is None else str(message).strip()
+        resolved_message = (message or "").strip()
 
-        validation_states = getattr(window, "_accordion_validation_states", None)
-        if validation_states is None:
-            validation_states = {}
-            setattr(window, "_accordion_validation_states", validation_states)
-
-        validation_states[(panel_key, field_key)] = {
+        payload = {
+            "panel": panel_key,
+            "field": field_key,
             "state": normalized_state,
-            "message": message_text,
         }
+        if resolved_message:
+            payload["message"] = resolved_message
 
-        status = getattr(window, "status_bar", None)
-        if normalized_state == "error" and message_text:
-            SignalsRouter.logger.error(
-                "Accordion validation error [%s.%s]: %s",
-                panel_key,
-                field_key,
-                message_text,
+        logger = getattr(window, "logger", SignalsRouter.logger)
+        status_bar = getattr(window, "status_bar", None)
+
+        if normalized_state in {"error", "invalid"}:
+            logger.error(
+                "Accordion validation error", extra={"accordion_validation": payload}
             )
-            if status is not None and hasattr(status, "showMessage"):
-                status.showMessage(message_text, 6000)
-        elif normalized_state in {"warn", "warning"} and message_text:
-            SignalsRouter.logger.warning(
-                "Accordion validation warning [%s.%s]: %s",
-                panel_key,
-                field_key,
-                message_text,
+            if status_bar is not None:
+                status_bar.showMessage(
+                    resolved_message or f"{panel_key}.{field_key} validation error",
+                    4000,
+                )
+        else:
+            logger.info(
+                "Accordion validation state", extra={"accordion_validation": payload}
             )
-            if status is not None and hasattr(status, "showMessage"):
-                status.showMessage(message_text, 4000)
 
     @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:

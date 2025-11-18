@@ -51,7 +51,7 @@ Pane {
     signal cylinderSettingsChanged(var payload)
     signal accordionPresetActivated(string panelId, string presetId)
     signal accordionFieldCommitted(string panelId, string field, var value)
-    signal accordionFieldValidationStateChanged(string panelId, string field, string state, string message)
+    signal accordionValidationChanged(string panelId, string field, string state, string message)
 
     padding: 16
     width: 420
@@ -766,8 +766,8 @@ Pane {
                             console.warn("Validation error for", key, reason)
                         }
 
-                        onFieldValidationStateChanged: function(panelId, key, state, message) {
-                            accordionFieldValidationStateChanged(panelId, key, state, message)
+                        onValidationStateEvaluated: function(key, state, message) {
+                            accordionValidationChanged("modes", key, state, message)
                         }
                     }
 

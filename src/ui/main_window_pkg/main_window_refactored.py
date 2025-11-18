@@ -1029,12 +1029,12 @@ class MainWindow(QMainWindow):
         SignalsRouter.handle_accordion_field_committed(self, panel_id, field, value)
 
     @Slot(str, str, str, str)
-    def _on_accordion_field_validation_state(
+    def _on_accordion_validation_changed(
         self, panel_id: str, field: str, state: str, message: str
     ) -> None:
-        """Validation state coming from shared accordion fields."""
+        """Accordion validation state update → SignalsRouter"""
 
-        SignalsRouter.handle_accordion_field_validation_state(
+        SignalsRouter.handle_accordion_validation_changed(
             self, panel_id, field, state, message
         )
 

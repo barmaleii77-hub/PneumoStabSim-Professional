@@ -16,8 +16,7 @@ ColumnLayout {
     property string unit: ""
     property string helperText: ""
 
-    // Validation state is shared with Python to keep the SettingsManager aware of
-    // failed edits coming from accordion-style panels.
+    /** Validation state propagated to accordion-aware controllers. */
     property string validationState: "idle"
     property string validationMessage: ""
 
@@ -25,7 +24,7 @@ ColumnLayout {
 
     signal valueCommitted(string settingsKey, real value)
     signal validationFailed(string settingsKey, string reason)
-    signal fieldValidationStateChanged(string panelId, string settingsKey, string state, string message)
+    signal validationStateEvaluated(string settingsKey, string state, string message)
 
     spacing: 4
     Layout.fillWidth: true
@@ -81,12 +80,21 @@ ColumnLayout {
             onValueModified: {
                 var nextValue = root._clampValue(value)
                 if (nextValue === null) {
-                    var reason = qsTr("Введите числовое значение")
-                    root._emitValidationState("error", reason)
-                    root.validationFailed(root.settingsKey, reason)
+                    root.validationMessage = qsTr("Введите числовое значение")
+                    root.validationState = "error"
+                    root.validationFailed(root.settingsKey, root.validationMessage)
+                    root.validationStateEvaluated(
+                                root.settingsKey,
+                                root.validationState,
+                                root.validationMessage)
                     return
                 }
-                root._emitValidationState("valid", "")
+                root.validationState = "valid"
+                root.validationMessage = ""
+                root.validationStateEvaluated(
+                            root.settingsKey,
+                            root.validationState,
+                            root.validationMessage)
                 root.value = nextValue
                 if (root.settingsKey && root.settingsKey.length > 0) {
                     root.valueCommitted(root.settingsKey, nextValue)
@@ -105,7 +113,7 @@ ColumnLayout {
     Label {
         id: helperLabel
         text: root.helperText
-        visible: helperText.length > 0 && !errorLabel.visible
+        visible: helperText.length > 0 && !root.hasError
         color: Qt.rgba(0.78, 0.83, 0.91, 0.8)
         font.pointSize: 9
         wrapMode: Text.WordWrap
@@ -114,8 +122,8 @@ ColumnLayout {
 
     Label {
         id: errorLabel
-        text: ""
-        visible: false
+        text: root.validationMessage
+        visible: root.hasError
         color: "#ff6b6b"
         font.pointSize: 9
         wrapMode: Text.WordWrap

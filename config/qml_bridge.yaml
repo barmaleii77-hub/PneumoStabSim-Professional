@@ -120,9 +120,10 @@ qml_signals:
       Normalised accordion field edit. Payload includes the panel id,
       field key, and validated numeric value so Python can update
       SettingsManager without bespoke per-field slots.
-  - signal: accordionFieldValidationStateChanged
-    handler: _on_accordion_field_validation_state
+  - signal: accordionValidationChanged
+    handler: _on_accordion_validation_changed
     connection: queued
     description: >-
-      Validation status propagated from shared accordion fields so the
-      SettingsManager can track errors and surface them in the status bar.
+      Validation state for accordion-driven fields. Carries the panel id,
+      field key, validation state, and message so Python can surface
+      warnings or errors in logs and status bars.
