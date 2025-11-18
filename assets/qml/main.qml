@@ -220,9 +220,27 @@ Item {
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
          fog: Fog {
+             id: environmentFog
+             readonly property bool supportsDensity: "density" in environmentFog
+             readonly property bool supportsFogDensityAlias: "fogDensity" in environmentFog
+
              enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
              color: root.fogColor
-             density: root.fogDensity
+
+             Binding {
+                 target: environmentFog
+                 when: environmentFog.supportsDensity || environmentFog.supportsFogDensityAlias
+                 property: environmentFog.supportsDensity ? "density" : "fogDensity"
+                 value: root.fogDensity
+             }
+
+             Component.onCompleted: {
+                 if (!supportsDensity && !supportsFogDensityAlias) {
+                     console.warn("[main.qml] Fog component is missing density properties; defaulting to zero")
+                     environmentFog.enabled = false
+                 }
+             }
+
              depthEnabled: environmentDefaults.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
              depthCurve: root.fogDepthCurve
              depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
