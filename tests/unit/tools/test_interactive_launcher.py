@@ -68,3 +68,25 @@ def test_detect_failure_hint_pytest_failure() -> None:
     hint = launcher._detect_failure_hint(lines)  # noqa: SLF001
 
     assert "упали тесты" in hint
+
+
+def test_build_custom_pytest_command_includes_args(tmp_path: Path) -> None:
+    """Custom pytest command builder keeps targets and extra arguments."""
+
+    python_exe = tmp_path / "python"
+    cmd = launcher.build_custom_pytest_command(
+        python_exe, targets=["tests/unit"], extra_args=["-k", "smoke"]
+    )
+
+    assert cmd[:3] == [str(python_exe), "-m", "pytest"]
+    assert cmd[-2:] == ["-k", "smoke"]
+
+
+def test_build_testing_entrypoint_command_all_scope(tmp_path: Path) -> None:
+    """Unified entrypoint commands support the 'all' scope."""
+
+    python_exe = tmp_path / "python"
+
+    cmd = launcher.build_testing_entrypoint_command(python_exe, "all")
+
+    assert cmd[-2:] == ["--scope", "all"]
