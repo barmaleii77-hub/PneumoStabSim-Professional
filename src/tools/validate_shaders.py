@@ -13,6 +13,7 @@ import codecs
 import locale
 import os
 import shlex
+import re
 import shutil
 import subprocess
 import sys
@@ -185,7 +186,7 @@ def _detect_deprecated_entry_point(path: Path) -> str | None:
         return f"unable to read file with UTF-8 encoding: {exc}"
 
     for symbol, message in DEPRECATED_ENTRY_POINTS:
-        if symbol in source:
+        if _identifier_present(source, symbol):
             return message
     return None
 
@@ -252,7 +253,7 @@ def _check_forbidden_identifiers(
             continue
 
         for identifier, guidance in FORBIDDEN_IDENTIFIER_GUIDANCE.items():
-            if identifier in contents:
+            if _identifier_present(contents, identifier):
                 errors.append(
                     f"{_relative(shader.path, root)}: forbidden identifier '{identifier}' detected; {guidance}"
                 )
@@ -303,6 +304,18 @@ def _resolve_qsb_command() -> list[str]:
     raise FileNotFoundError(
         "qsb executable not found; install Qt Shader Tools or set QSB_COMMAND"
     )
+
+
+def _identifier_present(source: str, identifier: str) -> bool:
+    """Return True if *identifier* is present as a standalone token.
+
+    The check is case-insensitive and uses word boundaries to avoid matching
+    identifiers such as ``qt_customMainExtra`` while still catching
+    ``QT_CUSTOMMAIN`` variants that would slip past a naive substring search.
+    """
+
+    pattern = re.compile(rf"\b{re.escape(identifier)}\b", flags=re.IGNORECASE)
+    return bool(pattern.search(source))
 
 
 def _ensure_directory(path: Path) -> None:

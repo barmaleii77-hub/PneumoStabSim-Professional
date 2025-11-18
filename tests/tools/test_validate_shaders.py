@@ -278,6 +278,26 @@ def test_validate_shaders_reports_qt_custommain_usage(tmp_path: Path) -> None:
     ), "validator must flag legacy qt_customMain entry point usage"
 
 
+def test_validate_shaders_reports_qt_custommain_case_insensitive(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    qsb_cmd = _make_qsb_stub(tmp_path)
+
+    _write_shader(
+        shader_root,
+        "effects/bloom.frag",
+        "#version 450 core\nvoid QT_CUSTOMMAIN() {}\n",
+    )
+
+    result = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert any(
+        "forbidden identifier 'qt_customMain'" in message for message in result.errors
+    ), "validator must flag legacy qt_customMain regardless of casing"
+
+
 def test_validate_shaders_reports_missing_gles_variant(tmp_path: Path) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"
@@ -356,6 +376,39 @@ def test_validate_shaders_reports_deprecated_entry_point(tmp_path: Path) -> None
     assert any(
         "deprecated entry point 'qt_customMain'" in message for message in result.errors
     )
+
+
+def test_validate_shaders_allows_similar_identifier_names(tmp_path: Path) -> None:
+    shader_root = tmp_path / "shaders"
+    reports_dir = tmp_path / "reports"
+    qsb_cmd = _make_qsb_stub(tmp_path)
+
+    _write_shader(
+        shader_root,
+        "effects/flare.frag",
+        "#version 450 core\n// qt_customMainExtra is documented\nvoid main() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/flare_fallback.frag",
+        "#version 450 core\n// qt_customMainExtra is documented\nvoid main() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/flare_fallback_es.frag",
+        "#version 300 es\n// qt_customMainExtra is documented\nvoid main() {}\n",
+    )
+    _write_shader(
+        shader_root,
+        "effects/flare_es.frag",
+        "#version 300 es\n// qt_customMainExtra is documented\nvoid main() {}\n",
+    )
+
+    result = validate_shaders.validate_shaders(
+        shader_root, qsb_command=qsb_cmd, reports_dir=reports_dir
+    )
+
+    assert not any("qt_customMain" in message for message in result.errors)
 
 
 def test_validate_shaders_reports_version_mismatch(tmp_path: Path) -> None:
