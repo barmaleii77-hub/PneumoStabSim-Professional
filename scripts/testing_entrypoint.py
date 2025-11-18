@@ -18,6 +18,7 @@ from typing import Iterable, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = PROJECT_ROOT / "reports" / "tests" / "test_entrypoint.log"
+QT_ENV_FILE = PROJECT_ROOT / ".qt" / "qt.env"
 
 
 class CommandFailure(RuntimeError):
@@ -74,6 +75,41 @@ def _require_uv() -> str:
 def _sync_environment(uv_path: str) -> None:
     _log("[entrypoint] Syncing dependencies with uv --frozen --extra dev")
     _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"])
+
+
+def _load_env_file(env_file: Path) -> dict[str, str]:
+    environment: dict[str, str] = {}
+    if not env_file.exists():
+        return environment
+    for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, value = line.split("=", maxsplit=1)
+        environment[key] = value
+    return environment
+
+
+def _prepare_qt_environment(uv_path: str, env: dict[str, str]) -> dict[str, str]:
+    _log("[entrypoint] Exporting Qt environment via tools/setup_qt.py")
+    _stream_command(
+        [
+            uv_path,
+            "run",
+            "--locked",
+            "--",
+            "python",
+            "tools/setup_qt.py",
+            "--env-file",
+            str(QT_ENV_FILE),
+        ],
+        env=env,
+    )
+    updated_env = env.copy()
+    updated_env.update(_load_env_file(QT_ENV_FILE))
+    return updated_env
 
 
 def _prepare_system(system: str) -> None:
@@ -134,6 +170,7 @@ def main(argv: list[str]) -> int:
         _sync_environment(uv_path)
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        env = _prepare_qt_environment(uv_path, env)
 
         for command in _primary_commands(uv_path):
             _stream_command(command, env=env)

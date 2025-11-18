@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import platform
 import re
 import shutil
@@ -27,6 +28,63 @@ MINIMUM_QT_VERSION = (6, 10, 0)
 DEFAULT_MODULES = ("qtquick3d", "qtshadertools", "qtimageformats")
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "Qt"
 DEFAULT_ARCHIVES_DIR = REPO_ROOT / ".qt" / "archives"
+DEFAULT_ENV_FILE = REPO_ROOT / ".qt" / "qt.env"
+
+
+def _unique_path_entries(entries: Iterable[str]) -> str:
+    """Return a deduplicated path list joined with ``os.pathsep``."""
+
+    segments: list[str] = []
+    for entry in entries:
+        for candidate in entry.split(os.pathsep):
+            if candidate and candidate not in segments:
+                segments.append(candidate)
+    return os.pathsep.join(segments)
+
+
+def _gather_qt_environment(project_root: Path) -> dict[str, str]:
+    """Build cross-platform Qt environment values from the active PySide6."""
+
+    from PySide6.QtCore import QLibraryInfo
+
+    qml_import_dir = QLibraryInfo.path(QLibraryInfo.LibraryPath.Qml2ImportsPath)
+    plugins_dir = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
+    qml_roots = [project_root / "assets" / "qml"]
+    qml_roots.extend(
+        path
+        for path in (
+            project_root / "assets" / "qml" / "components",
+            project_root / "assets" / "qml" / "scene",
+        )
+    )
+    qml_paths = [qml_import_dir, *(str(path) for path in qml_roots if path.exists())]
+    merged_qml_paths = _unique_path_entries(qml_paths)
+
+    return {
+        "QT_PLUGIN_PATH": plugins_dir,
+        "QML2_IMPORT_PATH": merged_qml_paths,
+        "QML_IMPORT_PATH": merged_qml_paths,
+        "QT_QML_IMPORT_PATH": merged_qml_paths,
+        "QT_QUICK_CONTROLS_STYLE": "Basic",
+    }
+
+
+def _write_env_file(env_file: Path, values: dict[str, str]) -> None:
+    env_file.parent.mkdir(parents=True, exist_ok=True)
+    lines = [f"{key}={value}" for key, value in values.items()]
+    env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"[setup_qt] Wrote Qt environment exports to {env_file}")
+
+
+def _apply_qt_environment(values: dict[str, str], env_file: Path | None) -> None:
+    system = platform.system()
+    print(f"[setup_qt] Detected platform: {system}")
+    print("[setup_qt] Applying Qt environment variables:")
+    for key, value in values.items():
+        os.environ[key] = value
+        print(f"  {key}={value}")
+    if env_file is not None:
+        _write_env_file(env_file, values)
 
 
 def _ensure_aqt() -> Callable[[Sequence[str]], int | None]:
@@ -394,10 +452,28 @@ def main() -> None:
         action="store_true",
         help="Verify that the Qt toolchain and PySide6 runtime are available.",
     )
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        default=DEFAULT_ENV_FILE,
+        help="Optional path to write Qt environment exports in KEY=VALUE format.",
+    )
+    parser.add_argument(
+        "--skip-env-export",
+        action="store_true",
+        help="Skip writing and applying Qt environment variables (not recommended).",
+    )
+    parser.add_argument(
+        "--export-only",
+        action="store_true",
+        help="Only export environment variables without invoking aqtinstall.",
+    )
 
     args = parser.parse_args()
 
     _ensure_minimum_version(args.qt_version)
+
+    export_env = not args.skip_env_export
 
     modules = _parse_modules(args.modules)
     host, default_arch = _detect_host(args.arch)
@@ -411,6 +487,19 @@ def main() -> None:
     archives_dir.mkdir(parents=True, exist_ok=True)
 
     install_dir = _default_install_root(output_dir, args.qt_version, arch)
+    env_exported = False
+
+    def _export_env() -> None:
+        nonlocal env_exported
+        if env_exported or not export_env:
+            return
+        env_values = _gather_qt_environment(REPO_ROOT)
+        _apply_qt_environment(env_values, args.env_file)
+        env_exported = True
+
+    if args.export_only:
+        _export_env()
+        return
     if args.check:
         status = _check_installation(
             install_dir=install_dir,
@@ -418,6 +507,7 @@ def main() -> None:
             archives_dir=archives_dir,
             checksum_manifest=args.checksum_manifest,
         )
+        _export_env()
         raise SystemExit(status)
     if install_dir.exists() and not args.force:
         print(
@@ -427,6 +517,7 @@ def main() -> None:
             _verify_archives(archives_dir, args.checksum_manifest)
         if args.refresh_requirements:
             _export_requirements_with_uv(REPO_ROOT)
+        _export_env()
         return
     if args.force and install_dir.exists():
         if not install_dir.is_relative_to(output_dir):  # type: ignore[attr-defined]
@@ -464,6 +555,7 @@ def main() -> None:
         _verify_archives(archives_dir, args.checksum_manifest)
     if args.refresh_requirements:
         _export_requirements_with_uv(REPO_ROOT)
+    _export_env()
     print(f"Qt {args.qt_version} installation completed at {install_dir}")
 
 

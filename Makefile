@@ -64,14 +64,23 @@ else \
 fi; \
 done
 
-.PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
+.PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh uv-sync-qt
 
 uv-sync:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+	exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync $(UV_SYNC_ARGS)
+
+uv-sync-qt:
+	@if ! command -v $(UV) >/dev/null 2>&1; then \
+	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+	exit 1; \
+	fi
+	@python -c "import platform; print(f'[uv-sync-qt] platform.system()={platform.system()}')"
+	cd $(UV_PROJECT_DIR) && $(UV) sync $(UV_SYNC_ARGS)
+	cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python tools/setup_qt.py --env-file .qt/qt.env --export-only
 
 uv-sync-locked:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \

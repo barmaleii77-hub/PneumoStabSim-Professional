@@ -81,3 +81,8 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-11-22 – Refreshed `ci-cd.yml` to target `main`/`develop`, reuse uv-synced
   environments across the test/verify/docs jobs, and keep Qt smoke checks
   aligned with the headless matrices.
+- 2025-11-24 – Added `make uv-sync-qt` to chain `uv sync` with
+  `python tools/setup_qt.py --env-file .qt/qt.env`, exporting
+  `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and `QT_QUICK_CONTROLS_STYLE=Basic` for
+  Linux/Windows parity. The unified test entrypoint now consumes the generated
+  env file before delegating to `make check`/`tools.ci_tasks verify`.
