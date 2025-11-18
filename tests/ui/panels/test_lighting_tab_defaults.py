@@ -12,7 +12,7 @@ from src.ui.panels.graphics.lighting_tab import LightingTab
 
 
 def _quantize(
-    value: float, *, step: float = 0.01, minimum: float = 0.0, maximum: float = 10.0
+    value: float, *, step: float = 0.01, minimum: float = 0.01, maximum: float = 10.0
 ) -> float:
     clamped = max(minimum, min(maximum, value))
     steps = round((clamped - minimum) / step)
@@ -33,6 +33,13 @@ def test_point_light_attenuation_defaults_are_applied(
     constant_slider = controls["point.constant_fade"]
     linear_slider = controls["point.linear_fade"]
     quadratic_slider = controls["point.quadratic_fade"]
+
+    initial_state = tab.get_state()["point"]
+    initial_linear = _quantize(2.0 / initial_state["range"])
+
+    assert constant_slider.value() == pytest.approx(1.0)
+    assert linear_slider.value() == pytest.approx(initial_linear, rel=1e-6)
+    assert quadratic_slider.value() == pytest.approx(1.0)
 
     # Regression coverage: set_state must backfill defaults when they are missing
     # or explicitly null in the payload to avoid resetting sliders to 0.0.

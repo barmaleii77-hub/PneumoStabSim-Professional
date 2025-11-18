@@ -1079,19 +1079,19 @@
         "constant_fade": {
           "title": "Constant Fade",
           "type": "number",
-          "minimum": 0.0,
+          "minimum": 0.01,
           "maximum": 10.0
         },
         "linear_fade": {
           "title": "Linear Fade",
           "type": "number",
-          "minimum": 0.0,
+          "minimum": 0.01,
           "maximum": 10.0
         },
         "quadratic_fade": {
           "title": "Quadratic Fade",
           "type": "number",
-          "minimum": 0.0,
+          "minimum": 0.01,
           "maximum": 10.0
         },
         "cast_shadow": {"title": "Cast Shadow", "type": "boolean"},
