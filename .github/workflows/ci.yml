@@ -88,16 +88,22 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install uv aqtinstall
 
+      - name: Sync uv environment (Linux)
+        if: runner.os == 'Linux'
+        run: uv sync --extra dev
+
       - name: Install Qt Python dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
-          python -m pip install --upgrade --no-cache-dir \
+          uv pip install --upgrade --no-cache-dir \
             "PySide6==6.10.*" \
             "PySide6-Addons==6.10.*" \
             "PySide6-Essentials==6.10.*" \
             "shiboken6==6.10.*" \
             numpy \
-            pytest-qt
+            pytest-qt \
+            "PyOpenGL==3.1.10" \
+            "PyOpenGL-accelerate==3.1.10"
 
       - name: Run final readiness test (Linux)
         if: runner.os == 'Linux'
@@ -106,6 +112,7 @@ jobs:
           QT_QUICK_BACKEND: software
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: "1"
+          DISPLAY: ":99"
         run: bash scripts/xvfb_wrapper.sh uv run python final_readiness_test.py
 
       - name: Bootstrap Linux environment
