@@ -129,6 +129,7 @@ Item {
     property bool reflectionProbeDefaultsWarningIssued: false
     // Типизированный список строк для корректного экспорта в Python (list)
     property list<string> reflectionProbeMissingKeys: []
+    property var initialReflectionProbeMissingKeys: []
 
     // Reflection probe
     // Инициализация состояния учитывает initialReflectionProbeSettings ещё до Component.onCompleted
@@ -515,26 +516,37 @@ Item {
     // Initial hydration -----------------------------------------
     Component.onCompleted: {
         console.log("[SimulationRoot] Component completed; sceneBridge:", sceneBridge ? "available" : "missing")
+        var reflectionProbeMissing = []
+        var initialMissingList = initialReflectionProbeMissingKeys || []
+        if (initialMissingList && initialMissingList.length !== undefined) {
+            for (var mk = 0; mk < initialMissingList.length; ++mk) {
+                reflectionProbeMissing.push(initialMissingList[mk])
+            }
+        }
+
         if (typeof initialReflectionProbeSettings !== "undefined" && initialReflectionProbeSettings) {
             var keys = ["enabled","padding_m","quality","refresh_mode","time_slicing"]
-            var missingTmp = []
-            for (var i=0;i<keys.length;++i){ if(initialReflectionProbeSettings[keys[i]] === undefined) missingTmp.push(keys[i]) }
-            reflectionProbeMissingKeys = missingTmp  // Прямое присваивание типизированному списку
-            reflectionProbeDefaultsWarningIssued = missingTmp.length > 0
+            for (var i=0;i<keys.length;++i){
+                if(initialReflectionProbeSettings[keys[i]] === undefined && reflectionProbeMissing.indexOf(keys[i]) === -1)
+                    reflectionProbeMissing.push(keys[i])
+            }
             if (initialReflectionProbeSettings.enabled !== undefined) {
                 _applyReflectionProbeEnabledOverride(initialReflectionProbeSettings.enabled)
                 reflectionProbeEnabledState = !!initialReflectionProbeSettings.enabled
             }
             if (initialReflectionProbeSettings.padding_m !== undefined) {
                 reflectionProbePaddingM = sanitizeReflectionProbePadding(initialReflectionProbeSettings.padding_m)
-            } else if (missingTmp.indexOf("padding_m") !== -1) {
-                reflectionProbePaddingM = 0.15
             }
             if (initialReflectionProbeSettings.quality !== undefined) reflectionProbeQualitySetting = String(initialReflectionProbeSettings.quality).toLowerCase()
             if (initialReflectionProbeSettings.refresh_mode !== undefined) reflectionProbeRefreshModeSetting = String(initialReflectionProbeSettings.refresh_mode).toLowerCase()
             if (initialReflectionProbeSettings.time_slicing !== undefined) reflectionProbeTimeSlicingSetting = String(initialReflectionProbeSettings.time_slicing).toLowerCase()
-            _refreshReflectionProbeObject()
         }
+
+        if (reflectionProbeMissing.indexOf("padding_m") !== -1 && (typeof initialReflectionProbeSettings === "undefined" || !initialReflectionProbeSettings || initialReflectionProbeSettings.padding_m === undefined))
+            reflectionProbePaddingM = 0.15
+
+        reflectionProbeMissingKeys = reflectionProbeMissing  // Прямое присваивание типизированному списку
+        reflectionProbeDefaultsWarningIssued = reflectionProbeMissing.length > 0
         if (typeof initialSceneSettings !== "undefined" && initialSceneSettings && initialSceneSettings.graphics && initialSceneSettings.graphics.environment) {
             var env = initialSceneSettings.graphics.environment
             if (env.reflection_enabled === false) {
@@ -543,8 +555,9 @@ Item {
             }
             if (env.reflection_enabled !== undefined) envController.reflectionProbeEnabled = !!env.reflection_enabled
             if (env.reflection_padding_m !== undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(env.reflection_padding_m)
-            _refreshReflectionProbeObject()
         }
+
+        _refreshReflectionProbeObject()
         _applyBridgeSnapshot(sceneBridge)
     }
     onSceneBridgeChanged: { _applyBridgeSnapshot(sceneBridge) }

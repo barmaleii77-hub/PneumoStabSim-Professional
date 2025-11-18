@@ -344,3 +344,29 @@ def test_environment_defaults_disable_reflection_probe_visibility(qapp) -> None:
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_reflection_probe_missing_keys_propagated_from_python(qapp) -> None:
+    overrides = {
+        "initialReflectionProbeSettings": {
+            "enabled": True,
+            "padding_m": 0.25,
+            "quality": "veryhigh",
+            "refresh_mode": "everyframe",
+            "time_slicing": "individualfaces",
+        },
+        "initialReflectionProbeMissingKeys": ["quality", "time_slicing"],
+    }
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        assert bool(root.property("reflectionProbeDefaultsWarningIssued"))
+        missing = root.property("reflectionProbeMissingKeys")
+        assert isinstance(missing, list)
+        assert set(missing) >= {"quality", "time_slicing"}
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()

@@ -416,7 +416,7 @@ class SettingsService:
     def _apply_migrations(self, payload: MutableMapping[str, Any]) -> None:
         """Выполнить миграции структуры и устранить дубли.
 
-        1) graphics.reflection_probe.* → graphics.environment.reflection_*
+        1) Синхронизация graphics.reflection_probe.* ↔ graphics.environment.reflection_*
         2) geometry.lever_length_m → geometry.lever_length (и удалить *_м)
         3) pneumatic.diagonal_coupling_dia: выровнять defaults_snapshot по current
         4) Синхронизация metadata.environment_slider_ranges с graphics.environment_ranges
@@ -439,11 +439,12 @@ class SettingsService:
             graphics = section.get("graphics")
             if not isinstance(graphics, MutableMapping):
                 return
+
             env = _ensure_dict(graphics, "environment")
             probe = graphics.get("reflection_probe")
             if not isinstance(probe, MutableMapping):
-                return
-            # Map fields
+                probe = {}
+
             key_map = {
                 "enabled": "reflection_enabled",
                 "padding_m": "reflection_padding_m",
@@ -451,14 +452,21 @@ class SettingsService:
                 "refresh_mode": "reflection_refresh_mode",
                 "time_slicing": "reflection_time_slicing",
             }
-            changed = False
+
+            env_changed = False
+            probe_changed = False
             for src_key, dst_key in key_map.items():
+                if src_key not in probe and dst_key in env:
+                    probe[src_key] = deepcopy(env[dst_key])
+                    probe_changed = True
                 if dst_key not in env and src_key in probe:
                     env[dst_key] = deepcopy(probe[src_key])
-                    changed = True
-            # Remove legacy section if everything mapped
-            if changed:
-                graphics.pop("reflection_probe", None)
+                    env_changed = True
+
+            if probe_changed or graphics.get("reflection_probe") is None:
+                graphics["reflection_probe"] = probe
+            if env_changed:
+                graphics["environment"] = env
 
         def _migrate_geometry_lengths(section: MutableMapping[str, Any]) -> None:
             geometry = section.get("geometry")

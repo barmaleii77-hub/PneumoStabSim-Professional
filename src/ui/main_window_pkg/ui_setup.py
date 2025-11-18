@@ -662,6 +662,7 @@ class UISetup:
             "materials": materials_payload,
             "geometry": _read_geometry(),
             "diagnostics": _read_diagnostics(),
+            "reflection_probe_missing_keys": missing_reflection_keys,
             "reflection_probe": _serialize(
                 "graphics.reflection_probe", reflection_probe_payload
             ),
@@ -1002,6 +1003,10 @@ class UISetup:
                 context.setContextProperty("materialsDefaults", payload["materials"])
                 context.setContextProperty(
                     "initialReflectionProbeSettings", payload["reflection_probe"]
+                )
+                context.setContextProperty(
+                    "initialReflectionProbeMissingKeys",
+                    payload.get("reflection_probe_missing_keys", []),
                 )
                 context.setContextProperty(
                     "initialGeometrySettings", payload["geometry"]

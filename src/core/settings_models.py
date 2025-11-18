@@ -409,8 +409,7 @@ class SceneSettings(_StrictModel):
 class GraphicsSettings(_StrictModel):
     lighting: LightingSettings
     environment: EnvironmentSettings
-    # Раздел reflection_probe удалён миграциями; оставляем опциональным для обратной совместимости
-    reflection_probe: ReflectionProbeSettings | None = None
+    reflection_probe: ReflectionProbeSettings
     quality: QualitySettings
     camera: CameraSettings
     materials: MaterialsSettings

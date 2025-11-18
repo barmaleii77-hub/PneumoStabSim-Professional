@@ -4,6 +4,10 @@ import json
 import logging
 from pathlib import Path
 
+import json
+import logging
+from pathlib import Path
+
 import pytest
 
 pytest.importorskip(
@@ -128,3 +132,27 @@ def test_scene_basics_use_metadata_defaults(
     assert context["scene"]["exposure"] == pytest.approx(2.5)
     assert context["scene"]["default_clear_color"] == "#abcdef"
     assert "Scene settings missing keys: default_clear_color, exposure" in caplog.text
+
+
+def test_reflection_probe_missing_section_logs_warning(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = _load_settings_payload()
+    payload["current"]["graphics"].pop("reflection_probe", None)
+    payload["defaults_snapshot"]["graphics"].pop("reflection_probe", None)
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    reflection_probe = context["reflection_probe"]
+    assert reflection_probe["enabled"] is True
+    assert reflection_probe["padding_m"] == pytest.approx(0.15)
+    assert set(context["reflection_probe_missing_keys"]) == {
+        "enabled",
+        "padding_m",
+        "quality",
+        "refresh_mode",
+        "time_slicing",
+    }
+    assert "Reflection probe settings missing keys" in caplog.text
