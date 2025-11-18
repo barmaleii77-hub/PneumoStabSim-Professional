@@ -76,6 +76,22 @@ def _sync_environment(uv_path: str) -> None:
     _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"])
 
 
+def _prepare_system(system: str) -> None:
+    if system != "Linux":
+        _log("[entrypoint] Non-Linux host detected; skipping system package prep")
+        return
+
+    setup_script = PROJECT_ROOT / "scripts" / "setup_linux.sh"
+    if not setup_script.exists():
+        _log("[entrypoint] setup_linux.sh missing; skipping system package prep")
+        return
+
+    _log(
+        "[entrypoint] Ensuring Linux system dependencies via scripts/setup_linux.sh --skip-python --skip-qt"
+    )
+    _stream_command([str(setup_script), "--skip-python", "--skip-qt"])
+
+
 def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
     make_path = shutil.which("make")
     if make_path:
@@ -101,6 +117,7 @@ def main(argv: list[str]) -> int:
 
     try:
         uv_path = _require_uv()
+        _prepare_system(system)
         _sync_environment(uv_path)
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
