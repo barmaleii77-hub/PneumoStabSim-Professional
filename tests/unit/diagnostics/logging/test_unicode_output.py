@@ -8,23 +8,11 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging
-
-
-def _flatten_event_payload(payload: dict[str, object]) -> dict[str, object]:
-    """
-    Упрощает структуру события для тестов.
-    Дублирует логику из src.diagnostics.logger_factory._flatten_event_payload.
-    """
-    # Простой вариант: если есть вложенный "event" или "message", вытаскиваем их.
-    # В реальной реализации могут быть более сложные правила.
-    result = dict(payload)
-    # Пример: если "event" вложен как dict, вытаскиваем его поля.
-    event = result.get("event")
-    if isinstance(event, dict):
-        result.update(event)
-        result["event"] = event.get("event", "unknown")
-    return result
+from src.diagnostics.logger_factory import (
+    configure_logging,
+    _flatten_event_payload,
+    _json_dumps,
+)
 
 
 def _extract_payload(raw: str) -> dict[str, object]:
@@ -38,7 +26,7 @@ def _extract_payload(raw: str) -> dict[str, object]:
 
 def _normalise_payload(raw: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     flattened = _flatten_event_payload(payload)
-    rendered = json.dumps(flattened, ensure_ascii=False)
+    rendered = _json_dumps(flattened)
     return rendered, flattened
 
 
