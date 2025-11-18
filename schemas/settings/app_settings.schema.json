@@ -24,6 +24,48 @@
         },
         "total_parameters": {
           "type": "integer"
+        },
+        "geometry_accordion_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
+        },
+        "pneumatic_volume_accordion_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
+        },
+        "pneumatic_pressure_accordion_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
+        },
+        "pneumatic_valve_accordion_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
+        },
+        "simulation_panel_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
+        },
+        "road_panel_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
+        },
+        "advanced_panel_fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccordionFieldDescriptor"
+          }
         }
       }
     },
@@ -161,6 +203,35 @@
         "smoothing_easing"
       ],
       "title": "AnimationSettings",
+      "type": "object"
+    },
+    "AccordionFieldDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "settings_path": {
+          "title": "Settings Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "unit",
+        "settings_path"
+      ],
+      "title": "AccordionFieldDescriptor",
       "type": "object"
     },
     "AntialiasingSettings": {
