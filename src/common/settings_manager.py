@@ -41,6 +41,9 @@ from src.core.settings_manager import (
 from src.security.access_control import get_access_control
 from src.settings.orbit_presets import orbit_presets_path
 
+if TYPE_CHECKING:
+    from src.core.parameter_manager import ParameterSnapshot
+
 
 logger = logging.getLogger(__name__)
 
@@ -955,6 +958,13 @@ class SettingsManager:
     def save_if_dirty(self) -> None:
         if self._dirty:
             self.save()
+
+    def validate_dependencies(self) -> "ParameterSnapshot":
+        """Validate cross-parameter constraints using :class:`ParameterManager`."""
+
+        from src.core.parameter_manager import ParameterManager
+
+        return ParameterManager(settings_manager=self).validate()
 
     @property
     def is_dirty(self) -> bool:

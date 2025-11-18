@@ -997,7 +997,7 @@
       "additionalProperties": false,
       "properties": {
         "volume_mode": {"title": "Volume Mode", "type": "string"},
-        "receiver_volume": {"title": "Receiver Volume", "type": "number", "minimum": 0},
+        "receiver_volume": {"title": "Receiver Volume", "type": "number", "exclusiveMinimum": 0},
         "receiver_diameter": {"title": "Receiver Diameter", "type": "number", "minimum": 0},
         "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0},
         "dead_zone_head_m3": {"title": "Dead Zone Head M3", "type": "number", "minimum": 0},
@@ -1018,9 +1018,9 @@
         "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number", "minimum": 0},
         "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0},
         "cv_tank_dia": {"title": "Cv Tank Dia", "type": "number", "minimum": 0},
-        "relief_min_pressure": {"title": "Relief Min Pressure", "type": "number", "minimum": 0},
-        "relief_stiff_pressure": {"title": "Relief Stiff Pressure", "type": "number", "minimum": 0},
-        "relief_safety_pressure": {"title": "Relief Safety Pressure", "type": "number", "minimum": 0},
+        "relief_min_pressure": {"title": "Relief Min Pressure", "type": "number", "exclusiveMinimum": 0},
+        "relief_stiff_pressure": {"title": "Relief Stiff Pressure", "type": "number", "exclusiveMinimum": 0},
+        "relief_safety_pressure": {"title": "Relief Safety Pressure", "type": "number", "exclusiveMinimum": 0},
         "throttle_min_dia": {"title": "Throttle Min Dia", "type": "number", "minimum": 0},
         "throttle_stiff_dia": {"title": "Throttle Stiff Dia", "type": "number", "minimum": 0},
         "diagonal_coupling_dia": {
@@ -1299,8 +1299,8 @@
     "ReceiverVolumeLimits": {
       "additionalProperties": false,
       "properties": {
-        "min_m3": {"title": "Min M3", "type": "number", "minimum": 0},
-        "max_m3": {"title": "Max M3", "type": "number", "minimum": 0}
+        "min_m3": {"title": "Min M3", "type": "number", "exclusiveMinimum": 0},
+        "max_m3": {"title": "Max M3", "type": "number", "exclusiveMinimum": 0}
       },
       "required": ["min_m3", "max_m3"],
       "title": "ReceiverVolumeLimits",
