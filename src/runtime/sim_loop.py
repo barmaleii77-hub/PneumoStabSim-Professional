@@ -8,7 +8,7 @@ import math
 import sys
 import time
 from dataclasses import replace
-from typing import Any
+from typing import Any, cast
 import numpy as np
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, Qt
@@ -883,11 +883,13 @@ class PhysicsWorker(QObject):
             exc_info: Any | None = None,
         ) -> None:
             logger_obj = self.logger
-            supports_structured_logging = callable(
-                getattr(logger_obj, "bind", None)
-            ) and not isinstance(logger_obj, logging.Logger)
+            bind = getattr(logger_obj, "bind", None)
+            supports_structured_logging = callable(bind) and not isinstance(
+                logger_obj, logging.Logger
+            )
+
             if supports_structured_logging:
-                bound_logger = logger_obj.bind(**context)
+                bound_logger = cast(Any, bind)(**context)
                 log_method = getattr(bound_logger, level)
                 if exc_info is not None:
                     log_method(message, exc_info=exc_info)
@@ -895,7 +897,7 @@ class PhysicsWorker(QObject):
                     log_method(message)
                 return
 
-            log_kwargs: dict[str, Any] = {"extra": context}
+            log_kwargs: dict[str, Any] = {"extra": {"context": context}}
             if exc_info is not None:
                 log_kwargs["exc_info"] = exc_info
 
