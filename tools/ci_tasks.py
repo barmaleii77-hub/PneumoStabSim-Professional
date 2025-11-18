@@ -599,6 +599,11 @@ def _collect_skipped_tests() -> list[skip_policy.SkippedTestCase]:
     return skip_policy.collect_skipped_tests(junit_paths, project_root=PROJECT_ROOT)
 
 
+def _enforce_skip_policy_from_reports() -> None:
+    skipped_cases = _collect_skipped_tests()
+    _enforce_ci_skip_policy(skipped_cases)
+
+
 def _write_skipped_summary(entries: list[skip_policy.SkippedTestCase]) -> Path | None:
     summary_path = PYTEST_REPORT_ROOT / "skipped_tests_summary.md"
     return skip_policy.write_skipped_summary(
@@ -1046,9 +1051,8 @@ def task_test() -> None:
         _run_pytest_suites(use_coverage=use_coverage)
     except TaskError as exc:
         primary_error = exc
-    skipped_cases = _collect_skipped_tests()
     try:
-        _enforce_ci_skip_policy(skipped_cases)
+        _enforce_skip_policy_from_reports()
     except TaskError as exc:
         skip_error = exc
         if primary_error is not None:
@@ -1085,18 +1089,21 @@ def task_test_unit() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips(["tests/unit"])
     _run_pytest_suites(["unit"], use_coverage=False)
+    _enforce_skip_policy_from_reports()
 
 
 def task_test_integration() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips(["tests/integration"])
     _run_pytest_suites(["integration"], use_coverage=False)
+    _enforce_skip_policy_from_reports()
 
 
 def task_test_ui() -> None:
     _prepare_cross_platform_test_environment()
     _ensure_no_forbidden_pytest_skips(["tests/ui"])
     _run_pytest_suites(["ui"], use_coverage=False)
+    _enforce_skip_policy_from_reports()
 
 
 def task_analyze_logs() -> None:
