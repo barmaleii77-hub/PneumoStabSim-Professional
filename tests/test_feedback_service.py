@@ -1,6 +1,6 @@
 import json
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -41,6 +41,54 @@ def test_payload_normalization_and_filtering_metadata():
     assert "non_serialisable" not in normalised.get("metadata", {})
     assert normalised["metadata"]["valid"] == "value"
     assert normalised["metadata"]["serialisable"] == {"nested": 1}
+
+
+def test_refresh_summary_handles_invalid_entries(tmp_path, feedback_service):
+    inbox_path = tmp_path / feedback_service.INBOX_FILENAME
+    inbox_path.write_text(
+        "\n".join(
+            [
+                "not json",
+                "",
+                json.dumps(
+                    {
+                        "submission_id": "abc",
+                        "created_at": datetime(
+                            2024, 5, 1, tzinfo=timezone.utc
+                        ).isoformat(),
+                        "category": "",
+                        "severity": "",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "submission_id": "def",
+                        "created_at": datetime(
+                            2024, 6, 1, tzinfo=timezone.utc
+                        ).isoformat(),
+                        "category": "ux",
+                        "severity": "low",
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    feedback_service.refresh_summary()
+
+    summary = json.loads(
+        (tmp_path / feedback_service.SUMMARY_JSON_FILENAME).read_text()
+    )
+
+    assert summary["totals"]["reports"] == 2
+    assert summary["totals"]["categories"] == {"unspecified": 1, "ux": 1}
+    assert summary["totals"]["severity"] == {"unspecified": 1, "low": 1}
+    assert (
+        summary["last_submission_at"]
+        == datetime(2024, 6, 1, tzinfo=timezone.utc).isoformat()
+    )
 
 
 def test_submission_persists_and_updates_summary(feedback_service, tmp_path):
@@ -102,6 +150,25 @@ def test_thread_safe_writes(feedback_service, tmp_path):
     assert summary["totals"]["reports"] == 10
     assert summary["totals"]["categories"] == {"load": 10}
     assert summary["totals"]["severity"] == {"medium": 10}
+
+
+def test_markdown_summary_for_empty_dataset(tmp_path):
+    service = FeedbackService(storage_dir=tmp_path)
+    service.refresh_summary()
+
+    summary = json.loads((tmp_path / service.SUMMARY_JSON_FILENAME).read_text())
+    markdown = (tmp_path / service.SUMMARY_MARKDOWN_FILENAME).read_text()
+
+    assert summary["totals"] == {
+        "reports": 0,
+        "categories": {},
+        "severity": {},
+    }
+    assert summary["last_submission_at"] is None
+    assert "**Total reports:** 0" in markdown
+    assert "## Категории" in markdown
+    assert "## Критичность" in markdown
+    assert "Нет данных" in markdown
 
 
 @pytest.mark.usefixtures("feedback_service")
