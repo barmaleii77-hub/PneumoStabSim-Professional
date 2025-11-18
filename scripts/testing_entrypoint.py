@@ -211,10 +211,22 @@ def main(argv: list[str]) -> int:
             _configure_qt_environment(uv_path)
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        env.setdefault("PSS_HEADLESS", "1")
+
+        failures: list[str] = []
 
         for command in _primary_commands(uv_path):
-            _stream_command(command, env=env)
-    except (CommandFailure, MissingTool) as exc:  # pragma: no cover - cli guard
+            try:
+                _stream_command(command, env=env)
+            except CommandFailure as exc:
+                failures.append(str(exc))
+                _log(f"[entrypoint] Captured failure, continuing to next command: {exc}")
+
+        if failures:
+            for failure in failures:
+                _log(f"[entrypoint] FAILURE: {failure}")
+            return 1
+    except MissingTool as exc:  # pragma: no cover - cli guard
         _log(f"[entrypoint] ERROR: {exc}")
         return 1
     except KeyboardInterrupt:  # pragma: no cover - interactive guard
