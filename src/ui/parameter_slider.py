@@ -345,6 +345,8 @@ class ParameterSlider(QWidget):
         self.slider.setValue(slider_pos)
         self._updating = False
 
+        self.value_changed.emit(self.spinbox.value())
+
     def get_range(self) -> tuple[float, float]:
         """Get current min/max range"""
         return (self._min, self._max)
