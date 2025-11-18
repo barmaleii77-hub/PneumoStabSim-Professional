@@ -183,7 +183,10 @@ class GraphicsPanel(QWidget):
         self.lighting_tab = LightingTab(parent=self)
         self.environment_tab = EnvironmentTab(parent=self)
         self.quality_tab = QualityTab(parent=self)
-        self.scene_tab = SceneTab(parent=self)
+        self.scene_tab = SceneTab(
+            parent=self,
+            metadata_defaults=self.settings_manager.get("metadata.scene_defaults", {}),
+        )
         self.animation_tab = AnimationTab(parent=self)
         self.camera_tab = CameraTab(parent=self)
         self.materials_tab = MaterialsTab(parent=self)

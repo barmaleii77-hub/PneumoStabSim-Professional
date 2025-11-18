@@ -278,6 +278,26 @@ def test_scene_settings_roundtrip(tmp_path: Path, baseline_file: Path) -> None:
     )
 
 
+def test_save_defaults_updates_scene_metadata(
+    tmp_path: Path, baseline_file: Path
+) -> None:
+    settings_path = tmp_path / "settings.json"
+    _write_json(settings_path, _make_legacy_payload(_make_materials()))
+
+    manager = SettingsManager(settings_file=settings_path)
+    service = GraphicsSettingsService(manager, baseline_path=baseline_file)
+
+    state = service.load_current()
+    state["scene"]["exposure"] = 2.25
+    state["scene"]["default_clear_color"] = "#ABCDEF"
+
+    service.save_current_as_defaults(state)
+
+    metadata_defaults = manager.get("metadata.scene_defaults") or {}
+    assert metadata_defaults["exposure"] == pytest.approx(2.25)
+    assert metadata_defaults["default_clear_color"] == "#abcdef"
+
+
 def test_save_current_as_defaults_does_not_add_aliases(
     tmp_path: Path, baseline_file: Path
 ) -> None:

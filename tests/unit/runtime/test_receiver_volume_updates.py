@@ -283,7 +283,7 @@ def test_receiver_state_set_volume_returns_updated_state() -> None:
     assert update.temperature == pytest.approx(expected_temperature)
     assert state.p == pytest.approx(expected_pressure)
     assert state.T == pytest.approx(expected_temperature)
-    
+
     second_state = ReceiverState(
         spec=spec,
         V=0.03,

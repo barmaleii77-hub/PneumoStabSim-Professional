@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from .widgets import ColorButton, LabeledSlider
+from src.common.settings_manager import get_settings_manager
 from src.ui.environment_schema import (
     SCENE_PARAMETERS,
     SCENE_SUSPENSION_PARAMETERS,
@@ -22,16 +23,34 @@ from src.ui.environment_schema import (
 )
 
 
+_DEFAULT_SCENE_STATE: dict[str, Any] = {
+    "scale_factor": 1.0,
+    "exposure": 1.0,
+    "default_clear_color": "#1b1f27",
+    "model_base_color": "#9da3aa",
+    "model_roughness": 0.42,
+    "model_metalness": 0.82,
+    "suspension": {"rod_warning_threshold_m": 0.001},
+}
+
+
 class SceneTab(QWidget):
     """Вкладка управления параметрами сцены (масштаб, экспозиция, базовые цвета)."""
 
     scene_changed = Signal(dict)
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        metadata_defaults: Mapping[str, Any] | None = None,
+    ) -> None:
         super().__init__(parent)
         self._controls: dict[str, Any] = {}
         self._updating_ui = False
+        self._slider_ranges: dict[str, dict[str, float]] = self._load_slider_ranges()
+        self._defaults = self._load_defaults(metadata_defaults)
         self._setup_ui()
+        self._apply_defaults()
 
     # ------------------------------------------------------------------ UI helpers
     def _setup_ui(self) -> None:
@@ -51,9 +70,15 @@ class SceneTab(QWidget):
 
         row = 0
 
-        scale_min, scale_max = self._range_for("scale_factor", 0.01, 5.0)
+        scale_min, scale_max, scale_step, scale_decimals = self._slider_range(
+            "scale_factor", 0.01, 5.0, 0.01, 2
+        )
         scale_slider = LabeledSlider(
-            "Масштаб модели", scale_min, scale_max, 0.01, decimals=2
+            "Масштаб модели",
+            scale_min,
+            scale_max,
+            scale_step,
+            decimals=scale_decimals,
         )
         scale_slider.valueChanged.connect(
             lambda value: self._on_control_changed("scale_factor", value)
@@ -62,9 +87,15 @@ class SceneTab(QWidget):
         grid.addWidget(scale_slider, row, 0, 1, 2)
         row += 1
 
-        exposure_min, exposure_max = self._range_for("exposure", 0.0, 32.0)
+        exposure_min, exposure_max, exposure_step, exposure_decimals = (
+            self._slider_range("exposure", 0.0, 32.0, 0.1, 2)
+        )
         exposure_slider = LabeledSlider(
-            "Экспозиция", exposure_min, exposure_max, 0.1, decimals=2
+            "Экспозиция",
+            exposure_min,
+            exposure_max,
+            exposure_step,
+            decimals=exposure_decimals,
         )
         exposure_slider.valueChanged.connect(
             lambda value: self._on_control_changed("exposure", value)
@@ -75,7 +106,7 @@ class SceneTab(QWidget):
 
         clear_color_row = QHBoxLayout()
         clear_color_row.addWidget(QLabel("Цвет очистки", self))
-        clear_button = ColorButton("#1b1f27")
+        clear_button = ColorButton(self._defaults["default_clear_color"])
         clear_button.color_changed.connect(
             lambda color: self._on_control_changed("default_clear_color", color)
         )
@@ -87,7 +118,7 @@ class SceneTab(QWidget):
 
         base_color_row = QHBoxLayout()
         base_color_row.addWidget(QLabel("Базовый цвет модели", self))
-        base_button = ColorButton("#9da3aa")
+        base_button = ColorButton(self._defaults["model_base_color"])
         base_button.color_changed.connect(
             lambda color: self._on_control_changed("model_base_color", color)
         )
@@ -97,8 +128,15 @@ class SceneTab(QWidget):
         grid.addLayout(base_color_row, row, 0, 1, 2)
         row += 1
 
+        roughness_min, roughness_max, roughness_step, roughness_decimals = (
+            self._slider_range("model_roughness", 0.0, 1.0, 0.01, 2)
+        )
         roughness_slider = LabeledSlider(
-            "Шероховатость модели", 0.0, 1.0, 0.01, decimals=2
+            "Шероховатость модели",
+            roughness_min,
+            roughness_max,
+            roughness_step,
+            decimals=roughness_decimals,
         )
         roughness_slider.valueChanged.connect(
             lambda value: self._on_control_changed("model_roughness", value)
@@ -107,8 +145,15 @@ class SceneTab(QWidget):
         grid.addWidget(roughness_slider, row, 0, 1, 2)
         row += 1
 
+        metalness_min, metalness_max, metalness_step, metalness_decimals = (
+            self._slider_range("model_metalness", 0.0, 1.0, 0.01, 2)
+        )
         metalness_slider = LabeledSlider(
-            "Металличность модели", 0.0, 1.0, 0.01, decimals=2
+            "Металличность модели",
+            metalness_min,
+            metalness_max,
+            metalness_step,
+            decimals=metalness_decimals,
         )
         metalness_slider.valueChanged.connect(
             lambda value: self._on_control_changed("model_metalness", value)
@@ -117,17 +162,21 @@ class SceneTab(QWidget):
         grid.addWidget(metalness_slider, row, 0, 1, 2)
         row += 1
 
-        suspension_min, suspension_max = self._range_for(
-            "suspension.rod_warning_threshold_m", 0.0001, 0.02
+        (
+            suspension_min,
+            suspension_max,
+            suspension_step,
+            suspension_decimals,
+        ) = self._slider_range(
+            "suspension.rod_warning_threshold_m", 0.0001, 0.02, 0.0001, 4
         )
         suspension_slider = LabeledSlider(
             "Порог предупреждения штока (м)",
             suspension_min,
             suspension_max,
-            0.0001,
-            decimals=4,
+            suspension_step,
+            decimals=suspension_decimals,
         )
-        suspension_slider.set_value(0.001)
         suspension_slider.valueChanged.connect(
             lambda value: self._on_control_changed(
                 "suspension.rod_warning_threshold_m", value
@@ -139,6 +188,101 @@ class SceneTab(QWidget):
         return group
 
     # ------------------------------------------------------------------ helpers
+    def _apply_defaults(self) -> None:
+        self.set_state(self._defaults, emit_signal=False)
+
+    @staticmethod
+    def _deep_merge_dicts(
+        base: dict[str, Any], override: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        merged: dict[str, Any] = dict(base)
+        for key, value in override.items():
+            existing = merged.get(key)
+            if isinstance(existing, dict) and isinstance(value, Mapping):
+                merged[key] = SceneTab._deep_merge_dicts(existing, value)
+            else:
+                merged[key] = value
+        return merged
+
+    def _load_defaults(
+        self, metadata_defaults: Mapping[str, Any] | None
+    ) -> dict[str, Any]:
+        defaults = dict(_DEFAULT_SCENE_STATE)
+        source: Mapping[str, Any] | None = metadata_defaults
+        if source is None:
+            try:
+                manager = get_settings_manager()
+                raw_defaults = manager.get("metadata.scene_defaults", {})
+                if isinstance(raw_defaults, Mapping):
+                    source = raw_defaults
+            except Exception:
+                source = None
+        if isinstance(source, Mapping):
+            defaults = self._deep_merge_dicts(defaults, source)
+        try:
+            return validate_scene_settings(defaults)
+        except Exception:
+            return validate_scene_settings(_DEFAULT_SCENE_STATE)
+
+    def _load_slider_ranges(self) -> dict[str, dict[str, float]]:
+        try:
+            raw_ranges = get_settings_manager().get("metadata.scene_slider_ranges", {})
+        except Exception:
+            return {}
+        if not isinstance(raw_ranges, Mapping):
+            return {}
+
+        ranges: dict[str, dict[str, float]] = {}
+        for key, payload in raw_ranges.items():
+            if key == "suspension" and isinstance(payload, Mapping):
+                for nested_key, nested_payload in payload.items():
+                    parsed = self._parse_slider_range(nested_payload)
+                    if parsed:
+                        ranges[f"suspension.{nested_key}"] = parsed
+                continue
+            parsed = self._parse_slider_range(payload)
+            if parsed:
+                ranges[key] = parsed
+        return ranges
+
+    @staticmethod
+    def _parse_slider_range(payload: Any) -> dict[str, float] | None:
+        if not isinstance(payload, Mapping):
+            return None
+        try:
+            min_value = float(payload.get("min"))
+            max_value = float(payload.get("max"))
+            step = float(payload.get("step"))
+        except (TypeError, ValueError):
+            return None
+        if step <= 0:
+            return None
+        decimals_raw = payload.get("decimals", 2)
+        try:
+            decimals = int(decimals_raw)
+        except (TypeError, ValueError):
+            decimals = 2
+        return {"min": min_value, "max": max_value, "step": step, "decimals": decimals}
+
+    def _slider_range(
+        self,
+        key: str,
+        fallback_min: float,
+        fallback_max: float,
+        fallback_step: float,
+        fallback_decimals: int,
+    ) -> tuple[float, float, float, int]:
+        configured = self._slider_ranges.get(key)
+        if configured:
+            min_value = float(configured.get("min", fallback_min))
+            max_value = float(configured.get("max", fallback_max))
+            step = float(configured.get("step", fallback_step)) or fallback_step
+            decimals = int(configured.get("decimals", fallback_decimals))
+            return min_value, max_value, step, max(decimals, 0)
+
+        min_value, max_value = self._range_for(key, fallback_min, fallback_max)
+        return min_value, max_value, fallback_step, fallback_decimals
+
     def _on_control_changed(self, key: str, value: Any) -> None:
         if self._updating_ui:
             return
@@ -201,7 +345,7 @@ class SceneTab(QWidget):
             },
         }
 
-    def set_state(self, state: dict[str, Any]) -> None:
+    def set_state(self, state: dict[str, Any], *, emit_signal: bool = True) -> None:
         validated = validate_scene_settings(state)
         self._updating_ui = True
         try:
@@ -224,7 +368,8 @@ class SceneTab(QWidget):
             )
         finally:
             self._updating_ui = False
-        self.scene_changed.emit(self.get_state())
+        if emit_signal:
+            self.scene_changed.emit(self.get_state())
 
 
 __all__ = ["SceneTab"]

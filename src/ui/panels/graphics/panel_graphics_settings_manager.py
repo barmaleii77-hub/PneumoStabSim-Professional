@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.settings_manager import SettingsManager, get_settings_manager
+from src.ui.environment_schema import validate_scene_settings
 
 
 class GraphicsSettingsError(RuntimeError):
@@ -570,6 +571,19 @@ class GraphicsSettingsService:
         )
         return validated
 
+    def _sync_scene_metadata(self, scene_state: dict[str, Any]) -> None:
+        try:
+            validated = validate_scene_settings(scene_state)
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            self._logger.warning("Skip metadata sync for scene defaults: %s", exc)
+            return
+        try:
+            self._settings_manager.set(
+                "metadata.scene_defaults", validated, auto_save=False
+            )
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            self._logger.warning("Failed to persist metadata.scene_defaults: %s", exc)
+
     def save_current(self, state: dict[str, Any]) -> None:
         """Persist the provided state into the ``current`` section."""
 
@@ -594,6 +608,7 @@ class GraphicsSettingsService:
             category: normalised[category] for category in self.GRAPHICS_CATEGORIES
         }
         persistable = self._apply_persistence_aliases(graphics_payload)
+        self._sync_scene_metadata(persistable.get("scene", {}))
         self._settings_manager.set_category("graphics", persistable, auto_save=False)
         self._settings_manager.set_category(
             self.ANIMATION_CATEGORY, animation_state, auto_save=False
