@@ -67,6 +67,104 @@ def _load_geometry_defaults() -> dict[str, Any]:
     return result
 
 
+def _load_parameter_limits() -> dict[str, dict[str, float]]:
+    """Load slider ranges for the geometry accordion from settings metadata."""
+
+    try:
+        with _SETTINGS_FILE.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception:
+        return _LEGACY_PARAMETER_LIMITS.copy()
+
+    metadata = payload.get("metadata", {})
+    ranges = metadata.get("geometry_slider_ranges", {})
+    if not isinstance(ranges, dict) or not ranges:
+        return _LEGACY_PARAMETER_LIMITS.copy()
+
+    limits: dict[str, dict[str, float]] = {}
+    for key, entry in ranges.items():
+        if not isinstance(entry, dict):
+            continue
+        try:
+            limits[key] = {
+                "min": float(
+                    entry.get(
+                        "min", _LEGACY_PARAMETER_LIMITS.get(key, {}).get("min", 0.0)
+                    )
+                ),
+                "max": float(
+                    entry.get(
+                        "max", _LEGACY_PARAMETER_LIMITS.get(key, {}).get("max", 0.0)
+                    )
+                ),
+                "step": float(
+                    entry.get(
+                        "step", _LEGACY_PARAMETER_LIMITS.get(key, {}).get("step", 0.001)
+                    )
+                ),
+                "decimals": int(
+                    entry.get(
+                        "decimals",
+                        _LEGACY_PARAMETER_LIMITS.get(key, {}).get("decimals", 3),
+                    )
+                ),
+            }
+        except (TypeError, ValueError):
+            continue
+
+    for key, legacy_entry in _LEGACY_PARAMETER_LIMITS.items():
+        limits.setdefault(key, legacy_entry)
+    return limits
+
+
+def _load_parameter_metadata() -> dict[str, dict[str, str]]:
+    """Load geometry field labels and units from metadata if available."""
+
+    try:
+        with _SETTINGS_FILE.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception:
+        return _LEGACY_PARAMETER_METADATA.copy()
+
+    metadata = payload.get("metadata", {})
+    fields = metadata.get("geometry_field_metadata", {})
+    if not isinstance(fields, dict) or not fields:
+        return _LEGACY_PARAMETER_METADATA.copy()
+
+    merged: dict[str, dict[str, str]] = {}
+    for key, entry in fields.items():
+        if not isinstance(entry, dict):
+            continue
+        merged[key] = {
+            "title": str(
+                entry.get(
+                    "title", _LEGACY_PARAMETER_METADATA.get(key, {}).get("title", key)
+                )
+            ),
+            "units": str(
+                entry.get(
+                    "units", _LEGACY_PARAMETER_METADATA.get(key, {}).get("units", "")
+                )
+            ),
+            "description": str(
+                entry.get(
+                    "description",
+                    _LEGACY_PARAMETER_METADATA.get(key, {}).get("description", ""),
+                )
+            ),
+            "group": str(
+                entry.get(
+                    "group",
+                    _LEGACY_PARAMETER_METADATA.get(key, {}).get("group", "other"),
+                )
+            ),
+        }
+
+    for key, legacy_entry in _LEGACY_PARAMETER_METADATA.items():
+        merged.setdefault(key, legacy_entry)
+    return merged
+
+
 # Legacy defaults retained solely as a safety net when the JSON configuration
 # cannot be read. Keeping them private ensures call sites only use
 # ``DEFAULT_GEOMETRY`` which is populated from the live configuration whenever
@@ -158,7 +256,7 @@ PRESET_INDEX_MAP = {
 # PARAMETER CONSTRAINTS
 # =============================================================================
 
-PARAMETER_LIMITS: dict[str, dict[str, float]] = {
+_LEGACY_PARAMETER_LIMITS: dict[str, dict[str, float]] = {
     "wheelbase": {"min": 2.0, "max": 4.0, "step": 0.001, "decimals": 3},
     "track": {"min": 1.0, "max": 2.5, "step": 0.001, "decimals": 3},
     "frame_to_pivot": {"min": 0.3, "max": 1.0, "step": 0.001, "decimals": 3},
@@ -178,7 +276,7 @@ PARAMETER_LIMITS: dict[str, dict[str, float]] = {
 # PARAMETER METADATA
 # =============================================================================
 
-PARAMETER_METADATA: dict[str, dict[str, str]] = {
+_LEGACY_PARAMETER_METADATA: dict[str, dict[str, str]] = {
     "wheelbase": {
         "title": "База (колёсная)",
         "units": "м",
@@ -258,6 +356,9 @@ PARAMETER_METADATA: dict[str, dict[str, str]] = {
         "group": "cylinder",
     },
 }
+
+PARAMETER_LIMITS: dict[str, dict[str, float]] = _load_parameter_limits()
+PARAMETER_METADATA: dict[str, dict[str, str]] = _load_parameter_metadata()
 
 # =============================================================================
 # HELPER FUNCTIONS
