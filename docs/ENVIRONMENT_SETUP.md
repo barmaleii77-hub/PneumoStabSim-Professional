@@ -36,14 +36,18 @@ headless-профилей.
 2. **Автонастройка окружения** — ставит Python-зависимости (через `uv` или pip),
    `aqtinstall`, PySide6/QtQuick3D, headless-переменные (`QT_QPA_PLATFORM=offscreen`,
    `QT_OPENGL=desktop`, `QT_QUICK_BACKEND=software`, `QSG_RHI_BACKEND=opengl`).
-   В CI Qt загружается отдельным шагом, поэтому обычно используем `--skip-qt`:
+   Скрипт сам установит `uv`, если его нет (отключается флагом `--skip-uv`),
+   поэтому достаточно базового Python/`pip` на хосте. В CI Qt загружается
+   отдельным шагом, поэтому обычно используем `--skip-qt`:
 
    ```sh
    ./scripts/setup_linux.sh --qt-version 6.10.0 --skip-qt --summary "$GITHUB_STEP_SUMMARY"
    ```
 
    Для локальной загрузки Qt уберите флаг. `--skip-system` и `--skip-python`
-   пригодятся при повторных прогонах в уже подготовленном контейнере.
+   пригодятся при повторных прогонах в уже подготовленном контейнере; `--skip-uv`
+   оставляет систему без принудительной установки `uv`, если нужно работать только
+   через `pip`.
 
 3. **Xvfb и DISPLAY** — если нужен реальный `DISPLAY`, поднимите Xvfb **до**
    вызова скрипта, чтобы переменная попала в экспортированный env. Без Xvfb
@@ -94,7 +98,8 @@ headless-профилей.
 3. **Автонастройка окружения** — ставит Python-зависимости (`uv`/pip), PySide6,
    `pytest-qt`, headless-настройки (`QT_QPA_PLATFORM=offscreen`,
    `QSG_RHI_BACKEND=d3d11`, `QT_OPENGL=software`, стиль Fusion и HiDPI) и при
-   необходимости скачивает Qt через `tools/setup_qt.py`:
+   необходимости скачивает Qt через `tools/setup_qt.py`. Если `uv` отсутствует,
+   скрипт установит его через `pip` (отключается `-SkipUvInstall`):
 
    ```powershell
    powershell -File scripts/setup_windows.ps1 -QtVersion 6.10.0 -PythonPath C:\\hostedtoolcache\\windows\\Python\\3.13\\x64\\python.exe -SkipQt:$true -SummaryPath $env:GITHUB_STEP_SUMMARY
@@ -102,6 +107,8 @@ headless-профилей.
 
    Снимите `-SkipQt` для локальной офлайновой установки Qt. Флаги `-SkipUvSync`
    и `-SkipSystem` пропускают соответствующие стадии, если runner уже подготовлен.
+   Добавьте `-SkipUvInstall` только если хотите явно использовать предустановленный
+   `uv`/`pip`.
 
 4. **Smoke-тесты** — убедитесь, что `QT_QPA_PLATFORM=offscreen` и
    `QSG_RHI_BACKEND=d3d11` активны (скрипт выставляет автоматически). Далее:
@@ -150,12 +157,13 @@ headless-профилей.
 | `PSS_DIAG` | `1` | Включение диагностического канала симулятора. |
 | `DISPLAY` | пусто (offscreen) или `:99` при Xvfb | Используется только на Linux. Экспортируется вручную после запуска Xvfb. |
 
-> GitHub Actions (`.github/workflows/ci.yml`) вызывает `scripts/setup_linux.sh --skip-qt`
-> и `scripts/setup_windows.ps1 -SkipQt:$true`, затем шаг «Export Qt paths» записывает
-> `QT_PLUGIN_PATH`/`QML2_IMPORT_PATH` в `GITHUB_ENV`, а шаг «Document headless Qt environment»
-> публикует в summary активные `QT_QPA_PLATFORM`, `QSG_RHI_BACKEND`, `QT_OPENGL`, `DISPLAY`
-> и пути до Qt. При локальной разработке придерживайтесь тех же значений, чтобы
-> исключить расхождения между CI и контейнером.
+> GitHub Actions (`.github/workflows/ci.yml`) теперь вызывает `scripts/setup_linux.sh --skip-qt`
+> и `scripts/setup_windows.ps1 -SkipQt:$true` сразу после установки Python/`uv`, чтобы
+> покрыть системные и Python-зависимости, экспортировать переменные headless и заполнить
+> summary. Затем шаг «Export Qt paths» записывает `QT_PLUGIN_PATH`/`QML2_IMPORT_PATH` в
+> `GITHUB_ENV`, а «Document headless Qt environment» публикует в summary активные
+> `QT_QPA_PLATFORM`, `QSG_RHI_BACKEND`, `QT_OPENGL`, `DISPLAY` и пути до Qt. При локальной
+> разработке придерживайтесь тех же значений, чтобы исключить расхождения между CI и контейнером.
 
 ## 3. Headless и Vulkan сценарии
 

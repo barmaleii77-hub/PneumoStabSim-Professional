@@ -63,7 +63,9 @@ def test_simulation_root_accepts_nested_flow_network(qapp) -> None:
 
         arrow_a1 = root.findChild(QObject, "flowArrow-A1")
         assert arrow_a1 is not None
-        assert arrow_a1.property("effectivePressureRatio") == pytest.approx(0.7, rel=1e-6)
+        assert arrow_a1.property("effectivePressureRatio") == pytest.approx(
+            0.7, rel=1e-6
+        )
     finally:
         root.deleteLater()
         component.deleteLater()

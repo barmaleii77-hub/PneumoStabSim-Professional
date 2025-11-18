@@ -11,11 +11,12 @@ warn() {
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/setup_linux.sh [--skip-system] [--skip-python] [--skip-qt] [--qt-version <version>] [--summary <path>]
+Usage: scripts/setup_linux.sh [--skip-system] [--skip-python] [--skip-qt] [--skip-uv] [--qt-version <version>] [--summary <path>]
 
   --skip-system   Skip installation of system packages (apt).
   --skip-python   Skip synchronising Python dependencies.
   --skip-qt       Skip offline Qt runtime provisioning via tools/setup_qt.py.
+  --skip-uv       Do not attempt to install uv when it is missing.
   --qt-version    Override the Qt version to provision (defaults to 6.10.0).
   --summary       Append a short environment report to the provided path
                   (defaults to $GITHUB_STEP_SUMMARY when available).
@@ -31,6 +32,7 @@ USAGE
 skip_system=0
 skip_python=0
 skip_qt=0
+skip_uv=0
 qt_version="${QT_VERSION:-6.10.0}"
 summary_file="${GITHUB_STEP_SUMMARY:-}"
 installed_apt=()
@@ -47,6 +49,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-qt)
       skip_qt=1
+      shift
+      ;;
+    --skip-uv)
+      skip_uv=1
       shift
       ;;
     --qt-version)
@@ -184,6 +190,14 @@ fi
 python_for_scripts="${python_cmd}"
 
 if [[ ${skip_python} -eq 0 ]]; then
+  if [[ ${skip_uv} -eq 0 ]]; then
+    if ! command -v uv >/dev/null 2>&1; then
+      log "uv not found; installing via pip"
+      "$python_cmd" -m pip install --upgrade pip
+      "$python_cmd" -m pip install uv
+    fi
+  fi
+
   if command -v uv >/dev/null 2>&1; then
     log "Synchronising Python environment via uv"
     uv sync --extra dev

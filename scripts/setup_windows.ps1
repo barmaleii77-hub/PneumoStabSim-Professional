@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$SkipUvSync,
+    [switch]$SkipUvInstall,
     [switch]$SkipSystem,
     [switch]$SkipQt,
     [string]$QtVersion,
@@ -71,6 +72,12 @@ function Resolve-PythonCommand {
 
 $pythonPath = Resolve-PythonCommand -PreferredPath $PythonPath
 Write-SetupLog "Using Python from $pythonPath"
+
+if (-not $SkipUvInstall -and -not (Get-Command uv -ErrorAction SilentlyContinue)) {
+    Write-SetupLog "uv not found; installing via pip"
+    & $pythonPath -m pip install --upgrade pip
+    & $pythonPath -m pip install uv
+}
 
 if (-not $SkipSystem) {
     Invoke-ChocoInstall -Package 'directx'
