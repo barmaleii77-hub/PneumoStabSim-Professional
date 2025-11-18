@@ -63,6 +63,15 @@ jobs:
             "PyOpenGL==3.1.10" \
             "PyOpenGL-accelerate==3.1.10"
 
+      - name: Verify PySide6 Qt modules
+        run: |
+          python - <<'PY'
+          from PySide6 import QtWidgets, QtQuick3D
+
+          print("QtWidgets available", QtWidgets.QApplication)
+          print("QtQuick3D available", QtQuick3D)
+          PY
+
       - name: Export Qt plugin paths
         shell: python
         run: |

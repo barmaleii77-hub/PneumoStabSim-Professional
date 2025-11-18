@@ -91,13 +91,23 @@ jobs:
       - name: Install Qt Python dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
-          python -m pip install --upgrade --no-cache-dir \
-            "PySide6==6.10.*" \
-            "PySide6-Addons==6.10.*" \
-            "PySide6-Essentials==6.10.*" \
-            "shiboken6==6.10.*" \
-            numpy \
-            pytest-qt
+            python -m pip install --upgrade --no-cache-dir \
+              "PySide6==6.10.*" \
+              "PySide6-Addons==6.10.*" \
+              "PySide6-Essentials==6.10.*" \
+              "shiboken6==6.10.*" \
+              numpy \
+              pytest-qt
+
+      - name: Verify PySide6 Qt modules
+        if: runner.os == 'Linux'
+        run: |
+          python - <<'PY'
+          from PySide6 import QtWidgets, QtQuick3D
+
+          print("QtWidgets available", QtWidgets.QApplication)
+          print("QtQuick3D available", QtQuick3D)
+          PY
 
       - name: Run final readiness test (Linux)
         if: runner.os == 'Linux'

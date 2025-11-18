@@ -3,6 +3,9 @@ name: Release Packaging
 on:
   push:
     branches:
+      - main
+      - develop
+      - 'feature/*'
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch can package releases
     tags:
       - 'v*'
@@ -13,6 +16,9 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.13'
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
+  QSG_RHI_BACKEND: opengl
 
 jobs:
   package:
@@ -26,6 +32,48 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Install headless Qt dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+
+          packages=(
+            xvfb xauth mesa-utils mesa-utils-extra libosmesa6
+            libgl1 libgl1-mesa-dri libglu1-mesa libglu1-mesa-dev
+            libegl1 libegl1-mesa-dev libgles2-mesa-dev
+            libxcb-xinerama0 libxkbcommon0 libxkbcommon-x11-0 libvulkan1
+            libosmesa6-dev libgbm1 libdrm2
+            libxcb-keysyms1 libxcb-image0 libxcb-icccm4 libxcb-render-util0 libxcb-xfixes0 libxcb-shape0 libxcb-randr0 libxcb-glx0
+            mesa-vulkan-drivers vulkan-tools qt6-shader-baker
+          )
+
+          to_install=()
+          for pkg in "${packages[@]}"; do
+            if dpkg -s "$pkg" >/dev/null 2>&1; then
+              echo "Package $pkg already installed"
+              continue
+            fi
+            if apt-cache show "$pkg" >/dev/null 2>&1; then
+              to_install+=("$pkg")
+            else
+              echo "Skipping unavailable package: $pkg"
+            fi
+          done
+
+          if [ "${#to_install[@]}" -gt 0 ]; then
+            sudo apt-get install -y --no-install-recommends "${to_install[@]}"
+          else
+            echo "No additional apt packages required"
+          fi
+
+      - name: Start Xvfb for headless Qt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1080x24 >/tmp/xvfb.log 2>&1 &
+          echo "DISPLAY=$DISPLAY" >> "$GITHUB_ENV"
+          echo "QT_QPA_PLATFORM=offscreen" >> "$GITHUB_ENV"
 
       - name: Install uv
         uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf
@@ -43,6 +91,14 @@ jobs:
       - name: Sync dependencies (release extras)
         run: uv sync --frozen --extra release
 
+      - name: Bootstrap Windows environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+          $pythonPath = (Get-Command python).Source
+          ./scripts/setup_windows.ps1 -PythonPath $pythonPath -SkipUvSync -SkipQt -SummaryPath $env:GITHUB_STEP_SUMMARY
+
       - name: Ensure PySide6 runtime packages
         run: |
           uv run python -m pip install --upgrade --no-cache-dir \
@@ -54,6 +110,15 @@ jobs:
             pytest-qt \
             "PyOpenGL==3.1.10" \
             "PyOpenGL-accelerate==3.1.10"
+
+      - name: Verify PySide6 Qt modules
+        run: |
+          uv run python - <<'PY'
+          from PySide6 import QtWidgets, QtQuick3D
+
+          print("QtWidgets available", QtWidgets.QApplication)
+          print("QtQuick3D available", QtQuick3D)
+          PY
 
       - name: Build packages
         run: make package-all
