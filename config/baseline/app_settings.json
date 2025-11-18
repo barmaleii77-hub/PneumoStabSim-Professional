@@ -47,7 +47,19 @@
         "max_m3": 1.0
       },
       "dead_zone_head_m3": 0.0,
-      "dead_zone_rod_m3": 0.0
+      "dead_zone_rod_m3": 0.0,
+      "chamber_volumes": {
+        "head_m3": 0.0005,
+        "rod_m3": 0.0003
+      },
+      "line_pressures": {
+        "a1_pa": 150000.0,
+        "b1_pa": 150000.0,
+        "a2_pa": 150000.0,
+        "b2_pa": 150000.0
+      },
+      "tank_pressure_pa": 200000.0,
+      "relief_pressure_pa": 500000.0
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -2157,7 +2169,7 @@
     "last_migration": "0001_add_diagnostics_defaults",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 325,
+    "total_parameters": 333,
     "description": "✅ FIXED: tonemap_enabled=false, depth_of_field=false, vignette=false по умолчанию",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",

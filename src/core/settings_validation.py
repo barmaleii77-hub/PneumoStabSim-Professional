@@ -19,6 +19,8 @@ from collections.abc import Iterable, Mapping
 
 from src.common.settings_requirements import (
     BOOL_PNEUMATIC_KEYS,
+    CHAMBER_VOLUME_KEYS,
+    LINE_PRESSURE_KEYS,
     NUMERIC_PNEUMATIC_KEYS,
     NUMERIC_SIMULATION_KEYS,
     RECEIVER_VOLUME_LIMIT_KEYS,
@@ -205,6 +207,12 @@ def _validate_required_paths(payload: Mapping[str, Any]) -> None:
 
     for key in RECEIVER_VOLUME_LIMIT_KEYS:
         _require_number(payload, f"current.pneumatic.receiver_volume_limits.{key}")
+
+    for key in LINE_PRESSURE_KEYS:
+        _require_number(payload, f"current.pneumatic.line_pressures.{key}")
+
+    for key in CHAMBER_VOLUME_KEYS:
+        _require_number(payload, f"current.pneumatic.chamber_volumes.{key}")
 
     for key in STRING_PNEUMATIC_KEYS:
         _require_string(payload, f"current.pneumatic.{key}")

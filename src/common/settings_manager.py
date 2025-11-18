@@ -766,6 +766,10 @@ class SettingsManager:
             for path in (
                 "pneumatic.dead_zone_head_m3",
                 "pneumatic.dead_zone_rod_m3",
+                "pneumatic.chamber_volumes",
+                "pneumatic.line_pressures",
+                "pneumatic.tank_pressure_pa",
+                "pneumatic.relief_pressure_pa",
                 "road",
                 "advanced",
             ):
@@ -805,6 +809,14 @@ class SettingsManager:
         numeric_paths.update(
             f"current.pneumatic.receiver_volume_limits.{key}"
             for key in getattr(req, "RECEIVER_VOLUME_LIMIT_KEYS", ())
+        )
+        numeric_paths.update(
+            f"current.pneumatic.line_pressures.{key}"
+            for key in getattr(req, "LINE_PRESSURE_KEYS", ())
+        )
+        numeric_paths.update(
+            f"current.pneumatic.chamber_volumes.{key}"
+            for key in getattr(req, "CHAMBER_VOLUME_KEYS", ())
         )
 
         string_paths: set[str] = {
