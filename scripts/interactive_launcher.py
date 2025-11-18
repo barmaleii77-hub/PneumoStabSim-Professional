@@ -22,6 +22,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 LOGS_DIR = Path("logs")
+LOG_EXTENSIONS = (".log", ".jsonl")
 
 # --- Constants
 QPA_CHOICES: list[str] = ["(auto)", "windows", "offscreen", "minimal"]
@@ -67,6 +68,19 @@ def run_command_logged(
     return completed
 
 
+def summarize_log_tail(log_path: Path, max_lines: int) -> tuple[deque[str], dict[str, int], list[str]]:
+    """Return tail, severity counts and highlight lines for a log file."""
+
+    tail: deque[str] = deque(maxlen=max_lines)
+    with log_path.open("r", encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            tail.append(line.rstrip("\n"))
+
+    counts = _count_severities(tail)
+    highlights = _extract_highlight_lines(tail)
+    return tail, counts, highlights
+
+
 def format_completed_process(cmd: Sequence[str], completed: subprocess.CompletedProcess[str]) -> str:
     stdout = (completed.stdout or "").strip()
     stderr = (completed.stderr or "").strip()
@@ -78,16 +92,60 @@ def format_completed_process(cmd: Sequence[str], completed: subprocess.Completed
     return "\n".join(lines)
 
 
-def run_command_with_summary(
-    cmd: Sequence[str],
-    *,
-    cwd: Path | None = None,
-    env: dict[str, str] | None = None,
-) -> tuple[subprocess.CompletedProcess[str], str]:
-    completed = run_command_logged(cmd, cwd=cwd, env=env)
-    summary = format_completed_process(cmd, completed)
-    _log(f"Command summary:\n{summary}")
-    return completed, summary
+def _count_severities(lines: Sequence[str]) -> dict[str, int]:
+    counts = {"error": 0, "warning": 0}
+    for ln in lines:
+        low = ln.lower()
+        if any(tok in low for tok in ("error", "traceback", "exception", "failed")):
+            counts["error"] += 1
+        if "warn" in low:
+            counts["warning"] += 1
+    return counts
+
+
+def _extract_highlight_lines(lines: Sequence[str], limit: int = 50) -> list[str]:
+    highlights: list[str] = []
+    for ln in lines:
+        low = ln.lower()
+        if any(tok in low for tok in ("error", "traceback", "warning", "failed")):
+            highlights.append(ln)
+        if len(highlights) >= limit:
+            break
+    return highlights
+
+
+def _detect_failure_hint(lines: Sequence[str]) -> str:
+    if not lines:
+        return "Пустой вывод процесса. Проверьте логи в секции 'Логи и ошибки'."
+
+    counts = _count_severities(lines)
+    hints: list[str] = []
+    if counts["error"]:
+        hints.append(f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже.")
+    if counts["warning"]:
+        hints.append(f"Предупреждений: {counts['warning']}.")
+
+    text_blob = "\n".join(lines).lower()
+    if "module not found" in text_blob or "no module named" in text_blob:
+        hints.append("Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите.")
+    if "qt.qpa" in text_blob or "xcb" in text_blob:
+        hints.append("Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless.")
+    if "permission" in text_blob:
+        hints.append("Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути.")
+    if "failed" in text_blob and "pytest" in text_blob:
+        hints.append("Похоже, упали тесты. Проверьте блок FAILURES и перезапустите с --diag.")
+    if "ruff" in text_blob and "error" in text_blob:
+        hints.append("Линтер обнаружил ошибки. Запустите 'python -m ruff .' для деталей.")
+    if not hints and (counts["error"] or counts["warning"]):
+        hints.append("Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер.")
+    elif not hints:
+        return ""
+
+    highlights = _extract_highlight_lines(lines, limit=10)
+    if highlights:
+        hints.append("Ключевые строки:\n" + "\n".join(highlights))
+
+    return "\n".join(hints)
 
 
 # --- Tooltip helper
@@ -432,7 +490,9 @@ class LauncherUI(tk.Tk):
         menubar = tk.Menu(self)
         actions_menu = tk.Menu(menubar, tearoff=0)
         actions_menu.add_command(label="Запустить приложение", command=self._on_run)
+        actions_menu.add_command(label="Показать свежие логи", command=self._open_logs_viewer)
         actions_menu.add_command(label="Выбор конфигурации...", command=self._open_configuration_dialog)
+        actions_menu.add_command(label="Быстрый статус (git+линтер)", command=self._run_repo_status)
         menubar.add_cascade(label="Действия", menu=actions_menu)
 
         tests_menu = tk.Menu(menubar, tearoff=0)
@@ -710,7 +770,7 @@ class LauncherUI(tk.Tk):
 
     def _read_recent_logs(self, log_dir: Path, max_lines: int) -> str:
         log_files = sorted(
-            list(log_dir.rglob("*.log")) + list(log_dir.rglob("*.jsonl")),
+            [p for p in log_dir.rglob("*") if p.suffix in LOG_EXTENSIONS],
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
@@ -718,21 +778,28 @@ class LauncherUI(tk.Tk):
             return f"Лог-файлы в {log_dir} не найдены."
 
         latest = log_files[0]
-        tail: deque[str] = deque(maxlen=max_lines)
         try:
-            with latest.open("r", encoding="utf-8", errors="replace") as fh:
-                for line in fh:
-                    tail.append(line.rstrip("\n"))
+            tail, counts, highlights = summarize_log_tail(latest, max_lines)
         except Exception as e:
             return f"Не удалось прочитать {latest}: {e}"
 
-        counts = self._count_severities(tail)
-        highlights = self._extract_highlight_lines(tail)
+        overview: list[str] = []
+        for candidate in log_files[:5]:
+            try:
+                _, c_counts, _ = summarize_log_tail(candidate, max_lines)
+            except Exception:
+                continue
+            overview.append(
+                f"- {candidate.name}: ошибок={c_counts['error']}, предупреждений={c_counts['warning']}"
+            )
         header_parts = [
             f"Файл: {latest}",
             f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}",
             f"Показаны последние {len(tail)} строк",
         ]
+        if overview:
+            header_parts.append("Сводка свежих логов:")
+            header_parts.extend(overview)
         if highlights:
             header_parts.append("Ключевые строки (ошибки/варнинги):")
             header_parts.extend(highlights[-20:])
@@ -831,58 +898,33 @@ class LauncherUI(tk.Tk):
         text = summary
 
         if completed.returncode != 0:
-            hint = self._build_failure_hint(stdout_lines + stderr_lines)
+            hint = _detect_failure_hint(stdout_lines + stderr_lines)
             if hint:
                 text = f"{text}\nПодсказка: {hint}"
 
+        summary = self._render_summary(stdout_lines + stderr_lines)
+        if summary:
+            text = f"{text}\n\n{summary}"
+
         return text
 
-    def _count_severities(self, lines: Sequence[str]) -> dict[str, int]:
-        counts = {"error": 0, "warning": 0}
-        for ln in lines:
-            low = ln.lower()
-            if any(tok in low for tok in ("error", "traceback", "exception", "failed")):
-                counts["error"] += 1
-            if "warn" in low:
-                counts["warning"] += 1
-        return counts
-
-    def _extract_highlight_lines(self, lines: Sequence[str], limit: int = 50) -> list[str]:
-        highlights: list[str] = []
-        for ln in lines:
-            low = ln.lower()
-            if any(tok in low for tok in ("error", "traceback", "warning", "failed")):
-                highlights.append(ln)
-            if len(highlights) >= limit:
-                break
-        return highlights
-
-    def _build_failure_hint(self, lines: Sequence[str]) -> str:
+    def _render_summary(self, lines: Sequence[str]) -> str:
         if not lines:
-            return "Пустой вывод процесса. Проверьте логи в секции 'Логи и ошибки'."
+            return ""
 
-        counts = self._count_severities(lines)
-        hints: list[str] = []
-        if counts["error"]:
-            hints.append(f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже.")
-        if counts["warning"]:
-            hints.append(f"Предупреждений: {counts['warning']}." )
-
-        text_blob = "\n".join(lines).lower()
-        if "module not found" in text_blob or "no module named" in text_blob:
-            hints.append("Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите.")
-        if "qt.qpa" in text_blob or "xcb" in text_blob:
-            hints.append("Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless.")
-        if "permission" in text_blob:
-            hints.append("Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути.")
-        if not hints:
-            hints.append("Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер.")
-
-        highlights = self._extract_highlight_lines(lines, limit=10)
+        counts = _count_severities(lines)
+        highlights = _extract_highlight_lines(lines, limit=12)
+        parts = [
+            "=== Итоговый анализ stdout/stderr ===",
+            f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}",
+        ]
+        hint = _detect_failure_hint(lines)
+        if hint:
+            parts.append(f"Подсказка: {hint}")
         if highlights:
-            hints.append("Ключевые строки:\n" + "\n".join(highlights))
-
-        return "\n".join(hints)
+            parts.append("Важные строки:")
+            parts.extend(highlights)
+        return "\n".join(parts)
 
     # --- Help window
     def _open_help(self) -> None:
@@ -979,7 +1021,7 @@ class LauncherUI(tk.Tk):
                 source_lines = self._captured_output
             elif analysis_text:
                 source_lines = analysis_text.splitlines()
-            hint = self._build_failure_hint(source_lines)
+            hint = _detect_failure_hint(source_lines)
             self.after(
                 0,
                 lambda: messagebox.showerror(
@@ -993,10 +1035,13 @@ class LauncherUI(tk.Tk):
             return "(нет захваченного вывода)"
         lines = self._captured_output
         tail = lines[-max_lines:]
-        counts = self._count_severities(lines)
-        interesting = self._extract_highlight_lines(lines)
+        counts = _count_severities(lines)
+        interesting = _extract_highlight_lines(lines)
         parts: list[str] = []
         parts.append(f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}")
+        summary = self._render_summary(lines)
+        if summary:
+            parts.append(summary)
         if interesting:
             parts.append("-- Важные строки (фильтр по ошибкам/QML) --")
             parts.extend(interesting[-60:])
