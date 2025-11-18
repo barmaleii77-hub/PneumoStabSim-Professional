@@ -16,6 +16,7 @@ from __future__ import annotations
 
 # Стандартные импорты
 import json
+import math
 import logging
 import os
 import re
@@ -256,6 +257,84 @@ class SettingsService:
             ordered = ", ".join(sorted(offenders))
             raise SettingsValidationError(
                 f"Unknown geometry keys are not allowed: {ordered}"
+            )
+
+    def _guard_geometry_ranges(self, payload: MappingABC[str, Any]) -> None:
+        """Отклонить payload, если значения геометрии выходят за пределы метаданных.
+
+        Диапазоны берутся из ``metadata.geometry_slider_ranges``. Валидация
+        применяется для ``current.geometry`` и ``defaults_snapshot.geometry``
+        только если диапазоны и секции присутствуют.
+        """
+
+        if not isinstance(payload, MappingABC):
+            return
+
+        metadata = (
+            payload.get("metadata")
+            if isinstance(payload.get("metadata"), MappingABC)
+            else None
+        )
+        ranges = (
+            metadata.get("geometry_slider_ranges")
+            if isinstance(metadata, MappingABC)
+            else None
+        )
+        if not isinstance(ranges, MappingABC):
+            return
+
+        def _coerce_number(value: Any) -> float | None:
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return None
+            return numeric if math.isfinite(numeric) else None
+
+        def _geometry_section(
+            root: MappingABC[str, Any] | None,
+        ) -> MappingABC[str, Any] | None:
+            if not isinstance(root, MappingABC):
+                return None
+            section = root.get("geometry")
+            return section if isinstance(section, MappingABC) else None
+
+        current = payload.get("current") if isinstance(payload, MappingABC) else None
+        defaults = (
+            payload.get("defaults_snapshot")
+            if isinstance(payload, MappingABC)
+            else None
+        )
+
+        violations: list[str] = []
+
+        for label, section in (
+            ("current.geometry", _geometry_section(current)),
+            ("defaults_snapshot.geometry", _geometry_section(defaults)),
+        ):
+            if not isinstance(section, MappingABC):
+                continue
+            for key, spec in ranges.items():
+                if not isinstance(spec, MappingABC):
+                    continue
+                key_label = str(key).replace("_", " ")
+                value = _coerce_number(section.get(key))
+                if value is None:
+                    continue
+                min_v = _coerce_number(spec.get("min"))
+                max_v = _coerce_number(spec.get("max"))
+                if min_v is not None and value < min_v:
+                    violations.append(
+                        f"{label}.{key_label}={value} below minimum {min_v}"
+                    )
+                if max_v is not None and value > max_v:
+                    violations.append(
+                        f"{label}.{key_label}={value} above maximum {max_v}"
+                    )
+
+        if violations:
+            raise SettingsValidationError(
+                "Geometry values are out of allowed range: "
+                + "; ".join(sorted(violations))
             )
 
     # ------------------------- SOFT DEFAULTS FILL ---------------------------
@@ -1219,6 +1298,7 @@ class SettingsService:
         self._guard_legacy_geometry_mesh_extras(payload)
         self._guard_legacy_material_aliases(payload)
         self._guard_unknown_geometry_keys(payload)
+        self._guard_geometry_ranges(payload)
 
         validator = self._get_validator()
         errors = sorted(validator.iter_errors(payload), key=lambda err: err.path)
