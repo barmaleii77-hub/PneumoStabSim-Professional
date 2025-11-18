@@ -5,6 +5,20 @@
 - Linux: run with `QSG_RHI_BACKEND=opengl`, `QSG_OPENGL_VERSION=4.5`; verify HDR and fallback to GL 3.3.
 - macOS: confirm Metal path, HDR, and dithering.
 
+## Minimal per-platform checklists
+- **Windows (Direct3D 11)**
+  - Launch with `QSG_RHI_BACKEND=d3d11` and keep `QT_QUICK_BACKEND=rhi`.
+  - Load a representative `.hdr` (e.g., `assets/ibl/office.hdr`) and confirm dithering via overlay or histogram capture.
+  - Collect `logs/ibl/ibl_events.jsonl` and a frame grab showing the dithering pattern.
+- **Linux (OpenGL 4.5 + fallback)**
+  - First run with `QSG_RHI_BACKEND=opengl` and `QSG_OPENGL_VERSION=4.5`, recording `glxinfo | grep "OpenGL version"`.
+  - Force fallback using `QSG_OPENGL_VERSION=3.3` and confirm the app degrades gracefully without HDR regressions.
+  - Capture both shader cache directories and HDR load logs for comparison.
+- **macOS (Metal)**
+  - Ensure the default Metal backend remains active (`QSG_RHI_BACKEND=metal` or unset) and run an HDR scene.
+  - Validate dithering on a captured frame and archive the system log excerpt showing Metal device selection.
+  - Store the HDR event log alongside the screenshots in `reports/tests/` for traceability.
+
 ## Environment actions taken
 - Synced Python environment with `make uv-sync` to ensure Qt and testing dependencies are available in the container.
 - Attempted automated cross-platform prep and test execution via `python -m tools.cross_platform_test_prep --use-uv --run-tests`.
