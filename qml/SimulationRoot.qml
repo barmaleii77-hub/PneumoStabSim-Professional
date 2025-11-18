@@ -30,6 +30,13 @@ Pane {
 
     /** Кэш активных предупреждений шейдеров (effectId -> message). */
     property var shaderWarningState: ({})
+    property var geometryState: ({})
+    property real wheelbase: NaN
+    property real trackWidth: NaN
+    property real leverArm: NaN
+    property real cylinderStroke: NaN
+    property real pistonDiameter: NaN
+    property real rodDiameter: NaN
 
     function _normalizeEffectId(value) {
         var normalized = "unknown"
@@ -92,7 +99,23 @@ Pane {
      * В заглушке просто ретранслируем полезную нагрузку наружу.
      */
     function applyGeometryUpdates(params) {
-        geometryUpdatesApplied(_normalizeGeometryPayload(params))
+        var normalized = _normalizeGeometryPayload(params)
+        geometryState = normalized
+
+        if (normalized.wheelbase !== undefined)
+            wheelbase = Number(normalized.wheelbase)
+        if (normalized.track !== undefined)
+            trackWidth = Number(normalized.track)
+        if (normalized.lever_length !== undefined)
+            leverArm = Number(normalized.lever_length)
+        if (normalized.stroke_m !== undefined)
+            cylinderStroke = Number(normalized.stroke_m)
+        if (normalized.cyl_diam_m !== undefined)
+            pistonDiameter = Number(normalized.cyl_diam_m)
+        if (normalized.rod_diameter_m !== undefined)
+            rodDiameter = Number(normalized.rod_diameter_m)
+
+        geometryUpdatesApplied(normalized)
     }
 
     /**

@@ -216,7 +216,8 @@
       "frame_beam_size_m": 0.12,
       "frame_length_m": 3.4,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "active_preset": "standard_truck"
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -1141,7 +1142,92 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {
+          "wheelbase": {
+            "min": 2.0,
+            "max": 5.0,
+            "step": 0.01,
+            "decimals": 3,
+            "units": "m"
+          },
+          "track": {
+            "min": 1.0,
+            "max": 2.5,
+            "step": 0.01,
+            "decimals": 3,
+            "units": "m"
+          },
+          "lever_length": {
+            "min": 0.1,
+            "max": 0.6,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "m"
+          },
+          "stroke_m": {
+            "min": 0.05,
+            "max": 0.5,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "m"
+          },
+          "cyl_diam_m": {
+            "min": 0.03,
+            "max": 0.15,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "m"
+          },
+          "rod_diameter_m": {
+            "min": 0.01,
+            "max": 0.1,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "m"
+          }
+        },
+        "presets": [
+          {
+            "key": "standard_truck",
+            "label": "Standard Truck",
+            "description": "Базовая геометрия для магистрального тягача.",
+            "values": {
+              "wheelbase": 3.4,
+              "track": 2.34,
+              "lever_length": 0.75,
+              "stroke_m": 0.38,
+              "cyl_diam_m": 0.11,
+              "rod_diameter_m": 0.035
+            }
+          },
+          {
+            "key": "compact_van",
+            "label": "Compact Van",
+            "description": "Укороченная база и меньшие диаметры цилиндра/штока.",
+            "values": {
+              "wheelbase": 2.9,
+              "track": 1.7,
+              "lever_length": 0.42,
+              "stroke_m": 0.22,
+              "cyl_diam_m": 0.08,
+              "rod_diameter_m": 0.028
+            }
+          },
+          {
+            "key": "heavy_duty",
+            "label": "Heavy Duty",
+            "description": "Увеличенные плечи рычага и ход цилиндра для тяжёлых нагрузок.",
+            "values": {
+              "wheelbase": 4.2,
+              "track": 2.2,
+              "lever_length": 0.55,
+              "stroke_m": 0.45,
+              "cyl_diam_m": 0.13,
+              "rod_diameter_m": 0.045
+            }
+          }
+        ]
       },
       "pneumo": {
         "valves": {
@@ -1274,7 +1360,8 @@
       "frame_beam_size_m": 0.12,
       "frame_length_m": 3.4,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "active_preset": "standard_truck"
     },
     "pneumatic": {
       "volume_mode": "MANUAL",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import partial
 from typing import Any
 from collections.abc import Callable
@@ -24,10 +24,15 @@ from PySide6.QtWidgets import (
     QCheckBox,
 )
 
-from config.constants import get_geometry_presets
+from config.constants import get_geometry_presets, get_geometry_ui_ranges
 
 from src.common.settings_manager import get_settings_manager
 from src.ui.parameter_slider import ParameterSlider
+from src.ui.panels.geometry.accordion_cylinder_stroke import cylinder_stroke_spec
+from src.ui.panels.geometry.accordion_diameters import diameter_specs
+from src.ui.panels.geometry.accordion_lever import lever_spec
+from src.ui.panels.geometry.accordion_track import track_spec
+from src.ui.panels.geometry.accordion_wheelbase import wheelbase_spec
 
 
 def _build_logger(channel: str, *, panel: str | None = None):
@@ -684,152 +689,92 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
             preset_settings_key="active_preset",
         )
 
-        field_specs = (
+        field_specs: list[tuple[str, SliderFieldSpec]] = []
+
+        geometry_ranges: Mapping[str, Any] | None = None
+        try:
+            geometry_ranges = get_geometry_ui_ranges()
+        except Exception as exc:  # pragma: no cover - defensive guard
+            _log_event(
+                self._logger,
+                "warning",
+                "ranges.load_failed",
+                error=str(exc),
+            )
+
+        for payload in (
+            wheelbase_spec(),
+            track_spec(),
+            lever_spec(),
+            cylinder_stroke_spec(),
+            *diameter_specs(),
+        ):
+            slider_spec = self._apply_range_override(
+                SliderFieldSpec(**payload["slider"]), geometry_ranges
+            )
+            field_specs.append((payload["attr"], slider_spec))
+
+        field_specs.extend(
             (
-                "wheelbase",
-                SliderFieldSpec(
-                    key="wheelbase",
-                    label="Wheelbase (L)",
-                    min_value=2.0,
-                    max_value=5.0,
-                    step=0.01,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=3.0,
-                    settings_key="wheelbase",
-                    telemetry_key="geometry.wheelbase",
+                (
+                    "lever_angle",
+                    self._apply_range_override(
+                        SliderFieldSpec(
+                            key="lever_angle",
+                            label="Lever Angle (?)",
+                            min_value=-30.0,
+                            max_value=30.0,
+                            step=0.1,
+                            decimals=2,
+                            unit="deg",
+                            allow_range_edit=False,
+                            default=0.0,
+                            read_only=True,
+                            emit_signal=False,
+                            telemetry_key="geometry.lever_angle",
+                        ),
+                        geometry_ranges,
+                    ),
                 ),
-            ),
-            (
-                "track_width",
-                SliderFieldSpec(
-                    key="track_width",
-                    label="Track Width (B)",
-                    min_value=1.0,
-                    max_value=2.5,
-                    step=0.01,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=1.8,
-                    settings_key="track",
-                    telemetry_key="geometry.track",
+                (
+                    "frame_mass",
+                    self._apply_range_override(
+                        SliderFieldSpec(
+                            key="frame_mass",
+                            label="Frame Mass (M_frame)",
+                            min_value=500.0,
+                            max_value=5000.0,
+                            step=10.0,
+                            decimals=1,
+                            unit="kg",
+                            allow_range_edit=True,
+                            default=1500.0,
+                            settings_key="frame_mass",
+                            telemetry_key="geometry.frame_mass",
+                        ),
+                        geometry_ranges,
+                    ),
                 ),
-            ),
-            (
-                "lever_arm",
-                SliderFieldSpec(
-                    key="lever_arm",
-                    label="Lever Arm (r)",
-                    min_value=0.1,
-                    max_value=0.6,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.3,
-                    settings_key="lever_length",
-                    telemetry_key="geometry.lever_length",
+                (
+                    "wheel_mass",
+                    self._apply_range_override(
+                        SliderFieldSpec(
+                            key="wheel_mass",
+                            label="Wheel Mass (M_wheel)",
+                            min_value=10.0,
+                            max_value=200.0,
+                            step=1.0,
+                            decimals=1,
+                            unit="kg",
+                            allow_range_edit=True,
+                            default=50.0,
+                            settings_key="wheel_mass",
+                            telemetry_key="geometry.wheel_mass",
+                        ),
+                        geometry_ranges,
+                    ),
                 ),
-            ),
-            (
-                "lever_angle",
-                SliderFieldSpec(
-                    key="lever_angle",
-                    label="Lever Angle (?)",
-                    min_value=-30.0,
-                    max_value=30.0,
-                    step=0.1,
-                    decimals=2,
-                    unit="deg",
-                    allow_range_edit=False,
-                    default=0.0,
-                    read_only=True,
-                    emit_signal=False,
-                    telemetry_key="geometry.lever_angle",
-                ),
-            ),
-            (
-                "cylinder_stroke",
-                SliderFieldSpec(
-                    key="cylinder_stroke",
-                    label="Cylinder Stroke (s_max)",
-                    min_value=0.05,
-                    max_value=0.5,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.2,
-                    settings_key="stroke_m",
-                    telemetry_key="geometry.stroke",
-                ),
-            ),
-            (
-                "piston_diameter",
-                SliderFieldSpec(
-                    key="piston_diameter",
-                    label="Piston Diameter (D_p)",
-                    min_value=0.03,
-                    max_value=0.15,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.08,
-                    settings_key="cyl_diam_m",
-                    telemetry_key="geometry.cyl_diameter",
-                ),
-            ),
-            (
-                "rod_diameter",
-                SliderFieldSpec(
-                    key="rod_diameter",
-                    label="Rod Diameter (D_r)",
-                    min_value=0.01,
-                    max_value=0.10,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.04,
-                    settings_key="rod_diameter_m",
-                    telemetry_key="geometry.rod_diameter",
-                ),
-            ),
-            (
-                "frame_mass",
-                SliderFieldSpec(
-                    key="frame_mass",
-                    label="Frame Mass (M_frame)",
-                    min_value=500.0,
-                    max_value=5000.0,
-                    step=10.0,
-                    decimals=1,
-                    unit="kg",
-                    allow_range_edit=True,
-                    default=1500.0,
-                    settings_key="frame_mass",
-                    telemetry_key="geometry.frame_mass",
-                ),
-            ),
-            (
-                "wheel_mass",
-                SliderFieldSpec(
-                    key="wheel_mass",
-                    label="Wheel Mass (M_wheel)",
-                    min_value=10.0,
-                    max_value=200.0,
-                    step=1.0,
-                    decimals=1,
-                    unit="kg",
-                    allow_range_edit=True,
-                    default=50.0,
-                    settings_key="wheel_mass",
-                    telemetry_key="geometry.wheel_mass",
-                ),
-            ),
+            )
         )
 
         for attr, spec in field_specs:
@@ -839,6 +784,33 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
         self._initialise_geometry_presets()
 
         self.content_layout.addStretch()
+
+    def _apply_range_override(
+        self, spec: SliderFieldSpec, ranges: Mapping[str, Any] | None
+    ) -> SliderFieldSpec:
+        """Override slider range from settings constants if provided."""
+
+        if not ranges:
+            return spec
+
+        key = spec.settings_key or spec.key
+        config_range = ranges.get(key)
+        if not isinstance(config_range, Mapping):
+            return spec
+
+        updates: dict[str, Any] = {}
+        if "min" in config_range:
+            updates["min_value"] = float(config_range["min"])
+        if "max" in config_range:
+            updates["max_value"] = float(config_range["max"])
+        if "step" in config_range:
+            updates["step"] = float(config_range["step"])
+        if "decimals" in config_range:
+            updates["decimals"] = int(config_range["decimals"])
+        if "units" in config_range and isinstance(config_range["units"], str):
+            updates["unit"] = config_range["units"]
+
+        return replace(spec, **updates) if updates else spec
 
     def on_field_value_changed(self, spec: SliderFieldSpec, value: float) -> None:
         self.parameter_changed.emit(spec.key, value)
