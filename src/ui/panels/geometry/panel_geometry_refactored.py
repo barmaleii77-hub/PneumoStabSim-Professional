@@ -532,9 +532,41 @@ class GeometryPanel(QWidget):
             self.logger.warning("%s skipped: signal is not available", description)
             return
 
-        connected = self._is_signal_connected(signal_obj, meta_method)
+        try:
+            connected = self._is_signal_connected(signal_obj, meta_method)
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.debug(
+                "geometry_emit_connection_probe_failed",
+                extra={"description": description},
+                exc_info=True,
+            )
+            connected = None
+
         if connected is False:
-            self.logger.info("%s skipped: no subscribers", description)
+            signature = None
+            if meta_method is not None:
+                try:
+                    raw_signature = meta_method.methodSignature()
+                    signature = (
+                        raw_signature.decode(errors="ignore")
+                        if isinstance(raw_signature, (bytes, bytearray))
+                        else str(raw_signature)
+                    )
+                except Exception:  # pragma: no cover - defensive Qt fallback
+                    self.logger.debug(
+                        "geometry_emit_signature_resolution_failed",
+                        description=description,
+                        exc_info=True,
+                    )
+
+            self.logger.info(
+                "geometry_emit_skipped",
+                extra={
+                    "description": description,
+                    "reason": "no_subscribers",
+                    "signal_signature": signature,
+                },
+            )
             return
 
         try:
