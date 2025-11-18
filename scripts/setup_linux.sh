@@ -131,6 +131,7 @@ if [[ ${skip_system} -eq 0 ]]; then
       libxcb-xinerama0
       libxkbcommon0
       libxkbcommon-x11-0
+      libxkbcommon-dev
       libxcb-keysyms1
       libxcb-image0
       libxcb-icccm4
@@ -142,6 +143,7 @@ if [[ ${skip_system} -eq 0 ]]; then
       libvulkan1
       mesa-vulkan-drivers
       vulkan-tools
+      qt6-shadertools-dev
       qt6-base-dev
       qt6-base-dev-tools
       qt6-shader-baker
