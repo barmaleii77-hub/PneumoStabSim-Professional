@@ -562,6 +562,13 @@ Item {
               id: simulationRoot
               sceneBridge: root.contextSceneBridge
               fogDepthCurve: root.fogDepthCurve
+              ssaoEnabled: root.ssaoEnabled
+              ssaoRadius: root.ssaoRadius
+              ssaoIntensity: root.ssaoIntensity
+              ssaoSoftness: root.ssaoSoftness
+              ssaoBias: root.ssaoBias
+              ssaoDither: root.ssaoDither
+              ssaoSampleRate: root.ssaoSampleRate
           }
           onStatusChanged: {
               if (status === Loader.Error) {
