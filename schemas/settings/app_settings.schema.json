@@ -1002,6 +1002,18 @@
         "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0},
         "dead_zone_head_m3": {"title": "Dead Zone Head M3", "type": "number", "minimum": 0},
         "dead_zone_rod_m3": {"title": "Dead Zone Rod M3", "type": "number", "minimum": 0},
+        "chamber_volumes": {"$ref": "#/$defs/PneumaticChamberVolumes"},
+        "line_pressures": {"$ref": "#/$defs/PneumaticLinePressures"},
+        "tank_pressure_pa": {
+          "title": "Tank Pressure Pa",
+          "type": "number",
+          "minimum": 0
+        },
+        "relief_pressure_pa": {
+          "title": "Relief Pressure Pa",
+          "type": "number",
+          "minimum": 0
+        },
         "cv_atmo_dp": {"title": "Cv Atmo Dp", "type": "number", "minimum": 0},
         "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number", "minimum": 0},
         "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0},
@@ -1046,7 +1058,7 @@
         "pressure_units": {"title": "Pressure Units", "type": "string"},
         "receiver_volume_limits": {"$ref": "#/$defs/ReceiverVolumeLimits"}
       },
-      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "dead_zone_head_m3", "dead_zone_rod_m3", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
+      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "dead_zone_head_m3", "dead_zone_rod_m3", "chamber_volumes", "line_pressures", "tank_pressure_pa", "relief_pressure_pa", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
       "title": "PneumaticSettings",
       "type": "object"
     },
@@ -1173,6 +1185,28 @@
       },
       "required": ["volume_min_m3", "volume_max_m3", "initial_volume_m3", "initial_pressure_pa", "initial_temperature_k", "volume_mode"],
       "title": "PneumoReceiverConstants",
+      "type": "object"
+    },
+    "PneumaticChamberVolumes": {
+      "additionalProperties": false,
+      "properties": {
+        "head_m3": {"title": "Head Volume M3", "type": "number", "minimum": 0},
+        "rod_m3": {"title": "Rod Volume M3", "type": "number", "minimum": 0}
+      },
+      "required": ["head_m3", "rod_m3"],
+      "title": "PneumaticChamberVolumes",
+      "type": "object"
+    },
+    "PneumaticLinePressures": {
+      "additionalProperties": false,
+      "properties": {
+        "a1_pa": {"title": "Line A1 Pressure Pa", "type": "number", "minimum": 0},
+        "b1_pa": {"title": "Line B1 Pressure Pa", "type": "number", "minimum": 0},
+        "a2_pa": {"title": "Line A2 Pressure Pa", "type": "number", "minimum": 0},
+        "b2_pa": {"title": "Line B2 Pressure Pa", "type": "number", "minimum": 0}
+      },
+      "required": ["a1_pa", "b1_pa", "a2_pa", "b2_pa"],
+      "title": "PneumaticLinePressures",
       "type": "object"
     },
     "PneumoValveConstants": {

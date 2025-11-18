@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-18T16:17:52.546Z",
+    "last_modified": "2025-11-18T17:03:13.544Z",
     "defaults_seed": "config/baseline/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
@@ -12,7 +12,7 @@
     "last_migration": "0002_remove_geometry_mesh_extras",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 325,
+    "total_parameters": 333,
     "description": "✅ FIXED: tonemap_enabled=false, depth_of_field=false, vignette=false по умолчанию",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
@@ -361,7 +361,7 @@
   },
   "current": {
     "geometry": {
-      "wheelbase": 3.409,
+      "wheelbase": 3.41,
       "track": 2.34,
       "frame_to_pivot": 0.42,
       "lever_length": 0.75,
@@ -397,7 +397,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0017,
+      "diagonal_coupling_dia": 0.0018,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -411,7 +411,19 @@
         "max_m3": 1.0
       },
       "dead_zone_head_m3": 0.0,
-      "dead_zone_rod_m3": 0.0
+      "dead_zone_rod_m3": 0.0,
+      "chamber_volumes": {
+        "head_m3": 0.0005,
+        "rod_m3": 0.0003
+      },
+      "line_pressures": {
+        "a1_pa": 150000.0,
+        "b1_pa": 150000.0,
+        "a2_pa": 150000.0,
+        "b2_pa": 150000.0
+      },
+      "tank_pressure_pa": 200000.0,
+      "relief_pressure_pa": 500000.0
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -1636,7 +1648,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0017,
+      "diagonal_coupling_dia": 0.0018,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -1650,7 +1662,19 @@
         "max_m3": 1.0
       },
       "dead_zone_head_m3": 0.0,
-      "dead_zone_rod_m3": 0.0
+      "dead_zone_rod_m3": 0.0,
+      "chamber_volumes": {
+        "head_m3": 0.0005,
+        "rod_m3": 0.0003
+      },
+      "line_pressures": {
+        "a1_pa": 150000.0,
+        "b1_pa": 150000.0,
+        "a2_pa": 150000.0,
+        "b2_pa": 150000.0
+      },
+      "tank_pressure_pa": 200000.0,
+      "relief_pressure_pa": 500000.0
     },
     "modes": {
       "sim_type": "KINEMATICS",

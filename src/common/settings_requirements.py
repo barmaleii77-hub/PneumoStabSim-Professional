@@ -13,6 +13,8 @@ NUMERIC_SIMULATION_KEYS: tuple[str, ...] = (
 
 NUMERIC_PNEUMATIC_KEYS: tuple[str, ...] = (
     "receiver_volume",
+    "tank_pressure_pa",
+    "relief_pressure_pa",
     "cv_atmo_dp",
     "cv_tank_dp",
     "cv_atmo_dia",
@@ -44,6 +46,18 @@ RECEIVER_VOLUME_LIMIT_KEYS: tuple[str, ...] = (
     "max_m3",
 )
 
+LINE_PRESSURE_KEYS: tuple[str, ...] = (
+    "a1_pa",
+    "b1_pa",
+    "a2_pa",
+    "b2_pa",
+)
+
+CHAMBER_VOLUME_KEYS: tuple[str, ...] = (
+    "head_m3",
+    "rod_m3",
+)
+
 REQUIRED_CURRENT_SECTIONS: tuple[str, ...] = (
     "current.simulation",
     "current.pneumatic",
@@ -73,3 +87,9 @@ def iter_all_required_paths() -> Iterable[str]:
 
     for key in RECEIVER_VOLUME_LIMIT_KEYS:
         yield f"current.pneumatic.receiver_volume_limits.{key}"
+
+    for key in LINE_PRESSURE_KEYS:
+        yield f"current.pneumatic.line_pressures.{key}"
+
+    for key in CHAMBER_VOLUME_KEYS:
+        yield f"current.pneumatic.chamber_volumes.{key}"

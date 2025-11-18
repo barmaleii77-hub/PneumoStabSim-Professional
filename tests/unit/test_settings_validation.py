@@ -163,6 +163,44 @@ def test_validate_settings_missing_volume_mode(
     assert "volume_mode" in _last_error(stub_qmessagebox)
 
 
+def test_validate_settings_missing_line_pressures(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"].pop("line_pressures")
+    defaults = settings.get("defaults_snapshot", {})
+    if isinstance(defaults, dict):
+        pneumatic_defaults = defaults.get("pneumatic", {})
+        if isinstance(pneumatic_defaults, dict):
+            pneumatic_defaults.pop("line_pressures", None)
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "line_pressures" in str(exc.value)
+    assert "line_pressures" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_missing_chamber_volumes(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"].pop("chamber_volumes")
+    defaults = settings.get("defaults_snapshot", {})
+    if isinstance(defaults, dict):
+        pneumatic_defaults = defaults.get("pneumatic", {})
+        if isinstance(pneumatic_defaults, dict):
+            pneumatic_defaults.pop("chamber_volumes", None)
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "chamber_volumes" in str(exc.value)
+    assert "chamber_volumes" in _last_error(stub_qmessagebox)
+
+
 def test_validate_settings_success(
     runner: ApplicationRunner, write_config, stub_qmessagebox
 ):

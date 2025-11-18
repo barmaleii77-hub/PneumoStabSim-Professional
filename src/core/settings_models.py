@@ -54,11 +54,27 @@ class ReceiverVolumeLimits(_StrictModel):
     max_m3: float
 
 
+class PneumaticChamberVolumes(_StrictModel):
+    head_m3: float
+    rod_m3: float
+
+
+class PneumaticLinePressures(_StrictModel):
+    a1_pa: float
+    b1_pa: float
+    a2_pa: float
+    b2_pa: float
+
+
 class PneumaticSettings(_StrictModel):
     volume_mode: str
     receiver_volume: float
     receiver_diameter: float
     receiver_length: float
+    chamber_volumes: PneumaticChamberVolumes
+    line_pressures: PneumaticLinePressures
+    tank_pressure_pa: float
+    relief_pressure_pa: float
     dead_zone_head_m3: float
     dead_zone_rod_m3: float
     cv_atmo_dp: float
