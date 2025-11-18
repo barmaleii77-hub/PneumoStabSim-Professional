@@ -96,7 +96,23 @@ jobs:
             "PySide6-Addons==6.10.*" \
             "PySide6-Essentials==6.10.*" \
             "shiboken6==6.10.*" \
+            "PyOpenGL==3.1.10" \
+            "PyOpenGL-accelerate==3.1.10" \
             numpy \
+            pytest-qt
+
+      - name: Install Qt Python dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade --no-cache-dir `
+            "PySide6==6.10.*" `
+            "PySide6-Addons==6.10.*" `
+            "PySide6-Essentials==6.10.*" `
+            "shiboken6==6.10.*" `
+            "PyOpenGL==3.1.10" `
+            "PyOpenGL-accelerate==3.1.10" `
+            numpy `
             pytest-qt
 
       - name: Run final readiness test (Linux)
@@ -107,6 +123,16 @@ jobs:
           QSG_RHI_BACKEND: opengl
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: bash scripts/xvfb_wrapper.sh uv run python final_readiness_test.py
+
+      - name: Run final readiness test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: rhi
+          QSG_RHI_BACKEND: d3d11
+        run: |
+          uv run python final_readiness_test.py
 
       - name: Bootstrap Linux environment
         if: runner.os == 'Linux'
