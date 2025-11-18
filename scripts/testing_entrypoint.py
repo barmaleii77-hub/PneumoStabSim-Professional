@@ -1,13 +1,13 @@
-"""Unified entrypoint for environment setup and test execution.
+"""Unified testing entrypoint for PneumoStabSim.
 
-This script provides a single, cross-platform entry for syncing dependencies
-and running the project's primary verification suite. It prioritises the
-existing `make check` pipeline when available and falls back to the Python
-orchestrator to remain usable on systems without GNU Make (e.g. Windows).
+The script installs dependencies (via uv), performs optional system
+preparation, and runs the selected verification suite. It remains usable on
+both Linux and Windows by avoiding platform-specific tooling when possible.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import platform
 import shutil
@@ -111,7 +111,34 @@ def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
         ]
 
 
+def _integration_commands(uv_path: str) -> Iterable[Sequence[str]]:
+    """Commands for the integration suite (cross-platform)."""
+
+    yield [
+        uv_path,
+        "run",
+        "--locked",
+        "--",
+        "python",
+        "-m",
+        "tools.ci_tasks",
+        "test-integration",
+    ]
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Unified PneumoStabSim test entrypoint")
+    parser.add_argument(
+        "--suite",
+        choices=["primary", "integration", "all"],
+        default="primary",
+        help="Test suite to run: primary (default), integration, or all",
+    )
+    return parser.parse_args(argv)
+
+
 def main(argv: list[str]) -> int:
+    args = _parse_args(argv)
     system = platform.system()
     _log(f"[entrypoint] Detected platform: {system}")
 
@@ -122,8 +149,13 @@ def main(argv: list[str]) -> int:
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
-        for command in _primary_commands(uv_path):
-            _stream_command(command, env=env)
+        if args.suite in {"primary", "all"}:
+            for command in _primary_commands(uv_path):
+                _stream_command(command, env=env)
+        if args.suite in {"integration", "all"}:
+            _log("[entrypoint] Starting integration test suite")
+            for command in _integration_commands(uv_path):
+                _stream_command(command, env=env)
     except (CommandFailure, MissingTool) as exc:  # pragma: no cover - cli guard
         _log(f"[entrypoint] ERROR: {exc}")
         return 1

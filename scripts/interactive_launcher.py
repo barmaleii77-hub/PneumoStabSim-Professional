@@ -12,7 +12,7 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Sequence
 import threading
 import time
 
@@ -20,6 +20,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 LOGS_DIR = Path("logs")
+LAUNCHER_LOG = LOGS_DIR / "launcher" / "launcher_commands.log"
 
 # --- Constants
 QPA_CHOICES: list[str] = ["(auto)", "windows", "offscreen", "minimal"]
@@ -107,6 +108,58 @@ def detect_venv_python(*, prefer_console: bool) -> Path:
     # Всегда используем console при запросе prefer_console
     preferred = con if prefer_console else gui
     return preferred if preferred.exists() else (con if con.exists() else Path(sys.executable))
+
+
+def _log_line(message: str) -> None:
+    """Write a log message to stdout and launcher log file."""
+
+    print(message)
+    LAUNCHER_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with LAUNCHER_LOG.open("a", encoding="utf-8") as log:
+        log.write(f"{message}\n")
+
+
+def _format_command(command: Sequence[str]) -> str:
+    return " ".join(command)
+
+
+def log_command_start(command: Sequence[str]) -> None:
+    _log_line(f"[launcher] CMD: {_format_command(command)}")
+
+
+def log_command_result(
+    command: Sequence[str], *, returncode: int, stdout: str | None, stderr: str | None
+) -> None:
+    summary = f"[launcher] EXIT {returncode}: {_format_command(command)}"
+    _log_line(summary)
+    if stdout:
+        _log_line(f"[launcher] STDOUT:\n{stdout.strip()}\n--- end stdout ---")
+    if stderr:
+        _log_line(f"[launcher] STDERR:\n{stderr.strip()}\n--- end stderr ---")
+
+
+def run_command_logged(
+    command: Sequence[str], *, env: dict[str, str] | None = None, cwd: Path | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run a command with stdout/stderr capture and launcher logging."""
+
+    log_command_start(command)
+    completed = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=cwd,
+        encoding="utf-8",
+        errors="replace",
+    )
+    log_command_result(
+        command,
+        returncode=completed.returncode,
+        stdout=completed.stdout,
+        stderr=completed.stderr,
+    )
+    return completed
 
 
 def _append_env_path(env: dict[str, str], name: str, path: Path) -> None:
@@ -243,14 +296,10 @@ def run_log_analysis(env: dict[str, str]) -> str:
 
     python_exe = detect_venv_python(prefer_console=True)
     try:
-        completed = subprocess.run(
+        completed = run_command_logged(
             [str(python_exe), "-m", "tools.analyze_logs"],
-            cwd=str(root),
+            cwd=root,
             env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
         )
     except FileNotFoundError as exc:
         return f"Python интерпретатор недоступен: {exc}"
@@ -265,9 +314,35 @@ def run_log_analysis(env: dict[str, str]) -> str:
     return combo or "(analyze_logs: пустой вывод)"
 
 
+def run_tests(
+    suite: Literal["primary", "integration", "all"] = "primary", *, env: dict[str, str] | None = None
+) -> tuple[int, str]:
+    """Запустить unified testing entrypoint с логированием команд."""
+
+    python_exe = detect_venv_python(prefer_console=True)
+    command = [
+        str(python_exe),
+        str(project_root() / "scripts" / "testing_entrypoint.py"),
+    ]
+    if suite != "primary":
+        command.extend(["--suite", suite])
+    completed = run_command_logged(command, env=env, cwd=project_root())
+    stdout = (completed.stdout or "").strip()
+    stderr = (completed.stderr or "").strip()
+    combined = stdout
+    if stderr:
+        combined = f"{combined}\n[stderr]\n{stderr}" if combined else f"[stderr]\n{stderr}"
+    return completed.returncode, combined or "(test entrypoint: пустой вывод)"
+
+
 def launch_app(
-    *, args: Iterable[str], env: dict[str, str], mode: CreateFlag, force_console: bool, capture_buffer: list[str] | None = None
-) -> subprocess.Popen[bytes]:
+    *,
+    args: Iterable[str],
+    env: dict[str, str],
+    mode: CreateFlag,
+    force_console: bool,
+    capture_buffer: list[str] | None = None,
+) -> tuple[subprocess.Popen[bytes], list[str]]:
     root = project_root()
     app_path = root / "app.py"
     if not app_path.exists():
@@ -284,6 +359,7 @@ def launch_app(
     python_exe = detect_venv_python(prefer_console=prefer_console)
 
     cmd = [str(python_exe), str(root / "app.py"), *list(args)]
+    log_command_start(cmd)
 
     creationflags = 0
     popen_kwargs: dict[str, object] = {
@@ -313,7 +389,7 @@ def launch_app(
                 capture_buffer.append(line.rstrip("\n"))
 
         threading.Thread(target=_reader, daemon=True).start()
-    return proc
+    return proc, cmd
 
 
 class LauncherUI(tk.Tk):
@@ -350,6 +426,7 @@ class LauncherUI(tk.Tk):
         # Буфер вывода
         self._captured_output: list[str] = []
 
+        self._build_menu()
         self._build_ui()
         self._attach_tooltips()
 
@@ -425,6 +502,27 @@ class LauncherUI(tk.Tk):
         self.lbl_status = ttk.Label(self, text=status_text)
         self.lbl_status.pack(fill="x", padx=10, pady=10)
 
+    def _build_menu(self) -> None:
+        menu_root = tk.Menu(self)
+
+        app_menu = tk.Menu(menu_root, tearoff=False)
+        app_menu.add_command(label="Запустить приложение", command=self._on_run)
+        app_menu.add_command(label="Диагностика окружения", command=self._on_env_check)
+        app_menu.add_separator()
+        app_menu.add_command(label="Выход", command=self.destroy)
+        menu_root.add_cascade(label="Приложение", menu=app_menu)
+
+        config_menu = tk.Menu(menu_root, tearoff=False)
+        config_menu.add_command(label="Текущая конфигурация", command=self._open_config_overview)
+        menu_root.add_cascade(label="Конфигурация", menu=config_menu)
+
+        tests_menu = tk.Menu(menu_root, tearoff=False)
+        tests_menu.add_command(label="Основные тесты", command=self._run_primary_tests)
+        tests_menu.add_command(label="Интеграционные тесты", command=self._run_integration_tests)
+        menu_root.add_cascade(label="Тесты", menu=tests_menu)
+
+        self.config(menu=menu_root)
+
     # --- Tooltips
     def _attach_tooltips(self) -> None:
         tips = {
@@ -456,6 +554,29 @@ class LauncherUI(tk.Tk):
                     Tooltip(w, text)
                 except Exception:
                     pass
+
+    def _open_config_overview(self) -> None:
+        args = self._collect_args()
+        env = self._collect_env()
+        baseline_env = os.environ
+        lines = ["Выбранные аргументы:", "  " + (" ".join(args) if args else "(по умолчанию)")]
+        lines.append("\nИзменённые переменные окружения:")
+        for key in sorted(env):
+            if env.get(key) != baseline_env.get(key):
+                lines.append(f"  {key}={env[key]}")
+        if len(lines) == 2:
+            lines.append("  (отсутствуют изменения)")
+
+        win = tk.Toplevel(self)
+        win.title("Текущая конфигурация запуска")
+        win.geometry("760x420")
+        txt = tk.Text(win, wrap="word")
+        txt.pack(fill="both", expand=True)
+        try:
+            txt.insert("1.0", "\n".join(lines))
+            txt.configure(state="disabled")
+        except Exception:
+            pass
 
     # --- Help window
     def _open_help(self) -> None:
@@ -515,7 +636,7 @@ class LauncherUI(tk.Tk):
         self._captured_output.clear()
         capture_buffer = self._captured_output if mode == "capture" else None
         try:
-            proc = launch_app(
+            proc, cmd = launch_app(
                 args=args,
                 env=env,
                 mode=mode,
@@ -526,9 +647,11 @@ class LauncherUI(tk.Tk):
             messagebox.showerror("Ошибка запуска", f"Не удалось запустить приложение: {e}")
             return
         self._set_status(f"PID={proc.pid} запущено. Ожидание завершения...")
-        threading.Thread(target=self._monitor_process, args=(proc, env, mode), daemon=True).start()
+        threading.Thread(target=self._monitor_process, args=(proc, env, mode, cmd), daemon=True).start()
 
-    def _monitor_process(self, proc: subprocess.Popen[bytes], env: dict[str, str], mode: CreateFlag) -> None:
+    def _monitor_process(
+        self, proc: subprocess.Popen[bytes], env: dict[str, str], mode: CreateFlag, command: list[str]
+    ) -> None:
         exit_code = -1
         try:
             exit_code = proc.wait()
@@ -540,6 +663,7 @@ class LauncherUI(tk.Tk):
         if extra:
             analysis_text = f"{analysis_text}\n\n=== CAPTURED STDOUT/STDERR (tail) ===\n{extra}" if analysis_text else extra
         self.after(0, lambda: self._show_analysis_window(analysis_text, exit_code, mode))
+        log_command_result(command, returncode=exit_code, stdout=analysis_text, stderr=None)
 
     def _summarize_captured_output(self, max_lines: int = 200) -> str:
         if not self._captured_output:
@@ -588,6 +712,26 @@ class LauncherUI(tk.Tk):
             pass
         ttk.Button(win, text="Закрыть", command=win.destroy).pack(pady=4)
 
+    def _show_test_output(self, suite: str, exit_code: int, output: str) -> None:
+        win = tk.Toplevel(self)
+        win.title(f"Результаты тестов ({suite}) | exit={exit_code}")
+        win.geometry("900x720")
+        header = ttk.Label(win, text=f"Suite={suite} | exit={exit_code}")
+        header.pack(fill="x", padx=6, pady=4)
+        txt = tk.Text(win, wrap="none")
+        vs = ttk.Scrollbar(win, orient="vertical", command=txt.yview)
+        hs = ttk.Scrollbar(win, orient="horizontal", command=txt.xview)
+        txt.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
+        vs.pack(side="right", fill="y")
+        hs.pack(side="bottom", fill="x")
+        txt.pack(side="left", fill="both", expand=True)
+        try:
+            txt.insert("1.0", output)
+            txt.configure(state="disabled")
+        except Exception:
+            pass
+        ttk.Button(win, text="Закрыть", command=win.destroy).pack(pady=4)
+
     # --- Handlers
     def _on_run(self) -> None:
         args = self._collect_args()
@@ -598,6 +742,25 @@ class LauncherUI(tk.Tk):
         if "--env-check" not in args:
             args = ["--env-check", *args]
         self._run_with_args(args)
+
+    def _run_tests_ui(self, suite: Literal["primary", "integration"]) -> None:
+        env = os.environ.copy()
+        env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        exit_code, output = run_tests(suite, env=env)
+        log_command_result(
+            ["testing_entrypoint", suite],
+            returncode=exit_code,
+            stdout=output,
+            stderr=None,
+        )
+        self._show_test_output(suite, exit_code, output)
+        self._set_status(f"Тесты {suite} завершены с кодом {exit_code}")
+
+    def _run_primary_tests(self) -> None:
+        self._run_tests_ui("primary")
+
+    def _run_integration_tests(self) -> None:
+        self._run_tests_ui("integration")
 
     def _set_status(self, text: str) -> None:
         if self.lbl_status is not None:
