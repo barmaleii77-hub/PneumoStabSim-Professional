@@ -34,6 +34,8 @@ class SceneBridge(QObject):
     threeDChanged = Signal("QVariantMap")
     renderChanged = Signal("QVariantMap")
     simulationChanged = Signal("QVariantMap")
+    resetSharedMaterials = Signal()
+    undoPostEffects = Signal("QVariantMap")
 
     def __init__(
         self,
@@ -182,6 +184,35 @@ class SceneBridge(QObject):
             # В случае ошибки всё равно возвращаем sanitized для тестов
             pass
         return {k: dict(v) for k, v in sanitized.items()}
+
+    def rollback_materials(self) -> dict[str, Any]:
+        """Restore the previous materials snapshot and notify QML listeners."""
+
+        try:
+            self._service._materials_store.refresh_from_settings()
+        except Exception:
+            pass
+
+        rolled_back = self._service.rollback_materials()
+        self.materialsChanged.emit(dict(rolled_back))
+        self.resetSharedMaterials.emit()
+        self.updatesDispatched.emit(
+            {
+                "materials": dict(rolled_back),
+                "resetSharedMaterials": True,
+            }
+        )
+        return dict(rolled_back)
+
+    def undo_post_effects(self) -> dict[str, Any]:
+        """Emit an explicit rollback signal for post-processing effects."""
+
+        effects_state = self._service.state_for("effects")
+        snapshot = dict(effects_state)
+        self.effectsChanged.emit(snapshot)
+        self.undoPostEffects.emit(snapshot)
+        self.updatesDispatched.emit({"effects": snapshot, "undoPostEffects": True})
+        return snapshot
 
     def refresh_orbit_presets(self) -> dict[str, Any]:
         """Перечитать пресеты орбитальной камеры и уведомить QML.

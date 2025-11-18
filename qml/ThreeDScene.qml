@@ -28,6 +28,10 @@ Item {
     property var lastAppliedBatch: ({})
     property alias interactionTelemetry: telemetry.state
 
+    // Rollback flags surfaced by the Python bridge
+    signal undoPostEffects()
+    signal resetSharedMaterials()
+
     // Scene state snapshots (exposed for tests/bridges)
     property real orbitAzimuthDeg: 35.0
     property real orbitElevationDeg: 25.0
@@ -83,6 +87,10 @@ Item {
     function applyBatchedUpdates(updates) {
         var payload = updates || ({})
         var applied = ({})
+        if (payload.undoPostEffects)
+            _emitUndoPostEffects()
+        if (payload.resetSharedMaterials)
+            _emitResetSharedMaterials()
         if (payload.threeD) {
             applyThreeDUpdates(payload.threeD)
             applied.threeD = true
@@ -97,6 +105,14 @@ Item {
         }
         lastAppliedBatch = applied
         return applied
+    }
+
+    function _emitUndoPostEffects() {
+        undoPostEffects()
+    }
+
+    function _emitResetSharedMaterials() {
+        resetSharedMaterials()
     }
 
     onPendingPythonUpdatesChanged: applyBatchedUpdates(pendingPythonUpdates)
