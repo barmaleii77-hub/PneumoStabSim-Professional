@@ -151,7 +151,8 @@ class ReceiverState:
         Args:
             new_volume: Target receiver volume in cubic metres.
             mode: Optional new recalculation mode. Either ``ReceiverVolumeMode`` or
-                a case-insensitive string token.
+                a case-insensitive string token (``"MANUAL"``/``"GEOMETRIC"`` map
+                to ``ReceiverVolumeMode.NO_RECALC``).
             recompute: When ``True`` the state is recalculated using the configured
                 thermodynamic mode. When ``False`` only the volume is updated.
         Returns:
@@ -168,7 +169,7 @@ class ReceiverState:
             token = str(mode).strip().upper()
             alias_map = {
                 "MANUAL": ReceiverVolumeMode.NO_RECALC,
-                "GEOMETRIC": ReceiverVolumeMode.ADIABATIC_RECALC,
+                "GEOMETRIC": ReceiverVolumeMode.NO_RECALC,
                 ReceiverVolumeMode.NO_RECALC.name: ReceiverVolumeMode.NO_RECALC,
                 ReceiverVolumeMode.ADIABATIC_RECALC.name: ReceiverVolumeMode.ADIABATIC_RECALC,
                 ReceiverVolumeMode.NO_RECALC.value: ReceiverVolumeMode.NO_RECALC,
