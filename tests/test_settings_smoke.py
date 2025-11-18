@@ -471,6 +471,43 @@ def test_settings_manager_migrates_root_graphics_section(tmp_path: Path) -> None
     assert stored["current"]["graphics"]["environment"]["fog_density"] == 0.1
 
 
+def test_settings_manager_hydrates_point_light_defaults(tmp_path: Path) -> None:
+    payload = {
+        "metadata": {"units_version": "si_v2"},
+        "current": {"graphics": {"lighting": {"point": {"range": 0.0}}}},
+        "defaults_snapshot": {
+            "graphics": {
+                "lighting": {
+                    "point": {
+                        "constant_fade": None,
+                        "linear_fade": None,
+                        "quadratic_fade": 0,
+                    }
+                }
+            }
+        },
+    }
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=settings_path)
+
+    current_point = manager.get("current.graphics.lighting.point")
+    defaults_point = manager.get("defaults_snapshot.graphics.lighting.point")
+
+    expected_linear = pytest.approx(2.0 / 3.6)
+
+    assert current_point["range"] == pytest.approx(3.6)
+    assert current_point["constant_fade"] == pytest.approx(1.0)
+    assert current_point["linear_fade"] == expected_linear
+    assert defaults_point["constant_fade"] == pytest.approx(1.0)
+    assert defaults_point["linear_fade"] == expected_linear
+    assert defaults_point["quadratic_fade"] == pytest.approx(1.0)
+
+
 def test_legacy_geometry_values_are_scaled(tmp_path: Path) -> None:
     payload = {
         "metadata": {"units_version": "legacy"},

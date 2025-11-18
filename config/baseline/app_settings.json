@@ -115,7 +115,7 @@
           "position_z": 1.5,
           "range": 3.6,
           "constant_fade": 1.0,
-          "linear_fade": 0.01,
+          "linear_fade": 0.56,
           "quadratic_fade": 1.0,
           "cast_shadow": false,
           "bind_to_camera": false
@@ -1163,7 +1163,7 @@
           "position_z": 1.5,
           "range": 3.6,
           "constant_fade": 1.0,
-          "linear_fade": 0.01,
+          "linear_fade": 0.56,
           "quadratic_fade": 1.0,
           "cast_shadow": false,
           "bind_to_camera": false

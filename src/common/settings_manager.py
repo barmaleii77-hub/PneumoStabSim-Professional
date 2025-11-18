@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 from collections.abc import Mapping
@@ -471,6 +472,49 @@ class SettingsManager:
             changed = True
         return changed
 
+    def _normalise_lighting_section(self, lighting: dict[str, Any]) -> bool:
+        if not isinstance(lighting, dict):
+            return False
+
+        point = lighting.get("point")
+        if not isinstance(point, dict):
+            return False
+
+        changed = False
+
+        def _positive(value: Any, fallback: float) -> float:
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return fallback
+            if not math.isfinite(numeric) or numeric <= 0.0:
+                return fallback
+            return numeric
+
+        range_value = _positive(point.get("range"), 0.0)
+        if range_value <= 0.0:
+            range_value = 3.6  # движковый дефолт радиуса действия точечного света
+            point["range"] = range_value
+            changed = True
+
+        constant = _positive(point.get("constant_fade"), 1.0)
+        if constant != point.get("constant_fade"):
+            point["constant_fade"] = constant
+            changed = True
+
+        linear_default = max(0.0, 2.0 / range_value)
+        linear = _positive(point.get("linear_fade"), linear_default)
+        if linear != point.get("linear_fade"):
+            point["linear_fade"] = linear
+            changed = True
+
+        quadratic = _positive(point.get("quadratic_fade"), 1.0)
+        if quadratic != point.get("quadratic_fade"):
+            point["quadratic_fade"] = quadratic
+            changed = True
+
+        return changed
+
     def _normalise_camera_section(self, section: dict[str, Any]) -> bool:
         if not isinstance(section, dict):
             return False
@@ -514,6 +558,11 @@ class SettingsManager:
                 changed = True
             camera = graphics.get("camera")
             if isinstance(camera, dict) and self._normalise_camera_section(camera):
+                changed = True
+            lighting = graphics.get("lighting")
+            if isinstance(lighting, dict) and self._normalise_lighting_section(
+                lighting
+            ):
                 changed = True
             materials = graphics.get("materials")
             if isinstance(materials, dict) and self._strip_legacy_material_keys(
