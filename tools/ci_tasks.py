@@ -525,8 +525,10 @@ def _verify_hdr_assets() -> None:
         return
     script = PROJECT_ROOT / "tools" / "verify_hdr_assets.py"
     if not script.exists():
-        print("[ci_tasks] HDR verification script not found; skipping.")
-        return
+        raise TaskError(
+            "HDR verification script missing: expected tools/verify_hdr_assets.py. "
+            "Please restore the script to keep manifest validation active."
+        )
     command = [
         sys.executable,
         str(script),
