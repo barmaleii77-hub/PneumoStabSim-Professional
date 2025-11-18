@@ -11,6 +11,10 @@ from collections.abc import Sequence
 from src.services import BackupService, discover_user_data_sources
 
 
+def _print_error(message: str) -> None:
+    print(f"Error: {message}")
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="PneumoStabSim backup utility",
@@ -186,20 +190,32 @@ def _cmd_prune(service: BackupService, args: argparse.Namespace) -> int:
 
 def run(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(list(argv) if argv is not None else None)
+    try:
+        args = parser.parse_args(list(argv) if argv is not None else None)
+    except SystemExit as exc:
+        # Преобразуем ошибки парсера в код возврата, чтобы тесты CLI могли
+        # продолжить выполнение без прерывания процесса pytest.
+        return int(exc.code)
     service = _build_service(args)
 
     command = args.command
-    if command == "create":
-        return _cmd_create(service, args)
-    if command == "list":
-        return _cmd_list(service, args)
-    if command == "restore":
-        return _cmd_restore(service, args)
-    if command == "inspect":
-        return _cmd_inspect(service, args)
-    if command == "prune":
-        return _cmd_prune(service, args)
+    try:
+        if command == "create":
+            return _cmd_create(service, args)
+        if command == "list":
+            return _cmd_list(service, args)
+        if command == "restore":
+            return _cmd_restore(service, args)
+        if command == "inspect":
+            return _cmd_inspect(service, args)
+        if command == "prune":
+            return _cmd_prune(service, args)
+    except FileNotFoundError as exc:
+        _print_error(str(exc))
+        return 1
+    except (ValueError, KeyError, OSError, json.JSONDecodeError) as exc:
+        _print_error(str(exc))
+        return 1
     parser.error(f"Unknown command: {command}")
     return 2
 
