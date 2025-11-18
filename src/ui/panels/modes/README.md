@@ -1,6 +1,6 @@
 # ModesPanel - Refactored Module
 
-**Version:** v4.9.5
+**Version:** v4.9.8
 **Status:** ✅ **COMPLETE**
 **Phase:** 4 of 4
 
@@ -283,5 +283,5 @@ app.exec()
 
 **Author:** GitHub Copilot
 **Date:** 2025-01-XX
-**Version:** v4.9.5
+**Version:** v4.9.8
 **Status:** ✅ Production Ready

@@ -45,7 +45,7 @@ from .scenarios import (
 from .engine import RoadInput, create_road_input_from_preset
 
 # Version info
-__version__ = "4.9.5"
+__version__ = "4.9.8"
 
 # Export main interface
 __all__ = [

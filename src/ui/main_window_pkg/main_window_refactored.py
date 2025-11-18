@@ -1,6 +1,6 @@
 """MainWindow Coordinator - Refactored modular version
 
-Главное окно приложения - модульная версия v4.9.5.
+Главное окно приложения - модульная версия v4.9.8.
 Тонкий координатор, делегирующий работу специализированным модулам.
 """
 
@@ -66,7 +66,7 @@ class ShaderStatusPayload(TypedDict, total=False):
 
 
 class MainWindow(QMainWindow):
-    """Главное окно приложения - REFACTORED v4.9.5
+    """Главное окно приложения - REFACTORED v4.9.8
 
     Координатор с минимальной логикой, делегирует работу модулям.
 
