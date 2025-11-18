@@ -78,3 +78,6 @@ Capture notable decisions, blockers, and timings here. Reference PR numbers and 
 - 2025-11-09 – Added preset-aware environment helpers with Windows-specific RHI
   pinning and promoted `make full_verify` as the CI default to preserve verbose
   launch traces.
+- 2025-11-22 – Refreshed `ci-cd.yml` to target `main`/`develop`, reuse uv-synced
+  environments across the test/verify/docs jobs, and keep Qt smoke checks
+  aligned with the headless matrices.
