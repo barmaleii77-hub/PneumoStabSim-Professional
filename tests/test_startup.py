@@ -226,3 +226,86 @@ def test_schedule_safe_exit_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> No
     runner._safe_exit_timer.trigger()
 
     assert qt_core.exit_code == 0
+    assert "safe-exit:test" in os.environ.get("PSS_POST_DIAG_TRACE", "")
+
+
+def test_startup_environment_snapshot_includes_diag_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    monkeypatch.setenv("QSG_RHI_BACKEND", "opengl")
+    monkeypatch.setenv("PSS_HEADLESS", "1")
+    monkeypatch.setenv("PSS_POST_DIAG_TRACE", "headless|safe-exit")
+
+    snapshot = ApplicationRunner._gather_startup_environment_snapshot()
+
+    assert snapshot["QT_QPA_PLATFORM"] == "offscreen"
+    assert snapshot["PSS_HEADLESS"] == "1"
+    assert snapshot["PSS_POST_DIAG_TRACE"] == "headless|safe-exit"
+
+
+def test_run_triggers_post_diagnostics_and_records_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(os, "environ", {})
+
+    class _Args:
+        verbose = False
+        safe_mode = False
+        safe_cli_mode = True
+        safe_runtime = True
+        test_mode = False
+        diag = True
+        legacy = False
+        no_qml = False
+        force_disable_qml_3d = False
+        force_disable_qml_3d_reasons: tuple[str, ...] = ()
+
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, _DummyQtModule, _DummyQTimer
+    )
+    runner.platform_slug = "linux"
+    runner.app_instance = types.SimpleNamespace(exec=lambda: 0)
+
+    def _fake_bootstrap() -> GraphicsBootstrapState:
+        from src.ui.startup import GraphicsBootstrapState as _State
+
+        state = _State(
+            backend="opengl",
+            use_qml_3d=False,
+            safe_mode=False,
+            headless=True,
+            headless_reasons=("ci-flag",),
+        )
+        runner.graphics_state = state
+        runner._is_headless = True
+        runner._headless_reason = "ci-flag"
+        runner._append_post_diag_trace("bootstrap-ci")
+        return state
+
+    diagnostics_called: list[bool] = []
+    scheduled: list[str] = []
+
+    runner._bootstrap_graphics_environment = _fake_bootstrap  # type: ignore[assignment]
+    runner._log_startup_environment = lambda: None  # type: ignore[assignment]
+    runner.setup_high_dpi = lambda: None  # type: ignore[assignment]
+    runner.create_application = lambda: None  # type: ignore[assignment]
+    runner._validate_settings_file = lambda: None  # type: ignore[assignment]
+    runner.create_main_window = lambda: None  # type: ignore[assignment]
+    runner.setup_signals = lambda: None  # type: ignore[assignment]
+    runner.setup_test_mode = lambda _flag: None  # type: ignore[assignment]
+    runner._run_post_diagnostics = lambda: diagnostics_called.append(True)  # type: ignore[assignment]
+
+    def _fake_schedule(**kwargs) -> None:
+        scheduled.append(kwargs["reason"])
+        runner._append_post_diag_trace(f"safe-test:{kwargs['reason']}")
+
+    runner._schedule_safe_exit = _fake_schedule  # type: ignore[assignment]
+
+    result = runner.run(_Args())
+
+    assert result == 0
+    assert diagnostics_called == [True]
+    assert "safe-test:" in os.environ.get("PSS_POST_DIAG_TRACE", "")
+    assert "bootstrap-ci" in os.environ["PSS_POST_DIAG_TRACE"]
+    assert scheduled == ["cli-safe"]
