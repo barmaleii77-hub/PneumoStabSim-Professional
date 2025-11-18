@@ -38,7 +38,11 @@ def test_pneumo_panel_validate_button_prioritizes_errors(monkeypatch) -> None:
         return None
 
     for method in ("critical", "warning", "information"):
-        monkeypatch.setattr(QMessageBox, method, lambda *args, _m=method, **kwargs: _capture(_m, *args, **kwargs))
+        monkeypatch.setattr(
+            QMessageBox,
+            method,
+            lambda *args, _m=method, **kwargs: _capture(_m, *args, **kwargs),
+        )
 
     panel.validate_button.click()
 
@@ -56,7 +60,10 @@ def test_pneumo_panel_validation_handles_out_of_range_limits(monkeypatch) -> Non
 
     panel = PneumoPanel()
     panel.state_manager.set_volume_mode("MANUAL")
-    panel.state_manager._state["receiver_volume_limits"] = {"min_m3": -1.0, "max_m3": -0.5}
+    panel.state_manager._state["receiver_volume_limits"] = {
+        "min_m3": -1.0,
+        "max_m3": -0.5,
+    }
     panel.state_manager._state["receiver_volume"] = -0.3
 
     captured: list[str] = []
@@ -65,12 +72,24 @@ def test_pneumo_panel_validation_handles_out_of_range_limits(monkeypatch) -> Non
         "critical",
         lambda *args, **kwargs: captured.append(str(args[2])),
     )
-    monkeypatch.setattr(QMessageBox, "warning", lambda *args, **kwargs: captured.append("warning"))
-    monkeypatch.setattr(QMessageBox, "information", lambda *args, **kwargs: captured.append("info"))
+    monkeypatch.setattr(
+        QMessageBox, "warning", lambda *args, **kwargs: captured.append("warning")
+    )
+    monkeypatch.setattr(
+        QMessageBox, "information", lambda *args, **kwargs: captured.append("info")
+    )
 
     panel.validate_button.click()
 
     assert captured, "Validation should raise user-facing diagnostics"
-    assert any("объём ресивера" in msg.lower() or "объем ресивера" in msg.lower() for msg in captured)
-    assert any("максимальный объём" in msg.lower() or "максимальный объем" in msg.lower() for msg in captured)
-    assert all(msg != "info" for msg in captured), "Informational dialogs are not expected when errors exist"
+    assert any(
+        "объём ресивера" in msg.lower() or "объем ресивера" in msg.lower()
+        for msg in captured
+    )
+    assert any(
+        "максимальный объём" in msg.lower() or "максимальный объем" in msg.lower()
+        for msg in captured
+    )
+    assert all(msg != "info" for msg in captured), (
+        "Informational dialogs are not expected when errors exist"
+    )
