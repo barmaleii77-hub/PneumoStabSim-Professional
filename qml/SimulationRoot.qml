@@ -18,6 +18,7 @@ Pane {
 
     /** Полный снимок телеметрии потоков от симулятора. */
     property var flowTelemetry: ({})
+    property var geometryParameters: ({})
 
     /** Прокси к внутренним моделям, экспортируемые для автотестов. */
     property alias flowArrowsModel: simulationPanel.flowArrowsModel
@@ -92,7 +93,9 @@ Pane {
      * В заглушке просто ретранслируем полезную нагрузку наружу.
      */
     function applyGeometryUpdates(params) {
-        geometryUpdatesApplied(_normalizeGeometryPayload(params))
+        geometryParameters = _normalizeGeometryPayload(params)
+        geometryUpdatesApplied(geometryParameters)
+        simulationPanel.applyGeometryParameters(geometryParameters)
     }
 
     /**
@@ -155,5 +158,7 @@ Pane {
         objectName: "simulationPanel"
         anchors.fill: parent
         anchors.margins: 24
+
+        geometryParameters: root.geometryParameters
     }
 }
