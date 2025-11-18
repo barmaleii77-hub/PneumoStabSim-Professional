@@ -342,7 +342,7 @@ Item {
 
         if (typeof window !== "undefined" && window && typeof window.clearShaderWarning === "function") {
             try {
-                window.clearShaderWarning(effectId, message)
+                window.clearShaderWarning(effectId)
             } catch (error) {
                 console.debug("[main.qml] window.clearShaderWarning failed", error)
             }
@@ -503,8 +503,8 @@ Item {
             id: simulationRoot
             sceneBridge: root.hasSceneBridge ? pythonSceneBridge : null
         }
-        onStatusChanged: {
-            if (status === Loader.Error) {
+        onStatusChanged: function(newStatus) {
+            if (newStatus === Loader.Error) {
                 var loadError = errorString()
                 console.error("Failed to load SimulationRoot:", loadError)
                 var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
@@ -513,7 +513,7 @@ Item {
                     console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
                 simpleFallbackActive = true
             }
-            if (status === Loader.Ready) {
+            if (newStatus === Loader.Ready) {
                 if (item)
                     item.visible = !simpleFallbackActive
                 _flushQueuedBatches()
@@ -569,8 +569,8 @@ Item {
         anchors.fill: parent
         active: !root.hasSceneBridge || root.simpleFallbackActive
         sourceComponent: SimulationFallbackRoot {}
-        onStatusChanged: {
-            if (status === Loader.Ready) {
+        onStatusChanged: function(newStatus) {
+            if (newStatus === Loader.Ready) {
                 _flushQueuedBatches()
             }
         }
