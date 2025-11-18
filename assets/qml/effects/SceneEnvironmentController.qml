@@ -9,6 +9,8 @@ import "." // Local helpers (QualityPresets)
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment
  * Все эффекты, качество, IBL, туман в ОДНОМ компоненте
+ * NOTE: ExtendedSceneEnvironment wraps SceneEffectEnvironment (prototype: QQuick3DSceneEnvironment),
+ * so fog is applied only through the nested `fog: Fog` object.
  */
 ExtendedSceneEnvironment {
  id: root
@@ -556,14 +558,20 @@ ExtendedSceneEnvironment {
     property real fogTransmitCurve: environmentNumberDefault("fogTransmitCurve", "fog_transmit_curve", 1.0)
     property bool _fogSupportWarningShown: false
 
+    // Fog handling: SceneEnvironment only accepts a nested Fog object. We keep the Loader gated behind
+    // runtime capability checks to avoid binding to unavailable APIs.
+    readonly property bool fogApiAvailable: typeof root.fog !== "undefined"
+    readonly property bool fogFactoryAvailable: typeof Fog !== "undefined"
+    readonly property bool fogHelpersSupported: qtSupports610 && fogApiAvailable && fogFactoryAvailable
+
     Loader {
         id: fogLoader
         active: root.fogHelpersSupported
         sourceComponent: Fog {
-            enabled: root.fogEnabled
+            enabled: root.fogHelpersSupported && root.fogEnabled
             color: root.fogColor
             density: root.fogDensity
-            depthEnabled: root.fogDepthEnabled && root.fogEnabled
+            depthEnabled: root.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
             depthCurve: root.fogDepthCurve
             depthNear: root.toSceneLength(root.fogDepthNear)
             depthFar: root.toSceneLength(root.fogDepthFar)
@@ -793,7 +801,6 @@ ExtendedSceneEnvironment {
     }
 
     readonly property bool qtSupports610: qtVersionAtLeast(6, 10)
-    readonly property bool fogHelpersSupported: qtSupports610 && typeof Fog !== "undefined"
 
     function _qtApplicationVersion() {
         if (!Qt.application || typeof Qt.application.version !== "string")
