@@ -1801,6 +1801,51 @@ class SignalsRouter:
         SignalsRouter._push_cylinder_state(window)
 
     @staticmethod
+    def handle_accordion_preset_activated(
+        window: "MainWindow", panel_id: str, preset_id: str
+    ) -> None:
+        """Handle preset activation coming from accordion-based QML panels."""
+
+        preset_key = (preset_id or "").strip()
+        if not preset_key:
+            return
+
+        panel_key = (panel_id or "").strip().lower()
+        if panel_key in {"modes", "simulation"}:
+            SignalsRouter.handle_modes_preset_selected(window, preset_key)
+            return
+
+        target_section = panel_key or "panels"
+        window._apply_settings_update(target_section, {"active_preset": preset_key})
+
+    @staticmethod
+    def handle_accordion_field_committed(
+        window: "MainWindow", panel_id: str, field: str, value: Any
+    ) -> None:
+        """Route validated accordion field edits into SettingsManager."""
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        resolved_panel = (panel_id or "").strip()
+        payload = SignalsRouter._build_nested_payload(field_key, value)
+
+        target_section = resolved_panel or field_key.split(".")[0]
+        if not resolved_panel and "." in field_key:
+            nested_key = field_key.split(".", 1)[1]
+            payload = SignalsRouter._build_nested_payload(nested_key, value)
+
+        window._apply_settings_update(target_section, payload)
+
+        if target_section == "modes":
+            SignalsRouter._push_modes_state(window)
+        elif target_section == "pneumatic":
+            SignalsRouter._push_pneumatic_state(window)
+        elif target_section == "simulation":
+            SignalsRouter._push_simulation_state(window)
+
+    @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:
         """Persist animation toggle coming from QML."""
 
@@ -2085,6 +2130,21 @@ class SignalsRouter:
 
         payloads = SignalsRouter._get_last_payloads(window)
         payloads[category] = SignalsRouter._clone_payload(payload)
+
+    @staticmethod
+    def _build_nested_payload(key: str, value: Any) -> dict[str, Any]:
+        tokens = [token for token in (key or "").split(".") if token]
+        if not tokens:
+            return {}
+
+        payload: dict[str, Any] = {}
+        cursor: dict[str, Any] = payload
+        for token in tokens[:-1]:
+            nested: dict[str, Any] = {}
+            cursor[token] = nested
+            cursor = nested
+        cursor[tokens[-1]] = value
+        return payload
 
     @staticmethod
     def _schedule_debounced_update(

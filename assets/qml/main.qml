@@ -24,6 +24,8 @@ Item {
     signal simulationSettingsChanged(var payload)
     signal cylinderSettingsChanged(var payload)
     signal shaderStatusDumpRequested(var payload)
+    signal accordionPresetActivated(string panelId, string presetId)
+    signal accordionFieldCommitted(string panelId, string field, var value)
 
     // qmllint disable unqualified
     readonly property var hostWindow: (typeof globalThis !== "undefined" && globalThis.window !== undefined) ? globalThis.window : null
@@ -681,6 +683,12 @@ Item {
         onPneumaticSettingsChanged: function(payload) { root.pneumaticSettingsChanged(payload) }
         onSimulationSettingsChanged: function(payload) { root.simulationSettingsChanged(payload) }
         onCylinderSettingsChanged: function(payload) { root.cylinderSettingsChanged(payload) }
+        onAccordionPresetActivated: function(panelId, presetId) {
+            root.accordionPresetActivated(panelId, presetId)
+        }
+        onAccordionFieldCommitted: function(panelId, field, value) {
+            root.accordionFieldCommitted(panelId, field, value)
+        }
     }
 
       Training.TrainingPanel {
