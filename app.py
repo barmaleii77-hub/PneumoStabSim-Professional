@@ -288,6 +288,7 @@ def _render_command_menu(locale: str) -> str:
               • --safe-mode   — передать выбор графического бэкенда Qt
               • --safe/--test-mode — безопасный режим, авто-закрытие через 5 секунд
               • --env-report=PATH — сохранить отчёт о среде перед запуском Qt
+              • --menu/--help-menu — вывести это меню и завершить без запуска Qt
             """
         ).strip()
     return textwrap.dedent(
@@ -298,6 +299,31 @@ def _render_command_menu(locale: str) -> str:
           • --safe-mode   — let Qt pick the graphics backend
           • --safe/--test-mode — safe mode with 5s auto-close
           • --env-report=PATH — save environment report before Qt starts
+          • --menu/--help-menu — show this menu then exit before Qt starts
+        """
+    ).strip()
+
+
+def _render_configuration_hints(locale: str) -> str:
+    """Surface quick hints about runtime environment overrides."""
+
+    if locale == "ru":
+        return textwrap.dedent(
+            """
+            Подсказки по запуску:
+              • PSS_LOCALE=ru/en — выбрать язык сообщений лаунчера
+              • PSS_HEADLESS=1   — запустить без графического вывода
+              • QT_QUICK_BACKEND=software — форсировать программный рендерер
+              • Используйте --env-check перед первой загрузкой для быстрой диагностики.
+            """
+        ).strip()
+    return textwrap.dedent(
+        """
+        Startup hints:
+          • PSS_LOCALE=ru/en — pick launcher language
+          • PSS_HEADLESS=1   — start without graphics output
+          • QT_QUICK_BACKEND=software — enforce software renderer
+          • Run --env-check before first launch to verify dependencies quickly.
         """
     ).strip()
 
@@ -330,6 +356,23 @@ def _validate_cli_arguments(args: object, locale: str) -> None:
             print(f"❌ {conflict}", file=sys.stderr)
         _BOOTSTRAP_LOGGER.error("argument_validation_failed", conflicts=conflicts)
         raise SystemExit(2)
+
+
+def _maybe_handle_menu_request(
+    locale: str, os_name: str, args: object, intro_printed: bool
+) -> bool:
+    """Show the menu/help banner and indicate whether the app should exit."""
+
+    if not getattr(args, "menu", False):
+        return False
+
+    if not intro_printed:
+        print(_render_welcome(locale, os_name))
+        print(_render_command_menu(locale))
+        print(_render_configuration_hints(locale))
+
+    print(_render_exit_status(0, locale))
+    return True
 
 
 def _render_exit_status(exit_code: int, locale: str) -> str:
@@ -374,6 +417,7 @@ def main(argv: list[str] | None = None) -> int:
 
     print(_render_welcome(locale, os_name))
     print(_render_command_menu(locale))
+    print(_render_configuration_hints(locale))
 
     args = parse_arguments(remaining_argv if argv is None else argv)
     _validate_cli_arguments(args, locale)
@@ -423,6 +467,10 @@ def main(argv: list[str] | None = None) -> int:
     return exit_code
 
 
+if __name__ == "__main__":  # pragma: no cover - CLI entrypoint
+    sys.exit(main())
+
+
 def __getattr__(name: str):
     """Provide compatibility globals for diagnostics harnesses.
 
@@ -442,7 +490,3 @@ def __getattr__(name: str):
         globals().setdefault(name, None)
         return globals()[name]
     raise AttributeError(name)
-
-
-if __name__ == "__main__":
-    sys.exit(main())
