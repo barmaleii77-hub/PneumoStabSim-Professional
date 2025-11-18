@@ -29,7 +29,9 @@ def test_modes_panel_emits_control_and_mode_signals(qapp) -> None:
 
     panel.simulation_control.connect(commands.append)
     panel.mode_changed.connect(lambda kind, value: mode_events.append((kind, value)))
-    panel.physics_options_changed.connect(lambda payload: physics_updates.append(payload))
+    panel.physics_options_changed.connect(
+        lambda payload: physics_updates.append(payload)
+    )
 
     panel.control_tab.start_button.click()
     panel.control_tab.pause_button.click()
@@ -48,11 +50,17 @@ def test_modes_panel_emits_control_and_mode_signals(qapp) -> None:
     assert commands == ["start", "pause"], "Control tab should emit lifecycle commands"
     assert panel.control_tab.start_button.isEnabled()
     assert not panel.control_tab.pause_button.isEnabled()
-    assert any(kind == "sim_type" and value == "DYNAMICS" for kind, value in mode_events)
-    assert any(kind == "thermo_mode" and value == "ADIABATIC" for kind, value in mode_events)
+    assert any(
+        kind == "sim_type" and value == "DYNAMICS" for kind, value in mode_events
+    )
+    assert any(
+        kind == "thermo_mode" and value == "ADIABATIC" for kind, value in mode_events
+    )
     physics_state = panel.state_manager.get_physics_options()
     assert physics_state.get("include_pneumatics") is False
-    assert physics_updates == [] or physics_updates[-1].get("include_pneumatics") is False
+    assert (
+        physics_updates == [] or physics_updates[-1].get("include_pneumatics") is False
+    )
 
 
 @pytest.mark.gui

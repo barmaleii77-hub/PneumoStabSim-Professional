@@ -76,7 +76,9 @@ def test_modes_panel_collect_and_validate_within_budget(qapp) -> None:
     payload: dict | None = None
     errors: list[str] = []
     for idx in range(iterations):
-        panel.state_manager.update_parameter("sim_type", "KINEMATICS" if idx % 2 else "DYNAMICS")
+        panel.state_manager.update_parameter(
+            "sim_type", "KINEMATICS" if idx % 2 else "DYNAMICS"
+        )
         payload = panel.collect_state()
         errors = panel.validate_state()
     elapsed = time.perf_counter() - start

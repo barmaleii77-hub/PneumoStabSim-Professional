@@ -1846,6 +1846,57 @@ class SignalsRouter:
             SignalsRouter._push_simulation_state(window)
 
     @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow",
+        panel_id: str,
+        field: str,
+        state: str,
+        message: str,
+    ) -> None:
+        """Persist accordion validation state and surface it to the status bar."""
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        panel_key = (panel_id or "").strip() or "panels"
+        normalized_state = (state or "").strip().lower() or "unknown"
+        resolved_message = (message or "").strip()
+
+        if (
+            not hasattr(window, "_accordion_validation_states")
+            or window._accordion_validation_states is None
+        ):
+            window._accordion_validation_states = {}
+
+        payload: dict[str, Any] = {
+            "panel": panel_key,
+            "field": field_key,
+            "state": normalized_state,
+        }
+        if resolved_message:
+            payload["message"] = resolved_message
+
+        window._accordion_validation_states[(panel_key, field_key)] = payload
+
+        logger = getattr(window, "logger", SignalsRouter.logger)
+        status_bar = getattr(window, "status_bar", None)
+
+        if normalized_state in {"error", "invalid"}:
+            logger.error(
+                "Accordion validation error", extra={"accordion_validation": payload}
+            )
+            if status_bar is not None:
+                status_bar.showMessage(
+                    resolved_message or f"{panel_key}.{field_key} validation error",
+                    6000,
+                )
+        else:
+            logger.info(
+                "Accordion validation state", extra={"accordion_validation": payload}
+            )
+
+    @staticmethod
     def handle_accordion_validation_changed(
         window: "MainWindow", panel_id: str, field: str, state: str, message: str
     ) -> None:
