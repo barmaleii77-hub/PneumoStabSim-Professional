@@ -36,6 +36,11 @@ ExtendedSceneEnvironment {
     // qmllint enable unqualified
     property var _globalContextRef: undefined
 
+    // ✅ Локальный псевдоним для перечисления SceneEnvironment (см. pragma Bound)
+    // qmllint disable unqualified
+    readonly property var sceneEnvironmentEnum: SceneEnvironment
+    // qmllint enable unqualified
+
     function _globalContextObject() {
         if (root._globalContextRef !== undefined)
             return root._globalContextRef
@@ -450,12 +455,12 @@ ExtendedSceneEnvironment {
     property color backgroundColor: environmentColorDefault("backgroundColor", "background_color", "#1f242c")
     property string backgroundModeKey: environmentStringDefault("backgroundMode", "background_mode", "skybox")
     property bool skyboxToggleFlag: environmentBoolDefault("skyboxEnabled", "skybox_enabled", true)
-    readonly property bool backgroundIsTransparent: root.backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Transparent
+    readonly property bool backgroundIsTransparent: root.backgroundModeForKey(backgroundModeKey) === sceneEnvironmentEnum.Transparent
     property color resolvedClearColor: {
         var base = backgroundColor
         if (backgroundIsTransparent)
             return Qt.rgba(base.r, base.g, base.b, 0.0)
-        if (root.backgroundModeForKey(backgroundModeKey) === SceneEnvironment.Color)
+        if (root.backgroundModeForKey(backgroundModeKey) === sceneEnvironmentEnum.Color)
             return Qt.rgba(base.r, base.g, base.b, 1.0)
         return base
     }
@@ -654,7 +659,7 @@ ExtendedSceneEnvironment {
 
     function _syncSkyboxBackground() {
         var targetMode = root.backgroundModeForKey(backgroundModeKey)
-        var wantsSkybox = targetMode === SceneEnvironment.SkyBox
+        var wantsSkybox = targetMode === sceneEnvironmentEnum.SkyBox
         if (!wantsSkybox) {
             if (iblBackgroundEnabled)
                 iblBackgroundEnabled = false
@@ -671,8 +676,8 @@ ExtendedSceneEnvironment {
 
     backgroundMode: {
         var targetMode = root.backgroundModeForKey(backgroundModeKey)
-        if (targetMode === SceneEnvironment.SkyBox)
-            return (iblBackgroundEnabled && iblProbe) ? SceneEnvironment.SkyBox : SceneEnvironment.Color
+        if (targetMode === sceneEnvironmentEnum.SkyBox)
+            return (iblBackgroundEnabled && iblProbe) ? sceneEnvironmentEnum.SkyBox : sceneEnvironmentEnum.Color
         return targetMode
     }
     clearColor: resolvedClearColor
@@ -698,29 +703,29 @@ ExtendedSceneEnvironment {
 
     antialiasingMode: {
         if (aaPrimaryMode === "ssaa")
-            return SceneEnvironment.SSAA
+            return sceneEnvironmentEnum.SSAA
         if (aaPrimaryMode === "msaa")
-            return SceneEnvironment.MSAA
+            return sceneEnvironmentEnum.MSAA
         if (aaPrimaryMode === "progressive")
-            return SceneEnvironment.ProgressiveAA
-        return SceneEnvironment.NoAA
+            return sceneEnvironmentEnum.ProgressiveAA
+        return sceneEnvironmentEnum.NoAA
     }
 
     // qmllint disable missing-property
     antialiasingQuality: {
-        if (aaQualityLevel === "high" && typeof SceneEnvironment.AntialiasingQualityHigh !== "undefined")
-            return SceneEnvironment.AntialiasingQualityHigh
-        if (aaQualityLevel === "medium" && typeof SceneEnvironment.AntialiasingQualityMedium !== "undefined")
-            return SceneEnvironment.AntialiasingQualityMedium
-        if (aaQualityLevel === "low" && typeof SceneEnvironment.AntialiasingQualityLow !== "undefined")
-            return SceneEnvironment.AntialiasingQualityLow
-        if (typeof SceneEnvironment.AntialiasingQualityMedium !== "undefined")
-            return SceneEnvironment.AntialiasingQualityMedium
-        if (typeof SceneEnvironment.AntialiasingQualityHigh !== "undefined")
-            return SceneEnvironment.AntialiasingQualityHigh
-        if (typeof SceneEnvironment.AntialiasingQualityLow !== "undefined")
-            return SceneEnvironment.AntialiasingQualityLow
-        return SceneEnvironment.NoAA
+        if (aaQualityLevel === "high" && typeof sceneEnvironmentEnum.AntialiasingQualityHigh !== "undefined")
+            return sceneEnvironmentEnum.AntialiasingQualityHigh
+        if (aaQualityLevel === "medium" && typeof sceneEnvironmentEnum.AntialiasingQualityMedium !== "undefined")
+            return sceneEnvironmentEnum.AntialiasingQualityMedium
+        if (aaQualityLevel === "low" && typeof sceneEnvironmentEnum.AntialiasingQualityLow !== "undefined")
+            return sceneEnvironmentEnum.AntialiasingQualityLow
+        if (typeof sceneEnvironmentEnum.AntialiasingQualityMedium !== "undefined")
+            return sceneEnvironmentEnum.AntialiasingQualityMedium
+        if (typeof sceneEnvironmentEnum.AntialiasingQualityHigh !== "undefined")
+            return sceneEnvironmentEnum.AntialiasingQualityHigh
+        if (typeof sceneEnvironmentEnum.AntialiasingQualityLow !== "undefined")
+            return sceneEnvironmentEnum.AntialiasingQualityLow
+        return sceneEnvironmentEnum.NoAA
     }
     // qmllint enable missing-property
 
@@ -745,7 +750,8 @@ ExtendedSceneEnvironment {
         var candidates = [
             root.qtRuntimeVersionData,
             root._contextValue("qtRuntimeVersion"),
-            sceneBridgeVersion
+            sceneBridgeVersion,
+            root._qtApplicationVersion()
         ]
 
         for (var index = 0; index < candidates.length; ++index) {
@@ -776,11 +782,6 @@ ExtendedSceneEnvironment {
                 if (versionString.length)
                     return versionString
             }
-            if (typeof candidate.qtVersion === "string") {
-                var qtVersionString = candidate.qtVersion.trim()
-                if (qtVersionString.length)
-                    return qtVersionString
-            }
         }
 
         try {
@@ -793,6 +794,13 @@ ExtendedSceneEnvironment {
 
     readonly property bool qtSupports610: qtVersionAtLeast(6, 10)
     readonly property bool fogHelpersSupported: qtSupports610 && typeof Fog !== "undefined"
+
+    function _qtApplicationVersion() {
+        if (!Qt.application || typeof Qt.application.version !== "string")
+            return ""
+        var trimmed = Qt.application.version.trim()
+        return trimmed.length ? trimmed : ""
+    }
 
     // Camera parameters required by custom fog shaders
     property real cameraClipNear: 0.1
@@ -1216,24 +1224,24 @@ ExtendedSceneEnvironment {
     }
 
     function backgroundModeForKey(key) {
-        if (typeof SceneEnvironment === "undefined")
+        if (typeof sceneEnvironmentEnum === "undefined")
             return root.backgroundMode
 
         var normalized = String(key || "skybox").trim().toLowerCase()
         if (normalized === "color")
-            return SceneEnvironment.Color
+            return sceneEnvironmentEnum.Color
         if (normalized === "transparent")
-            return (SceneEnvironment["Transparent"] !== undefined)
-                    ? SceneEnvironment["Transparent"]
-                    : SceneEnvironment.Color
-        return SceneEnvironment.SkyBox
+            return (sceneEnvironmentEnum["Transparent"] !== undefined)
+                    ? sceneEnvironmentEnum["Transparent"]
+                    : sceneEnvironmentEnum.Color
+        return sceneEnvironmentEnum.SkyBox
     }
 
-    function sceneEnvironmentEnum(name, fallbackName) {
-        if (SceneEnvironment && SceneEnvironment[name] !== undefined)
-            return SceneEnvironment[name]
-        if (fallbackName && SceneEnvironment && SceneEnvironment[fallbackName] !== undefined)
-            return SceneEnvironment[fallbackName]
+    function _sceneEnvironmentValue(name, fallbackName) {
+        if (sceneEnvironmentEnum && sceneEnvironmentEnum[name] !== undefined)
+            return sceneEnvironmentEnum[name]
+        if (fallbackName && sceneEnvironmentEnum && sceneEnvironmentEnum[fallbackName] !== undefined)
+            return sceneEnvironmentEnum[fallbackName]
         return undefined
     }
 
@@ -1290,33 +1298,33 @@ ExtendedSceneEnvironment {
     }
 
     function tonemapModeEnumForName(name) {
-        if (!SceneEnvironment)
+        if (!sceneEnvironmentEnum)
             return undefined
         var normalized = root.canonicalTonemapModeName(name)
         switch (normalized) {
         case "filmic":
-            return sceneEnvironmentEnum("TonemapModeFilmic")
+            return _sceneEnvironmentValue("TonemapModeFilmic")
         case "aces":
-            var aces = sceneEnvironmentEnum("TonemapModeAces")
+            var aces = _sceneEnvironmentValue("TonemapModeAces")
             if (aces !== undefined)
                 return aces
-            return sceneEnvironmentEnum("TonemapModeFilmic")
+            return _sceneEnvironmentValue("TonemapModeFilmic")
         case "reinhard":
-            return sceneEnvironmentEnum("TonemapModeReinhard", "TonemapModeLinear")
+            return _sceneEnvironmentValue("TonemapModeReinhard", "TonemapModeLinear")
         case "gamma":
-            var gamma = sceneEnvironmentEnum("TonemapModeGamma")
+            var gamma = _sceneEnvironmentValue("TonemapModeGamma")
             if (gamma !== undefined)
                 return gamma
-            return sceneEnvironmentEnum("TonemapModeLinear")
+            return _sceneEnvironmentValue("TonemapModeLinear")
         case "linear":
-            return sceneEnvironmentEnum("TonemapModeLinear")
+            return _sceneEnvironmentValue("TonemapModeLinear")
         case "none":
-            var noneValue = sceneEnvironmentEnum("TonemapModeNone")
+            var noneValue = _sceneEnvironmentValue("TonemapModeNone")
             if (noneValue !== undefined)
                 return noneValue
-            return sceneEnvironmentEnum("TonemapModeLinear")
+            return _sceneEnvironmentValue("TonemapModeLinear")
         }
-        return sceneEnvironmentEnum("TonemapModeFilmic")
+        return _sceneEnvironmentValue("TonemapModeFilmic")
     }
 
     function _syncTonemapModeFromName(name) {
