@@ -67,3 +67,17 @@ def test_settings_manager_persists_updated_pneumatic_values(tmp_path: Path) -> N
     assert reloaded.get("current.pneumatic.relief_pressure_pa") == pytest.approx(
         525000.0
     )
+
+
+def test_settings_manager_hydrates_missing_sim_speed(tmp_path: Path) -> None:
+    settings_path = _write_settings(tmp_path)
+    payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    payload["current"]["simulation"].pop("sim_speed", None)
+    payload.get("defaults_snapshot", {}).get("simulation", {}).pop("sim_speed", None)
+    settings_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=settings_path)
+
+    assert manager.get("current.simulation.sim_speed") == pytest.approx(1.0)
