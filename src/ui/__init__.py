@@ -5,8 +5,11 @@ from __future__ import annotations
 from typing import Any, Callable
 
 from .lazy_loader import (
+    build_camera_hud_telemetry,
     build_chart_widget,
     build_main_window,
+    build_pressure_scale_widget,
+    build_tank_overlay_hud,
     get_camera_hud_telemetry,
     get_chart_widget,
     get_main_window,
@@ -22,6 +25,9 @@ __all__ = [
     "get_pressure_scale_widget",
     "get_tank_overlay_hud",
     "get_camera_hud_telemetry",
+    "build_pressure_scale_widget",
+    "build_tank_overlay_hud",
+    "build_camera_hud_telemetry",
     "ChartWidget",
     "MainWindow",
     "PressureScaleWidget",

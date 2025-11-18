@@ -771,9 +771,9 @@ class UISetup:
             window._qquick_widget.setFocus(Qt.FocusReason.ActiveWindowFocusReason)
 
         # Bottom section: Charts
-        from src.ui.charts import ChartWidget
+        from src.ui.lazy_loader import build_chart_widget
 
-        window.chart_widget = ChartWidget(window)
+        window.chart_widget = build_chart_widget(window)
         window.chart_widget.setMinimumHeight(200)
         window.main_splitter.addWidget(window.chart_widget)
 
