@@ -21,6 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = PROJECT_ROOT / "reports" / "tests" / "test_entrypoint.log"
 PERFORMANCE_REPORTS = [
     PROJECT_ROOT / "reports" / "tests" / "render_sync_performance.json",
+    PROJECT_ROOT / "reports" / "tests" / "panel_rendering_performance.json",
 ]
 
 
