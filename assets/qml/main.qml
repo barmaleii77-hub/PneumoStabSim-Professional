@@ -226,10 +226,9 @@ Item {
          fog: Fog {
              id: environmentFog
 
-             readonly property bool supportsDensity: "density" in environmentFog
-             readonly property bool supportsLegacyDensity: "fogDensity" in environmentFog
+             readonly property bool supportsDensity: environmentFog && ("density" in environmentFog)
 
-             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
+             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled && supportsDensity
              color: root.fogColor
 
              Binding {
@@ -239,16 +238,9 @@ Item {
                  value: root.fogDensity
              }
 
-             Binding {
-                 target: environmentFog
-                 when: !environmentFog.supportsDensity && environmentFog.supportsLegacyDensity
-                 property: "fogDensity"
-                 value: root.fogDensity
-             }
-
              Component.onCompleted: {
-                 if (!supportsDensity && !supportsLegacyDensity) {
-                     console.warn("[main.qml] Fog component is missing density properties; disabling fog")
+                 if (!supportsDensity) {
+                     console.warn("[main.qml] Fog component is missing density; disabling fog")
                      environmentFog.enabled = false
                  }
              }
@@ -332,8 +324,6 @@ Item {
             return
         if ("density" in environmentFog)
             environmentFog.density = root.fogDensity
-        else if ("fogDensity" in environmentFog)
-            environmentFog.fogDensity = root.fogDensity
     }
 
     onFogDensityChanged: _applyFogDensityBinding()
