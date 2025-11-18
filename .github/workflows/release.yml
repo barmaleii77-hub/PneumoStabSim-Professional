@@ -11,6 +11,9 @@ on:
       - 'v*'
   pull_request:
     branches:
+      - main
+      - develop
+      - 'feature/*'
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch can validate release packaging on PRs
   workflow_dispatch:
 

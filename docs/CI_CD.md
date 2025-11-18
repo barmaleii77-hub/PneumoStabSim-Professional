@@ -9,7 +9,7 @@
 - `ci.yml` — проверяет каждый push и pull request в ветки `main`, `develop` и `feature/*`, гарантируя прохождение агрегированного `make check` на Linux и Windows.
 - `nightly.yml` — ночной прогон (cron `0 3 * * *`) и реагирование на push в `main`, `develop`, `feature/*` с расширенной матрицей и сбором метрик качества.
 - `branch-audit.yml` — аудит устаревших веток по расписанию (`0 4 * * 1`) и при push в `main`, `develop`, `feature/*`; открывает/обновляет issue для веток без активности.
-- `release.yml` — ручные и теговые сборки релизных артефактов (пакеты PyInstaller/CX-Freeze + wheel/SDist) с опциональным GPG-подписанием.
+- `release.yml` — пуши в `main`, `develop`, `feature/*` и `feature/hdr-assets-migration`, pull request в те же ветки, а также теги `v*` и ручные запуски собирают релизные артефакты (пакеты PyInstaller/CX-Freeze + wheel/SDist) с опциональным GPG-подписанием.
 
 ## Детализация workflow
 
@@ -52,7 +52,7 @@ Workflow запускается по cron `0 4 * * 1` и на каждый push 
 
 | Шаг | Содержание |
 | --- | --- |
-| Триггеры | Теги `v*` и ручной запуск `workflow_dispatch`. |
+| Триггеры | Push в `main`, `develop`, `feature/*`, `feature/hdr-assets-migration`; pull request в эти ветки; теги `v*`; ручной запуск `workflow_dispatch`. |
 | Подготовка | `uv sync --frozen --extra release` подтягивает PyInstaller, CX-Freeze и `build`. |
 | Сборка | `make package-all` формирует дистрибутивы PyInstaller/CX-Freeze и Python wheel/SDist (в `dist/packages`). |
 | Проверки | Вычисление SHA256 для всех артефактов, опциональное GPG-подписание при наличии секретов. |
