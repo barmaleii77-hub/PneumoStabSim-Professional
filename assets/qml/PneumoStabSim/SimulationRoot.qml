@@ -74,6 +74,7 @@ Item {
     // Batch updates
     property var pendingPythonUpdates: null
     property var lastUpdateByCategory: ({})
+    signal geometryUpdatesApplied(var payload)
     signal batchUpdatesApplied(var summary)
     signal animationToggled(bool running)
 
@@ -251,6 +252,7 @@ Item {
             geometryStateReceived = true
         }
         _storeLastUpdate("geometry", normalized)
+        geometryUpdatesApplied(normalized)
     }
     function applySimulationUpdates(params) {
         _logBatchEvent("function_called","applySimulationUpdates")
