@@ -111,15 +111,16 @@ def _configure_qt_environment(uv_path: str) -> None:
 def _preinstall_dependencies(system: str, uv_path: str) -> bool:
     """Perform platform-specific dependency preparation."""
 
+    _log(f"[entrypoint] Platform detected by platform.system(): {system}")
+
     if system == "Linux":
         make_path = shutil.which("make")
         if make_path:
-            _log("[entrypoint] Preinstalling dependencies via `make uv-sync-qt`")
-            _stream_command([make_path, "uv-sync-qt"])
-            return True
-
-        _log("[entrypoint] GNU Make not available; using uv sync fallback")
-        _sync_environment(uv_path)
+            _log("[entrypoint] Preinstalling dependencies via `make uv-sync`")
+            _stream_command([make_path, "uv-sync"])
+        else:
+            _log("[entrypoint] GNU Make not available; using uv sync fallback")
+            _sync_environment(uv_path)
         _configure_qt_environment(uv_path)
         return True
 
@@ -128,11 +129,9 @@ def _preinstall_dependencies(system: str, uv_path: str) -> bool:
         if setup_script.exists():
             _log("[entrypoint] Preinstalling dependencies via scripts/setup_dev.py")
             _stream_command([sys.executable, str(setup_script)])
-            _configure_qt_environment(uv_path)
-            return True
-
-        _log("[entrypoint] setup_dev.py missing; falling back to uv sync")
-        _sync_environment(uv_path)
+        else:
+            _log("[entrypoint] setup_dev.py missing; falling back to uv sync")
+            _sync_environment(uv_path)
         _configure_qt_environment(uv_path)
         return True
 
@@ -180,23 +179,50 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
 
 
 def _primary_commands(uv_path: str, scope: Literal["main", "integration", "all"]) -> Iterable[Sequence[str]]:
-    make_path = shutil.which("make")
+    """Yield the matrix of quality gates to execute for the platform."""
+
     if scope in {"main", "integration", "all"}:
-        if make_path:
-            _log("[entrypoint] Detected make; delegating to `make check`")
-            yield [make_path, "check"]
-        else:
-            _log("[entrypoint] make not found; falling back to Python verification suite")
-            yield [
-                uv_path,
-                "run",
-                "--locked",
-                "--",
-                "python",
-                "-m",
-                "tools.ci_tasks",
-                "verify",
-            ]
+        _log("[entrypoint] Running quality matrix: ruff, mypy, qmllint, pytest")
+        yield [
+            uv_path,
+            "run",
+            "--locked",
+            "--",
+            "python",
+            "-m",
+            "tools.ci_tasks",
+            "lint",
+        ]
+        yield [
+            uv_path,
+            "run",
+            "--locked",
+            "--",
+            "python",
+            "-m",
+            "tools.ci_tasks",
+            "typecheck",
+        ]
+        yield [
+            uv_path,
+            "run",
+            "--locked",
+            "--",
+            "python",
+            "-m",
+            "tools.ci_tasks",
+            "qml-lint",
+        ]
+        yield [
+            uv_path,
+            "run",
+            "--locked",
+            "--",
+            "python",
+            "-m",
+            "tools.ci_tasks",
+            "test",
+        ]
 
     if scope in {"integration", "all"}:
         _log("[entrypoint] Executing integration and performance test suites")
