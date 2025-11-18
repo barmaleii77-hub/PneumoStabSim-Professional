@@ -24,6 +24,10 @@ Item {
 
     // Bridge
     property var sceneBridge: null
+    property var sceneSharedMaterials: null
+    property var sceneDirectionalLights: null
+    property var scenePointLights: null
+    property var sceneFrameNode: null
     // External references
     property var postEffects: null
     property var sceneView: null
