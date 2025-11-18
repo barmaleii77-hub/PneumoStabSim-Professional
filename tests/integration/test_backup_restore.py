@@ -145,6 +145,29 @@ def test_restore_rejects_corrupted_archive(
     assert any("backup_corrupted" in record.getMessage() for record in caplog.records)
 
 
+def test_restore_records_audit_payload_for_corrupted_archive(
+    sample_project: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    service = BackupService(root=sample_project, backup_dir=sample_project / "backups")
+    report = service.create_backup(label="corrupted-audit")
+
+    report.archive_path.write_bytes(b"corrupted-data")
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(zipfile.BadZipFile):
+        service.restore_backup(report.archive_path)
+
+    audit_records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", "") == "backup_corrupted"
+    ]
+    assert audit_records, "Expected structured audit record for corrupted archive"
+    audit_record = audit_records[-1]
+    assert audit_record.archive == str(report.archive_path)
+    assert "zip" in str(audit_record.error)
+
+
 def test_restore_rejects_manifest_mismatch(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -182,6 +205,44 @@ def test_restore_rejects_manifest_mismatch(
     )
 
 
+def test_restore_logs_manifest_mismatch_details(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    root = tmp_path / "project"
+    backup_dir = root / "backups"
+    backup_dir.mkdir(parents=True)
+    service = BackupService(root=root, backup_dir=backup_dir)
+
+    archive_path = backup_dir / "audit-manifest.zip"
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr("config/app_settings.json", "{}")
+        handle.writestr(
+            "PSS_BACKUP_MANIFEST.json",
+            json.dumps(
+                {
+                    "included": ["config/other.json"],
+                    "skipped": [],
+                    "version": "1.0",
+                    "root": str(root),
+                    "sources": ["config/app_settings.json"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(ValueError):
+        service.restore_backup(archive_path, target_root=root / "restored")
+
+    audit_records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", "") == "backup_manifest_mismatch"
+    ]
+    assert audit_records, "Audit log must capture manifest mismatches"
+    audit_record = audit_records[-1]
+    assert audit_record.missing == ["config/other.json"]
+    assert audit_record.unexpected == ["config/app_settings.json"]
+
+
 def test_restore_rejects_unsafe_members(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -205,3 +266,30 @@ def test_restore_rejects_unsafe_members(
     assert any(
         "backup_restore_rejected" in record.getMessage() for record in caplog.records
     )
+
+
+def test_restore_logs_path_escape_attempts(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    root = tmp_path / "project"
+    backup_dir = root / "backups"
+    backup_dir.mkdir(parents=True)
+    service = BackupService(root=root, backup_dir=backup_dir)
+
+    archive_path = backup_dir / "absolute.zip"
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr("/etc/passwd", "forbidden")
+        handle.writestr(
+            "PSS_BACKUP_MANIFEST.json",
+            json.dumps({"included": ["/etc/passwd"], "skipped": []}, ensure_ascii=False),
+        )
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(ValueError):
+        service.restore_backup(archive_path, target_root=root / "restored")
+
+    audit_records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", "") == "backup_restore_rejected"
+    ]
+    assert audit_records, "Audit log must capture unsafe path attempts"
+    assert any("absolute" in record.getMessage() for record in audit_records)
