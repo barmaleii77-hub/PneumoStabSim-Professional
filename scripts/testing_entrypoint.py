@@ -8,6 +8,7 @@ orchestrator to remain usable on systems without GNU Make (e.g. Windows).
 
 from __future__ import annotations
 
+import argparse
 import os
 import platform
 import shutil
@@ -92,28 +93,45 @@ def _prepare_system(system: str) -> None:
     _stream_command([str(setup_script), "--skip-python", "--skip-qt"])
 
 
-def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
+def _primary_commands(uv_path: str, suite: str) -> Iterable[Sequence[str]]:
     make_path = shutil.which("make")
+    suite_to_target = {
+        "verify": ("check", "verify"),
+        "tests": ("test-local", "test"),
+        "integration": ("test-integration", "test-integration"),
+        "unit": ("test-unit", "test-unit"),
+        "ui": ("test-ui", "test-ui"),
+    }
+    make_target, ci_task = suite_to_target[suite]
+
     if make_path:
-        _log("[entrypoint] Detected make; delegating to `make check`")
-        yield [make_path, "check"]
-    else:
-        _log("[entrypoint] make not found; falling back to Python verification suite")
-        yield [
-            uv_path,
-            "run",
-            "--locked",
-            "--",
-            "python",
-            "-m",
-            "tools.ci_tasks",
-            "verify",
-        ]
+        _log(f"[entrypoint] Detected make; delegating to `make {make_target}`")
+        yield [make_path, make_target]
+    _log("[entrypoint] make not found or bypassed; executing Python ci_tasks")
+    yield [
+        uv_path,
+        "run",
+        "--locked",
+        "--",
+        "python",
+        "-m",
+        "tools.ci_tasks",
+        ci_task,
+    ]
 
 
 def main(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(description="Unified test entrypoint")
+    parser.add_argument(
+        "--suite",
+        choices=["verify", "tests", "integration", "unit", "ui"],
+        default="verify",
+        help="Целевой набор проверок: полный verify, все тесты или только подмножество",
+    )
+    args = parser.parse_args(argv)
+
     system = platform.system()
-    _log(f"[entrypoint] Detected platform: {system}")
+    _log(f"[entrypoint] Detected platform: {system}; suite={args.suite}")
 
     try:
         uv_path = _require_uv()
@@ -122,7 +140,7 @@ def main(argv: list[str]) -> int:
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
-        for command in _primary_commands(uv_path):
+        for command in _primary_commands(uv_path, args.suite):
             _stream_command(command, env=env)
     except (CommandFailure, MissingTool) as exc:  # pragma: no cover - cli guard
         _log(f"[entrypoint] ERROR: {exc}")

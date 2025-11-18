@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import os
 import platform
+import shlex
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Sequence
 import threading
 import time
 
@@ -29,6 +30,22 @@ CreateFlag = Literal["new_console", "detached", "capture"]
 
 DETECTED_PLATFORM = platform.system()
 print(f"🖥️ Interactive launcher detected platform: {DETECTED_PLATFORM}")
+
+
+def _format_command(command: Sequence[str]) -> str:
+    return " ".join(shlex.quote(part) for part in command)
+
+
+def log_message(message: str) -> None:
+    print(f"[launcher] {message}")
+
+
+def log_command(command: Sequence[str], *, context: str) -> None:
+    log_message(f"{context}: $ {_format_command(command)}")
+
+
+def log_command_result(command: Sequence[str], returncode: int) -> None:
+    log_message(f"exit_code={returncode} for {_format_command(command)}")
 
 
 # --- Tooltip helper
@@ -105,6 +122,30 @@ def detect_venv_python(*, prefer_console: bool) -> Path:
     # Всегда используем console при запросе prefer_console
     preferred = con if prefer_console else gui
     return preferred if preferred.exists() else (con if con.exists() else Path(sys.executable))
+
+
+def run_logged_command(
+    command: Sequence[str], *, env: dict[str, str] | None = None, capture_output: bool = False
+) -> subprocess.CompletedProcess[str]:
+    log_command(command, context="run")
+    completed = subprocess.run(
+        command,
+        cwd=str(project_root()),
+        env=env,
+        capture_output=capture_output,
+        text=capture_output,
+        encoding="utf-8" if capture_output else None,
+        errors="replace" if capture_output else None,
+    )
+    log_command_result(command, completed.returncode)
+    return completed
+
+
+def start_logged_process(command: Sequence[str], **popen_kwargs: object) -> subprocess.Popen[bytes]:
+    log_command(command, context="spawn")
+    proc = subprocess.Popen(command, **popen_kwargs)  # type: ignore[arg-type]
+    log_message(f"spawned pid={proc.pid}")
+    return proc
 
 
 def _append_env_path(env: dict[str, str], name: str, path: Path) -> None:
@@ -226,7 +267,7 @@ def configure_runtime_env(
 
 def launch_app(
     *, args: Iterable[str], env: dict[str, str], mode: CreateFlag, force_console: bool, capture_buffer: list[str] | None = None
-) -> subprocess.Popen[bytes]:
+) -> tuple[subprocess.Popen[bytes], list[str]]:
     root = project_root()
     prefer_console = force_console or any(
         a in ("--env-check", "--env-report", "--test-mode", "--verbose", "--diag") for a in args
@@ -254,7 +295,7 @@ def launch_app(
         popen_kwargs["encoding"] = "utf-8"
         popen_kwargs["errors"] = "replace"
 
-    proc = subprocess.Popen(cmd, **popen_kwargs)  # type: ignore[arg-type]
+    proc = start_logged_process(cmd, **popen_kwargs)
 
     if mode == "capture" and proc.stdout is not None and capture_buffer is not None:
 
@@ -263,7 +304,7 @@ def launch_app(
                 capture_buffer.append(line.rstrip("\n"))
 
         threading.Thread(target=_reader, daemon=True).start()
-    return proc
+    return proc, cmd
 
 
 class LauncherUI(tk.Tk):
@@ -300,10 +341,81 @@ class LauncherUI(tk.Tk):
         # Буфер вывода
         self._captured_output: list[str] = []
 
+        self._build_menu()
         self._build_ui()
         self._attach_tooltips()
 
     # --- UI build
+    def _build_menu(self) -> None:
+        menubar = tk.Menu(self)
+
+        menu_launch = tk.Menu(menubar, tearoff=0)
+        menu_launch.add_command(label="Запустить приложение", command=self._on_run)
+        menu_launch.add_command(label="Диагностика окружения", command=self._on_env_check)
+        menu_launch.add_separator()
+        menu_launch.add_command(label="Выход", command=self.destroy)
+        menubar.add_cascade(label="Запуск", menu=menu_launch)
+
+        menu_config = tk.Menu(menubar, tearoff=0)
+        menu_config.add_command(label="Сбросить параметры", command=self._reset_configuration)
+        menu_config.add_command(
+            label="Диагностический профиль",
+            command=lambda: self._apply_configuration_preset("diagnostic"),
+        )
+        menu_config.add_command(
+            label="Headless тесты",
+            command=lambda: self._apply_configuration_preset("headless"),
+        )
+        menubar.add_cascade(label="Конфигурация", menu=menu_config)
+
+        menu_tests = tk.Menu(menubar, tearoff=0)
+        menu_tests.add_command(
+            label="Основные тесты",
+            command=lambda: self._run_tests_async("tests"),
+        )
+        menu_tests.add_command(
+            label="Интеграционные тесты",
+            command=lambda: self._run_tests_async("integration"),
+        )
+        menubar.add_cascade(label="Тесты", menu=menu_tests)
+
+        self.config(menu=menubar)
+
+    def _apply_configuration_preset(self, preset: str) -> None:
+        log_message(f"Applying configuration preset: {preset}")
+        if preset == "diagnostic":
+            self.var_verbose.set(True)
+            self.var_diag.set(True)
+            self.var_capture.set(True)
+            self.var_console.set(False)
+        elif preset == "headless":
+            self.var_headless.set(True)
+            self.var_no_qml.set(True)
+            self.var_qpa.set("offscreen" if "offscreen" in QPA_CHOICES else QPA_CHOICES[0])
+            self.var_rhi.set("vulkan" if "vulkan" in RHI_CHOICES else RHI_CHOICES[0])
+            self.var_scene.set(SCENE_CHOICES[0])
+        self._set_status(f"Профиль {preset} применён")
+
+    def _reset_configuration(self) -> None:
+        log_message("Resetting launcher parameters to defaults")
+        self.var_verbose.set(False)
+        self.var_diag.set(False)
+        self.var_test.set(False)
+        self.var_safe_mode.set(False)
+        self.var_legacy.set(False)
+        self.var_no_qml.set(False)
+        self.var_headless.set(False)
+        self.var_qpa.set(QPA_CHOICES[0])
+        self.var_rhi.set(RHI_CHOICES[0])
+        self.var_quick_backend.set("")
+        self.var_style.set(STYLE_CHOICES[0])
+        self.var_scene.set(SCENE_CHOICES[1])
+        self.var_env_check.set(False)
+        self.var_env_report.set("")
+        self.var_console.set(False)
+        self.var_capture.set(True)
+        self._set_status("Параметры сброшены")
+
     def _build_ui(self) -> None:
         pad = {"padx": 10, "pady": 6}
 
@@ -465,7 +577,7 @@ class LauncherUI(tk.Tk):
         self._captured_output.clear()
         capture_buffer = self._captured_output if mode == "capture" else None
         try:
-            proc = launch_app(
+            proc, cmd = launch_app(
                 args=args,
                 env=env,
                 mode=mode,
@@ -476,14 +588,50 @@ class LauncherUI(tk.Tk):
             messagebox.showerror("Ошибка запуска", f"Не удалось запустить приложение: {e}")
             return
         self._set_status(f"PID={proc.pid} запущено. Ожидание завершения...")
-        threading.Thread(target=self._monitor_process, args=(proc, env, mode), daemon=True).start()
+        threading.Thread(
+            target=self._monitor_process,
+            args=(proc, env, mode, cmd),
+            daemon=True,
+        ).start()
 
-    def _monitor_process(self, proc: subprocess.Popen[bytes], env: dict[str, str], mode: CreateFlag) -> None:
+    def _build_test_command(self, suite: str) -> list[str]:
+        python_exe = detect_venv_python(prefer_console=True)
+        cmd = [str(python_exe), str(project_root() / "scripts" / "testing_entrypoint.py")]
+        if suite != "verify":
+            cmd.extend(["--suite", suite])
+        return cmd
+
+    def _run_tests_async(self, suite: str) -> None:
+        self._set_status(f"Запуск тестов: {suite}")
+        threading.Thread(target=self._execute_tests, args=(suite,), daemon=True).start()
+
+    def _execute_tests(self, suite: str) -> None:
+        env = self._collect_env()
+        cmd = self._build_test_command(suite)
+        try:
+            completed = run_logged_command(cmd, env=env, capture_output=True)
+            summary_lines = [f"Код завершения: {completed.returncode}"]
+            stdout = (completed.stdout or "").strip()
+            if stdout:
+                summary_lines.append("--- stdout/stderr ---")
+                summary_lines.append(stdout)
+            summary = "\n".join(summary_lines)
+            status_text = "Тесты выполнены успешно" if completed.returncode == 0 else "Тесты завершились с ошибками"
+            self.after(0, lambda: messagebox.showinfo(status_text, summary))
+            log_command_result(cmd, completed.returncode)
+        except Exception as exc:
+            self.after(0, lambda: messagebox.showerror("Ошибка запуска тестов", str(exc)))
+            log_message(f"Тесты не запущены: {exc}")
+
+    def _monitor_process(
+        self, proc: subprocess.Popen[bytes], env: dict[str, str], mode: CreateFlag, command: list[str]
+    ) -> None:
         exit_code = -1
         try:
             exit_code = proc.wait()
         except Exception:
             pass
+        log_command_result(command, exit_code)
         time.sleep(0.15)
         analysis_text = self._run_log_analysis(env)
         extra = self._summarize_captured_output() if mode == "capture" else ""
@@ -517,15 +665,7 @@ class LauncherUI(tk.Tk):
         python_exe = detect_venv_python(prefer_console=True)
         cmd = [str(python_exe), "-m", "tools.analyze_logs"]
         try:
-            completed = subprocess.run(
-                cmd,
-                cwd=str(root),
-                env=env,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
+            completed = run_logged_command(cmd, env=env, capture_output=True)
         except Exception as e:
             return f"Ошибка запуска анализатора логов: {e}"
         stdout = (completed.stdout or "").strip()
