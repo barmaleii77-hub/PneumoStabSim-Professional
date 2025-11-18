@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QComboBox,
 )
-from PySide6.QtCore import Signal, Slot, Qt
+from PySide6.QtCore import QMetaMethod, Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import RangeSlider
@@ -116,9 +116,56 @@ class GeometryPanel(QWidget):
         QTimer.singleShot(300, self._emit_initial)
 
     def _emit_initial(self):
+        self._verify_geometry_subscribers()
         payload = self._get_fast_geometry_update("init", 0.0)
         self.geometry_changed.emit(payload)
         self.geometry_updated.emit(self.parameters.copy())
+
+    def _verify_geometry_subscribers(self) -> bool | None:
+        """Attempt to detect whether QML subscribers are attached.
+
+        Qt 6 APIs differ across releases: ``QObject.isSignalConnected`` was
+        introduced in Qt 6.5 while ``QObject.receivers`` accepts a normalized
+        signature in earlier versions.  This helper feature-detects the
+        available API to avoid touching ``SignalInstance.receivers`` (which is
+        absent in PySide6) and swallows any Qt-specific errors so initial
+        emissions never crash.
+
+        Returns:
+            ``True`` when a supported API reports at least one receiver,
+            ``False`` when the signal has no receivers, ``None`` when
+            detection is unsupported.
+        """
+
+        signal_obj = getattr(self, "geometry_changed", None)
+        if signal_obj is None:
+            return None
+
+        meta_method: QMetaMethod | None
+        try:
+            meta_method = QMetaMethod.fromSignal(signal_obj)
+        except (TypeError, AttributeError):  # pragma: no cover - Qt internals
+            meta_method = None
+
+        if meta_method is None or not meta_method.isValid():
+            return None
+
+        try:
+            is_connected = getattr(self, "isSignalConnected", None)
+            if callable(is_connected):
+                return bool(is_connected(meta_method))
+
+            receivers_fn = getattr(self, "receivers", None)
+            if callable(receivers_fn):
+                count = receivers_fn(meta_method.methodSignature())
+                return bool(count)
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.debug(
+                "GeometryPanel: subscriber verification failed; proceeding without check",
+                exc_info=True,
+            )
+
+        return None
 
     # Чтение только из JSON
     def _load_from_settings(self) -> None:
