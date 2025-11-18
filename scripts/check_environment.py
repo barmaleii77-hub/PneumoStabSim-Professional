@@ -28,6 +28,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.common.platform_info import describe_platform, log_platform_context
+
 
 # Требуемая версия Python: 3.11–3.13 (исключаем 3.14+, т.к. PySide6 6.10 ещё не готов)
 MIN_PYTHON_VERSION = (3, 11)
@@ -169,6 +175,7 @@ def _build_payload() -> dict[str, Any]:
         "status": overall_status,
         "checks": checks,
         "project_root": str(PROJECT_ROOT),
+        "platform": describe_platform({"script": "check_environment"}),
     }
     return payload
 
@@ -192,6 +199,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    log_platform_context({"script": "check_environment"})
     payload = _build_payload()
     auto_repair_result: dict[str, Any] | None = None
 

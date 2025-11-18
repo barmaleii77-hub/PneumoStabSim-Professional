@@ -3,6 +3,8 @@
 Проверка состояния проекта и зависимостей
 """
 
+from __future__ import annotations
+
 import sys
 import subprocess
 import importlib
@@ -11,6 +13,12 @@ from pathlib import Path
 from importlib import metadata
 
 from packaging.version import InvalidVersion, Version
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.common.platform_info import log_platform_context
 
 
 def check_python_version():
@@ -215,6 +223,7 @@ def check_git_status():
 def main():
     """Основная функция проверки"""
     print("=== ПРОВЕРКА СОСТОЯНИЯ ПРОЕКТА ===\n")
+    log_platform_context({"script": "health_check"})
 
     checks = [
         ("Python версия", check_python_version),
