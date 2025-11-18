@@ -20,6 +20,7 @@ from src.ui.environment_schema import (
     SCENE_SUSPENSION_PARAMETERS,
     validate_scene_settings,
 )
+from src.common.settings_manager import get_settings_manager
 
 
 class SceneTab(QWidget):
@@ -32,6 +33,7 @@ class SceneTab(QWidget):
         self._controls: dict[str, Any] = {}
         self._updating_ui = False
         self._setup_ui()
+        self._load_initial_state()
 
     # ------------------------------------------------------------------ UI helpers
     def _setup_ui(self) -> None:
@@ -137,6 +139,39 @@ class SceneTab(QWidget):
         grid.addWidget(suspension_slider, row, 0, 1, 2)
 
         return group
+
+    def _load_initial_state(self) -> None:
+        """Hydrate controls from ``app_settings.json`` when available.
+
+        GraphicsPanel applies the loaded snapshot separately, but the tab can be
+        instantiated on its own (tests, diagnostics).  Pulling the persisted
+        scene payload keeps exposure and clear color in sync with the settings
+        file instead of relying on hard-coded fallbacks.
+        """
+
+        try:
+            settings_manager = get_settings_manager()
+        except Exception:
+            return
+
+        candidates: tuple[str, ...] = (
+            "current.graphics.scene",
+            "defaults_snapshot.graphics.scene",
+            "metadata.scene_defaults",
+        )
+
+        for path in candidates:
+            try:
+                payload = settings_manager.get(path, {})
+            except Exception:
+                continue
+            if not isinstance(payload, dict) or not payload:
+                continue
+            try:
+                self.set_state(payload)
+            except Exception:
+                continue
+            break
 
     # ------------------------------------------------------------------ helpers
     def _on_control_changed(self, key: str, value: Any) -> None:

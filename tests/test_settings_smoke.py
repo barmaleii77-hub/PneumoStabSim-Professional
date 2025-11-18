@@ -236,9 +236,11 @@ def test_settings_manager_preserves_current_structure(legacy_settings: Path) -> 
     manager.set("graphics", new_graphics)
 
     assert manager.get("current.graphics.scene.exposure") == 2.0
+    assert manager.get("current.graphics.scene.default_clear_color") == "#1b1f27"
 
     payload = json.loads(legacy_settings.read_text(encoding="utf-8"))
     assert payload["current"]["graphics"]["scene"]["exposure"] == 2.0
+    assert payload["current"]["graphics"]["scene"]["default_clear_color"] == "#1b1f27"
     extra_keys = set(payload) - {"metadata", "current", "defaults_snapshot"}
     assert "graphics" not in extra_keys
 

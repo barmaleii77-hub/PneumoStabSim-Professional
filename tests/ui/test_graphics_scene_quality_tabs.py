@@ -16,12 +16,14 @@ from PySide6.QtWidgets import QComboBox
 
 from src.ui.panels.graphics import environment_tab as environment_tab_module
 from src.common.logging_widgets import LoggingCheckBox
+from src.common.settings_manager import get_settings_manager
 from src.ui.panels.graphics.environment_tab import EnvironmentTab
 from src.ui.panels.graphics.effects_tab import EffectsTab
 from src.ui.panels.graphics.panel_graphics import GraphicsPanel
 from src.ui.panels.graphics.quality_tab import QualityTab
 from src.ui.panels.graphics.scene_tab import SceneTab
 from src.ui.panels.graphics.animation_tab import AnimationTab
+from src.ui.environment_schema import validate_scene_settings
 from tests.helpers import SignalListener
 
 
@@ -208,6 +210,18 @@ def test_scene_tab_roundtrip_preserves_types(qapp):
     assert math.isclose(
         state["suspension"]["rod_warning_threshold_m"], 0.0025, rel_tol=1e-6
     )
+
+
+@pytest.mark.gui
+def test_scene_tab_loads_settings_defaults(qapp):
+    tab = SceneTab()
+
+    try:
+        manager = get_settings_manager()
+        expected = validate_scene_settings(manager.get("current.graphics.scene", {}))
+        assert tab.get_state() == expected
+    finally:
+        tab.deleteLater()
 
 
 @pytest.mark.gui
