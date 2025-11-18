@@ -356,6 +356,40 @@ def test_reflection_probe_defaults_missing_keys_emits_warning(qapp) -> None:
 
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
+def test_reflection_probe_missing_keys_payload_triggers_warning(qapp) -> None:
+    overrides = {
+        "initialReflectionProbeSettings": {
+            "enabled": True,
+            "padding_m": 0.21,
+            "quality": "medium",
+            "refresh_mode": "firstframe",
+            "time_slicing": "allfacesatonce",
+            "missing_keys": ["enabled", "quality"],
+        }
+    }
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        assert bool(root.property("reflectionProbeDefaultsWarningIssued"))
+        missing = set(root.property("reflectionProbeMissingKeys"))
+        assert missing >= {"enabled", "quality"}
+
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert math.isclose(
+            float(assembly.property("reflectionProbePaddingM")),
+            0.21,
+            rel_tol=1e-6,
+            abs_tol=1e-6,
+        )
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
 def test_environment_defaults_disable_reflection_probe_visibility(qapp) -> None:
     overrides = {
         "initialSceneSettings": {
