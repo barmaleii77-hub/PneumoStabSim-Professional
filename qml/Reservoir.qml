@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import "components" as Components
+import "singletons" as Singletons
 
 Item {
     id: root
@@ -26,10 +27,10 @@ Item {
     property real atmosphericPressure: 101325.0
     property real pressure: minPressure
 
-    property color fluidColor: Qt.rgba(0.27, 0.6, 0.95, 0.65)
-    property color surfaceHighlightColor: Qt.rgba(1, 1, 1, 0.45)
-    property color borderColor: Qt.rgba(0.24, 0.31, 0.42, 0.9)
-    property color atmosphericLineColor: Qt.rgba(0.55, 0.78, 1.0, 0.8)
+    property color fluidColor: Singletons.UiConstants.reservoir.fluidColor
+    property color surfaceHighlightColor: Singletons.UiConstants.reservoir.surfaceHighlightColor
+    property color borderColor: Singletons.UiConstants.reservoir.borderColor
+    property color atmosphericLineColor: Singletons.UiConstants.reservoir.atmosphericLineColor
 
     property var markers: []
     property bool showLegend: true
@@ -37,10 +38,10 @@ Item {
     property var lineValveStates: ({})
     property var lineIntensities: ({})
     property var gradientStops: []
-    property color valveOpenColor: Qt.rgba(0.32, 0.78, 0.48, 0.95)
-    property color valveClosedColor: Qt.rgba(0.86, 0.33, 0.33, 0.95)
-    property color lowPressureColor: Qt.rgba(0.26, 0.56, 0.94, 0.7)
-    property color highPressureColor: Qt.rgba(0.94, 0.43, 0.34, 0.85)
+    property color valveOpenColor: Singletons.UiConstants.reservoir.valveOpenColor
+    property color valveClosedColor: Singletons.UiConstants.reservoir.valveClosedColor
+    property color lowPressureColor: Singletons.UiConstants.reservoir.lowPressureColor
+    property color highPressureColor: Singletons.UiConstants.reservoir.highPressureColor
 
     readonly property var lineDescriptors: [
         { key: "A1", anchor: Qt.point(0.24, 0.8), valveAnchor: Qt.point(0.08, 0.8), label: "A1" },

@@ -3,6 +3,7 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import "." as Local
+import "./singletons" as Singletons
 
 /**
  * Минимальный корневой компонент для стенд‑запуска панели симуляции.
@@ -21,9 +22,11 @@ Pane {
     property var geometryParameters: ({})
 
     /** Прокси к внутренним моделям, экспортируемые для автотестов. */
-    property alias flowArrowsModel: simulationPanel.flowArrowsModel
-    property alias lineValveModel: simulationPanel.lineValveModel
-    property alias reliefValveModel: simulationPanel.reliefValveModel
+    property var simulationPanel: simulationLoader.item
+    property var flowArrowsModel: simulationPanel ? simulationPanel.flowArrowsModel : null
+    property var lineValveModel: simulationPanel ? simulationPanel.lineValveModel : null
+    property var reliefValveModel: simulationPanel ? simulationPanel.reliefValveModel : null
+    readonly property bool panelReady: simulationLoader.status === Loader.Ready && simulationPanel !== null
 
     signal geometryUpdatesApplied(var payload)
     signal shaderWarningRegistered(string effectId, string message)
@@ -59,11 +62,19 @@ Pane {
         return clone
     }
 
+    property var _pendingFlowTelemetry: null
+    property var _pendingGeometry: null
+
     function applyFlowTelemetry(payload) {
         flowTelemetry = payload
+        _pendingFlowTelemetry = payload
+        _flushPending()
     }
 
-    onFlowTelemetryChanged: simulationPanel.applyFlowTelemetry(flowTelemetry)
+    onFlowTelemetryChanged: {
+        _pendingFlowTelemetry = flowTelemetry
+        _flushPending()
+    }
 
     function _hostWindow() {
         // qmllint disable unqualified
@@ -95,7 +106,24 @@ Pane {
     function applyGeometryUpdates(params) {
         geometryParameters = _normalizeGeometryPayload(params)
         geometryUpdatesApplied(geometryParameters)
-        simulationPanel.applyGeometryParameters(geometryParameters)
+        _pendingGeometry = geometryParameters
+        _flushPending()
+    }
+
+    onGeometryParametersChanged: {
+        _pendingGeometry = geometryParameters
+        _flushPending()
+    }
+
+    function _flushPending() {
+        if (!simulationPanel)
+            return
+        if (_pendingGeometry !== null)
+            simulationPanel.applyGeometryParameters(_pendingGeometry)
+        if (_pendingFlowTelemetry !== null)
+            simulationPanel.applyFlowTelemetry(_pendingFlowTelemetry)
+        _pendingGeometry = null
+        _pendingFlowTelemetry = null
     }
 
     /**
@@ -147,18 +175,33 @@ Pane {
     // Оформляем фон панели
     background: Rectangle {
         radius: 18
-        color: Qt.rgba(0.06, 0.09, 0.13, 0.92)
-        border.color: Qt.rgba(0.18, 0.24, 0.33, 0.9)
+        color: Singletons.UiConstants.panels.background
+        border.color: Singletons.UiConstants.panels.border
         border.width: 1
     }
 
-    // Основной контент — панель симуляции (как прямой потомок, чтобы findChild() находил её)
-    contentItem: Local.SimulationPanel {
-        id: simulationPanel
-        objectName: "simulationPanel"
+    // Основной контент — панель симуляции с ленивой загрузкой
+    contentItem: Loader {
+        id: simulationLoader
+        objectName: "simulationLoader"
         anchors.fill: parent
-        anchors.margins: 24
+        active: false
+        asynchronous: true
 
-        geometryParameters: root.geometryParameters
+        sourceComponent: Local.SimulationPanel {
+            id: simulationPanel
+            objectName: "simulationPanel"
+            anchors.fill: parent
+            anchors.margins: 24
+
+            geometryParameters: root.geometryParameters
+        }
+
+        onStatusChanged: {
+            if (status === Loader.Ready)
+                _flushPending()
+        }
+
+        Component.onCompleted: active = true
     }
 }
