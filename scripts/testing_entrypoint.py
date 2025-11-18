@@ -18,6 +18,9 @@ from typing import Iterable, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = PROJECT_ROOT / "reports" / "tests" / "test_entrypoint.log"
+PERFORMANCE_REPORTS = [
+    PROJECT_ROOT / "reports" / "tests" / "render_sync_performance.json",
+]
 
 
 class CommandFailure(RuntimeError):
@@ -31,6 +34,14 @@ class MissingTool(RuntimeError):
 def _reset_log() -> None:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text("", encoding="utf-8")
+
+
+def _announce_reports() -> None:
+    for report in PERFORMANCE_REPORTS:
+        report.parent.mkdir(parents=True, exist_ok=True)
+        _log(
+            f"[entrypoint] Performance metrics will be written to {report.relative_to(PROJECT_ROOT)}"
+        )
 
 
 def _log(message: str) -> None:
@@ -189,6 +200,7 @@ def main(argv: list[str]) -> int:
     system = platform.system()
     _reset_log()
     _log(f"[entrypoint] Detected platform: {system}")
+    _announce_reports()
 
     try:
         uv_path = _require_uv()
