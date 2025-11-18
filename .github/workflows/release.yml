@@ -3,6 +3,7 @@ name: Release Packaging
 on:
   push:
     branches:
+      - 'feature/*'
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch can package releases
     tags:
       - 'v*'

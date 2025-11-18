@@ -73,7 +73,9 @@ Get-ChildItem -Filter *.asc | ForEach-Object {
 ## 4. Continuous Integration and Release Automation
 
 The GitHub Actions workflow at `.github/workflows/release.yml` orchestrates
-packaging for tagged builds:
+packaging for tagged builds and also runs on pushes to any `feature/*` branch
+(including the long-lived `feature/hdr-assets-migration`) to validate release
+artifacts before promotion:
 
 1. Each OS runner installs the locked environment (`uv sync --extra release`).
 2. `make package-all` generates the platform bundle.

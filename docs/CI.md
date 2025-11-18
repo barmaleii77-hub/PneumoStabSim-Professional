@@ -2,7 +2,7 @@
 
 ## GitHub Actions `ci.yml`
 
-Workflow **Continuous Integration** запускается на каждый `push` и `pull_request` в ветки `main` и `develop` и выполняется на матрице `ubuntu-latest` и `windows-latest`. Последовательность шагов:
+Workflow **Continuous Integration** запускается на каждый `push` и `pull_request` в ветки `main`, `develop` и любые `feature/*` (включая целевую `feature/hdr-assets-migration`) и выполняется на матрице `ubuntu-latest` и `windows-latest`. Последовательность шагов:
 
 1. Устанавливает headless-пакеты (`xvfb`, `xauth`, `dbus-x11`, Mesa software GL, `libosmesa6(-dev)`, `mesa-utils(-extra)`, `libglu1-mesa(-dev)`, `libegl1`, `libegl1-mesa(-dev)`, `libgles2`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`, `vulkan-tools`) — все эти пакеты явно устанавливаются в workflow-файлах (`.github/workflows/*.yml`), включая оба варианта `libgles2` и `libgles2-mesa(-dev)` для полной совместимости с Dockerfile и install-скриптами. Этого достаточно для Mesa software rendering, проверки fallback-шейдеров и виртуального дисплея Qt Quick 3D.
 2. Подготавливает Python 3.13, устанавливает `uv`, dev-зависимости и Qt 6.10.0 (вместе с плагинами `qtquick3d`, `qtshadertools`, `qtimageformats`). Скрипт `tools/setup_qt.py` по умолчанию разворачивает именно версию **6.10.0**, чтобы избежать расхождений между локальной средой, CI и документацией.
