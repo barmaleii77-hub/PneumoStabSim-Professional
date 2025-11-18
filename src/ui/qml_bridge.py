@@ -1,5 +1,16 @@
 """Utilities for wiring Python code to QML update contracts.
 
+Alignment with the renovation plan:
+
+* Master plan: `docs/RENOVATION_MASTER_PLAN.md`, Section 5 "Application
+  Architecture Refinement", action item 3 "Signal/Slot Registry".
+* Phase playbooks: Phase 3 entries dated 2025-11-05 (Training preset bridge
+  regression coverage) and 2025-11-30 (Panel bridge payload coverage) in
+  `docs/RENOVATION_PHASE_3_UI_AND_GRAPHICS_PLAN.md`.
+
+These references keep the metadata-driven bridge consistent with the
+documented payload and wiring checklists.
+
 The module provides several layers of functionality:
 
 * :func:`get_bridge_metadata` – cached access to the parsed metadata file.
