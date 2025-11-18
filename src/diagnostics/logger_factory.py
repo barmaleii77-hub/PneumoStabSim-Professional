@@ -33,6 +33,7 @@ from datetime import date, datetime
 from types import ModuleType
 from typing import Any, Protocol, runtime_checkable
 from collections.abc import Iterable, Mapping
+from functools import partial
 
 try:  # pragma: no cover - exercised indirectly by tests
     import structlog
@@ -87,7 +88,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback exercised in kata env
         def __call__(self, logger: Any, name: str, event_dict: dict[str, Any]) -> str:
             payload = dict(_flatten_event_payload(event_dict))
             payload.setdefault("event", name)
-            return _json_dumps(payload)
+            return _JSON_RENDERER_SERIALIZER(payload)
 
     structlog_shim.processors.JSONRenderer = _JSONRenderer  # type: ignore[attr-defined]
 
@@ -294,6 +295,9 @@ def _json_dumps(payload: Mapping[str, Any], **kwargs: Any) -> str:
     return json.dumps(payload, **kwargs)
 
 
+_JSON_RENDERER_SERIALIZER = partial(_json_dumps, ensure_ascii=False)
+
+
 def _flatten_event_payload(event_dict: Mapping[str, Any]) -> dict[str, Any]:
     """Merge nested JSON payloads into the root event dictionary."""
 
@@ -344,7 +348,7 @@ def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
     serialisable = _flatten_event_payload(dict(event_dict))
     if "event" not in serialisable and name:
         serialisable["event"] = name
-    return _json_dumps(serialisable)
+    return _JSON_RENDERER_SERIALIZER(serialisable)
 
 
 def _shared_processors() -> list[Any]:
@@ -441,7 +445,7 @@ def configure_logging(
 
     # NB: _json_dumps sets ensure_ascii=False by default, so UTF-8 characters are serialized correctly.
     json_renderer = structlog.processors.JSONRenderer(
-        serializer=_json_dumps,
+        serializer=_JSON_RENDERER_SERIALIZER,
         event_key="event",
     )
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger

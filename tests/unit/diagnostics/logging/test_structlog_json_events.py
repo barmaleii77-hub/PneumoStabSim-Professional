@@ -1,32 +1,21 @@
-"""Structured logging tests ensuring JSON payloads carry expected fields."""
-
 import json
 import logging
 from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging
+from src.diagnostics.logger_factory import (
+    _JSON_RENDERER_SERIALIZER,
+    _flatten_event_payload,
+    configure_logging,
+)
 
 
 def _normalise_payload(raw: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Flatten nested events and render with UTF-8 output for assertions."""
 
-    # Локальная реализация flattening logic, аналогичная _flatten_event_payload
-    def flatten_event_payload(event: dict[str, Any]) -> dict[str, Any]:
-        """Рекурсивно разворачивает вложенные словари в один уровень."""
-        result = {}
-        for key, value in event.items():
-            if isinstance(value, dict):
-                # Вложенные словари разворачиваем с префиксом ключа
-                for subkey, subvalue in value.items():
-                    result[f"{key}.{subkey}"] = subvalue
-            else:
-                result[key] = value
-        return result
-
-    flattened = flatten_event_payload(payload)
-    rendered = json.dumps(flattened, ensure_ascii=False)
+    flattened = _flatten_event_payload(payload)
+    rendered = _JSON_RENDERER_SERIALIZER(flattened)
     return rendered, flattened
 
 
@@ -48,22 +37,30 @@ def _extract_structlog_payload(caplog: Any, capsys: Any) -> tuple[str, dict[str,
             return None
         return _normalise_payload(text, payload)
 
+    messages: list[tuple[str, dict[str, Any]]] = []
+
     for record in caplog.records:
         message = getattr(record, "message", None) or record.getMessage()
         if isinstance(message, dict):
-            return _normalise_payload(json.dumps(message, ensure_ascii=False), message)
+            messages.append(_normalise_payload(_JSON_RENDERER_SERIALIZER(message), message))
         if isinstance(message, str):
             parsed = _from_text(message)
             if parsed is not None:
-                return parsed
+                messages.append(parsed)
 
-    captured = capsys.readouterr()
-    for stream in (captured.err, captured.out):
-        parsed = _from_text(stream)
-        if parsed is not None:
-            return parsed
+    if not messages:
+        captured = capsys.readouterr()
+        for stream in (captured.err, captured.out):
+            parsed = _from_text(stream)
+            if parsed is not None:
+                messages.append(parsed)
 
-    raise AssertionError("structured log entry was not captured")
+    if not messages:
+        raise AssertionError("structured log entry was not captured")
+    if len(messages) > 1:
+        raise AssertionError(f"expected a single structured log entry, got {len(messages)}")
+
+    return messages[0]
 
 
 def test_structlog_json_contains_context(
@@ -73,7 +70,7 @@ def test_structlog_json_contains_context(
 
     structlog.reset_defaults()
     caplog.set_level(logging.INFO)
-    capsys.readouterr()  # drain any prior stdout/stderr noise
+    caplog.set_level(logging.INFO, logger="test.logger")
     configure_logging()
 
     logger = structlog_logger_config.build()
