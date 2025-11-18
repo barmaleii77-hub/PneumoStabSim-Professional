@@ -7,11 +7,13 @@ Workflow **Continuous Integration** запускается на каждый `pu
 1. Устанавливает headless-пакеты (`xvfb`, `xauth`, `dbus-x11`, Mesa software GL, `libosmesa6(-dev)`, `mesa-utils(-extra)`, `libglu1-mesa(-dev)`, `libegl1`, `libegl1-mesa(-dev)`, `libgles2`, `libgles2-mesa(-dev)`, `libgbm1`, `libdrm2`, `libxcb-*`, `libvulkan1`, `mesa-vulkan-drivers`, `vulkan-tools`) — все эти пакеты явно устанавливаются в workflow-файлах (`.github/workflows/*.yml`), включая оба варианта `libgles2` и `libgles2-mesa(-dev)` для полной совместимости с Dockerfile и install-скриптами. Этого достаточно для Mesa software rendering, проверки fallback-шейдеров и виртуального дисплея Qt Quick 3D.
 2. Подготавливает Python 3.13, устанавливает `uv`, dev-зависимости и Qt 6.10.0 (вместе с плагинами `qtquick3d`, `qtshadertools`, `qtimageformats`). Скрипт `tools/setup_qt.py` по умолчанию разворачивает именно версию **6.10.0**, чтобы избежать расхождений между локальной средой, CI и документацией.
 3. Экспортирует пути Qt и headless-переменные (`QT_QPA_PLATFORM=offscreen`, `QT_QUICK_BACKEND=software`, `QT_QUICK_CONTROLS_STYLE=Fusion`, `LIBGL_ALWAYS_SOFTWARE=1`, `MESA_GL_VERSION_OVERRIDE=4.1`, `MESA_GLSL_VERSION_OVERRIDE=410`).
-4. Запускает `make check` (на Linux через `scripts/xvfb_wrapper.sh`), который в свою очередь выполняет:
+4. Перед сборкой проверяет, нет ли необоснованных `skip`/`xfail` в тестах (`python -m tools.pytest_skip_guard tests`).
+5. Запускает `make check` (на Linux через `scripts/xvfb_wrapper.sh`), который в свою очередь выполняет:
    - `python -m tools.ci_tasks verify` → линтеры (`ruff format --check`, `ruff check`), `mypy`, `qmllint`, затем последовательно `pytest` для `tests/unit`, `tests/integration`, `tests/ui` и анализ логов `python tools/analyze_logs.py`.
    - аппаратно-зависимые проверки: `make check-shaders`, `make monitor-shader-logs` (обёртка над `python tools/check_shader_logs.py` с флагами `--fail-on-warnings --expect-fallback`), `make validate-hdr-orientation`, `make localization-check`, `make qt-env-check`.
-5. При сбоях workflow запускает `analyze_logs.py`, сохраняет AI-отчёт в `reports/quality/ai_failure_report.log` и выводит его в лог сборки.
-6. Всегда загружает артефакты `reports/quality/**`, `reports/tests/**`, `reports/environment/**`, а также папку `logs/**`.
+6. После pytest-интерпретации JUnit-отчётов вызывает `tools.quality.skip_policy` и падает при любом пропущенном тесте без маркера `pytest-skip-ok` либо без `CI_SKIP_REASON` (если пропуски признаны).
+7. При сбоях workflow запускает `analyze_logs.py`, сохраняет AI-отчёт в `reports/quality/ai_failure_report.log` и выводит его в лог сборки.
+8. Всегда загружает артефакты `reports/quality/**`, `reports/tests/**`, `reports/environment/**`, а также папку `logs/**`.
 
 Все отчёты `tools/ci_tasks.py` складываются в `reports/quality/` и `reports/tests/`, поэтому матрица GitHub Actions получает одинаковую структуру артефактов для Ubuntu и Windows.
 

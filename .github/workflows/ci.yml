@@ -99,6 +99,9 @@ jobs:
             numpy \
             pytest-qt
 
+      - name: Scan for forbidden pytest skips/xfails
+        run: python -m tools.pytest_skip_guard tests
+
       - name: Run final readiness test (Linux)
         if: runner.os == 'Linux'
         env:
@@ -241,6 +244,15 @@ jobs:
           QSG_RHI_BACKEND: d3d11
           QT_QUICK_BACKEND: rhi
         run: make full_verify
+
+      - name: Enforce skip policy for full test suite
+        if: always()
+        run: |
+          python -m tools.quality.skip_policy --ci \
+            --junitxml reports/tests/unit.xml \
+            --junitxml reports/tests/integration.xml \
+            --junitxml reports/tests/ui.xml \
+            --summary reports/tests/ci-skipped-${{ runner.os }}.md
 
       - name: Audit shader logs
         run: python tools/check_shader_logs.py reports/shaders --recursive --expect-fallback
