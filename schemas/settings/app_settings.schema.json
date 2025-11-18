@@ -18,21 +18,25 @@
     "current": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["geometry", "pneumatic", "graphics"],
+      "required": ["geometry", "pneumatic", "graphics", "road", "advanced"],
       "properties": {
         "geometry": {"type": "object"},
         "pneumatic": {"type": "object"},
-        "graphics": {"type": "object"}
+        "graphics": {"type": "object"},
+        "road": {"type": "object"},
+        "advanced": {"type": "object"}
       }
     },
     "defaults_snapshot": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["geometry", "pneumatic", "graphics"],
+      "required": ["geometry", "pneumatic", "graphics", "road", "advanced"],
       "properties": {
         "geometry": {"type": "object"},
         "pneumatic": {"type": "object"},
-        "graphics": {"type": "object"}
+        "graphics": {"type": "object"},
+        "road": {"type": "object"},
+        "advanced": {"type": "object"}
       }
     }
   },
@@ -157,6 +161,8 @@
         "simulation": {"$ref": "#/$defs/SimulationSettings"},
         "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
         "geometry": {"$ref": "#/$defs/GeometrySettings"},
+        "road": {"$ref": "#/$defs/RoadSettings"},
+        "advanced": {"$ref": "#/$defs/AdvancedSettings"},
         "modes": {"$ref": "#/$defs/ModesSettings"},
         "graphics": {"$ref": "#/$defs/GraphicsSettings"},
         "animation": {"$ref": "#/$defs/AnimationSettings"},
@@ -166,7 +172,7 @@
         "system": {"$ref": "#/$defs/SystemSettings"},
         "constants": {"$ref": "#/$defs/Constants"}
       },
-      "required": ["simulation", "pneumatic", "geometry", "modes", "graphics", "animation", "physics", "quality_presets", "diagnostics", "system", "constants"],
+      "required": ["simulation", "pneumatic", "geometry", "road", "advanced", "modes", "graphics", "animation", "physics", "quality_presets", "diagnostics", "system", "constants"],
       "title": "CurrentSettings",
       "type": "object"
     },
@@ -994,6 +1000,8 @@
         "receiver_volume": {"title": "Receiver Volume", "type": "number", "minimum": 0},
         "receiver_diameter": {"title": "Receiver Diameter", "type": "number", "minimum": 0},
         "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0},
+        "dead_zone_head_m3": {"title": "Dead Zone Head M3", "type": "number", "minimum": 0},
+        "dead_zone_rod_m3": {"title": "Dead Zone Rod M3", "type": "number", "minimum": 0},
         "cv_atmo_dp": {"title": "Cv Atmo Dp", "type": "number", "minimum": 0},
         "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number", "minimum": 0},
         "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0},
@@ -1038,8 +1046,90 @@
         "pressure_units": {"title": "Pressure Units", "type": "string"},
         "receiver_volume_limits": {"$ref": "#/$defs/ReceiverVolumeLimits"}
       },
-      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
+      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "dead_zone_head_m3", "dead_zone_rod_m3", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
       "title": "PneumaticSettings",
+      "type": "object"
+    },
+    "RoadSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "title": "Mode",
+          "type": "string",
+          "enum": ["manual", "profile"]
+        },
+        "amplitude_m": {
+          "title": "Amplitude M",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 0.5
+        },
+        "frequency_hz": {
+          "title": "Frequency Hz",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 25.0
+        },
+        "phase_offset_deg": {
+          "title": "Phase Offset Deg",
+          "type": "number",
+          "minimum": -360.0,
+          "maximum": 360.0
+        },
+        "profile_type": {"title": "Profile Type", "type": "string"},
+        "avg_speed_kmh": {
+          "title": "Avg Speed Kmh",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 250.0
+        }
+      },
+      "required": ["mode", "amplitude_m", "frequency_hz", "phase_offset_deg", "profile_type", "avg_speed_kmh"],
+      "title": "RoadSettings",
+      "type": "object"
+    },
+    "AdvancedSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "spring_stiffness_n_m": {
+          "title": "Spring Stiffness N M",
+          "type": "number",
+          "minimum": 10000.0,
+          "maximum": 200000.0
+        },
+        "damper_coefficient_n_s_m": {
+          "title": "Damper Coefficient N S M",
+          "type": "number",
+          "minimum": 500.0,
+          "maximum": 10000.0
+        },
+        "dead_zone_percent": {
+          "title": "Dead Zone Percent",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 100.0
+        },
+        "target_fps": {
+          "title": "Target Fps",
+          "type": "number",
+          "minimum": 30.0,
+          "maximum": 240.0
+        },
+        "aa_quality": {
+          "title": "Aa Quality",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "shadow_quality": {
+          "title": "Shadow Quality",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        }
+      },
+      "required": ["spring_stiffness_n_m", "damper_coefficient_n_s_m", "dead_zone_percent", "target_fps", "aa_quality", "shadow_quality"],
+      "title": "AdvancedSettings",
       "type": "object"
     },
     "PneumoConstants": {

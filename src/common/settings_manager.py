@@ -707,8 +707,71 @@ class SettingsManager:
             dirty = True
         if self._normalise_hdr_paths():
             dirty = True
+        if self._hydrate_new_sections():
+            dirty = True
         self._dirty = dirty
         self._warn_missing_required_paths()
+
+    def _hydrate_new_sections(self) -> bool:
+        """Backfill recently added sections and values from baseline defaults."""
+
+        try:
+            baseline = load_default_settings_payload()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug(
+                "Unable to load defaults for hydration: %s", exc, exc_info=True
+            )
+            return False
+
+        changed = False
+
+        def _copy_missing(
+            target_root: dict[str, Any], source_root: dict[str, Any], path: str
+        ) -> None:
+            nonlocal changed
+            segments = [segment for segment in path.split(".") if segment]
+            if not segments:
+                return
+            target_node: dict[str, Any] = target_root
+            source_node: Any = source_root
+
+            for segment in segments[:-1]:
+                if not isinstance(source_node, dict):
+                    return
+                source_node = source_node.get(segment)
+                if not isinstance(source_node, dict):
+                    return
+                if not isinstance(target_node.get(segment), dict):
+                    target_node[segment] = {}
+                    changed = True
+                target_node = target_node[segment]
+
+            leaf = segments[-1]
+            if leaf in target_node:
+                return
+            if not isinstance(source_node, dict) or leaf not in source_node:
+                return
+            target_node[leaf] = _deep_copy(source_node[leaf])
+            changed = True
+
+        for section_name, target_root in (
+            ("current", self._data),
+            ("defaults_snapshot", self._defaults),
+        ):
+            if not isinstance(target_root, dict):
+                continue
+            source_root = baseline.get(section_name)
+            if not isinstance(source_root, dict):
+                continue
+            for path in (
+                "pneumatic.dead_zone_head_m3",
+                "pneumatic.dead_zone_rod_m3",
+                "road",
+                "advanced",
+            ):
+                _copy_missing(target_root, source_root, path)
+
+        return changed
 
     def _warn_missing_required_paths(self) -> None:
         try:

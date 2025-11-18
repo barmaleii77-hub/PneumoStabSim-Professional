@@ -193,6 +193,35 @@ def test_settings_manager_set_without_auto_save(legacy_settings: Path) -> None:
     assert payload["current"]["simulation"]["physics_dt"] == 0.006
 
 
+def test_settings_manager_hydrates_new_sections(tmp_path: Path) -> None:
+    payload = json.loads(Path("config/app_settings.json").read_text(encoding="utf-8"))
+
+    for section in ("current", "defaults_snapshot"):
+        payload[section].pop("road", None)
+        payload[section].pop("advanced", None)
+        pneumo = payload[section].get("pneumatic", {})
+        pneumo.pop("dead_zone_head_m3", None)
+        pneumo.pop("dead_zone_rod_m3", None)
+
+    settings_path = tmp_path / "app_settings.json"
+    settings_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+    manager = SettingsManager(settings_file=settings_path)
+
+    assert manager.get("current.road.mode") == "manual"
+    assert manager.get("current.advanced.target_fps") == 60.0
+    assert manager.get("current.pneumatic.dead_zone_head_m3") == 0.0
+    assert manager.get("defaults_snapshot.advanced.shadow_quality") == 2
+
+    manager.save()
+
+    stored = json.loads(settings_path.read_text(encoding="utf-8"))
+    assert stored["current"]["road"]["profile_type"] == "smooth_highway"
+    assert stored["current"]["pneumatic"]["dead_zone_rod_m3"] == 0.0
+
+
 def test_settings_manager_sets_extra_sections(legacy_settings: Path) -> None:
     manager = SettingsManager(settings_file=legacy_settings)
 

@@ -36,5 +36,21 @@
         "relief_stiff_orifice_diameter_m": 0.0015
       }
     }
+  },
+  "road": {
+    "mode": "manual",
+    "amplitude_m": 0.05,
+    "frequency_hz": 1.0,
+    "phase_offset_deg": 0.0,
+    "profile_type": "smooth_highway",
+    "avg_speed_kmh": 60.0
+  },
+  "advanced": {
+    "spring_stiffness_n_m": 50000.0,
+    "damper_coefficient_n_s_m": 2000.0,
+    "dead_zone_percent": 5.0,
+    "target_fps": 60.0,
+    "aa_quality": 2,
+    "shadow_quality": 2
   }
 }
