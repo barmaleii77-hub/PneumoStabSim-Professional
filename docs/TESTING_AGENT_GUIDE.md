@@ -15,6 +15,13 @@
 - Логи сохраняются в `reports/tests/test_entrypoint.log`. Приложите их к отчётам,
   если требуется подтверждение прохождения пайплайна.
 
+### Кроссплатформенные команды
+
+- **Linux/macOS**: `python scripts/testing_entrypoint.py` или напрямую `make check`.
+- **Windows**: `py -3 scripts/testing_entrypoint.py` или `./make.bat check`, когда GNU Make недоступен.
+- Свежие логи доступны в `reports/tests/test_entrypoint.log`, а автоисправление окружения
+  записывается в `logs/env_check.json`.
+
 ## Порядок действий для агентов
 
 1. Убедитесь, что `uv` установлен. При отсутствии установите его командой
