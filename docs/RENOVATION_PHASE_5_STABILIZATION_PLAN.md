@@ -96,3 +96,12 @@ Use this log for incident summaries, release retrospectives, and KPI snapshots.
   instrumentation work.
 - Added focused unit coverage to `tests/unit/runtime/test_physics_steps.py`, ensuring regressions in the modularised helpers are
   caught without exercising the full Qt event loop.
+
+### 2025-11-18 – Structlog JSON renderer alignment and regression run
+- Убрали устаревший параметр `event_key` из `structlog.processors.JSONRenderer`, что устранило ошибки форматирования и вернуло
+  зелёное состояние для юнит-тестов журналирования (`tests/unit/diagnostics/logging/test_*`).
+- Полный `make check` (Linux, Qt 6.10) прошёл preflight и дал зелёные unit (426/426) и integration (39/39) наборы; UI-блок
+  завершился 8 падениями из-за отсутствующих QML-импортов (`assets/qml/main.qml` → `Panels`), некорректного bypass PostEffects и
+  неактивируемых fallback-текстур (`tests/ui/test_shared_materials_fallback.py`).
+- Покрытие после прогона зафиксировано в `reports/quality/coverage.json` (44.0%, 15 119/34 253 строк). Следующий шаг — починить
+  QML-ресурсы и повторно запустить пайплайн.

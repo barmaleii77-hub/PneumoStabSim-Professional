@@ -57,7 +57,9 @@ def test_scene_bridge_dispatches_enriched_updates_headless(
     from src.ui.services.visualization_service import VisualizationService
 
     service = VisualizationService(settings_manager=settings_manager)
-    bridge = SceneBridge(visualization_service=service, settings_manager=settings_manager)
+    bridge = SceneBridge(
+        visualization_service=service, settings_manager=settings_manager
+    )
     client = FakeVisualizationClient()
     client.bind(bridge)
 

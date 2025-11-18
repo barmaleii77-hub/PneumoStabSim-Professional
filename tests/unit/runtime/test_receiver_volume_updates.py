@@ -130,15 +130,11 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert log_context["volume_m3"] == pytest.approx(new_volume)
     assert log_context["mode"] == ReceiverVolumeMode.ADIABATIC_RECALC.value
     assert log_context["receiver_pressure_pa"] == pytest.approx(expected_pressure)
-    assert log_context["receiver_temperature_k"] == pytest.approx(
-        expected_temperature
-    )
+    assert log_context["receiver_temperature_k"] == pytest.approx(expected_temperature)
     assert log_context["pneumatic_tank_volume_m3"] == pytest.approx(new_volume)
     assert log_context["tank_pressure_pa"] == pytest.approx(worker.gas_network.tank.p)
     assert log_context["tank_mass_kg"] == pytest.approx(worker.gas_network.tank.m)
-    assert log_context["tank_temperature_k"] == pytest.approx(
-        worker.gas_network.tank.T
-    )
+    assert log_context["tank_temperature_k"] == pytest.approx(worker.gas_network.tank.T)
     assert worker.error_occurred.emitted == []
 
     signal_emissions = worker.receiver_volume_changed.emitted
@@ -205,9 +201,7 @@ def test_set_receiver_volume_updates_latest_state_without_gas_network(
     assert log_context["tank_temperature_k"] == pytest.approx(expected_temperature)
     assert log_context["pneumatic_tank_volume_m3"] == pytest.approx(new_volume)
     assert log_context["receiver_pressure_pa"] == pytest.approx(expected_pressure)
-    assert log_context["receiver_temperature_k"] == pytest.approx(
-        expected_temperature
-    )
+    assert log_context["receiver_temperature_k"] == pytest.approx(expected_temperature)
 
     signal_emissions = worker.receiver_volume_changed.emitted
     assert signal_emissions, "Receiver volume changed signal must fire"
