@@ -39,7 +39,9 @@ def _coerce_float(value: float | None, fallback: float) -> float:
         return float(fallback)
 
 
-def _normalize_setting(value: float | None, *, default: float, minimum: float, maximum: float) -> tuple[float, bool]:
+def _normalize_setting(
+    value: float | None, *, default: float, minimum: float, maximum: float
+) -> tuple[float, bool]:
     """Coerce a numeric setting and track validity without trusting the stored value.
 
     The returned tuple is ``(bounded_value, is_valid)`` where ``bounded_value`` is
@@ -1578,7 +1580,7 @@ class RoadPanelAccordion(QWidget):
                 .lower()
                 .replace(" ", "_"),
                 "avg_speed": self.avg_speed.value(),
-        }
+            }
 
     def _refresh_state(self, *, use_settings_snapshot: bool = False) -> None:
         """Synchronise state mirrors and validation flags."""
@@ -1587,7 +1589,11 @@ class RoadPanelAccordion(QWidget):
             low, high = slider.get_range()
             return math.isfinite(val) and low <= val <= high
 
-        mode = "profile" if "profile" in self.road_mode_combo.currentText().lower() else "manual"
+        mode = (
+            "profile"
+            if "profile" in self.road_mode_combo.currentText().lower()
+            else "manual"
+        )
 
         source_amp = (
             self._settings.get("current.modes.amplitude")
@@ -1734,7 +1740,9 @@ class AdvancedPanelAccordion(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        spring_raw = self._settings.get("current.physics.suspension.spring_constant", 50000.0)
+        spring_raw = self._settings.get(
+            "current.physics.suspension.spring_constant", 50000.0
+        )
         spring_constant, _ = _normalize_setting(
             spring_raw, default=50000.0, minimum=10000.0, maximum=200000.0
         )
@@ -1857,7 +1865,9 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.target_fps)
 
-        render_scale_raw = self._settings.get("current.graphics.quality.render_scale", 1.05)
+        render_scale_raw = self._settings.get(
+            "current.graphics.quality.render_scale", 1.05
+        )
         render_scale, _ = _normalize_setting(
             render_scale_raw, default=1.05, minimum=0.5, maximum=2.0
         )
@@ -1996,13 +2006,17 @@ class AdvancedPanelAccordion(QWidget):
             self.shadow_quality.set_value(shadow)
 
         validation = {
-            "spring_stiffness": spring_valid and _validate_range(spring, self.spring_stiffness),
+            "spring_stiffness": spring_valid
+            and _validate_range(spring, self.spring_stiffness),
             "damper_coeff": damper_valid and _validate_range(damper, self.damper_coeff),
             "dead_zone": dead_zone_valid and _validate_range(dead_zone, self.dead_zone),
-            "atmospheric_temp": temp_valid and _validate_range(atmo_temp, self.atmospheric_temp),
+            "atmospheric_temp": temp_valid
+            and _validate_range(atmo_temp, self.atmospheric_temp),
             "target_fps": fps_valid and _validate_range(target_fps, self.target_fps),
-            "render_scale": render_valid and _validate_range(render_scale, self.aa_quality),
-            "shadow_filter": shadow_valid and _validate_range(shadow, self.shadow_quality),
+            "render_scale": render_valid
+            and _validate_range(render_scale, self.aa_quality),
+            "shadow_filter": shadow_valid
+            and _validate_range(shadow, self.shadow_quality),
         }
 
         self._state = _AdvancedAccordionState(

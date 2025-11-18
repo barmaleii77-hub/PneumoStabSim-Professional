@@ -4,6 +4,7 @@ Geometry Panel - Refactored Coordinator (v4.9.8)
 """
 
 import logging
+import math
 from typing import Any, Mapping
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
@@ -344,6 +345,10 @@ class GeometryPanel(QWidget):
     ) -> None:
         if self._sync_guard:
             return
+
+        current_state = self._sync_controller.snapshot()
+        if _is_noop_patch(current_state, patch):
+            return
         meta = {"panel": "geometry"}
         if metadata:
             meta.update(dict(metadata))
@@ -683,3 +688,18 @@ class GeometryPanel(QWidget):
         """
         self.state_manager.save_state()
         super().closeEvent(event)
+
+
+def _is_noop_patch(current: Mapping[str, Any], patch: Mapping[str, Any]) -> bool:
+    """Return ``True`` when *patch* would not change the current sync state."""
+
+    for key, value in patch.items():
+        existing = current.get(key)
+        if isinstance(existing, (int, float)) and isinstance(value, (int, float)):
+            if not math.isclose(
+                float(existing), float(value), rel_tol=1e-9, abs_tol=1e-12
+            ):
+                return False
+        elif existing != value:
+            return False
+    return True
