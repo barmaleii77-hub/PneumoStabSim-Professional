@@ -263,16 +263,18 @@ def filter_conversation_blocks(
     regex_patterns: Iterable[str] | None = None,
     *,
     case_sensitive: bool = False,
+    roles: Iterable[str] | None = None,
     keep_empty: bool = False,
 ) -> list[ConversationBlock]:
     """Filter Copilot chat blocks by message content.
 
     ``substrings`` performs containment checks while ``regex_patterns`` applies
     regular expression matching. When both are provided a message passes if it
-    satisfies **any** filter. Blocks without matching messages are discarded
-    unless ``keep_empty`` is enabled. A defensive copy of every kept message is
-    returned so callers may mutate the result without touching the source
-    collection.
+    satisfies **any** filter. ``roles`` narrows the output to specific authors
+    (for example, only Copilot replies). Blocks without matching messages are
+    discarded unless ``keep_empty`` is enabled. A defensive copy of every kept
+    message is returned so callers may mutate the result without touching the
+    source collection.
     """
 
     has_substrings = False
@@ -284,8 +286,15 @@ def filter_conversation_blocks(
             has_substrings = True
             normalized_substrings.append(item if case_sensitive else item.lower())
 
+    normalized_roles: set[str] = set()
+    if roles:
+        for role in roles:
+            if not role:
+                continue
+            normalized_roles.add(sanitize_role(role).lower())
+
     compiled_patterns = _compile_patterns(regex_patterns, case_sensitive=case_sensitive)
-    apply_filters = bool(has_substrings or compiled_patterns)
+    apply_filters = bool(has_substrings or compiled_patterns or normalized_roles)
 
     filtered: list[ConversationBlock] = []
     for src, ts, messages, mtime in blocks:
@@ -295,10 +304,16 @@ def filter_conversation_blocks(
 
         kept_messages: list[dict[str, Any]] = []
         for message in messages:
+            role = sanitize_role(message.get("role", ""))
+            role_normalized = role.lower()
+
+            if normalized_roles and role_normalized not in normalized_roles:
+                continue
+
             content = str(message.get("content", ""))
             haystack = content if case_sensitive else content.lower()
 
-            matched = False
+            matched = not (has_substrings or compiled_patterns)
             if has_substrings and any(sub in haystack for sub in normalized_substrings):
                 matched = True
             if not matched and compiled_patterns:
@@ -340,6 +355,12 @@ def main():
         help="Не понижать регистр фильтров",
     )
     ap.add_argument(
+        "--role",
+        action="append",
+        default=None,
+        help="Оставить сообщения только указанных ролей (например, Copilot)",
+    )
+    ap.add_argument(
         "--keep-empty",
         action="store_true",
         help="Сохранять блоки даже без совпадающих сообщений",
@@ -367,6 +388,7 @@ def main():
             substrings=args.contains,
             regex_patterns=args.regex,
             case_sensitive=args.case_sensitive,
+            roles=args.role,
             keep_empty=args.keep_empty,
         )
     except ValueError as exc:

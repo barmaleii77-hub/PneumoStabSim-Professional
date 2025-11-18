@@ -83,3 +83,30 @@ def test_filter_invalid_regex_raises_value_error():
 
     with pytest.raises(ValueError):
         filter_conversation_blocks(blocks, regex_patterns=["["])
+
+
+def test_filter_by_role_keeps_only_requested_authors():
+    blocks = [
+        _block(
+            [
+                {"role": "User", "content": "Discuss commit abc123"},
+                {"role": "Copilot", "content": "AI review: fix README"},
+            ]
+        )
+    ]
+
+    filtered = filter_conversation_blocks(blocks, roles=["Copilot"])
+
+    assert len(filtered) == 1
+    assert [m["content"] for m in filtered[0][2]] == ["AI review: fix README"]
+
+
+def test_filter_by_role_can_keep_empty_blocks_when_requested():
+    blocks = [_block([{"role": "User", "content": "Only human text"}])]
+
+    assert filter_conversation_blocks(blocks, roles=["Copilot"]) == []
+
+    kept = filter_conversation_blocks(blocks, roles=["Copilot"], keep_empty=True)
+
+    assert len(kept) == 1
+    assert kept[0][2] == []
