@@ -85,6 +85,15 @@ jobs:
             numpy \
             pytest-qt
 
+      - name: Verify PySide6 Qt modules
+        run: |
+          python - <<'PY'
+          from PySide6 import QtWidgets, QtQuick3D
+
+          print("QtWidgets available", QtWidgets.QApplication)
+          print("QtQuick3D available", QtQuick3D)
+          PY
+
       - name: Check dependency graph with uv
         shell: bash
         run: |
@@ -269,6 +278,15 @@ jobs:
             "shiboken6==6.10.*" \
             numpy \
             pytest-qt
+
+      - name: Verify PySide6 Qt modules (docs job)
+        run: |
+          python - <<'PY'
+          from PySide6 import QtWidgets, QtQuick3D
+
+          print("QtWidgets available", QtWidgets.QApplication)
+          print("QtQuick3D available", QtQuick3D)
+          PY
 
       - name: Check dependency graph with uv
         shell: bash

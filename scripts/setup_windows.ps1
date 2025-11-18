@@ -208,6 +208,18 @@ if (-not [string]::IsNullOrWhiteSpace($envFile)) {
     }
 }
 
+Write-SetupLog "Validating PySide6 Qt modules"
+try {
+    & $pythonPath - <<'PY'
+from PySide6 import QtWidgets, QtQuick3D
+
+print("QtWidgets ready:", QtWidgets.QApplication)
+print("QtQuick3D ready:", QtQuick3D)
+PY
+} catch {
+    throw "PySide6 validation failed: $($_.Exception.Message)"
+}
+
 if ($SummaryPath) {
     Write-SetupLog "Appending setup summary to $SummaryPath"
 

@@ -34,7 +34,8 @@ headless-профилей.
    и проверьте ICD-файлы (`ls /usr/share/vulkan/icd.d/`).
 
 2. **Автонастройка окружения** — ставит Python-зависимости (через `uv` или pip),
-   `aqtinstall`, PySide6/QtQuick3D, headless-переменные (`QT_QPA_PLATFORM=offscreen`,
+   `aqtinstall`, PySide6/QtQuick3D (колёсный дистрибутив PySide6 уже содержит
+   QtQuick3D и QtWidgets), headless-переменные (`QT_QPA_PLATFORM=offscreen`,
    `QT_OPENGL=desktop`, `QT_QUICK_BACKEND=software`, `QSG_RHI_BACKEND=opengl`).
    В CI Qt загружается отдельным шагом, поэтому обычно используем `--skip-qt`:
 
@@ -46,10 +47,10 @@ headless-профилей.
    пригодятся при повторных прогонах в уже подготовленном контейнере.
 
 3. **Xvfb и DISPLAY** — если нужен реальный `DISPLAY`, поднимите Xvfb **до**
-   вызова скрипта, чтобы переменная попала в экспортированный env. Без Xvfb
-   `DISPLAY` остаётся пустым и Qt уходит в offscreen. Скрипт фиксирует текущее
-   значение `DISPLAY` в `$GITHUB_ENV`/локальном env и сообщает, используется ли
-   offscreen. Проверка программного GL:
+   вызова скрипта, чтобы переменная попала в экспортированный env. Даже при
+   наличии `DISPLAY` скрипт оставляет `QT_QPA_PLATFORM=offscreen` для стабильных
+   headless-прогонов; если требуется отрисовка, устанавливайте `DISPLAY` вручную
+   и запускайте через `xvfb-run`. Проверка программного GL:
 
    ```sh
    Xvfb :99 -screen 0 1920x1080x24 &
@@ -91,8 +92,8 @@ headless-профилей.
    `QT_QUICK_BACKEND=rhi`, `QSG_RHI_BACKEND=d3d11` и добавляет пути до Qt
    в `$GITHUB_ENV`.
 
-3. **Автонастройка окружения** — ставит Python-зависимости (`uv`/pip), PySide6,
-   `pytest-qt`, headless-настройки (`QT_QPA_PLATFORM=offscreen`,
+3. **Автонастройка окружения** — ставит Python-зависимости (`uv`/pip), PySide6
+   (включая QtQuick3D), `pytest-qt`, headless-настройки (`QT_QPA_PLATFORM=offscreen`,
    `QSG_RHI_BACKEND=d3d11`, `QT_OPENGL=software`, стиль Fusion и HiDPI) и при
    необходимости скачивает Qt через `tools/setup_qt.py`:
 

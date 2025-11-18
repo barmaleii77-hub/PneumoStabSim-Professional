@@ -240,6 +240,17 @@ if [[ ${skip_python} -eq 0 ]]; then
       warn "pip is not available for ${python_cmd}; skipping host-level entrypoints"
     fi
   fi
+
+  log "Validating PySide6 Qt modules"
+  "${python_for_scripts}" - <<'PY'
+try:
+    from PySide6 import QtWidgets, QtQuick3D
+except Exception as exc:  # pragma: no cover - runtime validation
+    raise SystemExit(f"PySide6 validation failed: {exc}")
+else:
+    print("QtWidgets ready:", QtWidgets.QApplication)
+    print("QtQuick3D ready:", QtQuick3D)
+PY
 else
   log "Skipping Python dependency installation"
 fi
@@ -249,8 +260,7 @@ qt_plugins=""
 qt_qml=""
 qt_platform="offscreen"
 if [[ -n "${DISPLAY:-}" ]]; then
-  qt_platform="xcb"
-  log "DISPLAY is set; using Qt platform '${qt_platform}' instead of offscreen"
+  log "DISPLAY is set (${DISPLAY}); keeping Qt platform '${qt_platform}' for headless compatibility"
 else
   log "No DISPLAY detected; defaulting to headless Qt platform 'offscreen'"
 fi
