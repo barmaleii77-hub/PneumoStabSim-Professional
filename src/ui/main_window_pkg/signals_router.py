@@ -818,6 +818,8 @@ class SignalsRouter:
         Args:
             window: MainWindow instance
         """
+        connection_summary: list[str] = []
+
         # Geometry panel
         if window.geometry_panel:
             window.geometry_panel.parameter_changed.connect(
@@ -826,7 +828,9 @@ class SignalsRouter:
             window.geometry_panel.geometry_changed.connect(
                 window._on_geometry_changed_qml
             )
-            SignalsRouter.logger.info("✅ GeometryPanel signals connected")
+            connection_summary.append(
+                "GeometryPanel: geometry_changed, parameter_changed"
+            )
 
         # Pneumo panel
         if window.pneumo_panel:
@@ -837,7 +841,9 @@ class SignalsRouter:
             window.pneumo_panel.receiver_volume_changed.connect(
                 window._on_pneumo_receiver_volume_changed
             )
-            SignalsRouter.logger.info("✅ PneumoPanel signals connected")
+            connection_summary.append(
+                "PneumoPanel: mode_changed, parameter_changed, receiver_volume_changed"
+            )
 
         # Modes panel
         if window.modes_panel:
@@ -847,7 +853,9 @@ class SignalsRouter:
                 window._on_modes_parameter_logged
             )
             window.modes_panel.animation_changed.connect(window._on_animation_changed)
-            SignalsRouter.logger.info("✅ ModesPanel signals connected")
+            connection_summary.append(
+                "ModesPanel: simulation_control, mode_changed, parameter_changed, animation_changed"
+            )
 
         # Graphics panel
         if window.graphics_panel:
@@ -866,7 +874,16 @@ class SignalsRouter:
                     window._on_animation_changed
                 )
             window.graphics_panel.preset_applied.connect(window._on_preset_applied)
-            SignalsRouter.logger.info("✅ GraphicsPanel signals connected")
+            connection_summary.append(
+                "GraphicsPanel: lighting_changed, material_changed, environment_changed, quality_changed, camera_changed, effects_changed"
+            )
+
+        if connection_summary:
+            SignalsRouter.logger.info(
+                "✅ Panel signals connected (%d groups): %s",
+                len(connection_summary),
+                "; ".join(connection_summary),
+            )
 
     @staticmethod
     def handle_receiver_volume_changed(
@@ -915,10 +932,10 @@ class SignalsRouter:
 
         connected = register_qml_signals(window, window._qml_root_object)
         if connected:
-            for spec in connected:
-                SignalsRouter.logger.info(
-                    "✅ QML signal %s connected to %s", spec.name, spec.handler
-                )
+            summary = ", ".join(f"{spec.name}->{spec.handler}" for spec in connected)
+            SignalsRouter.logger.info(
+                "✅ QML signals connected (%d): %s", len(connected), summary
+            )
         else:
             SignalsRouter.logger.warning("⚠️ No QML signals connected")
 
