@@ -153,6 +153,8 @@ Item {
                     ]
 
                     delegate: CheckDelegate {
+                        required property var modelData
+
                         text: modelData.text
                         checked: hud[modelData.binding]
                         onToggled: hud.persistSetting(modelData.settingKey, checked)
@@ -164,6 +166,7 @@ Item {
                 model: metricsModel()
 
                 delegate: RowLayout {
+                    id: metricsRow
                     required property var modelData
 
                     spacing: 6
@@ -177,7 +180,7 @@ Item {
                         : "—"
 
                     Text {
-                        text: metricLabel.length ? metricLabel + ":" : "—"
+                        text: metricsRow.metricLabel.length ? metricsRow.metricLabel + ":" : "—"
                         font.pixelSize: 13
                         color: "#8fa6d3"
                         horizontalAlignment: Text.AlignLeft
@@ -186,7 +189,7 @@ Item {
                     }
 
                     Text {
-                        text: metricValue
+                        text: metricsRow.metricValue
                         font.pixelSize: 13
                         color: "#e9f0ff"
                         horizontalAlignment: Text.AlignRight
