@@ -11,6 +11,8 @@ import queue
 import sys
 import os
 import platform
+import threading
+import time
 from pathlib import Path
 from typing import Any, Hashable, cast  # <-- добавлены Hashable, cast
 from collections.abc import Mapping, Sequence
@@ -22,6 +24,111 @@ import traceback
 _queue_listener: logging.handlers.QueueListener | None = None
 _logger_registry: dict[tuple[Any, ...], logging.Logger] = {}
 _base_context: dict[str, Any] = {"env_context": "env=unknown"}
+_queue_stats: dict[str, int] = {"dropped": 0, "max_size": 0}
+
+
+class DroppingQueueHandler(logging.handlers.QueueHandler):
+    """Queue handler that never blocks and tracks dropped records."""
+
+    def __init__(
+        self,
+        log_queue: queue.Queue[logging.LogRecord],
+        *,
+        drop_counter: dict[str, int],
+    ) -> None:
+        super().__init__(log_queue)
+        self._drop_counter = drop_counter
+        self._overflow_notified = False
+
+    def enqueue(
+        self, record: logging.LogRecord
+    ) -> None:  # pragma: no cover - thin shim
+        try:
+            self.queue.put_nowait(record)
+            return
+        except queue.Full:
+            self._drop_counter["dropped"] += 1
+            if not self._overflow_notified:
+                self._overflow_notified = True
+                sys.stderr.write(
+                    "[logging] queue full; dropping log records to avoid blocking.\n"
+                )
+
+        try:
+            self.queue.get_nowait()
+        except queue.Empty:
+            return
+
+        try:
+            self.queue.put_nowait(record)
+        except queue.Full:
+            pass
+
+
+class NonBlockingQueueListener(logging.handlers.QueueListener):
+    """Queue listener that polls with a timeout to avoid deadlocks."""
+
+    def __init__(
+        self,
+        log_queue: queue.Queue[logging.LogRecord],
+        *handlers: logging.Handler,
+        poll_interval: float = 0.05,
+        drain_delay: float = 0.0,
+        respect_handler_level: bool = False,
+    ) -> None:
+        super().__init__(
+            log_queue, *handlers, respect_handler_level=respect_handler_level
+        )
+        self._poll_interval = poll_interval
+        self._drain_delay = max(0.0, drain_delay)
+        self._stop = threading.Event()
+
+    def handle(self, record: logging.LogRecord) -> None:  # pragma: no cover - shim
+        if self._drain_delay:
+            time.sleep(self._drain_delay)
+        super().handle(record)
+
+    def _monitor(self) -> None:  # pragma: no cover - shim
+        has_task_done = hasattr(self.queue, "task_done")
+        while not self._stop.is_set():
+            try:
+                record = self.queue.get(block=False)
+            except queue.Empty:
+                try:
+                    record = self.queue.get(timeout=self._poll_interval)
+                except queue.Empty:
+                    continue
+
+            if record is self._sentinel:
+                break
+
+            self.handle(record)
+            if has_task_done:
+                self.queue.task_done()
+
+        while True:
+            try:
+                record = self.queue.get(block=False)
+            except queue.Empty:
+                break
+
+            if record is self._sentinel:
+                break
+
+            self.handle(record)
+            if has_task_done:
+                self.queue.task_done()
+
+    def enqueue_sentinel(self) -> None:  # pragma: no cover - shim
+        while True:
+            try:
+                self.queue.put(self._sentinel, block=False)
+                return
+            except queue.Full:
+                try:
+                    self.queue.get(block=False)
+                except queue.Empty:
+                    time.sleep(self._poll_interval)
 
 
 def _normalize_for_cache(value: Any) -> Hashable:
@@ -178,6 +285,9 @@ def init_logging(
     console_output: bool = False,
     *,
     level: int = logging.DEBUG,
+    max_queue_size: int = 10000,
+    queue_poll_interval: float = 0.05,
+    drain_delay: float = 0.0,
 ) -> logging.Logger:
     """Initialize application logging with non-blocking queue handler
 
@@ -233,7 +343,10 @@ def init_logging(
     _logger_registry.clear()
 
     # Create log queue for non-blocking writes
-    log_queue: "queue.Queue[logging.LogRecord]" = queue.Queue(-1)  # Unlimited size
+    bounded_queue_size = max(1, int(max_queue_size))
+    log_queue: "queue.Queue[logging.LogRecord]" = queue.Queue(bounded_queue_size)
+    _queue_stats["dropped"] = 0
+    _queue_stats["max_size"] = bounded_queue_size
 
     # Get root logger (or app-specific root)
     root_logger = logging.getLogger(app_name)
@@ -292,13 +405,17 @@ def init_logging(
         handlers.append(console_handler)
 
     # Create QueueListener with ALL handlers
-    _queue_listener = logging.handlers.QueueListener(
-        log_queue, *handlers, respect_handler_level=True
+    _queue_listener = NonBlockingQueueListener(
+        log_queue,
+        *handlers,
+        poll_interval=queue_poll_interval,
+        drain_delay=drain_delay,
+        respect_handler_level=True,
     )
     _queue_listener.start()
 
     # Add QueueHandler to root logger (non-blocking)
-    queue_handler = logging.handlers.QueueHandler(log_queue)
+    queue_handler = DroppingQueueHandler(log_queue, drop_counter=_queue_stats)
     root_logger.addHandler(queue_handler)
     root_logger.addFilter(ContextualFilter(_base_context))
 
@@ -378,6 +495,12 @@ def _cleanup_logging(app_name: str) -> None:
                 handler.close()
             except Exception:
                 pass
+
+
+def get_queue_stats() -> dict[str, int]:
+    """Return a copy of the current queue statistics."""
+
+    return dict(_queue_stats)
 
 
 def get_category_logger(

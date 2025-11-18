@@ -7,6 +7,7 @@ Provides logging, CSV export, and UI event tracking
 from .logging_setup import (
     init_logging,
     get_category_logger,
+    get_queue_stats,
     log_ui_event,
     log_geometry_change,
     log_simulation_step,
@@ -26,6 +27,7 @@ __all__ = [
     # Logging
     "init_logging",
     "get_category_logger",
+    "get_queue_stats",
     "log_ui_event",
     "log_geometry_change",
     "log_simulation_step",
