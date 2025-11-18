@@ -43,9 +43,6 @@ ExtendedSceneEnvironment {
     readonly property var sceneEnvironmentEnum: SceneEnvironment
     // qmllint enable unqualified
 
-    // Reflection probe toggles (used by SimulationRoot bindings)
-    property bool reflectionProbeEnabled: false
-
     function _globalContextObject() {
         if (root._globalContextRef !== undefined)
             return root._globalContextRef
