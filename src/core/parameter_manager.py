@@ -29,7 +29,7 @@ from typing import Any, Mapping
 
 from src.common import settings_manager as sm
 from src.core.settings_models import dump_settings
-from src.core.settings_service import SettingsService
+from src.core.settings_service import SettingsService, SettingsValidationError
 
 
 class ParameterValidationError(ValueError):
@@ -65,7 +65,13 @@ class ParameterManager:
     # ------------------------------------------------------------------ loaders
     def _load_payload(self) -> Mapping[str, Any]:
         if self._service is not None:
-            model = self._service.load()
+            try:
+                model = self._service.load()
+            except SettingsValidationError as exc:
+                message = str(exc)
+                if "geometry" in message.lower():
+                    message = message.replace("rod_diameter_m", "rod diameter")
+                raise ParameterValidationError([message]) from exc
             return dump_settings(model)
 
         manager = self._manager or sm.get_settings_manager()
