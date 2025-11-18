@@ -18,7 +18,7 @@
    - Extend graphics/UI regression checks with baseline image comparisons, shader log triage, and pytest-qt workflows that surface indicator states.
    - Configure coverage thresholds (>=85%) enforced in CI.
    - Enforce cross-platform readiness with `tools/cross_platform_test_prep.py` and the `make cross-platform-test` target so Linux и Windows агентов выполняют полный набор без пропусков.
-   - Integrate HDR manifest verification into CI via `make hdr-verify`, publishing `reports/quality/hdr_assets_status.json` and `reports/quality/hdr_verify.log` so missing or mismatched assets block releases.
+   - Integrate HDR manifest verification into CI via `make hdr-verify`, publishing `reports/quality/hdr_assets_status.json` and `reports/quality/hdr_verify.log` so missing or mismatched assets block releases. The default CLI invocation now also writes the JSON summary to `reports/quality/hdr_assets_status.json` unless `--no-summary` is set, ensuring local runs surface the same artifacts as CI.
 2. **Static Analysis Enforcement**
    - Wire `ruff`, `mypy`, `pyright`, and `qmllint` into pre-commit hooks.
    - Generate baseline reports and track regressions via GitHub Actions artifacts.
