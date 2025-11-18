@@ -110,6 +110,17 @@ def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
             "verify",
         ]
 
+    _log("[entrypoint] Executing extended suites: panel interactions + performance")
+    yield [
+        uv_path,
+        "run",
+        "--locked",
+        "--",
+        "pytest",
+        "tests/integration/test_panel_interactions.py",
+        "tests/performance",
+    ]
+
 
 def main(argv: list[str]) -> int:
     system = platform.system()

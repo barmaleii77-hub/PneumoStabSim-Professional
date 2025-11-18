@@ -1,0 +1,8 @@
+{
+  "metrics": {
+    "iterations": 64,
+    "duration_s": 0.00821636499995293,
+    "throughput_per_s": 7789.332630715243
+  },
+  "report_path": "/tmp/pytest-of-root/pytest-7/render_sync_reports0"
+}
