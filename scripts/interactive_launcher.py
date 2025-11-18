@@ -7,12 +7,14 @@ Windows Interactive Launcher for PneumoStabSim-Professional
 """
 from __future__ import annotations
 
+import json
 import os
 import platform
 import subprocess
 import sys
+from collections import deque
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Sequence
 import threading
 import time
 
@@ -26,6 +28,7 @@ QPA_CHOICES: list[str] = ["(auto)", "windows", "offscreen", "minimal"]
 RHI_CHOICES: list[str] = ["(auto)", "d3d11", "opengl", "vulkan"]
 STYLE_CHOICES: list[str] = ["(auto)", "Basic", "Fusion"]
 SCENE_CHOICES: list[str] = ["(auto)", "realism"]
+DEFAULT_LOG_LINES = 200
 
 CreateFlag = Literal["new_console", "detached", "capture"]
 
@@ -344,6 +347,9 @@ class LauncherUI(tk.Tk):
         self.var_console = tk.BooleanVar(value=False)  # new console window
         self.var_capture = tk.BooleanVar(value=True)   # собирать вывод
 
+        self.var_log_dir = tk.StringVar(value=str(self._autodetect_log_dir()))
+        self.var_log_lines = tk.IntVar(value=DEFAULT_LOG_LINES)
+
         self.lbl_status: ttk.Label | None = None
         self._widgets: dict[str, tk.Widget] = {}
 
@@ -402,6 +408,35 @@ class LauncherUI(tk.Tk):
         self._widgets["btn_browse_env"] = ttk.Button(frm_diag, text="Обзор...", command=self._browse_env_report)
         self._widgets["btn_browse_env"].grid(row=1, column=2, sticky="w", **pad)
 
+        frm_logs = ttk.Labelframe(self, text="Логи и ошибки")
+        frm_logs.pack(fill="x", **pad)
+        ttk.Label(frm_logs, text="Директория логов:").grid(row=0, column=0, sticky="e", **pad)
+        self._widgets["ent_log_dir"] = ttk.Entry(frm_logs, textvariable=self.var_log_dir, width=50)
+        self._widgets["ent_log_dir"].grid(row=0, column=1, sticky="w", **pad)
+        self._widgets["btn_browse_logs"] = ttk.Button(frm_logs, text="Выбрать...", command=self._browse_log_dir)
+        self._widgets["btn_browse_logs"].grid(row=0, column=2, sticky="w", **pad)
+        ttk.Label(frm_logs, text="Последние N строк:").grid(row=1, column=0, sticky="e", **pad)
+        self._widgets["spn_log_lines"] = ttk.Spinbox(
+            frm_logs,
+            from_=50,
+            to=2000,
+            increment=50,
+            textvariable=self.var_log_lines,
+            width=10,
+        )
+        self._widgets["spn_log_lines"].grid(row=1, column=1, sticky="w", **pad)
+        self._widgets["btn_show_logs"] = ttk.Button(frm_logs, text="Показать свежие логи", command=self._open_logs_viewer)
+        self._widgets["btn_show_logs"].grid(row=1, column=2, sticky="w", **pad)
+
+        frm_repo = ttk.Labelframe(self, text="Состояние репозитория/кода")
+        frm_repo.pack(fill="x", **pad)
+        self._widgets["btn_repo_status"] = ttk.Button(
+            frm_repo,
+            text="Быстрый статус (git + линтер)",
+            command=self._run_repo_status,
+        )
+        self._widgets["btn_repo_status"].grid(row=0, column=0, sticky="w", **pad)
+
         frm_actions = ttk.Frame(self)
         frm_actions.pack(fill="x", **pad)
         self._widgets["chk_console"] = ttk.Checkbutton(frm_actions, text="Новое окно консоли", variable=self.var_console)
@@ -448,6 +483,8 @@ class LauncherUI(tk.Tk):
             "btn_run": "Запустить приложение.",
             "btn_envcheck": "Диагностика окружения.",
             "btn_help": "Открыть справку.",
+            "btn_show_logs": "Показать последние строки свежих логов и сводку ошибок/варнингов.",
+            "btn_repo_status": "Собрать git status и краткий отчёт рут-файлов от линтера.",
         }
         for key, text in tips.items():
             w = self._widgets.get(key)
@@ -456,6 +493,244 @@ class LauncherUI(tk.Tk):
                     Tooltip(w, text)
                 except Exception:
                     pass
+
+    # --- Helpers: logs and repo status
+    def _autodetect_log_dir(self) -> Path:
+        root = project_root()
+        candidates = self._extract_log_dirs_from_config()
+        if not candidates:
+            candidates.append(root / "logs")
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return candidates[0]
+
+    def _extract_log_dirs_from_config(self) -> list[Path]:
+        """Попытка найти путь к логам в config/app_settings.json."""
+
+        config_path = project_root() / "config" / "app_settings.json"
+        if not config_path.exists():
+            return []
+
+        try:
+            with config_path.open("r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            return []
+
+        found: list[Path] = []
+
+        def _walk(value: object) -> None:
+            if isinstance(value, dict):
+                for key, val in value.items():
+                    if isinstance(key, str) and isinstance(val, str):
+                        k_lower = key.lower()
+                        if "log" in k_lower and ("dir" in k_lower or "path" in k_lower):
+                            candidate = Path(val)
+                            found.append(candidate if candidate.is_absolute() else project_root() / candidate)
+                    _walk(val)
+            elif isinstance(value, list):
+                for item in value:
+                    _walk(item)
+
+        _walk(data)
+        return found
+
+    def _browse_log_dir(self) -> None:
+        try:
+            selected = filedialog.askdirectory(
+                title="Выберите директорию с логами",
+                initialdir=self.var_log_dir.get() or str(project_root()),
+                mustexist=False,
+            )
+            if selected:
+                self.var_log_dir.set(selected)
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось выбрать директорию логов: {e}")
+
+    def _open_logs_viewer(self) -> None:
+        try:
+            max_lines = max(int(self.var_log_lines.get()), 10)
+        except Exception:
+            max_lines = DEFAULT_LOG_LINES
+            self.var_log_lines.set(DEFAULT_LOG_LINES)
+        log_dir = Path(self.var_log_dir.get().strip() or project_root() / "logs")
+        threading.Thread(target=self._collect_logs, args=(log_dir, max_lines), daemon=True).start()
+
+    def _collect_logs(self, log_dir: Path, max_lines: int) -> None:
+        if not log_dir.exists():
+            self.after(0, lambda: messagebox.showwarning("Логи", f"Директория {log_dir} не найдена."))
+            return
+        summary = self._read_recent_logs(log_dir, max_lines)
+        self.after(
+            0,
+            lambda: self._show_text_window(
+                title="Свежие логи", text=summary, geometry="1000x760"
+            ),
+        )
+
+    def _read_recent_logs(self, log_dir: Path, max_lines: int) -> str:
+        log_files = sorted(
+            list(log_dir.rglob("*.log")) + list(log_dir.rglob("*.jsonl")),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        if not log_files:
+            return f"Лог-файлы в {log_dir} не найдены."
+
+        latest = log_files[0]
+        tail: deque[str] = deque(maxlen=max_lines)
+        try:
+            with latest.open("r", encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    tail.append(line.rstrip("\n"))
+        except Exception as e:
+            return f"Не удалось прочитать {latest}: {e}"
+
+        counts = self._count_severities(tail)
+        highlights = self._extract_highlight_lines(tail)
+        header_parts = [
+            f"Файл: {latest}",
+            f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}",
+            f"Показаны последние {len(tail)} строк",
+        ]
+        if highlights:
+            header_parts.append("Ключевые строки (ошибки/варнинги):")
+            header_parts.extend(highlights[-20:])
+        header = "\n".join(header_parts)
+        return f"{header}\n\n--- Хвост логов ---\n" + "\n".join(tail)
+
+    def _show_text_window(self, *, title: str, text: str, geometry: str = "980x720") -> None:
+        win = tk.Toplevel(self)
+        win.title(title)
+        win.geometry(geometry)
+        frm = ttk.Frame(win)
+        frm.pack(fill="both", expand=True)
+        txt = tk.Text(frm, wrap="none")
+        vs = ttk.Scrollbar(frm, orient="vertical", command=txt.yview)
+        hs = ttk.Scrollbar(frm, orient="horizontal", command=txt.xview)
+        txt.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
+        vs.pack(side="right", fill="y")
+        hs.pack(side="bottom", fill="x")
+        txt.pack(side="left", fill="both", expand=True)
+        try:
+            txt.insert("1.0", text)
+            txt.configure(state="disabled")
+        except Exception:
+            pass
+
+    def _run_repo_status(self) -> None:
+        self._set_status("Сбор статуса репозитория и линтера...")
+        threading.Thread(target=self._collect_repo_status, daemon=True).start()
+
+    def _collect_repo_status(self) -> None:
+        root = project_root()
+        sections: list[str] = []
+        sections.append(self._run_command(["git", "status", "-sb"], "git status", cwd=root))
+        python_exe = detect_venv_python(prefer_console=True)
+        sections.append(
+            self._run_command(
+                [
+                    str(python_exe),
+                    "-m",
+                    "ruff",
+                    ".",
+                    "--select",
+                    "E,F,W",
+                    "--output-format",
+                    "concise",
+                ],
+                "ruff (E/F/W)",
+                cwd=root,
+            )
+        )
+        text = "\n\n".join(sections)
+        self.after(
+            0,
+            lambda: self._show_text_window(
+                title="Быстрый статус репозитория", text=text, geometry="1000x800"
+            ),
+        )
+        self.after(0, lambda: self._set_status("Статус репозитория обновлён."))
+
+    def _run_command(self, cmd: list[str], title: str, *, cwd: Path | None = None) -> str:
+        try:
+            completed = subprocess.run(
+                cmd,
+                cwd=str(cwd) if cwd else None,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except FileNotFoundError:
+            return f"{title}: команда не найдена ({cmd[0]})."
+        except Exception as e:
+            return f"{title}: ошибка запуска {e}"
+
+        stdout = (completed.stdout or "").strip()
+        stderr = (completed.stderr or "").strip()
+        lines: list[str] = []
+        lines.append(f"$ {' '.join(cmd)}")
+        lines.append(f"exit={completed.returncode}")
+        if stdout:
+            lines.append(stdout)
+        if stderr:
+            lines.append("[stderr]\n" + stderr)
+
+        if completed.returncode != 0:
+            hint = self._build_failure_hint(stdout.splitlines() + stderr.splitlines())
+            if hint:
+                lines.append("Подсказка: " + hint)
+
+        return "\n".join(lines)
+
+    def _count_severities(self, lines: Sequence[str]) -> dict[str, int]:
+        counts = {"error": 0, "warning": 0}
+        for ln in lines:
+            low = ln.lower()
+            if any(tok in low for tok in ("error", "traceback", "exception", "failed")):
+                counts["error"] += 1
+            if "warn" in low:
+                counts["warning"] += 1
+        return counts
+
+    def _extract_highlight_lines(self, lines: Sequence[str], limit: int = 50) -> list[str]:
+        highlights: list[str] = []
+        for ln in lines:
+            low = ln.lower()
+            if any(tok in low for tok in ("error", "traceback", "warning", "failed")):
+                highlights.append(ln)
+            if len(highlights) >= limit:
+                break
+        return highlights
+
+    def _build_failure_hint(self, lines: Sequence[str]) -> str:
+        if not lines:
+            return "Пустой вывод процесса. Проверьте логи в секции 'Логи и ошибки'."
+
+        counts = self._count_severities(lines)
+        hints: list[str] = []
+        if counts["error"]:
+            hints.append(f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже.")
+        if counts["warning"]:
+            hints.append(f"Предупреждений: {counts['warning']}." )
+
+        text_blob = "\n".join(lines).lower()
+        if "module not found" in text_blob or "no module named" in text_blob:
+            hints.append("Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите.")
+        if "qt.qpa" in text_blob or "xcb" in text_blob:
+            hints.append("Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless.")
+        if "permission" in text_blob:
+            hints.append("Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути.")
+        if not hints:
+            hints.append("Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер.")
+
+        highlights = self._extract_highlight_lines(lines, limit=10)
+        if highlights:
+            hints.append("Ключевые строки:\n" + "\n".join(highlights))
+
+        return "\n".join(hints)
 
     # --- Help window
     def _open_help(self) -> None:
@@ -473,6 +748,8 @@ class LauncherUI(tk.Tk):
             "Лаунчер: выбор параметров запуска, сбор stdout/stderr, анализ QML ошибок.\n\n"
             "Используйте чекбокс 'Собирать stdout/stderr', если консоль не нужна, но требуется видеть ошибки QML.\n"
             "При 'Новое окно консоли' вывод идёт в отдельное окно и не захватывается. Снимите 'Новое окно консоли' чтобы активировать захват.\n"
+            "Секция 'Логи и ошибки' поможет быстро посмотреть последние строки из каталогов logs/ или пути из config/app_settings.json и увидеть подсчёт ошибок/варнингов.\n"
+            "Кнопка 'Быстрый статус (git + линтер)' собирает короткий отчёт по git status и ruff (E/F/W).\n"
         )
         try:
             txt.insert("1.0", text_help)
@@ -539,21 +816,30 @@ class LauncherUI(tk.Tk):
         extra = self._summarize_captured_output() if mode == "capture" else ""
         if extra:
             analysis_text = f"{analysis_text}\n\n=== CAPTURED STDOUT/STDERR (tail) ===\n{extra}" if analysis_text else extra
+        if exit_code != 0:
+            source_lines: list[str] = []
+            if self._captured_output:
+                source_lines = self._captured_output
+            elif analysis_text:
+                source_lines = analysis_text.splitlines()
+            hint = self._build_failure_hint(source_lines)
+            self.after(
+                0,
+                lambda: messagebox.showerror(
+                    "Ошибка запуска", f"Процесс завершился с кодом {exit_code}.\n\n{hint}"
+                ),
+            )
         self.after(0, lambda: self._show_analysis_window(analysis_text, exit_code, mode))
 
     def _summarize_captured_output(self, max_lines: int = 200) -> str:
         if not self._captured_output:
             return "(нет захваченного вывода)"
         lines = self._captured_output
-        # Поиск QML/ошибок
-        error_tokens = {"qml", "error", "traceback", "warning", "failed"}
-        interesting: list[str] = []
-        for ln in lines:
-            low = ln.lower()
-            if any(tok in low for tok in error_tokens):
-                interesting.append(ln)
         tail = lines[-max_lines:]
+        counts = self._count_severities(lines)
+        interesting = self._extract_highlight_lines(lines)
         parts: list[str] = []
+        parts.append(f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}")
         if interesting:
             parts.append("-- Важные строки (фильтр по ошибкам/QML) --")
             parts.extend(interesting[-60:])
