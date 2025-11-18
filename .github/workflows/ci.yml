@@ -18,6 +18,7 @@ on:
 env:
   PYTHON_VERSION: "3.13"
   QT_VERSION: "6.10.0"
+  QT_PYSIDE_SPEC: "6.10.*"
   QT_QPA_PLATFORM: offscreen
   PSS_ENV_PRESET: trace
 
@@ -61,6 +62,59 @@ jobs:
         run: |
           Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
           ./scripts/setup_windows.ps1 -QtVersion $env:QT_VERSION -PythonPath "${{ env.pythonLocation }}\\python.exe" -SkipQt:$true -SummaryPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Ensure PySide6 runtime packages (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_PYSIDE_SPEC: ${{ env.QT_PYSIDE_SPEC }}
+        run: |
+          set -o pipefail
+          uv pip install --upgrade --no-cache-dir \
+            "PySide6==${QT_PYSIDE_SPEC}" \
+            "PySide6-Addons==${QT_PYSIDE_SPEC}" \
+            "PySide6-Essentials==${QT_PYSIDE_SPEC}" \
+            "shiboken6==${QT_PYSIDE_SPEC}" \
+            numpy \
+            pytest-qt \
+            "PyOpenGL==3.1.10" \
+            "PyOpenGL-accelerate==3.1.10"
+
+      - name: Ensure PySide6 runtime packages (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          QT_PYSIDE_SPEC: ${{ env.QT_PYSIDE_SPEC }}
+        run: |
+          uv pip install --upgrade --no-cache-dir `
+            "PySide6==${env:QT_PYSIDE_SPEC}" `
+            "PySide6-Addons==${env:QT_PYSIDE_SPEC}" `
+            "PySide6-Essentials==${env:QT_PYSIDE_SPEC}" `
+            "shiboken6==${env:QT_PYSIDE_SPEC}" `
+            numpy `
+            pytest-qt `
+            "PyOpenGL==3.1.10" `
+            "PyOpenGL-accelerate==3.1.10"
+
+      - name: Verify PySide6 Qt modules
+        run: |
+          python - <<'PY'
+from PySide6 import QtWidgets, QtQuick3D
+
+print("QtWidgets available", QtWidgets.QApplication)
+print("QtQuick3D available", QtQuick3D)
+PY
+
+      - name: Export PySide6 Qt paths
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          from PySide6.QtCore import QLibraryInfo, LibraryLocation
+
+          env_file = Path(os.environ["GITHUB_ENV"])
+          with env_file.open("a", encoding="utf-8") as fh:
+              fh.write(f"QT_PLUGIN_PATH={QLibraryInfo.path(LibraryLocation.Plugins)}{os.linesep}")
+              fh.write(f"QML2_IMPORT_PATH={QLibraryInfo.path(LibraryLocation.QmlImports)}{os.linesep}")
 
       - name: Run final readiness test (Linux)
         if: runner.os == 'Linux'
