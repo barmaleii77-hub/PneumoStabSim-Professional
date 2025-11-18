@@ -33,6 +33,7 @@ from typing import Iterable
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MANIFEST = PROJECT_ROOT / "assets" / "hdr" / "hdr_manifest.json"
+DEFAULT_SUMMARY_JSON = PROJECT_ROOT / "reports" / "quality" / "hdr_assets_status.json"
 
 
 @dataclass
@@ -214,7 +215,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to hdr_manifest.json (default: assets/hdr/hdr_manifest.json)",
     )
     parser.add_argument(
-        "--summary-json", type=Path, default=None, help="Path for JSON status output"
+        "--summary-json",
+        type=Path,
+        default=DEFAULT_SUMMARY_JSON,
+        help=(
+            "Path for JSON status output (default: reports/quality/hdr_assets_status.json); "
+            "set --no-summary to disable file output"
+        ),
+    )
+    parser.add_argument(
+        "--no-summary",
+        action="store_true",
+        help="Skip writing the JSON summary report",
     )
     parser.add_argument(
         "--fetch-missing",
@@ -227,7 +239,9 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
-    exit_code = verify_hdr_assets(args.manifest, args.summary_json)
+    exit_code = verify_hdr_assets(
+        args.manifest, None if args.no_summary else args.summary_json
+    )
     raise SystemExit(exit_code)
 
 
