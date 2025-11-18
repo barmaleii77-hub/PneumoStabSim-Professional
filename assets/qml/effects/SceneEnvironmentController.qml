@@ -9,8 +9,8 @@ import "." // Local helpers (QualityPresets)
 /*
  * SceneEnvironmentController - Полное управление ExtendedSceneEnvironment
  * Все эффекты, качество, IBL, туман в ОДНОМ компоненте
- * NOTE: ExtendedSceneEnvironment wraps SceneEffectEnvironment (prototype: QQuick3DSceneEnvironment),
- * so fog is applied only through the nested `fog: Fog` object.
+ * NOTE: ExtendedSceneEnvironment wraps SceneEffectEnvironment (prototype: QQuick3DSceneEnvironment
+ * as seen in QtQuick3D/Quick3D.qmltypes), so fog is applied only through the nested `fog: Fog` object.
  */
 ExtendedSceneEnvironment {
  id: root
@@ -567,7 +567,9 @@ ExtendedSceneEnvironment {
 
     // Fog handling: SceneEnvironment only accepts a nested Fog object. We keep the Loader gated behind
     // runtime capability checks to avoid binding to unavailable APIs.
-    readonly property bool fogApiAvailable: typeof root.fog !== "undefined"
+    // SceneEffectEnvironment exposes a `fog` pointer property; guard against environments
+    // where the property exists but the Fog type is unavailable (for example, stripped Qt builds).
+    readonly property bool fogApiAvailable: root && ("fog" in root)
     readonly property bool fogFactoryAvailable: typeof Fog !== "undefined"
     readonly property bool fogHelpersSupported: qtSupports610 && fogApiAvailable && fogFactoryAvailable
 
@@ -849,8 +851,11 @@ ExtendedSceneEnvironment {
     }
 
     onFogHelpersSupportedChanged: {
-        if (!fogHelpersSupported)
-            root._emitFogSupportWarning(qsTr("Fog helpers require Qt 6.10 or newer"))
+        if (!fogHelpersSupported) {
+            if (root.fog)
+                root.fog = null
+            root._emitFogSupportWarning(qsTr("Fog helpers unavailable on this runtime; fog will be disabled"))
+        }
     }
 
     function _runStartupSynchronization() {
