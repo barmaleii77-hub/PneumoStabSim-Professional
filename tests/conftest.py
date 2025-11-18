@@ -37,6 +37,7 @@ _MARKERS = [
     "smoke: Smoke tests",
     "system: System tests",
     "slow: Slow tests",
+    "performance: Performance budgets and timing checks",
     "gui: GUI/QML tests",
     "headless: Headless Qt tests",
     "scenario: Scenario physics tests",
