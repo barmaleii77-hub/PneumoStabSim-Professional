@@ -28,6 +28,11 @@ from __future__ import annotations
 
 import json
 import logging
+import logging.handlers
+import os
+import queue
+import threading
+import time
 from dataclasses import dataclass
 from datetime import date, datetime
 from types import ModuleType
@@ -255,6 +260,18 @@ _FALLBACK_LOGGER_CACHE: dict[str, _FallbackBoundLogger] = {}
 _fallback_configured = False
 
 
+@dataclass(slots=True)
+class _QueueBundle:
+    queue: "queue.Queue[logging.LogRecord]"
+    listener: logging.handlers.QueueListener
+    drop_counter: dict[str, int]
+    poll_interval: float
+    drain_delay: float
+
+
+_QUEUE_BUNDLE: _QueueBundle | None = None
+
+
 class _StructlogBridgeFilter(logging.Filter):
     """Populate LogRecord attributes with structlog event payload."""
 
@@ -355,11 +372,186 @@ def _shared_processors() -> list[Any]:
     ]
 
 
-def _configure_fallback_logging(level: int) -> None:
+class _DroppingQueueHandler(logging.handlers.QueueHandler):
+    """Queue handler that never blocks and records overflow statistics."""
+
+    def __init__(
+        self,
+        log_queue: "queue.Queue[logging.LogRecord]",
+        *,
+        drop_counter: dict[str, int],
+    ) -> None:
+        super().__init__(log_queue)
+        self._drop_counter = drop_counter
+
+    def enqueue(self, record: logging.LogRecord) -> None:  # pragma: no cover - shim
+        try:
+            self.queue.put_nowait(record)
+            return
+        except queue.Full:
+            self._drop_counter["dropped"] += 1
+
+        try:
+            self.queue.get_nowait()
+        except queue.Empty:
+            return
+
+        try:
+            self.queue.put_nowait(record)
+        except queue.Full:
+            self._drop_counter["dropped"] += 1
+
+
+class _NonBlockingQueueListener(logging.handlers.QueueListener):
+    """Queue listener that polls with a timeout to avoid blocking forever."""
+
+    def __init__(
+        self,
+        log_queue: "queue.Queue[logging.LogRecord]",
+        *handlers: logging.Handler,
+        poll_interval: float = 0.1,
+        drain_delay: float = 0.0,
+        respect_handler_level: bool = False,
+    ) -> None:
+        super().__init__(
+            log_queue, *handlers, respect_handler_level=respect_handler_level
+        )
+        self._poll_interval = poll_interval
+        self._drain_delay = max(0.0, drain_delay)
+        self._stop_event = threading.Event()
+
+    def stop(self) -> None:  # pragma: no cover - thin wrapper
+        self._stop_event.set()
+        super().stop()
+
+    def _monitor(self) -> None:  # pragma: no cover - shim
+        has_task_done = hasattr(self.queue, "task_done")
+        while not self._stop_event.is_set():
+            try:
+                record = self.queue.get(block=False)
+            except queue.Empty:
+                try:
+                    record = self.queue.get(timeout=self._poll_interval)
+                except queue.Empty:
+                    continue
+
+            if record is self._sentinel:
+                break
+
+            if self._drain_delay:
+                time.sleep(self._drain_delay)
+
+            self.handle(record)
+            if has_task_done:
+                self.queue.task_done()
+
+        while True:
+            try:
+                record = self.queue.get(block=False)
+            except queue.Empty:
+                break
+
+            if record is self._sentinel:
+                break
+
+            if self._drain_delay:
+                time.sleep(self._drain_delay)
+
+            self.handle(record)
+            if has_task_done:
+                self.queue.task_done()
+
+
+def _stop_queue_listener() -> None:
+    global _QUEUE_BUNDLE
+    if _QUEUE_BUNDLE is None:
+        return
+    try:
+        _QUEUE_BUNDLE.listener.stop()
+    finally:
+        _QUEUE_BUNDLE = None
+
+
+def _install_queue_handler(
+    root_logger: logging.Logger,
+    handler: logging.Handler,
+    *,
+    queue_size: int,
+    poll_interval: float,
+    drain_delay: float,
+) -> logging.Handler:
+    global _QUEUE_BUNDLE
+
+    _stop_queue_listener()
+
+    bounded_size = max(1, int(queue_size))
+    log_queue: "queue.Queue[logging.LogRecord]" = queue.Queue(bounded_size)
+    drop_counter = {"dropped": 0, "max_size": bounded_size}
+
+    queue_handler = _DroppingQueueHandler(log_queue, drop_counter=drop_counter)
+    listener = _NonBlockingQueueListener(
+        log_queue,
+        handler,
+        poll_interval=poll_interval,
+        drain_delay=drain_delay,
+        respect_handler_level=True,
+    )
+    listener.start()
+
+    root_logger.handlers[:] = [queue_handler]
+    _QUEUE_BUNDLE = _QueueBundle(
+        queue=log_queue,
+        listener=listener,
+        drop_counter=drop_counter,
+        poll_interval=poll_interval,
+        drain_delay=drain_delay,
+    )
+    return queue_handler
+
+
+def _queue_enabled(requested: bool) -> bool:
+    if not requested:
+        return False
+    if os.environ.get("PSS_FORCE_LOG_QUEUE", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        return True
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    return True
+
+
+def _configure_fallback_logging(
+    level: int,
+    *,
+    use_queue_listener: bool,
+    queue_size: int,
+    queue_poll_interval: float,
+    queue_drain_delay: float,
+) -> None:
     """Initialise logging when structlog is unavailable."""
 
     global _fallback_configured
     root_logger = logging.getLogger()
+    if use_queue_listener:
+        handler = logging.StreamHandler()
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+        )
+        _install_queue_handler(
+            root_logger,
+            handler,
+            queue_size=queue_size,
+            poll_interval=queue_poll_interval,
+            drain_delay=queue_drain_delay,
+        )
+        root_logger.setLevel(level)
+        _fallback_configured = True
+        return
+
+    _stop_queue_listener()
     if not _fallback_configured:
         logging.basicConfig(
             level=level,
@@ -375,11 +567,21 @@ def _ensure_stdlib_bridge(
     formatter: logging.Formatter | None = None,
     *,
     json_renderer: Any | None = None,
+    use_queue_listener: bool,
+    queue_size: int,
+    queue_poll_interval: float,
+    queue_drain_delay: float,
 ) -> None:
     """Configure the logging bridge for structlog or provide a fallback."""
 
     if not HAS_STRUCTLOG:
-        _configure_fallback_logging(level)
+        _configure_fallback_logging(
+            level,
+            use_queue_listener=use_queue_listener,
+            queue_size=queue_size,
+            queue_poll_interval=queue_poll_interval,
+            queue_drain_delay=queue_drain_delay,
+        )
         return
 
     handler = logging.StreamHandler()
@@ -402,7 +604,17 @@ def _ensure_stdlib_bridge(
     handler.setFormatter(formatter)
 
     root_logger = logging.getLogger()
-    root_logger.handlers[:] = [handler]
+    if use_queue_listener:
+        _install_queue_handler(
+            root_logger,
+            handler,
+            queue_size=queue_size,
+            poll_interval=queue_poll_interval,
+            drain_delay=queue_drain_delay,
+        )
+    else:
+        _stop_queue_listener()
+        root_logger.handlers[:] = [handler]
     root_logger.setLevel(level)
 
 
@@ -412,6 +624,10 @@ def configure_logging(
     wrapper_class: type[object] | None = None,
     cache_logger_on_first_use: bool = True,
     processors: Iterable[Any] | None = None,
+    use_queue_listener: bool = True,
+    queue_size: int = 10000,
+    queue_poll_interval: float = 0.1,
+    queue_drain_delay: float = 0.0,
 ) -> None:
     """Initialise structlog and bridge stdlib loggers.
 
@@ -430,10 +646,30 @@ def configure_logging(
         Optional iterable overriding the default processor chain.  The shared
         processors defined in :func:`_shared_processors` are always prepended so
         that contextual information is consistent across the application.
+    use_queue_listener:
+        Whether to offload emission to a non-blocking queue listener. Enabled by
+        default to avoid blocking UI/simulation threads on IO-bound handlers.
+    queue_size:
+        Maximum number of records buffered by the queue listener before
+        applying back-pressure via dropping the oldest entries.
+    queue_poll_interval:
+        Maximum time the background consumer waits before polling for new
+        records using ``queue.get(block=False, timeout=...)`` semantics.
+    queue_drain_delay:
+        Optional sleep applied by the consumer between handling records to
+        smooth bursts for slow downstream sinks.
     """
 
+    queue_enabled = _queue_enabled(use_queue_listener)
+
     if not HAS_STRUCTLOG:
-        _configure_fallback_logging(level)
+        _configure_fallback_logging(
+            level,
+            use_queue_listener=queue_enabled,
+            queue_size=queue_size,
+            queue_poll_interval=queue_poll_interval,
+            queue_drain_delay=queue_drain_delay,
+        )
         return
 
     json_renderer = structlog.processors.JSONRenderer(
@@ -458,6 +694,10 @@ def configure_logging(
         level,
         logging.Formatter("%(message)s"),
         json_renderer=json_renderer,
+        use_queue_listener=queue_enabled,
+        queue_size=queue_size,
+        queue_poll_interval=queue_poll_interval,
+        queue_drain_delay=queue_drain_delay,
     )
 
 
@@ -490,7 +730,13 @@ def get_logger(name: str) -> LoggerProtocol:
             configure_logging()
         return structlog.get_logger(name)  # type: ignore[return-value]
 
-    _configure_fallback_logging(DEFAULT_LOG_LEVEL)
+    _configure_fallback_logging(
+        DEFAULT_LOG_LEVEL,
+        use_queue_listener=_queue_enabled(True),
+        queue_size=10000,
+        queue_poll_interval=0.1,
+        queue_drain_delay=0.0,
+    )
     cached = _FALLBACK_LOGGER_CACHE.get(name)
     if cached is not None:
         return cached
@@ -501,6 +747,21 @@ def get_logger(name: str) -> LoggerProtocol:
     return fallback
 
 
+def get_logging_queue_stats() -> dict[str, int]:
+    """Expose queue usage statistics for diagnostics and tests."""
+
+    if _QUEUE_BUNDLE is None:
+        return {"dropped": 0, "max_size": 0}
+    return dict(_QUEUE_BUNDLE.drop_counter)
+
+
+def shutdown_logging() -> None:
+    """Stop background listeners to avoid leaking threads between tests."""
+
+    _stop_queue_listener()
+    logging.shutdown()
+
+
 __all__ = [
     "DEFAULT_LOG_LEVEL",
     "HAS_STRUCTLOG",
@@ -509,4 +770,6 @@ __all__ = [
     "LoggerProtocol",
     "configure_logging",
     "get_logger",
+    "get_logging_queue_stats",
+    "shutdown_logging",
 ]
