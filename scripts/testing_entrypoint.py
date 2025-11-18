@@ -8,13 +8,14 @@ orchestrator to remain usable on systems without GNU Make (e.g. Windows).
 
 from __future__ import annotations
 
+import argparse
 import os
 import platform
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Iterable, Literal, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = PROJECT_ROOT / "reports" / "tests" / "test_entrypoint.log"
@@ -164,42 +165,59 @@ def _prepare_system(system: str) -> None:
     _log(f"[entrypoint] No system prep defined for platform '{system}'")
 
 
-def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
+def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Unified test entrypoint")
+    parser.add_argument(
+        "--scope",
+        choices=["main", "integration", "all"],
+        default="all",
+        help=(
+            "Test scope: `main` runs the primary verification task, "
+            "`integration` adds integration/performance suites, `all` executes both"
+        ),
+    )
+    return parser.parse_args(list(argv))
+
+
+def _primary_commands(uv_path: str, scope: Literal["main", "integration", "all"]) -> Iterable[Sequence[str]]:
     make_path = shutil.which("make")
-    if make_path:
-        _log("[entrypoint] Detected make; delegating to `make check`")
-        yield [make_path, "check"]
-    else:
-        _log("[entrypoint] make not found; falling back to Python verification suite")
+    if scope in {"main", "integration", "all"}:
+        if make_path:
+            _log("[entrypoint] Detected make; delegating to `make check`")
+            yield [make_path, "check"]
+        else:
+            _log("[entrypoint] make not found; falling back to Python verification suite")
+            yield [
+                uv_path,
+                "run",
+                "--locked",
+                "--",
+                "python",
+                "-m",
+                "tools.ci_tasks",
+                "verify",
+            ]
+
+    if scope in {"integration", "all"}:
+        _log("[entrypoint] Executing integration and performance test suites")
         yield [
             uv_path,
             "run",
             "--locked",
             "--",
-            "python",
-            "-m",
-            "tools.ci_tasks",
-            "verify",
+            "pytest",
+            "tests/integration",
+            "tests/performance",
+            "--maxfail",
+            "1",
         ]
-
-    _log("[entrypoint] Executing integration and performance test suites")
-    yield [
-        uv_path,
-        "run",
-        "--locked",
-        "--",
-        "pytest",
-        "tests/integration",
-        "tests/performance",
-        "--maxfail",
-        "1",
-    ]
 
 
 def main(argv: list[str]) -> int:
+    args = _parse_args(argv)
     system = platform.system()
     _reset_log()
-    _log(f"[entrypoint] Detected platform: {system}")
+    _log(f"[entrypoint] Detected platform: {system} (scope={args.scope})")
     _announce_reports()
 
     try:
@@ -215,7 +233,7 @@ def main(argv: list[str]) -> int:
 
         failures: list[str] = []
 
-        for command in _primary_commands(uv_path):
+        for command in _primary_commands(uv_path, args.scope):
             try:
                 _stream_command(command, env=env)
             except CommandFailure as exc:

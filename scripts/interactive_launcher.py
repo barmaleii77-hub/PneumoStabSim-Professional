@@ -78,6 +78,18 @@ def format_completed_process(cmd: Sequence[str], completed: subprocess.Completed
     return "\n".join(lines)
 
 
+def run_command_with_summary(
+    cmd: Sequence[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], str]:
+    completed = run_command_logged(cmd, cwd=cwd, env=env)
+    summary = format_completed_process(cmd, completed)
+    _log(f"Command summary:\n{summary}")
+    return completed, summary
+
+
 # --- Tooltip helper
 class Tooltip:
     def __init__(self, widget: tk.Widget, text: str, *, delay_ms: int = 350) -> None:
@@ -269,6 +281,23 @@ def configure_runtime_env(
     # Включаем подробный вывод QML ошибок, если verbose
     env.setdefault("QT_FORCE_STDERR_LOGGING", "1")  # Qt < 6.7 не всегда
     return env
+
+
+def build_test_environment() -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    env.setdefault("PSS_HEADLESS", "1")
+    env.setdefault("QT_QPA_PLATFORM", "offscreen")
+    env.setdefault("QT_QUICK_BACKEND", "software")
+    env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+    return env
+
+
+def build_testing_entrypoint_command(python_exe: Path, scope: Literal["main", "integration"]) -> list[str]:
+    entrypoint = project_root() / "scripts" / "testing_entrypoint.py"
+    cmd = [str(python_exe), str(entrypoint)]
+    cmd.extend(["--scope", "integration" if scope == "integration" else "main"])
+    return cmd
 
 
 def run_log_analysis(env: dict[str, str]) -> str:
@@ -738,32 +767,13 @@ class LauncherUI(tk.Tk):
         root = project_root()
         python_exe = detect_venv_python(prefer_console=True)
         entrypoint = root / "scripts" / "testing_entrypoint.py"
-        env = os.environ.copy()
-        env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        if not entrypoint.exists():
+            text = f"Entrypoint not found: {entrypoint}"
+        else:
+            env = build_test_environment()
+            command = build_testing_entrypoint_command(python_exe, scope)
+            text = self._run_command(command, f"testing_entrypoint ({scope})", cwd=root, env=env)
 
-        sections: list[str] = []
-        sections.append(
-            self._run_command([str(python_exe), str(entrypoint)], "testing_entrypoint", cwd=root, env=env)
-        )
-
-        if scope == "integration":
-            sections.append(
-                self._run_command(
-                    [
-                        str(python_exe),
-                        "-m",
-                        "pytest",
-                        "--maxfail=1",
-                        "-m",
-                        "integration",
-                    ],
-                    "pytest -m integration",
-                    cwd=root,
-                    env=env,
-                )
-            )
-
-        text = "\n\n".join(sections)
         self.after(
             0,
             lambda: self._show_text_window(
@@ -810,7 +820,7 @@ class LauncherUI(tk.Tk):
         self, cmd: list[str], title: str, *, cwd: Path | None = None, env: dict[str, str] | None = None
     ) -> str:
         try:
-            completed = run_command_logged(cmd, cwd=cwd, env=env)
+            completed, summary = run_command_with_summary(cmd, cwd=cwd, env=env)
         except FileNotFoundError:
             return f"{title}: команда не найдена ({cmd[0]})."
         except Exception as e:
@@ -818,7 +828,7 @@ class LauncherUI(tk.Tk):
 
         stdout_lines = (completed.stdout or "").splitlines()
         stderr_lines = (completed.stderr or "").splitlines()
-        text = format_completed_process(cmd, completed)
+        text = summary
 
         if completed.returncode != 0:
             hint = self._build_failure_hint(stdout_lines + stderr_lines)
