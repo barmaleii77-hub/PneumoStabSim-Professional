@@ -488,6 +488,30 @@ class GeometryPanel(QWidget):
 
         return self._collect_state_snapshot()
 
+    def _emit_if_connected(
+        self, signal_obj: Any, payload: Any, description: str
+    ) -> None:
+        """Emit a signal only when subscribers are present or emission is safe."""
+
+        if signal_obj is None:
+            self.logger.warning("%s skipped: signal is not available", description)
+            return
+
+        try:
+            signal_connected = getattr(signal_obj, "isSignalConnected", None)
+            if callable(signal_connected) and not signal_connected():
+                self.logger.info("%s skipped: no subscribers", description)
+                return
+        except Exception as exc:  # pragma: no cover - diagnostic guardrail
+            self.logger.debug(
+                "%s connection check failed: %s", description, exc, exc_info=True
+            )
+
+        try:
+            signal_obj.emit(payload)
+        except RuntimeError as exc:
+            self.logger.warning("%s failed: %s", description, exc)
+
     def get_geometry_settings(self) -> GeometrySettings:
         """Return the validated geometry configuration for the current state."""
         snapshot = self._collect_state_snapshot()
@@ -540,8 +564,14 @@ class GeometryPanel(QWidget):
         self.logger.info("Sending initial geometry to QML...")
 
         geometry_3d = self.state_manager.get_3d_geometry_update()
-        self.geometry_changed.emit(geometry_3d)
-        self.geometry_updated.emit(self.state_manager.get_all_parameters())
+        self._emit_if_connected(
+            self.geometry_changed, geometry_3d, "Geometry 3D update signal"
+        )
+        self._emit_if_connected(
+            self.geometry_updated,
+            self.state_manager.get_all_parameters(),
+            "Geometry updated signal",
+        )
 
         self.logger.info("Initial geometry sent successfully")
 

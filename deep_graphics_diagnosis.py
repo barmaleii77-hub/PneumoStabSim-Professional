@@ -203,18 +203,29 @@ def diagnose_graphics_panel(graphics_panel):
                     normalized_signature = bytes(
                         QMetaObject.normalizedSignature(method_signature.encode())
                     ).decode()
-                    try:
-                        receivers_count = graphics_panel.receivers(
-                            meta_method.methodSignature()
-                        )
-                    except (TypeError, AttributeError):
-                        receivers_count = None
-
                     print(f"       сигнатура: {normalized_signature}")
-                    if receivers_count is not None:
-                        print(f"       подключено обработчиков: {receivers_count}")
-                    else:
-                        print("       подключено обработчиков: неизвестно")
+
+                    connection_state: str
+                    try:
+                        is_connected = getattr(signal_obj, "isSignalConnected", None)
+                        if callable(is_connected):
+                            connection_state = (
+                                "есть подписчики"
+                                if is_connected()
+                                else "подписчиков нет"
+                            )
+                        elif hasattr(graphics_panel, "isSignalConnected"):
+                            connection_state = (
+                                "есть подписчики"
+                                if graphics_panel.isSignalConnected(meta_method)
+                                else "подписчиков нет"
+                            )
+                        else:
+                            connection_state = "подключения неизвестны"
+                    except (TypeError, AttributeError):
+                        connection_state = "подключения неизвестны"
+
+                    print(f"       подключено обработчиков: {connection_state}")
                 else:
                     print("       сигнатура: неизвестно")
             else:
