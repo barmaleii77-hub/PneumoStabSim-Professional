@@ -278,7 +278,9 @@ def test_validate_shaders_reports_qt_custommain_usage(tmp_path: Path) -> None:
     ), "validator must flag legacy qt_customMain entry point usage"
 
 
-def test_validate_shaders_reports_qt_custommain_case_insensitive(tmp_path: Path) -> None:
+def test_validate_shaders_reports_qt_custommain_case_insensitive(
+    tmp_path: Path,
+) -> None:
     shader_root = tmp_path / "shaders"
     reports_dir = tmp_path / "reports"
     qsb_cmd = _make_qsb_stub(tmp_path)

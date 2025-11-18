@@ -1,6 +1,7 @@
 """Extended pytest configuration with enhanced qtbot and monkeypatch shims."""
 
 from __future__ import annotations
+import gc
 import os
 import sys
 import time
@@ -325,38 +326,45 @@ def _extract_skip_reason(report: pytest.TestReport) -> str:
 
 @pytest.hookimpl(trylast=True)
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:  # noqa: ARG001
-    config = session.config
-    allow_skips = bool(config.getoption("--allow-skips"))
-    env_allow = _env_flag("PSS_ALLOW_SKIPPED_TESTS") or _env_flag("CI_ALLOW_SKIPS")
-    justification = os.environ.get("CI_SKIP_REASON", "").strip()
-    if env_allow and not justification:
-        pytest.exit(
-            "CI_SKIP_REASON is required when allowing skipped tests via environment",
-            returncode=1,
-        )
-    if allow_skips or env_allow:
-        return
+    try:
+        config = session.config
+        allow_skips = bool(config.getoption("--allow-skips"))
+        env_allow = _env_flag("PSS_ALLOW_SKIPPED_TESTS") or _env_flag("CI_ALLOW_SKIPS")
+        justification = os.environ.get("CI_SKIP_REASON", "").strip()
+        if env_allow and not justification:
+            pytest.exit(
+                "CI_SKIP_REASON is required when allowing skipped tests via environment",
+                returncode=1,
+            )
+        if allow_skips or env_allow:
+            return
 
-    terminal_reporter = config.pluginmanager.get_plugin("terminalreporter")
-    if terminal_reporter is None:
-        return
+        terminal_reporter = config.pluginmanager.get_plugin("terminalreporter")
+        if terminal_reporter is None:
+            return
 
-    skipped_reports = list(terminal_reporter.stats.get("skipped", []))
-    unexpected: list[tuple[str, str]] = []
-    for report in skipped_reports:
-        reason = _extract_skip_reason(report)
-        if EXPECTED_SKIP_TOKEN in reason:
-            continue
-        unexpected.append((report.nodeid, reason))
+        skipped_reports = list(terminal_reporter.stats.get("skipped", []))
+        unexpected: list[tuple[str, str]] = []
+        for report in skipped_reports:
+            reason = _extract_skip_reason(report)
+            if EXPECTED_SKIP_TOKEN in reason:
+                continue
+            unexpected.append((report.nodeid, reason))
 
-    if not unexpected:
-        return
+        if not unexpected:
+            return
 
-    header = f"{len(unexpected)} unexpected skipped test(s) detected"
-    terminal_reporter.write_sep("=", header, red=True)
-    for nodeid, reason in unexpected:
-        terminal_reporter.line(f"- {nodeid}: {reason}")
-    session.exitstatus = pytest.ExitCode.TESTS_FAILED
+        header = f"{len(unexpected)} unexpected skipped test(s) detected"
+        terminal_reporter.write_sep("=", header, red=True)
+        for nodeid, reason in unexpected:
+            terminal_reporter.line(f"- {nodeid}: {reason}")
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+    finally:
+        # Avoid PySide6 segfaults during interpreter shutdown by finalising
+        # garbage collection before pytest triggers its unraisable exception
+        # cleanup.
+        gc.collect()
+        gc.disable()
 
 
 @pytest.fixture
