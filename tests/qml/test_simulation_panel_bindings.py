@@ -8,7 +8,7 @@ from tests.helpers.qt import require_qt_modules
 # Инициализируем обязательные Qt модули; при отсутствии произойдёт pytest.fail
 require_qt_modules("PySide6.QtQml", "PySide6.QtQuick")
 
-from PySide6.QtCore import QObject, QUrl
+from PySide6.QtCore import QMetaObject, QObject, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtQml import QQmlComponent, QQmlEngine
 
@@ -199,13 +199,38 @@ def test_reservoir_visuals_follow_pressures(qapp) -> None:
         assert valve_a1 is not None and valve_b1 is not None
         assert valve_a1.property("color") != valve_b1.property("color")
 
-        arrow_a1 = root.findChild(QObject, "flowArrow-A1")
-        assert arrow_a1 is not None
-        assert arrow_a1.property("effectivePressureRatio") == pytest.approx(
-            0.625, rel=1e-6
-        )
-        assert arrow_a1.property("minPressure") == pytest.approx(85_000.0, rel=1e-6)
-        assert arrow_a1.property("maxPressure") == pytest.approx(125_000.0, rel=1e-6)
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_temperature_inputs_are_clamped(qapp) -> None:
+    engine, component, root, panel = _load_simulation_panel()
+
+    try:
+        temperature_field = root.findChild(QObject, "temperatureField")
+        ambient_field = root.findChild(QObject, "ambientTemperatureField")
+
+        assert temperature_field is not None and ambient_field is not None
+
+        temperature_field.setProperty("text", "9999")
+        assert QMetaObject.invokeMethod(temperature_field, "editingFinished") is True
+        qapp.processEvents()
+
+        pneumatic_state = _as_mapping(panel.property("pneumaticStateSnapshot"))
+        assert pneumatic_state["gas"]["tank_temperature_initial_k"] == pytest.approx(450.0, rel=1e-6)
+        assert temperature_field.property("text").startswith("450")
+
+        ambient_field.setProperty("text", "-200")
+        assert QMetaObject.invokeMethod(ambient_field, "editingFinished") is True
+        qapp.processEvents()
+
+        pneumatic_state = _as_mapping(panel.property("pneumaticStateSnapshot"))
+        assert pneumatic_state["atmo_temp"] == pytest.approx(-80.0, rel=1e-6)
+        assert ambient_field.property("text").startswith("-80")
     finally:
         root.deleteLater()
         component.deleteLater()

@@ -36,7 +36,7 @@ Item {
 
     property var contextModes: typeof initialModesSettings !== "undefined" ? initialModesSettings : ({})
     property var contextAnimation: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : ({})
-    property var modesMetadata: typeof modesMetadata !== "undefined" ? modesMetadata : ({})
+    property var modesMetadata: ({})
 
     /**
      * Центральная шина обновлений настроек. Экспортируется python UISetup через SettingsEventBus.
@@ -76,6 +76,11 @@ Item {
         { value: "custom", label: qsTr("Пользовательский профиль") }
     ]
 
+    readonly property real _tankTemperatureMin: 200.0
+    readonly property real _tankTemperatureMax: 450.0
+    readonly property real _ambientTemperatureMin: -80.0
+    readonly property real _ambientTemperatureMax: 150.0
+
     // Кэшированные снимки настроек для синхронизации с SettingsManager.
     property var _pneumaticDefaults: ({})
     property var _pneumaticState: ({})
@@ -91,6 +96,10 @@ Item {
     property string _activePresetId: ""
     property real _telemetryEffectiveMinimum: NaN
     property real _telemetryEffectiveMaximum: NaN
+
+    /** Internal snapshots exposed for tests */
+    property var pneumaticStateSnapshot: _pneumaticState
+    property var animationStateSnapshot: _animationState
 
     readonly property real effectiveMinimum: Number.isFinite(_telemetryEffectiveMinimum)
         ? _telemetryEffectiveMinimum
@@ -168,7 +177,7 @@ Item {
         delegate: QtObject {
             required property var modelData
 
-            objectName: "flowArrow-" + (modelData.label || index)
+            objectName: "flowArrowProxy-" + (modelData.label || index)
             property real effectivePressureRatio: Number(modelData.pressureRatio)
             property real minPressure: root.minPressure
             property real maxPressure: root.maxPressure
@@ -375,6 +384,19 @@ Item {
         return numeric
     }
 
+    function _clampToRange(value, minValue, maxValue, fallback) {
+        var numeric = Number(value)
+        if (!Number.isFinite(numeric))
+            return fallback
+        var min = Number(minValue)
+        var max = Number(maxValue)
+        if (Number.isFinite(min) && numeric < min)
+            numeric = min
+        if (Number.isFinite(max) && numeric > max)
+            numeric = max
+        return numeric
+    }
+
     function _rebuildPresetModel() {
         if (!presetModel)
             return
@@ -550,8 +572,8 @@ Item {
     }
 
     function _emitTemperatureChange(rawValue) {
-        var numeric = Number(rawValue)
-        if (!Number.isFinite(numeric))
+        var numeric = _clampToRange(rawValue, _tankTemperatureMin, _tankTemperatureMax, null)
+        if (numeric === null)
             return
         _pneumaticState = _mergeObjects(_pneumaticState, { gas: { tank_temperature_initial_k: numeric } })
         root.pneumaticSettingsChanged({ gas: { tank_temperature_initial_k: numeric } })
@@ -559,8 +581,8 @@ Item {
     }
 
     function _emitAmbientTemperatureChange(rawValue) {
-        var numeric = Number(rawValue)
-        if (!Number.isFinite(numeric))
+        var numeric = _clampToRange(rawValue, _ambientTemperatureMin, _ambientTemperatureMax, null)
+        if (numeric === null)
             return
         _pneumaticState = _mergeObjects(_pneumaticState, { atmo_temp: numeric })
         root.pneumaticSettingsChanged({ atmo_temp: numeric })
@@ -569,8 +591,10 @@ Item {
 
     function _emitRoadProfileChange(value) {
         var normalized = String(value || "").toLowerCase()
-        _modesState = _mergeObjects(_modesState, { road_profile: normalized })
-        root.modesModeChanged("road_profile", normalized)
+        var known = _findOptionIndex(_roadProfileOptions, normalized) >= 0
+        var resolved = known ? normalized : (_roadProfileOptions.length ? _roadProfileOptions[0].value : "smooth_highway")
+        _modesState = _mergeObjects(_modesState, { road_profile: resolved })
+        root.modesModeChanged("road_profile", resolved)
         _updateModesBindings()
     }
 
@@ -1369,6 +1393,7 @@ Item {
 
                     ComboBox {
                         id: roadProfileCombo
+                        objectName: "roadProfileCombo"
                         Layout.fillWidth: true
                         model: root._roadProfileOptions
                         textRole: "label"
@@ -1389,6 +1414,7 @@ Item {
 
                     TextField {
                         id: customProfileField
+                        objectName: "customProfileField"
                         Layout.fillWidth: true
                         placeholderText: qsTr("Путь к профилю дороги…")
                         inputMethodHints: Qt.ImhPreferLowercase | Qt.ImhNoAutoUppercase
@@ -1575,6 +1601,7 @@ Item {
 
                     TextField {
                         id: temperatureField
+                        objectName: "temperatureField"
                         Layout.fillWidth: true
                         inputMethodHints: Qt.ImhFormattedNumbersOnly
                         validator: DoubleValidator {
@@ -1598,6 +1625,7 @@ Item {
 
                     TextField {
                         id: ambientTemperatureField
+                        objectName: "ambientTemperatureField"
                         Layout.fillWidth: true
                         inputMethodHints: Qt.ImhFormattedNumbersOnly
                         validator: DoubleValidator {
