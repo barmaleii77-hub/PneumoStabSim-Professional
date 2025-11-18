@@ -523,6 +523,7 @@ Item {
             id: simulationRoot
             sceneBridge: root.hasSceneBridge ? pythonSceneBridge : null
             fogDepthCurve: root.fogDepthCurve
+            ssaoEnabled: root.ssaoEnabled
         }
         onStatusChanged: function(newStatus) {
             if (newStatus === Loader.Error) {
