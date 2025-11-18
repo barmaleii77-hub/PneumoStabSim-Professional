@@ -147,6 +147,24 @@ def test_settings_service_save_prunes_null_slider_metadata(
     assert "units" not in result
 
 
+def test_settings_service_preserves_slider_extremes(settings_payload: Path) -> None:
+    service = SettingsService(settings_path=settings_payload)
+
+    payload = dump_settings(service.load())
+    slider = payload["metadata"]["environment_slider_ranges"]["fog_most_intense_y"]
+    slider["min"] = -250.0
+    slider["max"] = 250.0
+    slider["step"] = 0.5
+
+    service.save(payload)
+
+    persisted = json.loads(settings_payload.read_text(encoding="utf-8"))
+    stored = persisted["metadata"]["environment_slider_ranges"]["fog_most_intense_y"]
+    assert stored["min"] == pytest.approx(-250.0)
+    assert stored["max"] == pytest.approx(250.0)
+    assert stored["step"] == pytest.approx(0.5)
+
+
 def test_constants_accessors_use_settings_service(
     settings_payload: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

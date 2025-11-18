@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from src.common.settings_manager import PROJECT_ROOT, SettingsManager
+from src.tools.settings_migrate import apply_migrations, load_migrations
 
 
 def _write_legacy_payload(tmp_path: Path) -> Path:
@@ -154,3 +155,40 @@ def test_settings_manager_persists_migrated_payload(tmp_path: Path) -> None:
     assert defaults_geometry["lever_length"] == pytest.approx(0.55)
 
     assert stored["legacy"] == {"unused": True}
+
+
+def test_cli_migration_covers_legacy_snapshot(tmp_path: Path) -> None:
+    legacy_snapshot = PROJECT_ROOT / "tmp_legacy" / "app_settings.json"
+    settings_payload = json.loads(legacy_snapshot.read_text(encoding="utf-8"))
+
+    migrations = load_migrations(PROJECT_ROOT / "config" / "migrations")
+    log_root = tmp_path / "reports"
+
+    executed = apply_migrations(settings_payload, migrations, log_root=log_root)
+
+    assert executed == [
+        "0001_add_diagnostics_defaults",
+        "0002_remove_geometry_mesh_extras",
+    ]
+
+    metadata = settings_payload["metadata"]
+    assert metadata["migrations"] == executed
+    assert metadata["last_migration"] == "0002_remove_geometry_mesh_extras"
+
+    diagnostics = settings_payload["current"]["diagnostics"]["signal_trace"]
+    assert diagnostics["history_limit"] == 1000
+    assert diagnostics["include"] == []
+
+    geometry = settings_payload["current"]["geometry"]
+    assert "cylinder_segments" not in geometry
+    assert "cylinder_rings" not in geometry
+
+    log_path = log_root / "migrations.jsonl"
+    assert log_path.exists()
+    events = [
+        json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert events
+    last_event = events[-1]
+    assert last_event["executed"] == executed
+    assert last_event["executed_count"] == len(executed)
