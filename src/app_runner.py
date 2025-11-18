@@ -556,6 +556,20 @@ class ApplicationRunner:
         """Настройка High DPI scaling."""
         from src.diagnostics.warnings import log_warning
 
+        try:
+            existing_app = self.QApplication.instance()
+        except Exception:  # pragma: no cover - headless environments
+            existing_app = None
+
+        if existing_app is not None:
+            log_warning("High DPI setup skipped: QApplication already exists")
+            if self.app_logger:
+                self.app_logger.warning(
+                    "High DPI setup skipped because QApplication is already active",
+                    extra={"reason": "late-call"},
+                )
+            return
+
         if not hasattr(self.QApplication, "setHighDpiScaleFactorRoundingPolicy"):
             log_warning("High DPI setup: Qt runtime does not expose DPI controls")
             return

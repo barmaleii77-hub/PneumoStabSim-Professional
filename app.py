@@ -61,6 +61,16 @@ from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 def _set_high_dpi_policy(qapplication: object, qt_namespace: object) -> None:
     """Ensure High DPI rounding policy is configured before QApplication creation."""
 
+    instance_exists = False
+    try:
+        instance_exists = bool(getattr(qapplication, "instance", lambda: None)())
+    except Exception:
+        instance_exists = False
+
+    # Qt выдаёт предупреждение, если политику менять после создания QApplication.
+    if instance_exists:
+        return
+
     set_policy = getattr(qapplication, "setHighDpiScaleFactorRoundingPolicy", None)
     policy = getattr(getattr(qt_namespace, "HighDpiScaleFactorRoundingPolicy", None), "PassThrough", None)
 
