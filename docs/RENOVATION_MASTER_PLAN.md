@@ -325,6 +325,7 @@ Target release: PneumoStabSim Professional v4.9.8
 - Физические регрессионные кейсы дополнены стресс-сценарием предельных давлений и режимом полного вывешивания (`tests/physics/cases/*.scene.yaml`), что покрывает проверку калибровки вертикальных сил и моментов при экстремальных состояниях.
 - Phase 4 execution plan ссылается на обновлённый процесс в `docs/CI.md`, что упрощает контроль KPI по покрытиям и стабильности пайплайна.
 - Ручной прогон `make check` от 8 ноября 2025 года задокументирован в `reports/tests/make_check_20251108_162420.log` и краткой сводке `reports/tests/make_check_20251108_summary.md`; шейдерный разбор зафиксирован в `reports/tests/shader_logs_summary.json`.
+- Ручной прогон `make check` от 18 ноября 2025 года прошёл preflight после установки системных библиотек для Qt Quick 3D, завершился 8 сбоями в UI/QML пакете; unit (425) и integration (34) тесты прошли, покрытие составило 44.11%. Артефакты: `reports/tests/{unit,integration,ui}.xml`, `reports/quality/coverage.json`.
 
 **Action Plan**
 

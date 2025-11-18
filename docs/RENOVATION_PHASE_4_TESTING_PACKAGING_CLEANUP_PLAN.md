@@ -136,6 +136,11 @@ Use this section to log coverage milestones, release candidate builds, and clean
 - Preserved full console output in `reports/tests/make_check_20251108_162420.log` and summarised root causes in `reports/tests/make_check_20251108_summary.md` for triage.
 - Shader validation fallback analysis exported to `reports/tests/shader_logs_summary.json`; Pytest JUnit artefact refreshed at `reports/tests/unit.xml`.
 
+### 2025-11-18 – make check rerun with PySide6 QtQuick3D dependencies installed
+- Installed missing system libraries (`libgl1`, `libopengl0`, `libxkbcommon0`, `libegl1`) to restore `PySide6.QtQuick3D` imports in the Linux container and reformatted `tests/smoke/test_simulation_flow_ui_smoke.py` with `ruff format`.
+- `make check` completed `ruff`, `mypy`, `qmllint`, `bandit`, unit (425) and integration (34) suites successfully; UI/QML batch reported 8 failures (GeometryPanel preset restoration, Canvas animation preview canvas missing, Graphics defaults hydration, two `main.qml` baseline timeouts, PostEffects fallback reset, batch_updates signal exposure, SharedMaterials fallback).
+- Coverage combined and published to `reports/quality/coverage.json` (44.11% — 15 090/34 213 lines); JUnit outputs stored at `reports/tests/{unit,integration,ui}.xml` and env preflight in `logs/env_check.json`.
+
 ### 2025-12-14 – Visual Studio assets retired
 - Удалены `.sln/.csproj/.pyproj` вместе с C# заглушками и Insiders скриптами.
 - Обновлены `docs/ENVIRONMENT_SETUP.md` и `docs/DEVELOPMENT_GUIDE.md` с рекомендациями по VS Code/PyCharm.

@@ -3,7 +3,7 @@
 **Дата обновления:** 2025-11-18
 **Версия:** PneumoStabSim Professional `work` branch
 **Подготовил:** Automation Agent
-**Статус готовности:** ⚠️ Требуется стабилизация (CI остановлен на preflight из-за устаревшего `uv.lock`; ожидается подтверждение зелёного прогона после обновления зависимостей)
+**Статус готовности:** ⚠️ Требуется стабилизация (preflight устранён: установлены системные зависимости `libGL`, `libxkbcommon`, `libEGL` и подтверждён импорт `PySide6.QtQuick3D`; текущий прогон `make check` от 2025-11-18 завершился 8 UI/QML сбоями, ожидается дополнительный фикс и повторный запуск)
 
 ---
 
@@ -21,7 +21,7 @@
 | **Settings & Panels** | Завершена интеграция всех UI-панелей с единым менеджером настроек и JSON-конфигами, устранены дубликаты дефолтов, документация приведена к финальному состоянию. | `docs/REFACTORING_FINAL_COMPLETION_REPORT.md`, `docs/SETTINGS_ARCHITECTURE.md` |
 | **Модули освещения** | Добавлена поддержка прожекторов (`SpotLights`), унифицированы ключи для освещения и проведён рефакторинг `SimulationRoot.qml`. | [`commit f4e29b8`](../commit/f4e29b8), [`commit 408f384`](../commit/408f384) |
 | **Интеграция QML-модулей** | QML-пакеты для освещения, геометрии и материалов зарегистрированы через `qmldir`, документация по модульной архитектуре обновлена. | `docs/REFACTORING_FINAL_COMPLETION_REPORT.md`, `docs/MODULAR_ARCHITECTURE_FINAL.md` |
-| **Автоматизация и тестовая инфраструктура** | Проверены полные циклы `make check`, подготовлены журналы и артефакты для CI, обновлены метрики покрытия; актуальный прогон от 2025-11-17 остановился на preflight из-за устаревшего `uv.lock`, требуются обновление lock-файла и повторный запуск. Дополнительно зафиксирована необходимость повторной установки Qt Quick 3D для унификации окружений Linux/Windows. | `reports/tests/make_check_20251105.md`, `reports/tests/make_check_20251108_162420.md`, `reports/tests/make_check_20251108_summary.md`, `reports/tests/make_check_20251117_summary.md`, `reports/quality/latest_metrics.json`, `logs/env_check.json` |
+| **Автоматизация и тестовая инфраструктура** | Проверены полные циклы `make check`, подготовлены журналы и артефакты для CI, обновлены метрики покрытия; актуальный прогон от 2025-11-18 прошёл preflight, но остановился на 8 сбоях UI/QML (GeometryPanel preset сохранение, Canvas animation preview, GraphicsPanel defaults, два baseline-снимка main.qml, PostEffects fallback, batch_updates сигнал, SharedMaterials fallback). Системные зависимости Qt Quick 3D установлены в контейнер. Требуется фиксация UI-кейсов и повторный запуск. | `reports/tests/make_check_20251105.md`, `reports/tests/make_check_20251108_162420.md`, `reports/tests/make_check_20251108_summary.md`, `reports/tests/make_check_20251117_summary.md`, `reports/tests/unit.xml`, `reports/tests/integration.xml`, `reports/tests/ui.xml`, `reports/quality/coverage.json`, `logs/env_check.json` |
 | **Документация HDR/текстур** | Обновлены инструкции по загрузке HDR из манифеста, приведены примеры использования `verify-hdr-assets` и описано сохранение текстур через `FileCyclerWidget`. | `docs/README.md`, `assets/hdr/README.md`, `docs/CHANGELOG.md` |
 
 ---
@@ -32,17 +32,18 @@
 | CI / `make check` (успешный прогон) | [`reports/tests/make_check_20251105.md`](../reports/tests/make_check_20251105.md) | ✅ Все этапы (`ruff`, `mypy`, `qmllint`, `pytest`, валидаторы HDR/Shader) завершились успешно. |
 | CI / `make check` (последний регресс) | [`reports/tests/make_check_20251108_summary.md`](../reports/tests/make_check_20251108_summary.md) и полный лог [`reports/tests/make_check_20251108_162420.md`](../reports/tests/make_check_20251108_162420.md) | ❌ Зафиксирован сбой в unit-тестах и предупреждения `qmllint`; требуется дополнительная стабилизация перед запуском CI. |
 | CI / `make check` (актуальный запуск 2025-11-17) | [`reports/tests/make_check_20251117_summary.md`](../reports/tests/make_check_20251117_summary.md) и [`logs/env_check.json`](../logs/env_check.json) | ❌ Прекращено на preflight: `uv run --locked` требует обновления `uv.lock`; ранее фиксировалась нехватка `PySide6.QtQuick3D`, поэтому после обновления lock-файла и повторного `make check` нужно подтвердить установку Qt Quick 3D. Запланировано предоставить свежий лог и метрики покрытия после следующего прогона. |
-| Покрытие | [`reports/quality/latest_metrics.json`](../reports/quality/latest_metrics.json) | Текущий показатель покрытия: **42.28%** (13 260 покрытых строк из 31 363). |
+| Покрытие | [`reports/quality/coverage.json`](../reports/quality/coverage.json) | Текущий показатель покрытия: **44.11%** (15 090 покрытых строк из 34 213). |
+| CI / `make check` (актуальный запуск 2025-11-18) | [`reports/tests/unit.xml`](../reports/tests/unit.xml), [`reports/tests/integration.xml`](../reports/tests/integration.xml), [`reports/tests/ui.xml`](../reports/tests/ui.xml), [`reports/quality/coverage.json`](../reports/quality/coverage.json), [`logs/env_check.json`](../logs/env_check.json) | ❌ Прогон выполнил `ruff`, `mypy`, `qmllint`, `bandit` и все тестовые пачки. Unit (425) и integration (34) — ✅. UI/QML: 8 падений (GeometryPanel preset значения, Canvas schematicCanvas отсутствует, GraphicsPanel defaults расходятся, baseline main.qml тайм-ауты, PostEffects fallback не сбрасывает эффекты, batch_updates сигнал не создаёт root, SharedMaterials fallback не активируется). Артефакты покрытия собраны. |
 | Интеграционные сценарии | [`reports/tests/integration/`](../reports/tests/integration/) | Метрики стабилизации шасси и дорожных сценариев доступны для анализа (road/highway/offroad профили). |
 | UI и графика | [`reports/tests/ui_phase3_test_gap_analysis_20251105.md`](../reports/tests/ui_phase3_test_gap_analysis_20251105.md) | Подтверждены оставшиеся пробелы UI-автотестов и учтены в backlog Phase 3. |
 
 ---
 
 ## 4. Риски и рекомендованные действия
-1. **Восстановить зелёное состояние CI** — устранить провалы unit-тестов (`structlog`, kinematics) и повторно пройти preflight после обновления `uv.lock`.
+1. **Восстановить зелёное состояние CI** — исправить UI/QML падения (GeometryPanel presets, Canvas schematicCanvas, Graphics defaults, PostEffects fallback, batch_updates сигнал, SharedMaterials fallback) и подтвердить новый зелёный прогон `make check`.
 2. **Обновить `uv.lock` и повторить `make check`** — перегенерировать lock-файл (`uv lock`), затем убедиться, что preflight и полный пайплайн (`ruff`, `mypy`, `qmllint`, `pytest`) проходят без остановок; артефакт нового прогона разместить в `reports/tests/` и привязать к этому отчёту.
-3. **Установить Qt Quick 3D в окружениях CI/локально** — подтвердить наличие `PySide6.QtQuick3D` после обновления lock-файла и повторных прогонов.
-4. **Увеличить покрытие** — текущий показатель 42.28%; рекомендуется усилить тесты освещения и настроек.
+3. **Поддерживать Qt Quick 3D в окружениях CI/локально** — системные пакеты (`libGL`, `libxkbcommon0`, `libegl1`) установлены; подтвердить наличие `PySide6.QtQuick3D` при следующих запусках и задокументировать шаги в CI.
+4. **Увеличить покрытие** — текущий показатель 44.11%; рекомендуется усилить тесты освещения и настроек.
 5. **Закрыть предупреждения `qmllint`** — закрепить фиксы в дополнительных MR/PR согласно Phase 3 playbook.
 6. **Зафиксировать регулярность HDR-валидации** — `make verify hdr-verify` и `validate_hdr_orientation` должны запускаться перед сборками и синхронизироваться с обновлёнными журналами `logs/ibl/ibl_events.jsonl`.
 
@@ -60,4 +61,4 @@
 |------|-------|-----------|
 | 2025-11-11 | Automation Agent | Полностью обновлён финальный отчёт, добавлены ссылки на логи CI, покрытия, ключевые коммиты и план распространения. |
 | 2025-11-17 | Automation Agent | Добавлен результат актуального `make check` (preflight остановлен из-за устаревшего `uv.lock` и ранее выявленной нехватки `PySide6.QtQuick3D`), обновлён статус готовности, риски и ссылки на артефакты. |
-| 2025-11-18 | Automation Agent | Уточнён статус распространения отчёта, выделена необходимость повторной установки Qt Quick 3D и повторного прогона `make check` с публикацией свежих логов и метрик покрытия. |
+| 2025-11-18 | Automation Agent | Обновлены результаты `make check`: preflight пройден после установки Qt Quick 3D зависимостей, зафиксированы 8 падений UI/QML и собранное покрытие 44.11%; добавлены ссылки на JUnit/coverage артефакты и уточнён план стабилизации. |
