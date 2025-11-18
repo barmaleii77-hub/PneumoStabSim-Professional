@@ -41,6 +41,9 @@ Item {
 
     // Shader diagnostics
     signal shaderStatusDumpRequested(var payload)
+    signal shaderWarningRegistered(string effectId, string message)
+    signal shaderWarningCleared(string effectId)
+    property var shaderWarningState: ({})
 
     // Empty defaults helpers
     readonly property var emptyDefaultsObject: Object.freeze({})
@@ -210,6 +213,9 @@ Item {
     }
     function _normaliseState(value) { if (!value || typeof value !== "object") return ({}); var copy={}; for (var key in value) if (Object.prototype.hasOwnProperty.call(value,key)) copy[key]=value[key]; return copy }
     function _isEmptyMap(value) { if (!value || typeof value !== "object") return true; for (var key in value) if (Object.prototype.hasOwnProperty.call(value,key)) return false; return true }
+    function _normalizeEffectId(value) { var normalized = "unknown"; if (value !== undefined && value !== null) { normalized = String(value); if (!normalized.length) normalized = "unknown" } return normalized }
+    function _normalizeWarningMessage(value) { if (value === undefined || value === null) return ""; return String(value) }
+    function _cloneWarningState(source) { if (!source || typeof source !== "object") return ({}); return _cloneObject(source) }
 
     function _storeLastUpdate(category, payload) {
         var snapshot = _cloneObject(lastUpdateByCategory)
@@ -399,15 +405,52 @@ Item {
     // Shader diagnostics (simplified forwarding) -----------------
     function diagnosticsWindow() { return typeof window !== "undefined" && window ? window : null }
     function registerShaderWarning(effectId, message) {
+        var normalizedId = _normalizeEffectId(effectId)
+        var normalizedMessage = _normalizeWarningMessage(message)
+
+        var previousState = shaderWarningState
+        var nextState = _cloneWarningState(previousState)
+        if (nextState[normalizedId] !== normalizedMessage)
+            nextState[normalizedId] = normalizedMessage
+        shaderWarningState = nextState
+
+        shaderWarningRegistered(normalizedId, normalizedMessage)
+
+        if (root.sceneBridge && typeof root.sceneBridge.registerShaderWarning === "function") {
+            try {
+                root.sceneBridge.registerShaderWarning(normalizedId, normalizedMessage)
+            } catch (error) {
+                console.debug("[SimulationRoot] sceneBridge.registerShaderWarning failed", error)
+            }
+        }
+
         var host = diagnosticsWindow()
         if (host && typeof host.registerShaderWarning === "function") {
-            try { host.registerShaderWarning(effectId, message); return } catch(e) {}
+            try { host.registerShaderWarning(normalizedId, normalizedMessage); return } catch(e) {}
         }
     }
     function clearShaderWarning(effectId) {
+        var normalizedId = _normalizeEffectId(effectId)
+
+        var previousState = shaderWarningState
+        var nextState = _cloneWarningState(previousState)
+        if (Object.prototype.hasOwnProperty.call(nextState, normalizedId))
+            delete nextState[normalizedId]
+        shaderWarningState = nextState
+
+        shaderWarningCleared(normalizedId)
+
+        if (root.sceneBridge && typeof root.sceneBridge.clearShaderWarning === "function") {
+            try {
+                root.sceneBridge.clearShaderWarning(normalizedId)
+            } catch (error) {
+                console.debug("[SimulationRoot] sceneBridge.clearShaderWarning failed", error)
+            }
+        }
+
         var host = diagnosticsWindow()
         if (host && typeof host.clearShaderWarning === "function") {
-            try { host.clearShaderWarning(effectId); return } catch(e) {}
+            try { host.clearShaderWarning(normalizedId); return } catch(e) {}
         }
     }
 
@@ -432,18 +475,18 @@ Item {
         enabled: !!target && !!root.sceneBridge
         ignoreUnknownSignals: true
 
-        function onEffectsBypassChanged() {
+        function _syncEffectsBypassState(bypass, reason) {
             if (!root.postEffects)
                 return
             try {
-                var bypass = !!root.postEffects.effectsBypass
-                var reason = String(root.postEffects.effectsBypassReason || "")
-                if (root.postProcessingBypassed !== bypass)
-                    root.postProcessingBypassed = bypass
-                if (root.postProcessingBypassReason !== reason)
-                    root.postProcessingBypassReason = reason
+                var bypassActive = !!bypass
+                var normalizedReason = reason !== undefined && reason !== null ? String(reason) : ""
+                if (root.postProcessingBypassed !== bypassActive)
+                    root.postProcessingBypassed = bypassActive
+                if (root.postProcessingBypassReason !== normalizedReason)
+                    root.postProcessingBypassReason = normalizedReason
 
-                if (bypass) {
+                if (bypassActive) {
                     // Backup current effects and clear the chain on the view stub
                     if (root.sceneView) {
                         var current = root.sceneView.effects
@@ -455,7 +498,7 @@ Item {
                     }
                     // Forward structured snapshot to Python for diagnostics
                     try {
-                        var snapshot = root.postEffects.dumpShaderStatus(reason)
+                        var snapshot = root.postEffects.dumpShaderStatus(normalizedReason)
                         root.shaderStatusDumpRequested(snapshot)
                     } catch (e) {}
                 } else {
@@ -482,30 +525,36 @@ Item {
             }
         }
 
+        function onEffectsBypassChanged(bypass) {
+            var reason = root.postEffects ? root.postEffects.effectsBypassReason : ""
+            _syncEffectsBypassState(bypass, reason)
+        }
+
+        function onEffectsBypassReasonChanged(reason) {
+            var bypass = root.postEffects ? root.postEffects.effectsBypass : false
+            _syncEffectsBypassState(bypass, reason)
+        }
+
         // Добавляем обработчики сигналов PostEffects для маршрутизации shader предупреждений
-        function onEffectCompilationError(effectId, fallbackActive, message) {
-            try {
-                if (root.sceneBridge && typeof root.sceneBridge.registerShaderWarning === 'function') {
-                    root.sceneBridge.registerShaderWarning(effectId, message)
-                }
-                // Emit status snapshot for tests expecting shaderStatusDumpRequested
-                var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
-                    ? root.postEffects.dumpShaderStatus(message)
+        function _emitShaderStatusDump(reason) {
+            var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
+                    ? root.postEffects.dumpShaderStatus(reason)
                     : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
-                root.shaderStatusDumpRequested(snapshot)
+            root.shaderStatusDumpRequested(snapshot)
+        }
+
+        function onEffectCompilationError(effectId, message) {
+            try {
+                root.registerShaderWarning(effectId, message)
+                _emitShaderStatusDump(message)
             } catch (e) {
                 console.debug('[SimulationRoot] onEffectCompilationError routing failed', e)
             }
         }
-        function onEffectCompilationRecovered(effectId, wasFallbackActive) {
+        function onEffectCompilationRecovered(effectId) {
             try {
-                if (root.sceneBridge && typeof root.sceneBridge.clearShaderWarning === 'function') {
-                    root.sceneBridge.clearShaderWarning(effectId)
-                }
-                var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
-                    ? root.postEffects.dumpShaderStatus('recovered')
-                    : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
-                root.shaderStatusDumpRequested(snapshot)
+                root.clearShaderWarning(effectId)
+                _emitShaderStatusDump('recovered')
             } catch (e) {
                 console.debug('[SimulationRoot] onEffectCompilationRecovered routing failed', e)
             }
