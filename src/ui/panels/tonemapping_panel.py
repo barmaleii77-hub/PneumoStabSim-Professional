@@ -282,6 +282,11 @@ class TonemappingPanel(QWidget):
             "effects": dict(effects),
         }
 
+    def collect_state(self) -> dict[str, Any]:
+        """Return a detached snapshot of the current UI-driven state."""
+
+        return dict(self.get_parameters())
+
     # ---------------------------------------------------------------- lifecycle
     def deleteLater(self) -> None:  # pragma: no cover - Qt lifecycle
         try:

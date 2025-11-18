@@ -31,3 +31,16 @@ def test_stabilizer_panel_get_parameters_reflects_spinbox(
     snapshot["diagonal_coupling_dia"] = 0.0
     refreshed = panel.get_parameters()
     assert refreshed["diagonal_coupling_dia"] == pytest.approx(panel._spinbox.value())
+
+
+@pytest.mark.gui
+def test_collect_state_matches_parameters(qtbot: pytestqt.qtbot.QtBot) -> None:
+    panel = StabilizerPanel()
+    qtbot.addWidget(panel)
+
+    initial = panel.collect_state()
+    assert initial == panel.get_parameters()
+
+    initial["diagonal_coupling_dia"] = 0.1234
+    refreshed = panel.collect_state()
+    assert refreshed["diagonal_coupling_dia"] != 0.1234
