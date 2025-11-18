@@ -303,7 +303,9 @@ class SettingsBackedAccordionPanel(QWidget):
     def _resolve_initial_value(self, spec: SliderFieldSpec) -> float:
         value = spec.default
         if spec.settings_key:
-            path = f"current.{self._settings_section}.{spec.settings_key}"
+            path = spec.settings_key
+            if not path.startswith("current."):
+                path = f"current.{self._settings_section}.{spec.settings_key}"
             stored = self._settings.get(path, spec.default)
             try:
                 candidate = spec.from_settings(stored) if spec.from_settings else stored
@@ -385,7 +387,9 @@ class SettingsBackedAccordionPanel(QWidget):
         self, spec: SliderFieldSpec, value: float, *, source: str
     ) -> None:
         if spec.settings_key:
-            path = f"current.{self._settings_section}.{spec.settings_key}"
+            path = spec.settings_key
+            if not path.startswith("current."):
+                path = f"current.{self._settings_section}.{spec.settings_key}"
             payload = value
             if spec.to_settings:
                 try:
@@ -1109,6 +1113,8 @@ class SimulationPanelAccordion(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self._settings = get_settings_manager()
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
@@ -1121,7 +1127,11 @@ class SimulationPanelAccordion(QWidget):
 
         self.sim_mode_combo = QComboBox()
         self.sim_mode_combo.addItems(["Kinematics", "Dynamics"])
-        self.sim_mode_combo.setCurrentIndex(1)  # Default: Dynamics
+        stored_mode = str(self._settings.get("current.modes.sim_type", "DYNAMICS"))
+        if stored_mode.lower() == "kinematics":
+            self.sim_mode_combo.setCurrentIndex(0)
+        else:
+            self.sim_mode_combo.setCurrentIndex(1)
         self.sim_mode_combo.setStyleSheet(
             """
             QComboBox {
@@ -1134,9 +1144,7 @@ class SimulationPanelAccordion(QWidget):
             }
         """
         )
-        self.sim_mode_combo.currentTextChanged.connect(
-            lambda text: self._on_mode_changed(text.lower())
-        )
+        self.sim_mode_combo.currentTextChanged.connect(self._on_mode_changed)
         layout.addWidget(self.sim_mode_combo)
 
         # === KINEMATIC MODE OPTIONS (only for kinematics) ===
@@ -1149,17 +1157,21 @@ class SimulationPanelAccordion(QWidget):
 
         self.include_springs_check = QCheckBox("Include Springs")
         self.include_springs_check.setStyleSheet("color: #ffffff; font-size: 9pt;")
-        self.include_springs_check.setChecked(True)
+        self.include_springs_check.setChecked(
+            bool(self._settings.get("current.modes.physics.include_springs", True))
+        )
         self.include_springs_check.stateChanged.connect(
-            lambda state: self.option_changed.emit("include_springs", state == 2)
+            lambda state: self._on_option_changed("include_springs", state == 2)
         )
         layout.addWidget(self.include_springs_check)
 
         self.include_dampers_check = QCheckBox("Include Dampers")
         self.include_dampers_check.setStyleSheet("color: #ffffff; font-size: 9pt;")
-        self.include_dampers_check.setChecked(True)
+        self.include_dampers_check.setChecked(
+            bool(self._settings.get("current.modes.physics.include_dampers", True))
+        )
         self.include_dampers_check.stateChanged.connect(
-            lambda state: self.option_changed.emit("include_dampers", state == 2)
+            lambda state: self._on_option_changed("include_dampers", state == 2)
         )
         layout.addWidget(self.include_dampers_check)
 
@@ -1172,18 +1184,25 @@ class SimulationPanelAccordion(QWidget):
 
         self.check_interference = QCheckBox("Check Lever-Cylinder Interference")
         self.check_interference.setStyleSheet("color: #ffffff; font-size: 9pt;")
-        self.check_interference.setChecked(False)
+        self.check_interference.setChecked(
+            bool(
+                self._settings.get(
+                    "current.physics.validation.enable_interference_checks", False
+                )
+            )
+        )
         self.check_interference.stateChanged.connect(
-            lambda state: self.option_changed.emit("check_interference", state == 2)
+            lambda state: self._on_option_changed("check_interference", state == 2)
         )
         layout.addWidget(self.check_interference)
 
         # === TIMING PARAMETERS ===
 
         # Time step
+        sim_dt = float(self._settings.get("current.simulation.physics_dt", 0.001))
         self.time_step = ParameterSlider(
             name="Time Step (dt)",
-            initial_value=0.001,
+            initial_value=sim_dt,
             min_value=0.0001,
             max_value=0.01,
             step=0.0001,
@@ -1191,15 +1210,14 @@ class SimulationPanelAccordion(QWidget):
             unit="s",
             allow_range_edit=True,
         )
-        self.time_step.value_changed.connect(
-            lambda v: self.parameter_changed.emit("time_step", v)
-        )
+        self.time_step.value_changed.connect(self._on_time_step_changed)
         layout.addWidget(self.time_step)
 
         # Simulation speed
+        sim_speed = float(self._settings.get("current.simulation.sim_speed", 1.0))
         self.sim_speed = ParameterSlider(
             name="Simulation Speed",
-            initial_value=1.0,
+            initial_value=sim_speed,
             min_value=0.1,
             max_value=10.0,
             step=0.1,
@@ -1208,14 +1226,17 @@ class SimulationPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.sim_speed.value_changed.connect(
-            lambda v: self.parameter_changed.emit("sim_speed", v)
+            lambda v: self._on_slider_changed("sim_speed", v)
         )
         layout.addWidget(self.sim_speed)
 
         layout.addStretch()
 
-    def _on_mode_changed(self, mode: str):
+        self._on_mode_changed(self.sim_mode_combo.currentText())
+
+    def _on_mode_changed(self, mode_text: str):
         """Handle simulation mode change"""
+        mode = mode_text.lower()
         is_kinematics = mode == "kinematics"
 
         # Show/hide kinematic options
@@ -1223,7 +1244,29 @@ class SimulationPanelAccordion(QWidget):
         self.include_springs_check.setVisible(is_kinematics)
         self.include_dampers_check.setVisible(is_kinematics)
 
+        self._settings.set("current.modes.sim_type", mode.upper(), auto_save=False)
         self.sim_mode_changed.emit(mode)
+
+    def _on_option_changed(self, name: str, enabled: bool) -> None:
+        mapping = {
+            "include_springs": "current.modes.physics.include_springs",
+            "include_dampers": "current.modes.physics.include_dampers",
+            "check_interference": "current.physics.validation.enable_interference_checks",
+        }
+        path = mapping.get(name)
+        if path:
+            self._settings.set(path, enabled, auto_save=False)
+        self.option_changed.emit(name, enabled)
+
+    def _on_time_step_changed(self, value: float) -> None:
+        self._settings.set(
+            "current.simulation.physics_dt", float(value), auto_save=False
+        )
+        self.parameter_changed.emit("time_step", value)
+
+    def _on_slider_changed(self, name: str, value: float) -> None:
+        self._settings.set(f"current.simulation.{name}", float(value), auto_save=False)
+        self.parameter_changed.emit(name, value)
 
     def get_parameters(self) -> dict:
         """Get all parameters"""
@@ -1246,6 +1289,8 @@ class RoadPanelAccordion(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self._settings = get_settings_manager()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1274,6 +1319,10 @@ class RoadPanelAccordion(QWidget):
         self.road_mode_combo.currentTextChanged.connect(self._on_mode_changed)
         layout.addWidget(self.road_mode_combo)
 
+        initial_mode = str(self._settings.get("current.modes.road_mode", "manual"))
+        if initial_mode == "profile":
+            self.road_mode_combo.setCurrentIndex(1)
+
         # === MANUAL MODE PARAMETERS ===
 
         self.manual_label = QLabel("Manual Parameters:")
@@ -1283,9 +1332,10 @@ class RoadPanelAccordion(QWidget):
         layout.addWidget(self.manual_label)
 
         # Amplitude (all wheels)
+        amplitude = float(self._settings.get("current.modes.amplitude", 0.05))
         self.amplitude = ParameterSlider(
             name="Amplitude (A)",
-            initial_value=0.05,
+            initial_value=amplitude,
             min_value=0.0,
             max_value=0.2,
             step=0.001,
@@ -1294,14 +1344,15 @@ class RoadPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.amplitude.value_changed.connect(
-            lambda v: self.parameter_changed.emit("amplitude", v)
+            lambda v: self._on_parameter_changed("amplitude", v)
         )
         layout.addWidget(self.amplitude)
 
         # Frequency (all wheels)
+        frequency = float(self._settings.get("current.modes.frequency", 1.0))
         self.frequency = ParameterSlider(
             name="Frequency (f)",
-            initial_value=1.0,
+            initial_value=frequency,
             min_value=0.1,
             max_value=10.0,
             step=0.1,
@@ -1310,14 +1361,15 @@ class RoadPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.frequency.value_changed.connect(
-            lambda v: self.parameter_changed.emit("frequency", v)
+            lambda v: self._on_parameter_changed("frequency", v)
         )
         layout.addWidget(self.frequency)
 
         # Phase offset (rear vs front)
+        phase = float(self._settings.get("current.modes.phase", 0.0))
         self.phase_offset = ParameterSlider(
             name="Phase Offset (rear)",
-            initial_value=0.0,
+            initial_value=phase,
             min_value=-180.0,
             max_value=180.0,
             step=1.0,
@@ -1326,7 +1378,7 @@ class RoadPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.phase_offset.value_changed.connect(
-            lambda v: self.parameter_changed.emit("phase_offset", v)
+            lambda v: self._on_parameter_changed("phase", v)
         )
         layout.addWidget(self.phase_offset)
 
@@ -1339,14 +1391,14 @@ class RoadPanelAccordion(QWidget):
         layout.addWidget(self.profile_label)
 
         self.profile_type_combo = QComboBox()
-        profile_options = (
-            "Smooth Highway",
-            "City Streets",
-            "Off-Road",
-            "Mountain Serpentine",
-            "Custom",
-        )
-        self.profile_type_combo.addItems(list(profile_options))
+        self._profile_map = {
+            "smooth_highway": "Smooth Highway",
+            "city_streets": "City Streets",
+            "off_road": "Off-Road",
+            "mountain_serpentine": "Mountain Serpentine",
+            "custom": "Custom",
+        }
+        self.profile_type_combo.addItems(list(self._profile_map.values()))
         self.profile_type_combo.setStyleSheet(
             """
             QComboBox {
@@ -1359,15 +1411,18 @@ class RoadPanelAccordion(QWidget):
             }
         """
         )
-        self.profile_type_combo.currentTextChanged.connect(
-            lambda text: self.profile_type_changed.emit(text.lower().replace(" ", "_"))
-        )
+        self.profile_type_combo.currentTextChanged.connect(self._on_profile_changed)
         layout.addWidget(self.profile_type_combo)
 
+        preset = str(self._settings.get("current.modes.mode_preset", "smooth_highway"))
+        label = self._profile_map.get(preset, self._profile_map["smooth_highway"])
+        self.profile_type_combo.setCurrentText(label)
+
         # Average speed
+        avg_speed = float(self._settings.get("current.modes.profile_avg_speed", 60.0))
         self.avg_speed = ParameterSlider(
             name="Average Speed (v_avg)",
-            initial_value=60.0,
+            initial_value=avg_speed,
             min_value=10.0,
             max_value=120.0,
             step=5.0,
@@ -1376,7 +1431,7 @@ class RoadPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.avg_speed.value_changed.connect(
-            lambda v: self.parameter_changed.emit("avg_speed", v)
+            lambda v: self._on_parameter_changed("profile_avg_speed", v)
         )
         layout.addWidget(self.avg_speed)
 
@@ -1386,6 +1441,8 @@ class RoadPanelAccordion(QWidget):
         self.avg_speed.hide()
 
         layout.addStretch()
+
+        self._on_mode_changed(self.road_mode_combo.currentText())
 
     def _on_mode_changed(self, mode_text: str):
         """Handle road mode change"""
@@ -1402,7 +1459,20 @@ class RoadPanelAccordion(QWidget):
         self.avg_speed.setVisible(is_profile)
 
         mode = "profile" if is_profile else "manual"
+        self._settings.set("current.modes.road_mode", mode, auto_save=False)
         self.road_mode_changed.emit(mode)
+
+    def _on_parameter_changed(self, name: str, value: float) -> None:
+        self._settings.set(f"current.modes.{name}", float(value), auto_save=False)
+        self.parameter_changed.emit(name, value)
+
+    def _on_profile_changed(self, label: str) -> None:
+        for key, text in self._profile_map.items():
+            if text == label:
+                self._settings.set("current.modes.mode_preset", key, auto_save=False)
+                self.profile_type_changed.emit(key)
+                return
+        self.profile_type_changed.emit(label.lower())
 
     def get_parameters(self) -> dict:
         """Get all parameters"""
@@ -1413,7 +1483,7 @@ class RoadPanelAccordion(QWidget):
                 "road_mode": "manual",
                 "amplitude": self.amplitude.value(),
                 "frequency": self.frequency.value(),
-                "phase_offset": self.phase_offset.value(),
+                "phase": self.phase_offset.value(),
             }
         else:
             return {
@@ -1433,6 +1503,8 @@ class AdvancedPanelAccordion(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+        self._settings = get_settings_manager()
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
@@ -1444,9 +1516,12 @@ class AdvancedPanelAccordion(QWidget):
         layout.addWidget(susp_label)
 
         # Spring stiffness
+        spring_constant = float(
+            self._settings.get("current.physics.suspension.spring_constant", 50000.0)
+        )
         self.spring_stiffness = ParameterSlider(
             name="Spring Stiffness (k)",
-            initial_value=50000.0,
+            initial_value=spring_constant,
             min_value=10000.0,
             max_value=200000.0,
             step=1000.0,
@@ -1455,14 +1530,19 @@ class AdvancedPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.spring_stiffness.value_changed.connect(
-            lambda v: self.parameter_changed.emit("spring_stiffness", v)
+            lambda v: self._on_parameter_changed(
+                "physics.suspension.spring_constant", v
+            )
         )
         layout.addWidget(self.spring_stiffness)
 
         # Damper coefficient
+        damper_coeff = float(
+            self._settings.get("current.physics.suspension.damper_coefficient", 2000.0)
+        )
         self.damper_coeff = ParameterSlider(
             name="Damper Coefficient (c)",
-            initial_value=2000.0,
+            initial_value=damper_coeff,
             min_value=500.0,
             max_value=10000.0,
             step=100.0,
@@ -1471,7 +1551,9 @@ class AdvancedPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.damper_coeff.value_changed.connect(
-            lambda v: self.parameter_changed.emit("damper_coeff", v)
+            lambda v: self._on_parameter_changed(
+                "physics.suspension.damper_coefficient", v
+            )
         )
         layout.addWidget(self.damper_coeff)
 
@@ -1481,9 +1563,12 @@ class AdvancedPanelAccordion(QWidget):
         dz_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
         layout.addWidget(dz_label)
 
+        dead_zone = float(
+            self._settings.get("current.physics.suspension.dead_zone_percent", 5.0)
+        )
         self.dead_zone = ParameterSlider(
             name="Dead Zone (both ends)",
-            initial_value=5.0,
+            initial_value=dead_zone,
             min_value=0.0,
             max_value=20.0,
             step=0.5,
@@ -1492,9 +1577,27 @@ class AdvancedPanelAccordion(QWidget):
             allow_range_edit=True,
         )
         self.dead_zone.value_changed.connect(
-            lambda v: self.parameter_changed.emit("dead_zone", v)
+            lambda v: self._on_parameter_changed(
+                "physics.suspension.dead_zone_percent", v
+            )
         )
         layout.addWidget(self.dead_zone)
+
+        atm_temp = float(self._settings.get("current.pneumatic.atmo_temp", 20.0))
+        self.atmospheric_temp = ParameterSlider(
+            name="Atmospheric Temp",
+            initial_value=atm_temp,
+            min_value=-80.0,
+            max_value=150.0,
+            step=1.0,
+            decimals=1,
+            unit="°C",
+            allow_range_edit=True,
+        )
+        self.atmospheric_temp.value_changed.connect(
+            lambda v: self._on_parameter_changed("pneumatic.atmo_temp", v)
+        )
+        layout.addWidget(self.atmospheric_temp)
 
         # === GRAPHICS SETTINGS ===
 
@@ -1505,50 +1608,58 @@ class AdvancedPanelAccordion(QWidget):
         layout.addWidget(graphics_label)
 
         # Target FPS
+        frame_limit = float(
+            self._settings.get("current.graphics.quality.frame_rate_limit", 144.0)
+        )
         self.target_fps = ParameterSlider(
             name="Target FPS",
-            initial_value=60.0,
+            initial_value=frame_limit,
             min_value=30.0,
-            max_value=120.0,
-            step=10.0,
+            max_value=240.0,
+            step=5.0,
             decimals=0,
             unit="fps",
             allow_range_edit=False,
         )
         self.target_fps.value_changed.connect(
-            lambda v: self.parameter_changed.emit("target_fps", v)
+            lambda v: self._on_parameter_changed("graphics.quality.frame_rate_limit", v)
         )
         layout.addWidget(self.target_fps)
 
-        # Anti-aliasing quality
+        render_scale = float(
+            self._settings.get("current.graphics.quality.render_scale", 1.05)
+        )
         self.aa_quality = ParameterSlider(
-            name="Anti-Aliasing Quality",
-            initial_value=2.0,
-            min_value=0.0,
-            max_value=4.0,
-            step=1.0,
-            decimals=0,
-            unit="",
-            allow_range_edit=False,
+            name="Render Scale",
+            initial_value=render_scale,
+            min_value=0.5,
+            max_value=2.0,
+            step=0.05,
+            decimals=2,
+            unit="x",
+            allow_range_edit=True,
         )
         self.aa_quality.value_changed.connect(
-            lambda v: self.parameter_changed.emit("aa_quality", v)
+            lambda v: self._on_parameter_changed("graphics.quality.render_scale", v)
         )
         layout.addWidget(self.aa_quality)
 
         # Shadow quality
+        shadow_filter = float(
+            self._settings.get("current.graphics.quality.shadows.filter", 32.0)
+        )
         self.shadow_quality = ParameterSlider(
-            name="Shadow Quality",
-            initial_value=2.0,
-            min_value=0.0,
-            max_value=4.0,
+            name="Shadow Filter Size",
+            initial_value=shadow_filter,
+            min_value=1.0,
+            max_value=128.0,
             step=1.0,
             decimals=0,
-            unit="",
+            unit="px",
             allow_range_edit=False,
         )
         self.shadow_quality.value_changed.connect(
-            lambda v: self.parameter_changed.emit("shadow_quality", v)
+            lambda v: self._on_parameter_changed("graphics.quality.shadows.filter", v)
         )
         layout.addWidget(self.shadow_quality)
 
@@ -1560,10 +1671,16 @@ class AdvancedPanelAccordion(QWidget):
             "spring_stiffness": self.spring_stiffness.value(),
             "damper_coeff": self.damper_coeff.value(),
             "dead_zone": self.dead_zone.value(),
+            "atmospheric_temp": self.atmospheric_temp.value(),
             "target_fps": self.target_fps.value(),
-            "aa_quality": self.aa_quality.value(),
-            "shadow_quality": self.shadow_quality.value(),
+            "render_scale": self.aa_quality.value(),
+            "shadow_filter": self.shadow_quality.value(),
         }
+
+    def _on_parameter_changed(self, dotted_key: str, value: float) -> None:
+        self._settings.set(f"current.{dotted_key}", float(value), auto_save=False)
+        short_key = dotted_key.split(".")[-1]
+        self.parameter_changed.emit(short_key, value)
 
 
 # Export
