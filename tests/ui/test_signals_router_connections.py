@@ -40,6 +40,7 @@ def fake_window() -> Any:
         simulation_manager=simulation_manager,
         _on_state_update=_dummy_handler,
         _on_physics_error=_dummy_handler,
+        _on_accordion_field_validation_state=_dummy_handler,
     )
     return window
 

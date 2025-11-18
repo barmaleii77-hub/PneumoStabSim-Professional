@@ -310,6 +310,17 @@ Item {
         _queuedBatchedUpdates = remaining
     }
 
+    function _applyFogDensityBinding() {
+        if (typeof environmentFog === "undefined" || !environmentFog)
+            return
+        if ("density" in environmentFog)
+            environmentFog.density = root.fogDensity
+        else if ("fogDensity" in environmentFog)
+            environmentFog.fogDensity = root.fogDensity
+    }
+
+    onFogDensityChanged: _applyFogDensityBinding()
+
     function _deliverBatchedUpdates(payload) {
         return _invokeOnActiveRoot("applyBatchedUpdates", payload)
     }
