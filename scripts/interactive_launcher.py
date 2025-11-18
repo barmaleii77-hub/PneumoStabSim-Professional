@@ -363,6 +363,9 @@ def run_log_analysis(env: dict[str, str]) -> str:
 
     root = project_root()
     analyzer = root / "tools" / "analyze_logs.py"
+    if not root.exists():
+        return f"Каталог проекта недоступен: {root}"
+
     if not analyzer.exists():
         return (
             "Не найден анализатор логов: tools/analyze_logs.py. "
@@ -370,10 +373,20 @@ def run_log_analysis(env: dict[str, str]) -> str:
         )
 
     graphics_logs = root / LOGS_DIR / "graphics"
+    if graphics_logs.exists() and not graphics_logs.is_dir():
+        return (
+            f"Ожидалась директория с логами, но найден файл: {graphics_logs}. "
+            "Проверьте настройки путей логов."
+        )
     if not graphics_logs.exists():
         return "Логи графики отсутствуют (ожидалось: logs/graphics)."
 
     python_exe = detect_venv_python(prefer_console=True)
+    if not python_exe.exists():
+        return (
+            f"Интерпретатор Python не найден: {python_exe}. "
+            "Воссоздайте виртуальное окружение (make uv-sync)."
+        )
     try:
         completed = run_command_logged(
             [str(python_exe), "-m", "tools.analyze_logs"], cwd=root, env=env
@@ -385,6 +398,9 @@ def run_log_analysis(env: dict[str, str]) -> str:
 
     stdout = (completed.stdout or "").strip()
     stderr = (completed.stderr or "").strip()
+    if completed.returncode != 0:
+        detail = format_completed_process([str(python_exe), "-m", "tools.analyze_logs"], completed)
+        return f"Анализ логов завершился с ошибкой (exit={completed.returncode}).\n{detail}"
     combo = stdout
     if stderr:
         combo = f"{combo}\n[stderr]\n{stderr}" if combo else f"[stderr]\n{stderr}"
@@ -408,6 +424,10 @@ def launch_app(
         a in ("--env-check", "--env-report", "--test-mode", "--verbose", "--diag") for a in args
     ) or (env.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
     python_exe = detect_venv_python(prefer_console=prefer_console)
+    if not python_exe.exists():
+        raise FileNotFoundError(
+            f"Python interpreter not found at {python_exe}. Выполните make uv-sync для настройки окружения."
+        )
 
     cmd = [str(python_exe), str(root / "app.py"), *list(args)]
     _log(f"Launching app with mode={mode}: {_format_command(cmd)}")
@@ -431,7 +451,14 @@ def launch_app(
         popen_kwargs["encoding"] = "utf-8"
         popen_kwargs["errors"] = "replace"
 
-    proc = subprocess.Popen(cmd, **popen_kwargs)  # type: ignore[arg-type]
+    try:
+        proc = subprocess.Popen(cmd, **popen_kwargs)  # type: ignore[arg-type]
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Не удалось запустить приложение: исполняемый файл недоступен ({cmd[0]})."
+        ) from exc
+    except OSError as exc:
+        raise RuntimeError(f"Не удалось запустить приложение: {exc.strerror or exc}") from exc
 
     if mode == "capture" and proc.stdout is not None and capture_buffer is not None:
 
