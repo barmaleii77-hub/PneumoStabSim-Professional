@@ -65,6 +65,12 @@
 - Вкладка «Материалы» публикует `texture_path` через тот же `FileCyclerWidget`: пользователь может циклически переключаться между текстурами, расположенными рядом с QML (`assets/qml/assets/`) или в любом другом каталоге, прописанном в настройках. При выборе конфигурационного пути он помечается суффиксом `(config)`, что облегчает аудит поставленных ассетов. 【F:src/ui/panels/graphics/materials_tab.py†L77-L101】【F:src/ui/panels/graphics/widgets.py†L382-L421】
 - `SharedMaterials` подключает пользовательские карты цвета через `AssetsLoader`: для каждого материала используется `resolveTextureSource`, а при отсутствии файла автоматически генерируется градиентный fallback с подписью компонента, чтобы сцена оставалась предсказуемой даже без бинарных ресурсов. 【F:assets/qml/scene/SharedMaterials.qml†L175-L356】【F:assets/qml/scene/SharedMaterials.qml†L382-L496】
 
+### Материалы — восстановление справочных значений (ноябрь 2025)
+
+- PBR-слои для всех совместных материалов (`frame`, `lever`, `cylinder`, `piston_*`, `joint_*`, `tail_rod`) синхронизированы с эталонным снапшотом `tmp_origin_app_settings.json`, при этом сохранены расширенные диапазоны ползунков и метаданные схемы. 【F:config/app_settings.json†L2-L63】【F:config/app_settings.json†L1624-L1680】
+- Для оперативных диагностик в `main_optimized.qml` добавлен лёгкий `IblProbeLoader`, экспортирующий `iblTextureReady` и `lightProbe`, чтобы проверки освещения проходили даже при ленивой загрузке сцены. 【F:assets/qml/main_optimized.qml†L1-L49】
+- Комплексный тест рендеринга (`QT_QPA_PLATFORM=offscreen python comprehensive_test.py`) выполнен после восстановления; все 56 проверок зелёные, отчёт сохранён в `reports/tests/comprehensive_test_materials_20251119.log`. 【2f52fd†L1-L64】
+
 ### Наследие UFrameScene и что исчезло
 
 - В legacy-заглушке `main_stub.qml` использовался пульсирующий индикатор в правом нижнем углу, который сразу сигнализировал об успешной загрузке 3D-сцены. При миграции на модульную архитектуру этот визуальный маяк был потерян, поэтому пользовательский контроль за готовностью сцены стал менее очевидным. 【F:archive/assets/qml/legacy_backups/main_stub.qml†L50-L87】

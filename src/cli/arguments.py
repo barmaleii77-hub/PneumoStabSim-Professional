@@ -73,6 +73,12 @@ def _add_main_arguments(
     parser.add_argument(
         "--diag", action="store_true", help="Run post-run diagnostics to console"
     )
+    parser.add_argument(
+        "--menu",
+        "--help-menu",
+        action="store_true",
+        help="Print the launcher command menu and exit before starting Qt",
+    )
     if include_mode_flags:
         _add_mode_arguments(parser)
 
@@ -101,6 +107,7 @@ Examples:
   py app.py --legacy           # Launch legacy Qt Widgets UI (no QML)
   py app.py --safe             # Headless-safe mode (no Qt Quick 3D scene)
   py app.py --no-qml           # Disable QML/Qt Quick 3D (UI placeholder only)
+  py app.py --menu             # Show launcher menu and exit
         """,
     )
 

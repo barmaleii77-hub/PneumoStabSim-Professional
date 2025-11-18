@@ -41,6 +41,9 @@ from src.core.settings_manager import (
 from src.security.access_control import get_access_control
 from src.settings.orbit_presets import orbit_presets_path
 
+if TYPE_CHECKING:
+    from src.core.parameter_manager import ParameterSnapshot
+
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +250,7 @@ def _normalise_dict_keys(
 def _load_qt_core():
     try:
         spec = util.find_spec("PySide6.QtCore")
-    except ModuleNotFoundError:
+    except (ModuleNotFoundError, ImportError):
         return None
     if spec is None:
         return None
@@ -707,8 +710,76 @@ class SettingsManager:
             dirty = True
         if self._normalise_hdr_paths():
             dirty = True
+        if self._hydrate_new_sections():
+            dirty = True
         self._dirty = dirty
         self._warn_missing_required_paths()
+
+    def _hydrate_new_sections(self) -> bool:
+        """Backfill recently added sections and values from baseline defaults."""
+
+        try:
+            baseline = load_default_settings_payload()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug(
+                "Unable to load defaults for hydration: %s", exc, exc_info=True
+            )
+            return False
+
+        changed = False
+
+        def _copy_missing(
+            target_root: dict[str, Any], source_root: dict[str, Any], path: str
+        ) -> None:
+            nonlocal changed
+            segments = [segment for segment in path.split(".") if segment]
+            if not segments:
+                return
+            target_node: dict[str, Any] = target_root
+            source_node: Any = source_root
+
+            for segment in segments[:-1]:
+                if not isinstance(source_node, dict):
+                    return
+                source_node = source_node.get(segment)
+                if not isinstance(source_node, dict):
+                    return
+                if not isinstance(target_node.get(segment), dict):
+                    target_node[segment] = {}
+                    changed = True
+                target_node = target_node[segment]
+
+            leaf = segments[-1]
+            if leaf in target_node:
+                return
+            if not isinstance(source_node, dict) or leaf not in source_node:
+                return
+            target_node[leaf] = _deep_copy(source_node[leaf])
+            changed = True
+
+        for section_name, target_root in (
+            ("current", self._data),
+            ("defaults_snapshot", self._defaults),
+        ):
+            if not isinstance(target_root, dict):
+                continue
+            source_root = baseline.get(section_name)
+            if not isinstance(source_root, dict):
+                continue
+            for path in (
+                "pneumatic.dead_zone_head_m3",
+                "pneumatic.dead_zone_rod_m3",
+                "pneumatic.chamber_volumes",
+                "pneumatic.line_pressures",
+                "pneumatic.tank_pressure_pa",
+                "pneumatic.relief_pressure_pa",
+                "simulation.sim_speed",
+                "road",
+                "advanced",
+            ):
+                _copy_missing(target_root, source_root, path)
+
+        return changed
 
     def _warn_missing_required_paths(self) -> None:
         try:
@@ -742,6 +813,14 @@ class SettingsManager:
         numeric_paths.update(
             f"current.pneumatic.receiver_volume_limits.{key}"
             for key in getattr(req, "RECEIVER_VOLUME_LIMIT_KEYS", ())
+        )
+        numeric_paths.update(
+            f"current.pneumatic.line_pressures.{key}"
+            for key in getattr(req, "LINE_PRESSURE_KEYS", ())
+        )
+        numeric_paths.update(
+            f"current.pneumatic.chamber_volumes.{key}"
+            for key in getattr(req, "CHAMBER_VOLUME_KEYS", ())
         )
 
         string_paths: set[str] = {
@@ -880,6 +959,13 @@ class SettingsManager:
     def save_if_dirty(self) -> None:
         if self._dirty:
             self.save()
+
+    def validate_dependencies(self) -> "ParameterSnapshot":
+        """Validate cross-parameter constraints using :class:`ParameterManager`."""
+
+        from src.core.parameter_manager import ParameterManager
+
+        return ParameterManager(settings_manager=self).validate()
 
     @property
     def is_dirty(self) -> bool:
@@ -1229,6 +1315,19 @@ class SettingsManager:
 
             self._runtime_defaults = load_runtime_defaults()
         return _deep_copy(self._runtime_defaults)
+
+    def get_physics_factories(self):
+        """Lazy import factories for rigid body creation.
+
+        The imports live here to avoid triggering heavyweight defaults when
+        runtime modules are merely imported. Callers should rely on this
+        method instead of importing the factories at module level.
+        """
+
+        from src.physics.integrator import create_default_rigid_body
+        from src.physics.odes import RigidBody3DOF, create_initial_conditions
+
+        return create_default_rigid_body, create_initial_conditions, RigidBody3DOF
 
     def create_default_system_configuration(self) -> dict[str, Any]:
         from src.core.settings_manager import (

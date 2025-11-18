@@ -22,6 +22,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 LOGS_DIR = Path("logs")
+LOG_EXTENSIONS = (".log", ".jsonl")
 
 # --- Constants
 QPA_CHOICES: list[str] = ["(auto)", "windows", "offscreen", "minimal"]
@@ -67,6 +68,19 @@ def run_command_logged(
     return completed
 
 
+def summarize_log_tail(log_path: Path, max_lines: int) -> tuple[deque[str], dict[str, int], list[str]]:
+    """Return tail, severity counts and highlight lines for a log file."""
+
+    tail: deque[str] = deque(maxlen=max_lines)
+    with log_path.open("r", encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            tail.append(line.rstrip("\n"))
+
+    counts = _count_severities(tail)
+    highlights = _extract_highlight_lines(tail)
+    return tail, counts, highlights
+
+
 def format_completed_process(cmd: Sequence[str], completed: subprocess.CompletedProcess[str]) -> str:
     stdout = (completed.stdout or "").strip()
     stderr = (completed.stderr or "").strip()
@@ -76,6 +90,62 @@ def format_completed_process(cmd: Sequence[str], completed: subprocess.Completed
     if stderr:
         lines.append("[stderr]\n" + stderr)
     return "\n".join(lines)
+
+
+def _count_severities(lines: Sequence[str]) -> dict[str, int]:
+    counts = {"error": 0, "warning": 0}
+    for ln in lines:
+        low = ln.lower()
+        if any(tok in low for tok in ("error", "traceback", "exception", "failed")):
+            counts["error"] += 1
+        if "warn" in low:
+            counts["warning"] += 1
+    return counts
+
+
+def _extract_highlight_lines(lines: Sequence[str], limit: int = 50) -> list[str]:
+    highlights: list[str] = []
+    for ln in lines:
+        low = ln.lower()
+        if any(tok in low for tok in ("error", "traceback", "warning", "failed")):
+            highlights.append(ln)
+        if len(highlights) >= limit:
+            break
+    return highlights
+
+
+def _detect_failure_hint(lines: Sequence[str]) -> str:
+    if not lines:
+        return "Пустой вывод процесса. Проверьте логи в секции 'Логи и ошибки'."
+
+    counts = _count_severities(lines)
+    hints: list[str] = []
+    if counts["error"]:
+        hints.append(f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже.")
+    if counts["warning"]:
+        hints.append(f"Предупреждений: {counts['warning']}.")
+
+    text_blob = "\n".join(lines).lower()
+    if "module not found" in text_blob or "no module named" in text_blob:
+        hints.append("Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите.")
+    if "qt.qpa" in text_blob or "xcb" in text_blob:
+        hints.append("Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless.")
+    if "permission" in text_blob:
+        hints.append("Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути.")
+    if "failed" in text_blob and "pytest" in text_blob:
+        hints.append("Похоже, упали тесты. Проверьте блок FAILURES и перезапустите с --diag.")
+    if "ruff" in text_blob and "error" in text_blob:
+        hints.append("Линтер обнаружил ошибки. Запустите 'python -m ruff .' для деталей.")
+    if not hints and (counts["error"] or counts["warning"]):
+        hints.append("Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер.")
+    elif not hints:
+        return ""
+
+    highlights = _extract_highlight_lines(lines, limit=10)
+    if highlights:
+        hints.append("Ключевые строки:\n" + "\n".join(highlights))
+
+    return "\n".join(hints)
 
 
 # --- Tooltip helper
@@ -271,11 +341,31 @@ def configure_runtime_env(
     return env
 
 
+def build_test_environment() -> dict[str, str]:
+    env = os.environ.copy()
+    env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    env.setdefault("PSS_HEADLESS", "1")
+    env.setdefault("QT_QPA_PLATFORM", "offscreen")
+    env.setdefault("QT_QUICK_BACKEND", "software")
+    env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+    return env
+
+
+def build_testing_entrypoint_command(python_exe: Path, scope: Literal["main", "integration"]) -> list[str]:
+    entrypoint = project_root() / "scripts" / "testing_entrypoint.py"
+    cmd = [str(python_exe), str(entrypoint)]
+    cmd.extend(["--scope", "integration" if scope == "integration" else "main"])
+    return cmd
+
+
 def run_log_analysis(env: dict[str, str]) -> str:
     """Запустить анализ логов с понятными сообщениями об ошибках."""
 
     root = project_root()
     analyzer = root / "tools" / "analyze_logs.py"
+    if not root.exists():
+        return f"Каталог проекта недоступен: {root}"
+
     if not analyzer.exists():
         return (
             "Не найден анализатор логов: tools/analyze_logs.py. "
@@ -283,10 +373,20 @@ def run_log_analysis(env: dict[str, str]) -> str:
         )
 
     graphics_logs = root / LOGS_DIR / "graphics"
+    if graphics_logs.exists() and not graphics_logs.is_dir():
+        return (
+            f"Ожидалась директория с логами, но найден файл: {graphics_logs}. "
+            "Проверьте настройки путей логов."
+        )
     if not graphics_logs.exists():
         return "Логи графики отсутствуют (ожидалось: logs/graphics)."
 
     python_exe = detect_venv_python(prefer_console=True)
+    if not python_exe.exists():
+        return (
+            f"Интерпретатор Python не найден: {python_exe}. "
+            "Воссоздайте виртуальное окружение (make uv-sync)."
+        )
     try:
         completed = run_command_logged(
             [str(python_exe), "-m", "tools.analyze_logs"], cwd=root, env=env
@@ -298,6 +398,9 @@ def run_log_analysis(env: dict[str, str]) -> str:
 
     stdout = (completed.stdout or "").strip()
     stderr = (completed.stderr or "").strip()
+    if completed.returncode != 0:
+        detail = format_completed_process([str(python_exe), "-m", "tools.analyze_logs"], completed)
+        return f"Анализ логов завершился с ошибкой (exit={completed.returncode}).\n{detail}"
     combo = stdout
     if stderr:
         combo = f"{combo}\n[stderr]\n{stderr}" if combo else f"[stderr]\n{stderr}"
@@ -321,6 +424,10 @@ def launch_app(
         a in ("--env-check", "--env-report", "--test-mode", "--verbose", "--diag") for a in args
     ) or (env.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
     python_exe = detect_venv_python(prefer_console=prefer_console)
+    if not python_exe.exists():
+        raise FileNotFoundError(
+            f"Python interpreter not found at {python_exe}. Выполните make uv-sync для настройки окружения."
+        )
 
     cmd = [str(python_exe), str(root / "app.py"), *list(args)]
     _log(f"Launching app with mode={mode}: {_format_command(cmd)}")
@@ -344,7 +451,14 @@ def launch_app(
         popen_kwargs["encoding"] = "utf-8"
         popen_kwargs["errors"] = "replace"
 
-    proc = subprocess.Popen(cmd, **popen_kwargs)  # type: ignore[arg-type]
+    try:
+        proc = subprocess.Popen(cmd, **popen_kwargs)  # type: ignore[arg-type]
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Не удалось запустить приложение: исполняемый файл недоступен ({cmd[0]})."
+        ) from exc
+    except OSError as exc:
+        raise RuntimeError(f"Не удалось запустить приложение: {exc.strerror or exc}") from exc
 
     if mode == "capture" and proc.stdout is not None and capture_buffer is not None:
 
@@ -403,7 +517,9 @@ class LauncherUI(tk.Tk):
         menubar = tk.Menu(self)
         actions_menu = tk.Menu(menubar, tearoff=0)
         actions_menu.add_command(label="Запустить приложение", command=self._on_run)
+        actions_menu.add_command(label="Показать свежие логи", command=self._open_logs_viewer)
         actions_menu.add_command(label="Выбор конфигурации...", command=self._open_configuration_dialog)
+        actions_menu.add_command(label="Быстрый статус (git+линтер)", command=self._run_repo_status)
         menubar.add_cascade(label="Действия", menu=actions_menu)
 
         tests_menu = tk.Menu(menubar, tearoff=0)
@@ -681,7 +797,7 @@ class LauncherUI(tk.Tk):
 
     def _read_recent_logs(self, log_dir: Path, max_lines: int) -> str:
         log_files = sorted(
-            list(log_dir.rglob("*.log")) + list(log_dir.rglob("*.jsonl")),
+            [p for p in log_dir.rglob("*") if p.suffix in LOG_EXTENSIONS],
             key=lambda p: p.stat().st_mtime,
             reverse=True,
         )
@@ -689,21 +805,28 @@ class LauncherUI(tk.Tk):
             return f"Лог-файлы в {log_dir} не найдены."
 
         latest = log_files[0]
-        tail: deque[str] = deque(maxlen=max_lines)
         try:
-            with latest.open("r", encoding="utf-8", errors="replace") as fh:
-                for line in fh:
-                    tail.append(line.rstrip("\n"))
+            tail, counts, highlights = summarize_log_tail(latest, max_lines)
         except Exception as e:
             return f"Не удалось прочитать {latest}: {e}"
 
-        counts = self._count_severities(tail)
-        highlights = self._extract_highlight_lines(tail)
+        overview: list[str] = []
+        for candidate in log_files[:5]:
+            try:
+                _, c_counts, _ = summarize_log_tail(candidate, max_lines)
+            except Exception:
+                continue
+            overview.append(
+                f"- {candidate.name}: ошибок={c_counts['error']}, предупреждений={c_counts['warning']}"
+            )
         header_parts = [
             f"Файл: {latest}",
             f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}",
             f"Показаны последние {len(tail)} строк",
         ]
+        if overview:
+            header_parts.append("Сводка свежих логов:")
+            header_parts.extend(overview)
         if highlights:
             header_parts.append("Ключевые строки (ошибки/варнинги):")
             header_parts.extend(highlights[-20:])
@@ -738,32 +861,13 @@ class LauncherUI(tk.Tk):
         root = project_root()
         python_exe = detect_venv_python(prefer_console=True)
         entrypoint = root / "scripts" / "testing_entrypoint.py"
-        env = os.environ.copy()
-        env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+        if not entrypoint.exists():
+            text = f"Entrypoint not found: {entrypoint}"
+        else:
+            env = build_test_environment()
+            command = build_testing_entrypoint_command(python_exe, scope)
+            text = self._run_command(command, f"testing_entrypoint ({scope})", cwd=root, env=env)
 
-        sections: list[str] = []
-        sections.append(
-            self._run_command([str(python_exe), str(entrypoint)], "testing_entrypoint", cwd=root, env=env)
-        )
-
-        if scope == "integration":
-            sections.append(
-                self._run_command(
-                    [
-                        str(python_exe),
-                        "-m",
-                        "pytest",
-                        "--maxfail=1",
-                        "-m",
-                        "integration",
-                    ],
-                    "pytest -m integration",
-                    cwd=root,
-                    env=env,
-                )
-            )
-
-        text = "\n\n".join(sections)
         self.after(
             0,
             lambda: self._show_text_window(
@@ -810,7 +914,7 @@ class LauncherUI(tk.Tk):
         self, cmd: list[str], title: str, *, cwd: Path | None = None, env: dict[str, str] | None = None
     ) -> str:
         try:
-            completed = run_command_logged(cmd, cwd=cwd, env=env)
+            completed, summary = run_command_with_summary(cmd, cwd=cwd, env=env)
         except FileNotFoundError:
             return f"{title}: команда не найдена ({cmd[0]})."
         except Exception as e:
@@ -818,61 +922,36 @@ class LauncherUI(tk.Tk):
 
         stdout_lines = (completed.stdout or "").splitlines()
         stderr_lines = (completed.stderr or "").splitlines()
-        text = format_completed_process(cmd, completed)
+        text = summary
 
         if completed.returncode != 0:
-            hint = self._build_failure_hint(stdout_lines + stderr_lines)
+            hint = _detect_failure_hint(stdout_lines + stderr_lines)
             if hint:
                 text = f"{text}\nПодсказка: {hint}"
 
+        summary = self._render_summary(stdout_lines + stderr_lines)
+        if summary:
+            text = f"{text}\n\n{summary}"
+
         return text
 
-    def _count_severities(self, lines: Sequence[str]) -> dict[str, int]:
-        counts = {"error": 0, "warning": 0}
-        for ln in lines:
-            low = ln.lower()
-            if any(tok in low for tok in ("error", "traceback", "exception", "failed")):
-                counts["error"] += 1
-            if "warn" in low:
-                counts["warning"] += 1
-        return counts
-
-    def _extract_highlight_lines(self, lines: Sequence[str], limit: int = 50) -> list[str]:
-        highlights: list[str] = []
-        for ln in lines:
-            low = ln.lower()
-            if any(tok in low for tok in ("error", "traceback", "warning", "failed")):
-                highlights.append(ln)
-            if len(highlights) >= limit:
-                break
-        return highlights
-
-    def _build_failure_hint(self, lines: Sequence[str]) -> str:
+    def _render_summary(self, lines: Sequence[str]) -> str:
         if not lines:
-            return "Пустой вывод процесса. Проверьте логи в секции 'Логи и ошибки'."
+            return ""
 
-        counts = self._count_severities(lines)
-        hints: list[str] = []
-        if counts["error"]:
-            hints.append(f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже.")
-        if counts["warning"]:
-            hints.append(f"Предупреждений: {counts['warning']}." )
-
-        text_blob = "\n".join(lines).lower()
-        if "module not found" in text_blob or "no module named" in text_blob:
-            hints.append("Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите.")
-        if "qt.qpa" in text_blob or "xcb" in text_blob:
-            hints.append("Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless.")
-        if "permission" in text_blob:
-            hints.append("Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути.")
-        if not hints:
-            hints.append("Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер.")
-
-        highlights = self._extract_highlight_lines(lines, limit=10)
+        counts = _count_severities(lines)
+        highlights = _extract_highlight_lines(lines, limit=12)
+        parts = [
+            "=== Итоговый анализ stdout/stderr ===",
+            f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}",
+        ]
+        hint = _detect_failure_hint(lines)
+        if hint:
+            parts.append(f"Подсказка: {hint}")
         if highlights:
-            hints.append("Ключевые строки:\n" + "\n".join(highlights))
-
-        return "\n".join(hints)
+            parts.append("Важные строки:")
+            parts.extend(highlights)
+        return "\n".join(parts)
 
     # --- Help window
     def _open_help(self) -> None:
@@ -892,6 +971,8 @@ class LauncherUI(tk.Tk):
             "При 'Новое окно консоли' вывод идёт в отдельное окно и не захватывается. Снимите 'Новое окно консоли' чтобы активировать захват.\n"
             "Секция 'Логи и ошибки' поможет быстро посмотреть последние строки из каталогов logs/ или пути из config/app_settings.json и увидеть подсчёт ошибок/варнингов.\n"
             "Кнопка 'Быстрый статус (git + линтер)' собирает короткий отчёт по git status и ruff (E/F/W).\n"
+            "Кнопки 'Запуск тестов' выполняют unified entrypoint (python scripts/testing_entrypoint.py) с теми же переменными окружения, что и в CI: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PSS_HEADLESS=1, QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software, LIBGL_ALWAYS_SOFTWARE=1.\n"
+            "Результаты тестов сохраняются в reports/tests/test_entrypoint.log и показываются в окне результатов; там же видно хвост логов и метки FAILED/ERROR.\n"
         )
         try:
             txt.insert("1.0", text_help)
@@ -969,7 +1050,7 @@ class LauncherUI(tk.Tk):
                 source_lines = self._captured_output
             elif analysis_text:
                 source_lines = analysis_text.splitlines()
-            hint = self._build_failure_hint(source_lines)
+            hint = _detect_failure_hint(source_lines)
             self.after(
                 0,
                 lambda: messagebox.showerror(
@@ -983,10 +1064,13 @@ class LauncherUI(tk.Tk):
             return "(нет захваченного вывода)"
         lines = self._captured_output
         tail = lines[-max_lines:]
-        counts = self._count_severities(lines)
-        interesting = self._extract_highlight_lines(lines)
+        counts = _count_severities(lines)
+        interesting = _extract_highlight_lines(lines)
         parts: list[str] = []
         parts.append(f"Ошибок: {counts['error']} | Предупреждений: {counts['warning']}")
+        summary = self._render_summary(lines)
+        if summary:
+            parts.append(summary)
         if interesting:
             parts.append("-- Важные строки (фильтр по ошибкам/QML) --")
             parts.extend(interesting[-60:])

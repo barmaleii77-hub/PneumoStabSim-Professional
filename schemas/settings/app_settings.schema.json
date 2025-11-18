@@ -18,21 +18,23 @@
     "current": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["geometry", "pneumatic", "graphics"],
+      "required": ["geometry", "pneumatic", "graphics", "road", "advanced"],
       "properties": {
-        "geometry": {"type": "object"},
-        "pneumatic": {"type": "object"},
-        "graphics": {"type": "object"}
+        "simulation": {"$ref": "#/$defs/SimulationSettings"},
+        "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
+        "road": {"$ref": "#/$defs/RoadSettings"},
+        "advanced": {"$ref": "#/$defs/AdvancedSettings"}
       }
     },
     "defaults_snapshot": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["geometry", "pneumatic", "graphics"],
+      "required": ["geometry", "pneumatic", "graphics", "road", "advanced"],
       "properties": {
-        "geometry": {"type": "object"},
-        "pneumatic": {"type": "object"},
-        "graphics": {"type": "object"}
+        "simulation": {"$ref": "#/$defs/SimulationSettings"},
+        "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
+        "road": {"$ref": "#/$defs/RoadSettings"},
+        "advanced": {"$ref": "#/$defs/AdvancedSettings"}
       }
     }
   },
@@ -157,6 +159,8 @@
         "simulation": {"$ref": "#/$defs/SimulationSettings"},
         "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
         "geometry": {"$ref": "#/$defs/GeometrySettings"},
+        "road": {"$ref": "#/$defs/RoadSettings"},
+        "advanced": {"$ref": "#/$defs/AdvancedSettings"},
         "modes": {"$ref": "#/$defs/ModesSettings"},
         "graphics": {"$ref": "#/$defs/GraphicsSettings"},
         "animation": {"$ref": "#/$defs/AnimationSettings"},
@@ -166,7 +170,7 @@
         "system": {"$ref": "#/$defs/SystemSettings"},
         "constants": {"$ref": "#/$defs/Constants"}
       },
-      "required": ["simulation", "pneumatic", "geometry", "modes", "graphics", "animation", "physics", "quality_presets", "diagnostics", "system", "constants"],
+      "required": ["simulation", "pneumatic", "geometry", "road", "advanced", "modes", "graphics", "animation", "physics", "quality_presets", "diagnostics", "system", "constants"],
       "title": "CurrentSettings",
       "type": "object"
     },
@@ -586,29 +590,26 @@
     "GeometrySettings": {
       "additionalProperties": false,
       "properties": {
-        "wheelbase": {"title": "Wheelbase", "type": "number"},
-        "track": {"title": "Track", "type": "number"},
-        "frame_to_pivot": {"title": "Frame To Pivot", "type": "number"},
-        "lever_length": {"title": "Lever Length", "type": "number"},
-        "rod_position": {"title": "Rod Position", "type": "number"},
-        "cylinder_length": {"title": "Cylinder Length", "type": "number"},
-        "cyl_diam_m": {"title": "Cyl Diam M", "type": "number", "minimum": 0},
-        "stroke_m": {"title": "Stroke M", "type": "number", "minimum": 0},
-        "dead_gap_m": {"title": "Dead Gap M", "type": "number"},
-        "rod_diameter_m": {"title": "Rod Diameter M", "type": "number", "minimum": 0},
-        "rod_diameter_rear_m": {"title": "Rod Diameter Rear M", "type": "number", "minimum": 0},
-        "piston_rod_length_m": {"title": "Piston Rod Length M", "type": "number"},
-        "piston_thickness_m": {"title": "Piston Thickness M", "type": "number"},
-        "frame_mass": {"title": "Frame Mass", "type": "number"},
-        "wheel_mass": {"title": "Wheel Mass", "type": "number"},
-        "tail_rod_length_m": {"title": "Tail Rod Length M", "type": "number"},
+        "wheelbase": {"title": "Wheelbase", "type": "number", "minimum": 2.0, "maximum": 4.0},
+        "track": {"title": "Track", "type": "number", "minimum": 1.0, "maximum": 2.5},
+        "frame_to_pivot": {"title": "Frame To Pivot", "type": "number", "minimum": 0.3, "maximum": 1.0},
+        "lever_length": {"title": "Lever Length", "type": "number", "minimum": 0.5, "maximum": 1.5},
+        "rod_position": {"title": "Rod Position", "type": "number", "minimum": 0.3, "maximum": 0.9},
+        "cylinder_length": {"title": "Cylinder Length", "type": "number", "minimum": 0.3, "maximum": 0.8},
+        "cyl_diam_m": {"title": "Cyl Diam M", "type": "number", "minimum": 0.03, "maximum": 0.15},
+        "stroke_m": {"title": "Stroke M", "type": "number", "minimum": 0.1, "maximum": 0.5},
+        "dead_gap_m": {"title": "Dead Gap M", "type": "number", "minimum": 0.0, "maximum": 0.02},
+        "rod_diameter_m": {"title": "Rod Diameter M", "type": "number", "minimum": 0.02, "maximum": 0.06},
+        "rod_diameter_rear_m": {"title": "Rod Diameter Rear M", "type": "number", "minimum": 0.02, "maximum": 0.06},
+        "piston_rod_length_m": {"title": "Piston Rod Length M", "type": "number", "minimum": 0.1, "maximum": 0.5},
+        "piston_thickness_m": {"title": "Piston Thickness M", "type": "number", "minimum": 0.01, "maximum": 0.05},
+        "tail_rod_length_m": {"title": "Tail Rod Length M", "type": "number", "minimum": 0.0},
         "interference_check": {"title": "Interference Check", "type": "boolean"},
         "link_rod_diameters": {"title": "Link Rod Diameters", "type": "boolean"},
-        "frame_height_m": {"title": "Frame Height M", "type": "number"},
-        "frame_beam_size_m": {"title": "Frame Beam Size M", "type": "number"},
-        "frame_length_m": {"title": "Frame Length M", "type": "number"},
-        "lever_length_m": {"title": "Lever Length M", "type": "number"},
-        "cylinder_body_length_m": {"title": "Cylinder Body Length M", "type": "number"},
+        "frame_height_m": {"title": "Frame Height M", "type": "number", "minimum": 0.0},
+        "frame_beam_size_m": {"title": "Frame Beam Size M", "type": "number", "minimum": 0.0},
+        "frame_length_m": {"title": "Frame Length M", "type": "number", "minimum": 0.0},
+        "cylinder_body_length_m": {"title": "Cylinder Body Length M", "type": "number", "minimum": 0.0},
         "active_preset": {"title": "Active Preset", "type": "string"}
       },
       "allOf": [
@@ -621,7 +622,7 @@
           }
         }
       ],
-      "required": ["wheelbase", "track", "frame_to_pivot", "lever_length", "rod_position", "cylinder_length", "cyl_diam_m", "stroke_m", "dead_gap_m", "rod_diameter_m", "rod_diameter_rear_m", "piston_rod_length_m", "piston_thickness_m", "frame_mass", "wheel_mass", "tail_rod_length_m", "interference_check", "link_rod_diameters", "frame_height_m", "frame_beam_size_m", "frame_length_m", "lever_length_m", "cylinder_body_length_m", "active_preset"],
+      "required": ["wheelbase", "track", "frame_to_pivot", "lever_length", "rod_position", "cylinder_length", "cyl_diam_m", "stroke_m", "dead_gap_m", "rod_diameter_m", "rod_diameter_rear_m", "piston_rod_length_m", "piston_thickness_m", "tail_rod_length_m", "interference_check", "link_rod_diameters", "frame_height_m", "frame_beam_size_m", "frame_length_m", "cylinder_body_length_m", "active_preset"],
       "title": "GeometrySettings",
       "type": "object"
     },
@@ -649,6 +650,7 @@
         "quality": {"$ref": "#/$defs/QualitySettings"},
         "camera": {"$ref": "#/$defs/CameraSettings"},
         "materials": {"$ref": "#/$defs/MaterialsSettings"},
+        "materials_previous": {"$ref": "#/$defs/MaterialsSettings"},
         "effects": {"$ref": "#/$defs/EffectsSettings"},
         "scene": {"$ref": "#/$defs/SceneSettings"},
         "environment_ranges": {"$ref": "#/$defs/EnvironmentSliderRanges"}
@@ -787,6 +789,8 @@
         },
         "defaults_seed": {"title": "Defaults Seed", "type": "string"},
         "environment_slider_ranges": {"$ref": "#/$defs/EnvironmentSliderRanges"},
+        "scene_slider_ranges": {"$ref": "#/$defs/SceneSliderRanges"},
+        "geometry_slider_ranges": {"$ref": "#/$defs/GeometrySliderRanges"},
         "scene_defaults": {"$ref": "#/$defs/SceneDefaultsMetadata"},
         "legacy": {
           "additionalProperties": {
@@ -797,7 +801,7 @@
           "type": "object"
         }
       },
-      "required": ["version", "schema_version", "last_modified", "units_version", "migrations", "last_migration", "migrated_from", "migration_date", "total_parameters", "description", "operational_imperatives", "environment_slider_ranges"],
+      "required": ["version", "schema_version", "last_modified", "units_version", "migrations", "last_migration", "migrated_from", "migration_date", "total_parameters", "description", "operational_imperatives", "environment_slider_ranges", "scene_slider_ranges", "geometry_slider_ranges"],
       "title": "Metadata",
       "type": "object"
     },
@@ -991,24 +995,116 @@
       "additionalProperties": false,
       "properties": {
         "volume_mode": {"title": "Volume Mode", "type": "string"},
-        "receiver_volume": {"title": "Receiver Volume", "type": "number", "minimum": 0},
-        "receiver_diameter": {"title": "Receiver Diameter", "type": "number", "minimum": 0},
-        "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0},
-        "cv_atmo_dp": {"title": "Cv Atmo Dp", "type": "number", "minimum": 0},
-        "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number", "minimum": 0},
-        "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0},
-        "cv_tank_dia": {"title": "Cv Tank Dia", "type": "number", "minimum": 0},
-        "relief_min_pressure": {"title": "Relief Min Pressure", "type": "number", "minimum": 0},
-        "relief_stiff_pressure": {"title": "Relief Stiff Pressure", "type": "number", "minimum": 0},
-        "relief_safety_pressure": {"title": "Relief Safety Pressure", "type": "number", "minimum": 0},
-        "throttle_min_dia": {"title": "Throttle Min Dia", "type": "number", "minimum": 0},
-        "throttle_stiff_dia": {"title": "Throttle Stiff Dia", "type": "number", "minimum": 0},
+        "receiver_volume": {
+          "title": "Receiver Volume",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1.0
+        },
+        "receiver_diameter": {
+          "title": "Receiver Diameter",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.5
+        },
+        "receiver_length": {
+          "title": "Receiver Length",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 2.0
+        },
+        "dead_zone_head_m3": {
+          "title": "Dead Zone Head M3",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
+        "dead_zone_rod_m3": {
+          "title": "Dead Zone Rod M3",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
+        "chamber_volumes": {"$ref": "#/$defs/PneumaticChamberVolumes"},
+        "line_pressures": {"$ref": "#/$defs/PneumaticLinePressures"},
+        "tank_pressure_pa": {
+          "title": "Tank Pressure Pa",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "relief_pressure_pa": {
+          "title": "Relief Pressure Pa",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000000
+        },
+        "cv_atmo_dp": {
+          "title": "Cv Atmo Dp",
+          "type": "number",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "cv_tank_dp": {
+          "title": "Cv Tank Dp",
+          "type": "number",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "cv_atmo_dia": {
+          "title": "Cv Atmo Dia",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.01
+        },
+        "cv_tank_dia": {
+          "title": "Cv Tank Dia",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.01
+        },
+        "relief_min_pressure": {
+          "title": "Relief Min Pressure",
+          "type": "number",
+          "minimum": 100000,
+          "maximum": 10000000
+        },
+        "relief_stiff_pressure": {
+          "title": "Relief Stiff Pressure",
+          "type": "number",
+          "minimum": 100000,
+          "maximum": 10000000
+        },
+        "relief_safety_pressure": {
+          "title": "Relief Safety Pressure",
+          "type": "number",
+          "minimum": 100000,
+          "maximum": 10000000
+        },
+        "throttle_min_dia": {
+          "title": "Throttle Min Dia",
+          "type": "number",
+          "minimum": 0.0005,
+          "maximum": 0.003
+        },
+        "throttle_stiff_dia": {
+          "title": "Throttle Stiff Dia",
+          "type": "number",
+          "minimum": 0.0005,
+          "maximum": 0.003
+        },
         "diagonal_coupling_dia": {
           "title": "Diagonal Coupling Diameter",
           "type": "number",
-          "minimum": 0
+          "minimum": 0.0005,
+          "maximum": 0.003
         },
-        "atmo_temp": {"title": "Atmo Temp", "type": "number"},
+        "atmo_temp": {
+          "title": "Atmo Temp",
+          "type": "number",
+          "minimum": -100.0,
+          "maximum": 400.0
+        },
         "thermo_mode": {
           "title": "Thermo Mode",
           "type": "string",
@@ -1017,29 +1113,119 @@
         "polytropic_heat_transfer_coeff": {
           "title": "Polytropic Heat Transfer Coeff",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 200.0
         },
         "polytropic_exchange_area": {
           "title": "Polytropic Exchange Area",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.5
         },
         "leak_coefficient": {
           "title": "Leak Coefficient",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.0001
         },
         "leak_reference_area": {
           "title": "Leak Reference Area",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.005
         },
         "master_isolation_open": {"title": "Master Isolation Open", "type": "boolean"},
-        "pressure_units": {"title": "Pressure Units", "type": "string"},
+        "pressure_units": {
+          "title": "Pressure Units",
+          "type": "string",
+          "enum": ["бар", "Па", "кПа", "МПа"]
+        },
         "receiver_volume_limits": {"$ref": "#/$defs/ReceiverVolumeLimits"}
       },
-      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
+      "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "dead_zone_head_m3", "dead_zone_rod_m3", "chamber_volumes", "line_pressures", "tank_pressure_pa", "relief_pressure_pa", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
       "title": "PneumaticSettings",
+      "type": "object"
+    },
+    "RoadSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "title": "Mode",
+          "type": "string",
+          "enum": ["manual", "profile"]
+        },
+        "amplitude_m": {
+          "title": "Amplitude M",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 0.5
+        },
+        "frequency_hz": {
+          "title": "Frequency Hz",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 25.0
+        },
+        "phase_offset_deg": {
+          "title": "Phase Offset Deg",
+          "type": "number",
+          "minimum": -360.0,
+          "maximum": 360.0
+        },
+        "profile_type": {"title": "Profile Type", "type": "string"},
+        "avg_speed_kmh": {
+          "title": "Avg Speed Kmh",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 250.0
+        }
+      },
+      "required": ["mode", "amplitude_m", "frequency_hz", "phase_offset_deg", "profile_type", "avg_speed_kmh"],
+      "title": "RoadSettings",
+      "type": "object"
+    },
+    "AdvancedSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "spring_stiffness_n_m": {
+          "title": "Spring Stiffness N M",
+          "type": "number",
+          "minimum": 10000.0,
+          "maximum": 200000.0
+        },
+        "damper_coefficient_n_s_m": {
+          "title": "Damper Coefficient N S M",
+          "type": "number",
+          "minimum": 500.0,
+          "maximum": 10000.0
+        },
+        "dead_zone_percent": {
+          "title": "Dead Zone Percent",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 100.0
+        },
+        "target_fps": {
+          "title": "Target Fps",
+          "type": "number",
+          "minimum": 30.0,
+          "maximum": 240.0
+        },
+        "aa_quality": {
+          "title": "Aa Quality",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "shadow_quality": {
+          "title": "Shadow Quality",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        }
+      },
+      "required": ["spring_stiffness_n_m", "damper_coefficient_n_s_m", "dead_zone_percent", "target_fps", "aa_quality", "shadow_quality"],
+      "title": "AdvancedSettings",
       "type": "object"
     },
     "PneumoConstants": {
@@ -1083,6 +1269,28 @@
       },
       "required": ["volume_min_m3", "volume_max_m3", "initial_volume_m3", "initial_pressure_pa", "initial_temperature_k", "volume_mode"],
       "title": "PneumoReceiverConstants",
+      "type": "object"
+    },
+    "PneumaticChamberVolumes": {
+      "additionalProperties": false,
+      "properties": {
+        "head_m3": {"title": "Head Volume M3", "type": "number", "minimum": 0},
+        "rod_m3": {"title": "Rod Volume M3", "type": "number", "minimum": 0}
+      },
+      "required": ["head_m3", "rod_m3"],
+      "title": "PneumaticChamberVolumes",
+      "type": "object"
+    },
+    "PneumaticLinePressures": {
+      "additionalProperties": false,
+      "properties": {
+        "a1_pa": {"title": "Line A1 Pressure Pa", "type": "number", "minimum": 0},
+        "b1_pa": {"title": "Line B1 Pressure Pa", "type": "number", "minimum": 0},
+        "a2_pa": {"title": "Line A2 Pressure Pa", "type": "number", "minimum": 0},
+        "b2_pa": {"title": "Line B2 Pressure Pa", "type": "number", "minimum": 0}
+      },
+      "required": ["a1_pa", "b1_pa", "a2_pa", "b2_pa"],
+      "title": "PneumaticLinePressures",
       "type": "object"
     },
     "PneumoValveConstants": {
@@ -1175,8 +1383,18 @@
     "ReceiverVolumeLimits": {
       "additionalProperties": false,
       "properties": {
-        "min_m3": {"title": "Min M3", "type": "number", "minimum": 0},
-        "max_m3": {"title": "Max M3", "type": "number", "minimum": 0}
+        "min_m3": {
+          "title": "Min M3",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1.0
+        },
+        "max_m3": {
+          "title": "Max M3",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1.0
+        }
       },
       "required": ["min_m3", "max_m3"],
       "title": "ReceiverVolumeLimits",
@@ -1285,9 +1503,15 @@
           "description": "Целевая частота вертикальной синхронизации рендера, используется контроллером синхронизации настроек."
         },
         "max_steps_per_frame": {"title": "Max Steps Per Frame", "type": "integer"},
-        "max_frame_time": {"title": "Max Frame Time", "type": "number"}
+        "max_frame_time": {"title": "Max Frame Time", "type": "number"},
+        "sim_speed": {
+          "title": "Simulation Speed",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 4.0
+        }
       },
-      "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
+      "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time", "sim_speed"],
       "title": "SimulationSettings",
       "type": "object"
     },
@@ -1316,6 +1540,27 @@
       "title": "SliderRange",
       "type": "object"
     },
+    "SceneSliderRanges": {
+      "additionalProperties": false,
+      "properties": {
+        "scale_factor": {"$ref": "#/$defs/SliderRange"},
+        "exposure": {"$ref": "#/$defs/SliderRange"},
+        "model_roughness": {"$ref": "#/$defs/SliderRange"},
+        "model_metalness": {"$ref": "#/$defs/SliderRange"},
+        "suspension": {
+          "additionalProperties": false,
+          "properties": {
+            "rod_warning_threshold_m": {"$ref": "#/$defs/SliderRange"}
+          },
+          "required": ["rod_warning_threshold_m"],
+          "title": "SuspensionSceneSliderRanges",
+          "type": "object"
+        }
+      },
+      "required": ["scale_factor", "exposure", "model_roughness", "model_metalness", "suspension"],
+      "title": "SceneSliderRanges",
+      "type": "object"
+    },
     "SpotLightSettings": {
       "additionalProperties": false,
       "properties": {
@@ -1335,6 +1580,20 @@
       },
       "required": ["brightness", "color", "position_x", "position_y", "position_z", "range", "cone_angle", "inner_cone_angle", "angle_x", "angle_y", "angle_z", "cast_shadow", "bind_to_camera"],
       "title": "SpotLightSettings",
+      "type": "object"
+    },
+    "GeometrySliderRanges": {
+      "additionalProperties": false,
+      "properties": {
+        "wheelbase": {"$ref": "#/$defs/SliderRange"},
+        "track": {"$ref": "#/$defs/SliderRange"},
+        "lever_length": {"$ref": "#/$defs/SliderRange"},
+        "stroke_m": {"$ref": "#/$defs/SliderRange"},
+        "cyl_diam_m": {"$ref": "#/$defs/SliderRange"},
+        "rod_diameter_m": {"$ref": "#/$defs/SliderRange"}
+      },
+      "required": ["wheelbase", "track", "lever_length", "stroke_m", "cyl_diam_m", "rod_diameter_m"],
+      "title": "GeometrySliderRanges",
       "type": "object"
     },
     "SystemDependencies": {

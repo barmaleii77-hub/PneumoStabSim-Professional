@@ -4,7 +4,13 @@
 
 from .warnings import log_warning, log_error, print_warnings_errors
 from .logs import run_log_diagnostics
-from .logger_factory import configure_logging, get_logger, LoggerConfig
+from .logger_factory import (
+    LoggerConfig,
+    configure_logging,
+    get_logger,
+    get_logging_queue_stats,
+    shutdown_logging,
+)
 from .signal_tracing import (
     HAS_QT,
     MissingSignalError,
@@ -29,6 +35,8 @@ __all__ = [
     "configure_logging",
     "get_logger",
     "LoggerConfig",
+    "get_logging_queue_stats",
+    "shutdown_logging",
     "SignalTracer",
     "SignalTraceRecord",
     "SignalTracingError",

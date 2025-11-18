@@ -123,3 +123,43 @@ def test_startup_subscriber_probe_handles_missing_receivers(
 
     assert panel._verify_geometry_subscribers() is None
     panel._emit_initial()  # should not raise despite probe failure
+
+
+@pytest.mark.gui
+def test_startup_subscriber_probe_handles_feature_mismatch(
+    geometry_panel, qtbot: pytestqt.qtbot.QtBot, monkeypatch
+) -> None:
+    panel = geometry_panel
+    qtbot.addWidget(panel)
+
+    target_module = import_module(panel.__module__)
+
+    class _Meta:
+        @staticmethod
+        def fromSignal(_signal):
+            return _Meta()
+
+        def isValid(self):
+            return True
+
+        @staticmethod
+        def methodSignature():
+            return b"geometry_changed(QVariantMap)"
+
+    def _broken_is_signal_connected(_self, _meta_method):
+        raise TypeError("signature mismatch")
+
+    def _broken_receivers(*_args, **_kwargs):
+        raise TypeError("legacy receivers signature")
+
+    monkeypatch.setattr(target_module, "QMetaMethod", _Meta, raising=False)
+    monkeypatch.setattr(panel, "isSignalConnected", _broken_is_signal_connected)
+    monkeypatch.setattr(
+        target_module.QObject,
+        "receivers",
+        staticmethod(_broken_receivers),
+        raising=False,
+    )
+
+    assert panel._verify_geometry_subscribers() is None
+    panel._emit_initial()  # should fallback silently despite Qt API mismatch

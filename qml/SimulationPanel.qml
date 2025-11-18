@@ -642,7 +642,42 @@ Item {
 
     function _normalizeGeometryPayload(payload) {
         var candidate = _cloneObject(payload || ({}))
-        return _isPlainObject(candidate) ? candidate : ({})
+        if (!_isPlainObject(candidate))
+            return ({})
+
+        var numericKeys = [
+            "wheelbase",
+            "track",
+            "frame_to_pivot",
+            "lever_length",
+            "rod_position",
+            "cylinder_length",
+            "stroke_m",
+            "dead_gap_m",
+            "cyl_diam_m",
+            "rod_diameter_m",
+            "rod_diameter_rear_m",
+            "piston_rod_length_m",
+            "piston_thickness_m",
+            "frame_height_m",
+            "frame_beam_size_m",
+            "frame_length_m",
+            "cylinder_body_length_m",
+            "tail_rod_length_m"
+        ]
+        for (var i = 0; i < numericKeys.length; ++i) {
+            var key = numericKeys[i]
+            var value = Number(candidate[key])
+            if (Number.isFinite(value))
+                candidate[key] = value
+        }
+        var booleanKeys = ["interference_check", "link_rod_diameters"]
+        for (var j = 0; j < booleanKeys.length; ++j) {
+            var boolKey = booleanKeys[j]
+            if (candidate[boolKey] !== undefined)
+                candidate[boolKey] = !!candidate[boolKey]
+        }
+        return candidate
     }
 
     function _normalizeFlowPayload(payload) {
@@ -849,7 +884,8 @@ Item {
     }
 
     function applyGeometryParameters(payload) {
-        geometryParameters = _normalizeGeometryPayload(payload)
+        var normalized = _normalizeGeometryPayload(payload)
+        geometryParameters = _mergeObjects(geometryParameters, normalized)
         geometrySettingsChanged(geometryParameters)
     }
 
@@ -1077,6 +1113,10 @@ Item {
             _updateAnimationBindings()
         }
 
+        var geometryUpdate = _extractGeometryCategory(payload)
+        if (_isPlainObject(geometryUpdate))
+            applyGeometryParameters(_mergeObjects(geometryParameters, geometryUpdate))
+
         var sceneUpdate = _extractSceneCategory(payload)
         if (_isPlainObject(sceneUpdate))
             _sceneState = _mergeObjects(_sceneState, sceneUpdate)
@@ -1101,6 +1141,50 @@ Item {
                 return payload.newValue
         }
         return null
+    }
+
+    function _extractGeometryCategory(payload) {
+        if (_isPlainObject(payload.geometry))
+            return payload.geometry
+
+        if (_isPlainObject(payload.current) && _isPlainObject(payload.current.geometry))
+            return payload.current.geometry
+
+        if (Array.isArray(payload.changes)) {
+            var aggregated = {}
+            for (var i = 0; i < payload.changes.length; ++i) {
+                var change = payload.changes[i]
+                var parsed = _normalizeGeometryChange(change)
+                aggregated = _mergeObjects(aggregated, parsed)
+            }
+            return Object.keys(aggregated).length > 0 ? aggregated : null
+        }
+
+        var normalized = _normalizeGeometryChange(payload)
+        return Object.keys(normalized).length > 0 ? normalized : null
+    }
+
+    function _normalizeGeometryChange(change) {
+        if (!change || typeof change !== "object")
+            return ({})
+
+        if (typeof change.path === "string") {
+            var path = change.path
+            var value = change.newValue
+            if (path === "current.geometry" && _isPlainObject(value))
+                return value
+            if (path.indexOf("current.geometry.") === 0) {
+                var key = path.substring("current.geometry.".length)
+                var payload = {}
+                payload[key] = value
+                return payload
+            }
+        }
+
+        if (_isPlainObject(change.geometry))
+            return change.geometry
+
+        return ({})
     }
 
     function _extractCategory(payload, names, nestedKeys) {

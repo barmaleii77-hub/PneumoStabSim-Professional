@@ -186,6 +186,7 @@ def _bootstrap_builtin_services(container: ServiceContainer) -> None:
     """Ensure default service registrations are available."""
 
     from src.core.settings_service import SETTINGS_SERVICE_TOKEN, SettingsService
+    from src.core.resource_cache import RESOURCE_CACHE_TOKEN, ResourceCache
     from src.graphics.materials.cache import MATERIAL_CACHE_TOKEN, MaterialCache
     from src.infrastructure.event_bus import EVENT_BUS_TOKEN, EventBus
     from src.infrastructure.logging import LOGGER_TOKEN, configure_logging
@@ -217,6 +218,12 @@ def _bootstrap_builtin_services(container: ServiceContainer) -> None:
         container.register_factory(
             MATERIAL_CACHE_TOKEN,
             lambda _: MaterialCache(),
+        )
+
+    if not container.is_registered(RESOURCE_CACHE_TOKEN):
+        container.register_factory(
+            RESOURCE_CACHE_TOKEN,
+            lambda _: ResourceCache(),
         )
 
     if not container.is_registered(SIMULATION_SERVICE_TOKEN):

@@ -1,19 +1,25 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Bootstrap installer for project dependencies."""
 
 from __future__ import annotations
 
 import importlib.util
-import re
 import os
 import pathlib
+import re
 import subprocess
 import sys
-import tomllib
 from collections.abc import Iterable
 
-ROOT = pathlib.Path(__file__).resolve().parents[1]
-REQ_FILES = [ROOT / "requirements-dev.txt", ROOT / "requirements.txt"]
+import tomllib
+
+PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from src.common.platform_info import log_platform_context
+
+REQ_FILES = [PROJECT_ROOT / "requirements-dev.txt", PROJECT_ROOT / "requirements.txt"]
 
 
 def pip_install(args: Iterable[str]) -> None:
@@ -26,12 +32,12 @@ def pip_install(args: Iterable[str]) -> None:
 def install_requirements() -> None:
     for path in REQ_FILES:
         if path.exists():
-            print(f"[deps] installing from {path.relative_to(ROOT)}")
+            print(f"[deps] installing from {path.relative_to(PROJECT_ROOT)}")
             pip_install(["-r", str(path)])
 
 
 def install_optional_dev() -> None:
-    pyproject = ROOT / "pyproject.toml"
+    pyproject = PROJECT_ROOT / "pyproject.toml"
     if not pyproject.exists():
         return
     data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
@@ -116,6 +122,7 @@ def check_modules() -> None:
 
 
 def main() -> None:
+    log_platform_context({"script": "install_deps"})
     install_requirements()
     install_optional_dev()
     install_critical_runtime()

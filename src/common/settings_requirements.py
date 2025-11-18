@@ -9,10 +9,15 @@ NUMERIC_SIMULATION_KEYS: tuple[str, ...] = (
     "render_vsync_hz",
     "max_steps_per_frame",
     "max_frame_time",
+    "sim_speed",
 )
 
 NUMERIC_PNEUMATIC_KEYS: tuple[str, ...] = (
     "receiver_volume",
+    "receiver_diameter",
+    "receiver_length",
+    "tank_pressure_pa",
+    "relief_pressure_pa",
     "cv_atmo_dp",
     "cv_tank_dp",
     "cv_atmo_dia",
@@ -24,6 +29,8 @@ NUMERIC_PNEUMATIC_KEYS: tuple[str, ...] = (
     "throttle_stiff_dia",
     "diagonal_coupling_dia",
     "atmo_temp",
+    "dead_zone_head_m3",
+    "dead_zone_rod_m3",
     "polytropic_heat_transfer_coeff",
     "polytropic_exchange_area",
     "leak_coefficient",
@@ -42,10 +49,24 @@ RECEIVER_VOLUME_LIMIT_KEYS: tuple[str, ...] = (
     "max_m3",
 )
 
+LINE_PRESSURE_KEYS: tuple[str, ...] = (
+    "a1_pa",
+    "b1_pa",
+    "a2_pa",
+    "b2_pa",
+)
+
+CHAMBER_VOLUME_KEYS: tuple[str, ...] = (
+    "head_m3",
+    "rod_m3",
+)
+
 REQUIRED_CURRENT_SECTIONS: tuple[str, ...] = (
     "current.simulation",
     "current.pneumatic",
     "current.geometry",
+    "current.road",
+    "current.advanced",
     "current.pneumatic.receiver_volume_limits",
 )
 
@@ -69,3 +90,9 @@ def iter_all_required_paths() -> Iterable[str]:
 
     for key in RECEIVER_VOLUME_LIMIT_KEYS:
         yield f"current.pneumatic.receiver_volume_limits.{key}"
+
+    for key in LINE_PRESSURE_KEYS:
+        yield f"current.pneumatic.line_pressures.{key}"
+
+    for key in CHAMBER_VOLUME_KEYS:
+        yield f"current.pneumatic.chamber_volumes.{key}"

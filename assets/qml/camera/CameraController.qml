@@ -1,5 +1,5 @@
-import QtQuick
-import QtQuick3D
+import QtQuick 6.10
+import QtQuick3D 6.10
 
 /*
  * CameraController.qml - Main Camera System Controller

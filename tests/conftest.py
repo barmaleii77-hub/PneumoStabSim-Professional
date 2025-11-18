@@ -803,3 +803,12 @@ def legacy_gas_state_factory():
         )
 
     return _factory
+
+
+@pytest.fixture(scope="session")
+def physics_case_loader():
+    """Provide access to pre-defined suspension physics regression cases."""
+
+    from tests.physics.cases.loader import build_case_loader
+
+    return build_case_loader()

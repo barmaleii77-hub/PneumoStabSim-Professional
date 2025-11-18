@@ -396,21 +396,9 @@ def encode_baseline_from_png(png_path: Path | str, baseline_path: Path | str) ->
     return baseline
 
 
-def compare_with_baseline(
-    captured: Image.Image,
-    baseline_path: Path | str,
-    *,
-    tolerance: float = 3.5,
-    diff_output: Path | None = None,
-) -> float:
-    """Compare ``captured`` image against the stored baseline.
-
-    HiDPI нормализация: если framebuffer масштабирован (например 960x540 при baseline 640x360),
-    то вычисляется ratio = captured.width / baseline.width (должен совпадать с captured.height / baseline.height).
-    Допустимые коэффициенты: 1.25, 1.5, 1.75, 2.0, 3.0.
-    При совпадении выполняем ресайз вниз и сравниваем содержимое.
-    """
-
+def _prepare_images_for_diff(
+    captured: Image.Image, baseline_path: Path | str
+) -> tuple[Image.Image, Image.Image]:
     target = Path(baseline_path)
     if not target.exists():
         raise FileNotFoundError(
@@ -440,6 +428,25 @@ def compare_with_baseline(
                 f"Baseline size {baseline.size} does not match captured image size {captured_rgba.size}"
             )
 
+    return baseline, captured_rgba
+
+
+def compare_with_baseline(
+    captured: Image.Image,
+    baseline_path: Path | str,
+    *,
+    tolerance: float = 3.5,
+    diff_output: Path | None = None,
+) -> float:
+    """Compare ``captured`` image against the stored baseline.
+
+    HiDPI нормализация: если framebuffer масштабирован (например 960x540 при baseline 640x360),
+    то вычисляется ratio = captured.width / baseline.width (должен совпадать с captured.height / baseline.height).
+    Допустимые коэффициенты: 1.25, 1.5, 1.75, 2.0, 3.0.
+    При совпадении выполняем ресайз вниз и сравниваем содержимое.
+    """
+
+    baseline, captured_rgba = _prepare_images_for_diff(captured, baseline_path)
     diff = ImageChops.difference(baseline, captured_rgba)
     if diff_output is not None:
         diff_output.parent.mkdir(parents=True, exist_ok=True)
@@ -454,6 +461,15 @@ def compare_with_baseline(
             f"Captured frame deviates from baseline by RMS={overall:.2f}, tolerance={tolerance:.2f}"
         )
     return overall
+
+
+def measure_rms_difference(captured: Image.Image, baseline_path: Path | str) -> float:
+    """Return RMS deviation between ``captured`` and the encoded baseline."""
+
+    baseline, captured_rgba = _prepare_images_for_diff(captured, baseline_path)
+    diff = ImageChops.difference(baseline, captured_rgba)
+    stats = ImageStat.Stat(diff)
+    return math.sqrt(sum(value * value for value in stats.rms) / len(stats.rms))
 
 
 def wait_for_property(
@@ -482,6 +498,7 @@ __all__ = [
     "compare_with_baseline",
     "encode_baseline_from_png",
     "_load_baseline_image",
+    "measure_rms_difference",
     "ensure_simulation_panel_ready",
     "load_main_scene",
     "push_updates",

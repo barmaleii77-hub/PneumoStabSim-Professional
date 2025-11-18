@@ -112,6 +112,7 @@ IF ERRORLEVEL 1 (
   GOTO :eof
 )
 uv sync --frozen --extra dev
+uv run --locked -- python -c "import yaml; print(yaml.__version__)"
 GOTO :eof
 
 :uvrun

@@ -1,58 +1,39 @@
-"""
-Runtime simulation management
-Provides thread-safe simulation loop, state management, and synchronization
-"""
+"""Runtime simulation management
+Provides thread-safe simulation loop, state management, and synchronization.
 
-"""Runtime simulation management with lazy entry points."""
+Lazy attribute resolution keeps heavy simulation modules out of the import path
+until they are explicitly requested by the caller.
+"""
 
 from importlib import import_module
-from typing import TYPE_CHECKING
 
-from .state import (
-    FrameState,
-    LineState,
-    StateBus,
-    StateSnapshot,
-    SystemAggregates,
-    TankState,
-    WheelState,
-)
-
-from .sync import (
-    LatestOnlyQueue,
-    PerformanceMetrics,
-    ThreadSafeCounter,
-    TimingAccumulator,
-    create_state_queue,
-)
-
-if TYPE_CHECKING:  # pragma: no cover - import guard for type checkers
-    from .sim_loop import PhysicsWorker, SimulationManager
-
-__all__ = [
+_LAZY_EXPORTS = {
     # State management
-    "StateSnapshot",
-    "FrameState",
-    "WheelState",
-    "LineState",
-    "TankState",
-    "SystemAggregates",
-    "StateBus",
+    "StateSnapshot": ".state",
+    "FrameState": ".state",
+    "WheelState": ".state",
+    "LineState": ".state",
+    "TankState": ".state",
+    "SystemAggregates": ".state",
+    "StateBus": ".state",
     # Synchronization
-    "LatestOnlyQueue",
-    "PerformanceMetrics",
-    "TimingAccumulator",
-    "ThreadSafeCounter",
-    "create_state_queue",
+    "LatestOnlyQueue": ".sync",
+    "PerformanceMetrics": ".sync",
+    "TimingAccumulator": ".sync",
+    "ThreadSafeCounter": ".sync",
+    "create_state_queue": ".sync",
     # Simulation loop
-    "PhysicsWorker",
-    "SimulationManager",
-]
+    "PhysicsWorker": ".sim_loop",
+    "SimulationManager": ".sim_loop",
+}
+
+__all__ = list(_LAZY_EXPORTS.keys())
 
 
 def __getattr__(name: str):
-    if name in {"PhysicsWorker", "SimulationManager"}:
-        module = import_module(".sim_loop", __name__)
+    module_name = _LAZY_EXPORTS.get(name)
+    if module_name:
+        module = import_module(module_name, __name__)
         attr = getattr(module, name)
         globals()[name] = attr
         return attr

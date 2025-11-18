@@ -37,7 +37,7 @@ qml-lint qmllint:
 	 LINTER=pyside6-qmllint; \
 	 else \
 	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
-	 exit 1; \
+	 		exit 1; \
 	 fi; \
 	fi; \
 if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
@@ -64,7 +64,7 @@ else \
 fi; \
 done
 
-.PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
+.PHONY: uv-sync uv-sync-qt uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 
 uv-sync:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
@@ -72,15 +72,20 @@ uv-sync:
 		exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync $(UV_SYNC_ARGS)
+	cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python -c "import yaml; print(yaml.__version__)"
+
+uv-sync-qt: uv-sync
+	@python -c "import platform; print(f'[make] Running Qt setup via tools/setup_qt.py (platform={platform.system()})')"
+	$(PYTHON) tools/setup_qt.py --configure-env --check
 
 uv-sync-locked:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+				echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+				exit 1; \
 	fi
 	@if [ ! -f "$(UV_PROJECT_DIR)/$(UV_LOCKFILE)" ]; then \
 		echo "Error: Lockfile '$(UV_LOCKFILE)' was not found in $(UV_PROJECT_DIR). Run 'uv lock' first." >&2; \
-		exit 1; \
+				exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync --locked --frozen
 
@@ -90,26 +95,26 @@ uv-run:
 		exit 2; \
 	fi
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+				echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+				exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && PYTEST_DISABLE_PLUGIN_AUTOLOAD=$${PYTEST_DISABLE_PLUGIN_AUTOLOAD-1} $(UV) run $(UV_RUN_ARGS) -- $(CMD)
 
 uv-lock:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+				echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+				exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) lock
 
 uv-export-requirements:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+				echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+				exit 1; \
 	fi
 	@if [ ! -f "$(UV_PROJECT_DIR)/$(UV_LOCKFILE)" ]; then \
 		echo "Error: Lockfile '$(UV_LOCKFILE)' was not found in $(UV_PROJECT_DIR). Run 'uv lock' first." >&2; \
-		exit 1; \
+				exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements.txt --no-dev --locked --no-emit-project
 	cd $(UV_PROJECT_DIR) && $(UV) export --format requirements.txt --output-file requirements-dev.txt --extra dev --locked --no-emit-project
@@ -173,12 +178,13 @@ hdr-verify:
 validate-hdr-orientation:
 	$(PYTHON) tools/render_checks/validate_hdr_orientation.py
 
-check: uv-sync
+check: uv-sync-qt
 	# Strict preflight: fail fast when core modules are missing
 	$(PYTHON) scripts/check_environment.py --compact --auto-repair --output $(LOG_DIR)/env_check.json
 	$(PYTHON) -m json.tool config/app_settings.json >/dev/null
 	$(PYTHON) tools/validate_settings.py --quiet
 	CI_TASKS_ENABLE_COVERAGE=0 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software LIBGL_ALWAYS_SOFTWARE=1 \
+	PSS_HEADLESS=$${PSS_HEADLESS:-1} \
 	$(PYTHON) -m tools.ci_tasks verify
 	$(PYTHON) tools/check_workflow_pins.py
 	$(MAKE) check-shaders
@@ -243,8 +249,8 @@ integration:
 
 run:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-	echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-	exit 1; \
+			echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+			exit 1; \
 	fi
 	QT_QPA_PLATFORM=$${QT_QPA_PLATFORM} \
 	PSS_ENV_PRESET=$${PSS_ENV_PRESET:-normal} \
@@ -255,8 +261,8 @@ sanitize:
 
 cipilot-env:
 	@if ! command -v $(UV) >/dev/null 2>&1; then \
-		echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
-		exit 1; \
+				echo "Error: '$(UV)' is not installed. Run 'python scripts/bootstrap_uv.py' first." >&2; \
+				exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync
 	cd $(UV_PROJECT_DIR) && $(UV) run -- python -m tools.cipilot_environment --skip-uv-sync --probe-mode=python

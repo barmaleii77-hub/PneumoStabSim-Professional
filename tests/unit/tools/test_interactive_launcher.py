@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from subprocess import CompletedProcess
 
 import pytest
 
@@ -34,3 +35,36 @@ def test_run_log_analysis_reports_missing_logs(monkeypatch, tmp_path: Path) -> N
     message = launcher.run_log_analysis({})
 
     assert "Логи графики отсутствуют" in message or "Не найден анализатор" in message
+
+
+def test_summarize_log_tail_counts(tmp_path: Path) -> None:
+    """Tail summariser reports errors and warnings."""
+
+    log = tmp_path / "sample.log"
+    log.write_text(
+        "\n".join(
+            [
+                "info: start",
+                "Warning: be careful",
+                "Error: missing module",
+                "traceback: detail",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    tail, counts, highlights = launcher.summarize_log_tail(log, max_lines=10)
+
+    assert len(tail) == 4
+    assert counts == {"error": 2, "warning": 1}
+    assert any("Error" in line for line in highlights)
+
+
+def test_detect_failure_hint_pytest_failure() -> None:
+    """Pytest failures produce a directed hint."""
+
+    lines = ["pytest session", "FAILED test_sample.py::test_demo", "short traceback"]
+
+    hint = launcher._detect_failure_hint(lines)  # noqa: SLF001
+
+    assert "упали тесты" in hint

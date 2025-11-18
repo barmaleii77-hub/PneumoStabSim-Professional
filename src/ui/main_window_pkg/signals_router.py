@@ -1801,6 +1801,157 @@ class SignalsRouter:
         SignalsRouter._push_cylinder_state(window)
 
     @staticmethod
+    def handle_accordion_preset_activated(
+        window: "MainWindow", panel_id: str, preset_id: str
+    ) -> None:
+        """Handle preset activation coming from accordion-based QML panels."""
+
+        preset_key = (preset_id or "").strip()
+        if not preset_key:
+            return
+
+        panel_key = (panel_id or "").strip().lower()
+        if panel_key in {"modes", "simulation"}:
+            SignalsRouter.handle_modes_preset_selected(window, preset_key)
+            return
+
+        target_section = panel_key or "panels"
+        window._apply_settings_update(target_section, {"active_preset": preset_key})
+
+    @staticmethod
+    def handle_accordion_field_committed(
+        window: "MainWindow", panel_id: str, field: str, value: Any
+    ) -> None:
+        """Route validated accordion field edits into SettingsManager."""
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        resolved_panel = (panel_id or "").strip()
+        payload = SignalsRouter._build_nested_payload(field_key, value)
+
+        target_section = resolved_panel or field_key.split(".")[0]
+        if not resolved_panel and "." in field_key:
+            nested_key = field_key.split(".", 1)[1]
+            payload = SignalsRouter._build_nested_payload(nested_key, value)
+
+        window._apply_settings_update(target_section, payload)
+
+        if target_section == "modes":
+            SignalsRouter._push_modes_state(window)
+        elif target_section == "pneumatic":
+            SignalsRouter._push_pneumatic_state(window)
+        elif target_section == "simulation":
+            SignalsRouter._push_simulation_state(window)
+
+    @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Record accordion field validation state and surface status updates.
+
+        This helper keeps a simple in-memory map on the window for the latest
+        validation results and mirrors the notification shown to the status bar
+        so that UI tests can assert on the most recent feedback.
+        """
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        panel_key = (panel_id or "").strip() or "panels"
+        normalized_state = (state or "").strip().lower() or "unknown"
+        resolved_message = (message or "").strip()
+
+        if not hasattr(window, "_accordion_validation_states"):
+            window._accordion_validation_states = {}
+
+        window._accordion_validation_states[(panel_key, field_key)] = {
+            "state": normalized_state,
+            "message": resolved_message,
+        }
+
+        SignalsRouter.handle_accordion_validation_changed(
+            window, panel_key, field_key, normalized_state, resolved_message
+        )
+
+        status_bar = getattr(window, "status_bar", None)
+        if (
+            status_bar is not None
+            and resolved_message
+            and normalized_state in {"error", "invalid"}
+        ):
+            status_bar.showMessage(resolved_message, 6000)
+
+    @staticmethod
+    def handle_accordion_validation_changed(
+        window: "MainWindow",
+        panel_id: str,
+        field: str,
+        state: str,
+        message: str,
+        *,
+        timeout_ms: int | None = None,
+    ) -> None:
+        """Handle validation state updates coming from accordion-driven panels."""
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        panel_key = (panel_id or "").strip() or "panels"
+        normalized_state = (state or "").strip().lower() or "unknown"
+        resolved_message = (message or "").strip()
+
+        payload = {
+            "panel": panel_key,
+            "field": field_key,
+            "state": normalized_state,
+        }
+        if resolved_message:
+            payload["message"] = resolved_message
+
+        registry = getattr(window, "_accordion_validation_states", None)
+        if registry is None:
+            registry = {}
+            setattr(window, "_accordion_validation_states", registry)
+
+        registry[(panel_key, field_key)] = payload.copy()
+
+        logger = getattr(window, "logger", SignalsRouter.logger)
+        status_bar = getattr(window, "status_bar", None)
+
+        if normalized_state in {"error", "invalid"}:
+            logger.error(
+                "Accordion validation error", extra={"accordion_validation": payload}
+            )
+            if status_bar is not None:
+                status_bar.showMessage(
+                    resolved_message or f"{panel_key}.{field_key} validation error",
+                    timeout_ms if timeout_ms is not None else 4000,
+                )
+        else:
+            logger.info(
+                "Accordion validation state", extra={"accordion_validation": payload}
+            )
+
+    @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Legacy wrapper for renamed accordion validation handler.
+
+        Older QML bindings invoke ``handle_accordion_field_validation_state`` while
+        newer code uses :func:`handle_accordion_validation_changed`. Keep both
+        entrypoints to avoid breaking signal contracts during migrations.
+        """
+
+        SignalsRouter.handle_accordion_validation_changed(
+            window, panel_id, field, state, message, timeout_ms=6000
+        )
+
+    @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:
         """Persist animation toggle coming from QML."""
 
@@ -2085,6 +2236,21 @@ class SignalsRouter:
 
         payloads = SignalsRouter._get_last_payloads(window)
         payloads[category] = SignalsRouter._clone_payload(payload)
+
+    @staticmethod
+    def _build_nested_payload(key: str, value: Any) -> dict[str, Any]:
+        tokens = [token for token in (key or "").split(".") if token]
+        if not tokens:
+            return {}
+
+        payload: dict[str, Any] = {}
+        cursor: dict[str, Any] = payload
+        for token in tokens[:-1]:
+            nested: dict[str, Any] = {}
+            cursor[token] = nested
+            cursor = nested
+        cursor[tokens[-1]] = value
+        return payload
 
     @staticmethod
     def _schedule_debounced_update(

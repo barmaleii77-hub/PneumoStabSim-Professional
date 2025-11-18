@@ -1016,6 +1016,28 @@ class MainWindow(QMainWindow):
         """Cylinder constants changed in QML → SignalsRouter"""
         SignalsRouter.handle_cylinder_settings_changed(self, payload)
 
+    @Slot(str, str)
+    def _on_accordion_preset_activated(self, panel_id: str, preset_id: str) -> None:
+        """Accordion preset selected → SignalsRouter"""
+        SignalsRouter.handle_accordion_preset_activated(self, panel_id, preset_id)
+
+    @Slot(str, str, "QVariant")
+    def _on_accordion_field_committed(
+        self, panel_id: str, field: str, value: object
+    ) -> None:
+        """Validated accordion field edit → SettingsManager bridge"""
+        SignalsRouter.handle_accordion_field_committed(self, panel_id, field, value)
+
+    @Slot(str, str, str, str)
+    def _on_accordion_validation_changed(
+        self, panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Accordion validation state update → SignalsRouter"""
+
+        SignalsRouter.handle_accordion_validation_changed(
+            self, panel_id, field, state, message
+        )
+
     @Slot(str)
     def _on_sim_control(self, command: str) -> None:
         """Simulation control → SignalsRouter"""

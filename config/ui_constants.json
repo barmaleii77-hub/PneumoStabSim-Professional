@@ -1,0 +1,45 @@
+{
+  "panels": {
+    "background": [0.06, 0.09, 0.13, 0.92],
+    "border": [0.18, 0.24, 0.33, 0.9]
+  },
+  "flow": {
+    "animation": {
+      "baseMs": 900,
+      "speedFactor": 620,
+      "minMs": 160,
+      "maxMs": 1200,
+      "activationThreshold": 0.01
+    },
+    "card": {
+      "background": [0.08, 0.11, 0.17, 0.92],
+      "border": [0.22, 0.29, 0.4, 0.95],
+      "title": "#dfe7f3",
+      "subtitle": "#b6c1d4"
+    },
+    "intake": {
+      "start": [0.16, 0.44, 0.9, 0.55],
+      "end": [0.35, 0.82, 1.0, 0.9],
+      "tip": [0.65, 0.98, 1.0, 0.98],
+      "highlight": [0.55, 0.9, 1.0, 0.6],
+      "highlightEnd": [0.75, 1.0, 1.0, 0.95]
+    },
+    "exhaust": {
+      "start": [0.88, 0.36, 0.28, 0.55],
+      "end": [0.99, 0.64, 0.38, 0.9],
+      "tip": [1.0, 0.76, 0.45, 0.98],
+      "highlight": [1.0, 0.75, 0.55, 0.6],
+      "highlightEnd": [1.0, 0.9, 0.7, 0.95]
+    }
+  },
+  "reservoir": {
+    "fluidColor": [0.27, 0.6, 0.95, 0.65],
+    "surfaceHighlightColor": [1.0, 1.0, 1.0, 0.45],
+    "borderColor": [0.24, 0.31, 0.42, 0.9],
+    "atmosphericLineColor": [0.55, 0.78, 1.0, 0.8],
+    "valveOpenColor": [0.32, 0.78, 0.48, 0.95],
+    "valveClosedColor": [0.86, 0.33, 0.33, 0.95],
+    "lowPressureColor": [0.26, 0.56, 0.94, 0.7],
+    "highPressureColor": [0.94, 0.43, 0.34, 0.85]
+  }
+}

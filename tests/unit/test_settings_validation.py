@@ -113,6 +113,20 @@ def test_validate_settings_missing_physics_dt(
     assert "physics_dt" in _last_error(stub_qmessagebox)
 
 
+def test_validate_settings_missing_sim_speed(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["simulation"].pop("sim_speed")
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "sim_speed" in str(exc.value)
+    assert "sim_speed" in _last_error(stub_qmessagebox)
+
+
 def test_validate_settings_missing_receiver_limit(
     runner: ApplicationRunner, write_config, stub_qmessagebox
 ):
@@ -125,6 +139,20 @@ def test_validate_settings_missing_receiver_limit(
 
     assert "receiver_volume_limits" in str(exc.value)
     assert "receiver_volume_limits" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_rejects_out_of_range_volume(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"]["receiver_volume"] = 2.0
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "receiver_volume" in str(exc.value)
+    assert "receiver_volume" in _last_error(stub_qmessagebox)
 
 
 def test_validate_settings_missing_geometry_section(
@@ -161,6 +189,44 @@ def test_validate_settings_missing_volume_mode(
 
     assert "volume_mode" in str(exc.value)
     assert "volume_mode" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_missing_line_pressures(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"].pop("line_pressures")
+    defaults = settings.get("defaults_snapshot", {})
+    if isinstance(defaults, dict):
+        pneumatic_defaults = defaults.get("pneumatic", {})
+        if isinstance(pneumatic_defaults, dict):
+            pneumatic_defaults.pop("line_pressures", None)
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "line_pressures" in str(exc.value)
+    assert "line_pressures" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_missing_chamber_volumes(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"].pop("chamber_volumes")
+    defaults = settings.get("defaults_snapshot", {})
+    if isinstance(defaults, dict):
+        pneumatic_defaults = defaults.get("pneumatic", {})
+        if isinstance(pneumatic_defaults, dict):
+            pneumatic_defaults.pop("chamber_volumes", None)
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "chamber_volumes" in str(exc.value)
+    assert "chamber_volumes" in _last_error(stub_qmessagebox)
 
 
 def test_validate_settings_success(

@@ -25,9 +25,9 @@ export $(grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$ENV_FILE" | tr -d '\r')
 log "Environment variables loaded from .env"
 log "PROJECT_ROOT=$PROJECT_ROOT"
 
-ensure_qml_path() {
+ensure_path_variable() {
   local dir="$1"
-  local var_name="${2:-QML2_IMPORT_PATH}"
+  local var_name="$2"
   [[ -d "$dir" ]] || return
 
   local current="${!var_name:-}"
@@ -66,12 +66,66 @@ ensure_qml_path() {
   log "$var_name extended with $dir"
 }
 
+ensure_qml_path() {
+  ensure_path_variable "$1" "${2:-QML2_IMPORT_PATH}"
+}
+
+ensure_plugin_path() {
+  ensure_path_variable "$1" "${2:-QT_PLUGIN_PATH}"
+}
+
 ensure_qml_path "$PROJECT_ROOT/assets/qml" "QML2_IMPORT_PATH"
 ensure_qml_path "$PROJECT_ROOT/assets/qml/scene" "QML2_IMPORT_PATH"
 ensure_qml_path "$PROJECT_ROOT/assets/qml" "QML_IMPORT_PATH"
 ensure_qml_path "$PROJECT_ROOT/assets/qml/scene" "QML_IMPORT_PATH"
 ensure_qml_path "$PROJECT_ROOT/assets/qml" "QT_QML_IMPORT_PATH"
 ensure_qml_path "$PROJECT_ROOT/assets/qml/scene" "QT_QML_IMPORT_PATH"
+
+inject_qt_runtime_paths() {
+  local python_bin="${PYTHON:-python}"
+  local qt_paths
+
+  if ! qt_paths=$("$python_bin" - <<'PY'
+import sys
+
+try:
+    from PySide6 import QtCore  # type: ignore
+except Exception:
+    sys.exit(1)
+
+library_path = getattr(QtCore.QLibraryInfo.LibraryPath, "QmlImportsPath", QtCore.QLibraryInfo.LibraryPath.Qml2ImportsPath)
+print(QtCore.QLibraryInfo.path(QtCore.QLibraryInfo.LibraryPath.PluginsPath))
+print(QtCore.QLibraryInfo.path(library_path))
+PY
+  ); then
+    log "PySide6 not available; skipping Qt path export"
+    return
+  fi
+
+  local qt_plugin_path
+  local qt_qml_import_path
+  qt_plugin_path=$(printf '%s\n' "$qt_paths" | sed -n '1p')
+  qt_qml_import_path=$(printf '%s\n' "$qt_paths" | sed -n '2p')
+
+  if [[ -n "$qt_plugin_path" && -d "$qt_plugin_path" ]]; then
+    ensure_plugin_path "$qt_plugin_path" "QT_PLUGIN_PATH"
+  else
+    log "Qt plugin path unavailable or missing: $qt_plugin_path"
+  fi
+
+  if [[ -n "$qt_qml_import_path" && -d "$qt_qml_import_path" ]]; then
+    ensure_qml_path "$qt_qml_import_path" "QML2_IMPORT_PATH"
+    ensure_qml_path "$qt_qml_import_path" "QML_IMPORT_PATH"
+    ensure_qml_path "$qt_qml_import_path" "QT_QML_IMPORT_PATH"
+  else
+    log "Qt QML import path unavailable or missing: $qt_qml_import_path"
+  fi
+
+  if [[ -z "${QT_QUICK_CONTROLS_STYLE:-}" ]]; then
+    export QT_QUICK_CONTROLS_STYLE="Basic"
+    log "QT_QUICK_CONTROLS_STYLE set to Basic"
+  fi
+}
 
 if [[ ! -d "$PROJECT_ROOT/.venv" ]]; then
   if [[ "${PSS_SKIP_ENV_BOOTSTRAP:-0}" == "1" ]]; then
@@ -108,6 +162,8 @@ if [[ -d "$PROJECT_ROOT/.venv" ]]; then
 else
   log "Virtual environment setup failed"
 fi
+
+inject_qt_runtime_paths
 
 log "Qt backend: ${QSG_RHI_BACKEND:-n/a} (Qt ${QT_VERSION:-unknown})"
 

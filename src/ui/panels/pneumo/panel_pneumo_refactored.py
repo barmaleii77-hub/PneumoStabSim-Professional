@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QLabel,
-    QTabWidget,
     QHBoxLayout,
     QPushButton,
     QMessageBox,
@@ -24,6 +23,7 @@ from .thermo_tab import ThermoTab
 from .pressures_tab import PressuresTab
 from .valves_tab import ValvesTab
 from .receiver_tab import ReceiverTab
+from src.ui.accordion import AccordionWidget
 from src.core.history import HistoryStack
 from src.core.settings_sync_controller import SettingsSyncController
 from src.ui.panels.preset_manager import PanelPresetManager
@@ -74,24 +74,33 @@ class PneumoPanel(QWidget):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        self.tab_widget = QTabWidget()
+        self.accordion = AccordionWidget()
         self.thermo_tab = ThermoTab(self.state_manager, self)
         self.pressures_tab = PressuresTab(self.state_manager, self)
         self.valves_tab = ValvesTab(self.state_manager, self)
         self.receiver_tab = ReceiverTab(self.state_manager, self)
 
-        self.tab_widget.addTab(self.thermo_tab, "Термо")
-        self.tab_widget.addTab(self.pressures_tab, "Давление")
-        self.tab_widget.addTab(self.valves_tab, "Клапаны")
-        self.tab_widget.addTab(self.receiver_tab, "Ресивер")
-
-        tab_tip = self.preset_manager.get_tooltip(
-            "tab_widget", "Выберите раздел для настройки пневмосистемы"
+        self.accordion.add_section(
+            "volumes",
+            "Объёмы и ресивер",
+            self.receiver_tab,
+            expanded=True,
         )
-        if tab_tip:
-            self.tab_widget.setToolTip(tab_tip)
+        self.accordion.add_section(
+            "pressures", "Давления", self.pressures_tab, expanded=False
+        )
+        self.accordion.add_section("valves", "Клапаны", self.valves_tab, expanded=False)
+        self.accordion.add_section(
+            "thermo", "Терморежим", self.thermo_tab, expanded=False
+        )
 
-        layout.addWidget(self.tab_widget)
+        accordion_tip = self.preset_manager.get_tooltip(
+            "accordion", "Разверните разделы для настройки параметров"
+        )
+        if accordion_tip:
+            self.accordion.setToolTip(accordion_tip)
+
+        layout.addWidget(self.accordion)
 
         buttons_row = QHBoxLayout()
         self.reset_button = QPushButton("↩︎ Сбросить (defaults)")

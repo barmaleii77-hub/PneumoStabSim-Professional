@@ -35,6 +35,16 @@ def _install_forces_stub() -> None:
     if module_name in sys.modules:
         return
 
+    try:
+        import src.physics.forces as forces_module
+
+        sys.modules[module_name] = forces_module
+        return
+    except Exception:
+        # Fall back to a lightweight stub when the real module cannot be imported
+        # (for example when Qt dependencies are unavailable in minimal CI images).
+        pass
+
     stub = types.ModuleType(module_name)
 
     def compute_cylinder_force(
@@ -43,6 +53,20 @@ def _install_forces_stub() -> None:
         return (p_head - PA_ATM) * area_head - (p_rod - PA_ATM) * area_rod
 
     stub.compute_cylinder_force = compute_cylinder_force  # type: ignore[attr-defined]
+    stub.compute_spring_force = lambda x_current, x_rest, k_spring: max(
+        0.0, (x_rest - x_current) * k_spring
+    )
+    stub.compute_damper_force = (
+        lambda v_axis, c_damper, F_min: 0.0
+        if abs(c_damper * v_axis) < F_min
+        else c_damper * v_axis
+    )
+    stub.compute_point_velocity_world = (
+        lambda r_local, body_velocity, body_angular_velocity: np.zeros(3)
+    )
+    stub.project_forces_to_vertical_and_moments = (
+        lambda suspension_states, attachment_points: (np.zeros(4), 0.0, 0.0)
+    )
     sys.modules[module_name] = stub
 
 

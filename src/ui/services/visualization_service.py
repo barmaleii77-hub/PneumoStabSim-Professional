@@ -9,8 +9,9 @@ from typing import Any
 
 from src.common.settings_manager import SettingsManager
 from src.core.interfaces import VisualizationService as VisualizationServiceProtocol
+from src.graphics.materials import MaterialStateStore
 from src.security.access_control import AccessControlService, get_access_control
-from src.ui.hud import CameraHudTelemetry
+from src.ui.lazy_loader import build_camera_hud_telemetry
 
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,11 @@ class VisualizationService(VisualizationServiceProtocol):
         self._state: dict[str, dict[str, Any]] = {key: {} for key in self._CATEGORIES}
         self._latest_updates: dict[str, dict[str, Any]] = {}
         self._settings_manager = settings_manager
-        self._camera_telemetry = CameraHudTelemetry()
+        self._camera_telemetry = build_camera_hud_telemetry()
+        self._materials_store = MaterialStateStore(
+            settings_manager=self._resolve_settings_manager()
+        )
+        self._state["materials"] = self._materials_store.current_state
         self._access_control = access_control or get_access_control()
 
     # ----------------------------------------------------------------- startup
@@ -150,6 +155,13 @@ class VisualizationService(VisualizationServiceProtocol):
             if key not in self._CATEGORIES:
                 continue
             normalised = self._sanitize_payload(payload)
+            if key == "materials":
+                material_state = self._materials_store.apply_updates(
+                    normalised, auto_save=True
+                )
+                self._state[key] = material_state
+                sanitized[key] = dict(material_state)
+                continue
             if key == "camera":
                 normalised = self.prepare_camera_payload(normalised)
             access_payload = self._build_access_payload(key)
@@ -167,6 +179,14 @@ class VisualizationService(VisualizationServiceProtocol):
             self._latest_updates = {}
 
         return {key: dict(value) for key, value in sanitized.items()}
+
+    def rollback_materials(self) -> Mapping[str, Any]:
+        """Restore the previous materials snapshot and persist it."""
+
+        rolled_back = self._materials_store.rollback(auto_save=True)
+        self._state["materials"] = rolled_back
+        self._latest_updates = {"materials": dict(rolled_back)}
+        return dict(rolled_back)
 
     def reset(self, categories: Iterable[str] | None = None) -> Iterable[str]:
         keys = list(categories) if categories is not None else list(self._CATEGORIES)

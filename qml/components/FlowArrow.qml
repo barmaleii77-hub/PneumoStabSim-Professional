@@ -3,9 +3,12 @@ pragma ComponentBehavior: Bound
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import QtQuick.Layouts 6.10
+import "../singletons" as Singletons
 
 Item {
     id: root
+
+    baselineOffset: titleLabel.baselineOffset
 
     implicitWidth: 200
     implicitHeight: 68
@@ -94,16 +97,20 @@ Item {
         return numeric
     }
 
+    readonly property var _flowAnimation: Singletons.UiConstants.flow.animation
+    readonly property var _flowCard: Singletons.UiConstants.flow.card
+
     readonly property int _animationDuration: {
-        var base = 900 - 620 * _normalizedAnimationSpeed
+        var base = _flowAnimation.baseMs - _flowAnimation.speedFactor * _normalizedAnimationSpeed
         if (!Number.isFinite(base))
-            base = 900
-        base = Math.max(160, Math.min(1200, Math.round(base)))
+            base = _flowAnimation.baseMs
+        base = Math.max(_flowAnimation.minMs, Math.min(_flowAnimation.maxMs, Math.round(base)))
         return base
     }
 
     readonly property real _directionSign: direction.toLowerCase() === "exhaust" ? -1 : 1
     readonly property bool _isExhaust: direction.toLowerCase() === "exhaust"
+    readonly property var _gradientPalette: Singletons.UiConstants.flowPalette(_isExhaust, effectivePressureRatio)
 
     function _formatFlow(value) {
         var numeric = Number(value)
@@ -111,22 +118,6 @@ Item {
             numeric = 0.0
         var loc = Qt.locale()
         return loc.toString(numeric, "f", 2)
-    }
-
-    function _mixColor(colorA, colorB, ratio) {
-        var clamped = Number(ratio)
-        if (!Number.isFinite(clamped))
-            clamped = 0.0
-        if (clamped < 0.0)
-            clamped = 0.0
-        if (clamped > 1.0)
-            clamped = 1.0
-        return Qt.rgba(
-            colorA.r + (colorB.r - colorA.r) * clamped,
-            colorA.g + (colorB.g - colorA.g) * clamped,
-            colorA.b + (colorB.b - colorA.b) * clamped,
-            colorA.a + (colorB.a - colorA.a) * clamped
-        )
     }
 
     function _effectivePressureRatio() {
@@ -157,28 +148,9 @@ Item {
             + Math.max(0, Math.min(1, color.a)) + ")"
     }
 
-    function _gradientColors() {
-        var ratio = effectivePressureRatio
-        var intakeStart = Qt.rgba(0.16, 0.44, 0.9, 0.55)
-        var intakeEnd = Qt.rgba(0.35, 0.82, 1.0, 0.9)
-        var exhaustStart = Qt.rgba(0.88, 0.36, 0.28, 0.55)
-        var exhaustEnd = Qt.rgba(0.99, 0.64, 0.38, 0.9)
-        if (_isExhaust) {
-            return {
-                base: _colorToCss(_mixColor(exhaustStart, exhaustEnd, ratio)),
-                tip: _colorToCss(_mixColor(exhaustStart, Qt.rgba(1.0, 0.76, 0.45, 0.98), ratio)),
-                highlight: _colorToCss(_mixColor(Qt.rgba(1.0, 0.75, 0.55, 0.6), Qt.rgba(1.0, 0.9, 0.7, 0.95), ratio))
-            }
-        }
-        return {
-            base: _colorToCss(_mixColor(intakeStart, intakeEnd, ratio)),
-            tip: _colorToCss(_mixColor(intakeStart, Qt.rgba(0.65, 0.98, 1.0, 0.98), ratio)),
-            highlight: _colorToCss(_mixColor(Qt.rgba(0.55, 0.9, 1.0, 0.6), Qt.rgba(0.75, 1.0, 1.0, 0.95), ratio))
-        }
-    }
-
     function _refreshAnimationRunning() {
-        var active = _normalizedAnimationSpeed > 0.01 && _normalizedIntensity > 0.01 && root.visible
+        var threshold = _flowAnimation.activationThreshold
+        var active = _normalizedAnimationSpeed > threshold && _normalizedIntensity > threshold && root.visible
         if (animationRunning !== active)
             animationRunning = active
     }
@@ -197,9 +169,9 @@ Item {
         id: background
         anchors.fill: parent
         radius: 12
-        color: Qt.rgba(0.08, 0.11, 0.17, 0.92)
+        color: _flowCard.background
         border.width: 1
-        border.color: Qt.rgba(0.22, 0.29, 0.4, 0.95)
+        border.color: _flowCard.border
     }
 
     ColumnLayout {
@@ -213,7 +185,7 @@ Item {
             text: root.label
             font.bold: true
             font.pixelSize: 14
-            color: "#dfe7f3"
+            color: _flowCard.title
             elide: Text.ElideRight
         }
 
@@ -244,11 +216,11 @@ Item {
                     ctx.save()
                     ctx.scale(directionSign < 0 ? -1 : 1, 1)
 
-                    var colors = root._gradientColors()
+                    var palette = root._gradientPalette
                     var gradient = ctx.createLinearGradient(startX, centerY, startX + arrowLength, centerY)
-                    gradient.addColorStop(0, colors.base)
+                    gradient.addColorStop(0, root._colorToCss(palette.base))
                     gradient.addColorStop(0.55, "rgba(255, 255, 255, " + (0.25 + 0.5 * root._normalizedIntensity) + ")")
-                    gradient.addColorStop(1, colors.tip)
+                    gradient.addColorStop(1, root._colorToCss(palette.tip))
 
                     ctx.fillStyle = gradient
                     ctx.strokeStyle = "rgba(255, 255, 255, 0.2)"
@@ -270,7 +242,7 @@ Item {
                         var travel = arrowLength - arrowHeight
                         var spacing = travel / waveCount
                         var offset = root.phase * spacing
-                        ctx.fillStyle = colors.highlight
+                        ctx.fillStyle = root._colorToCss(palette.highlight)
                         ctx.globalAlpha = 0.28 + 0.45 * root._normalizedIntensity
                         for (var i = -1; i <= waveCount + 1; ++i) {
                             var baseX = startX + i * spacing + offset
@@ -313,7 +285,7 @@ Item {
                     .arg(root._deltaLabel())
             }
             font.pixelSize: 12
-            color: "#b6c1d4"
+            color: _flowCard.subtitle
             elide: Text.ElideRight
         }
     }

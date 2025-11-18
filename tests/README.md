@@ -122,6 +122,12 @@ tracking document.
   unless the line is annotated with `# pytest-skip-ok` and the CI job sets
   `CI_SKIP_REASON` alongside `PSS_ALLOW_SKIPPED_TESTS=1`.
 
+The manual Canvas preview in `tests/ui/test_canvas_animation_preview.py` is only
+meant for interactive Windows/Desktop runs. Automated pipelines now export
+`PSS_HEADLESS=1` when invoking `make check` or `scripts/testing_entrypoint.py`,
+so this preview case is skipped explicitly on headless backends while the
+animation regression test continues to run.
+
 ## Windows remediation plan
 
 1. **Baseline reproduction** – Run `python -m tools.cross_platform_test_prep --use-uv --run-tests --pytest-args tests/ui`

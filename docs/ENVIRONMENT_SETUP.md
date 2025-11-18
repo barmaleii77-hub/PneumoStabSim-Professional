@@ -175,7 +175,9 @@ headless-профилей.
 ## 4. Проверка окружения
 
 1. `make uv-sync` или `python -m tools.task_runner uv-sync` — синхронизация
-   зависимостей.
+   зависимостей. На Windows (или при отсутствии `make`) используйте
+   `python scripts/setup_dev.py --sync` для эквивалентной установки
+   зависимостей через uv/venv и воспроизведения настроек PySide6 6.10.
 2. `python tools/setup_qt.py --qt-version 6.10.0` — установка Qt Quick 3D.
 3. `make check` — агрегированная проверка (`ruff`, `mypy`, `pytest`, `qmllint`).
 4. `python -m tools.environment.verify_qt_setup --expected-version 6.10` —

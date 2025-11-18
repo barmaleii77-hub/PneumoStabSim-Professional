@@ -24,9 +24,17 @@ Item {
 
     // Bridge
     property var sceneBridge: null
+    property var sceneSharedMaterials: null
+    property var sceneDirectionalLights: null
+    property var scenePointLights: null
+    property var sceneFrameNode: null
     // External references
     property var postEffects: null
     property var sceneView: null
+
+    // Manual overrides for post-processing toggles (from UI/settings)
+    property bool effectsBypassRequested: false
+    property string effectsBypassReason: ""
 
     // Post-processing bypass
     property bool postProcessingBypassed: false
@@ -64,6 +72,8 @@ Item {
     // Core state mirrors
     property var geometryState: ({})
     property var simulationState: ({})
+    property var materialsState: ({})
+    property var previousMaterialsState: ({})
     property var threeDState: ({})
     property var flowTelemetry: ({})
     property var receiverTelemetry: ({})
@@ -75,6 +85,15 @@ Item {
     readonly property bool sceneBridgeAvailable: sceneBridge !== null && sceneBridge !== undefined
     readonly property bool geometryStateReady: !_isEmptyMap(geometryState)
     readonly property bool simulationStateReady: !_isEmptyMap(simulationState)
+
+    // SSAO controls mirrored from the embedding UI/root
+    property bool ssaoEnabled: true
+    property real ssaoRadius: 0.008
+    property real ssaoIntensity: 1.0
+    property real ssaoSoftness: 20.0
+    property real ssaoBias: 0.025
+    property bool ssaoDither: true
+    property int ssaoSampleRate: 4
 
     // Batch updates
     property var pendingPythonUpdates: null
@@ -127,6 +146,10 @@ Item {
     property var sceneQualityDefaults: ({})
     // Используем простой literal для корректной конверсии в Python dict
     property var environmentState: ({})
+    property bool fogDepthEnabled: true
+    property real fogDepthNear: 2.0
+    property real fogDepthFar: 20.0
+    property real fogDepthCurve: 1.0
 
     property var effectsState: ({})
     property var cameraStateSnapshot: ({})
@@ -284,7 +307,14 @@ Item {
         _storeLastUpdate("animation", payload)
     }
     function applyLightingUpdates(params) { _logBatchEvent("function_called","applyLightingUpdates"); var normalized=_normaliseState(params); _storeLastUpdate("lighting",normalized) }
-    function applyMaterialUpdates(params) { _logBatchEvent("function_called","applyMaterialUpdates"); var normalized=_normaliseState(params); _storeLastUpdate("materials",normalized) }
+    function applyMaterialUpdates(params) {
+        _logBatchEvent("function_called","applyMaterialUpdates")
+        var normalized = _normaliseState(params)
+        previousMaterialsState = _cloneObject(materialsState)
+        materialsState = _deepMerge(materialsState, normalized)
+        _storeLastUpdate("materials", normalized)
+        return materialsState
+    }
 
     function applyEnvironmentUpdates(params) {
         _logBatchEvent("function_called","applyEnvironmentUpdates")
@@ -336,7 +366,59 @@ Item {
         _logBatchEvent("function_called","applyEffectsUpdates")
         var normalized = _normaliseState(params)
         effectsState = _deepMerge(effectsState, normalized)
+        if (normalized.effects_bypass !== undefined)
+            _applyEffectsBypassOverride(normalized.effects_bypass, normalized.effects_bypass_reason)
+        else if (normalized.effects_bypass_reason !== undefined)
+            _applyEffectsBypassOverride(effectsBypassRequested, normalized.effects_bypass_reason)
         _storeLastUpdate("effects", normalized)
+    }
+
+    function _applyEffectsBypassOverride(active, reason) {
+        var target = !!active
+        var normalizedReason = reason !== undefined && reason !== null
+                ? String(reason)
+                : ""
+        effectsBypassRequested = target
+        effectsBypassReason = normalizedReason
+
+        if (postEffects && typeof postEffects.setEffectPersistentFailure === "function") {
+            var manualReason = normalizedReason.length ? normalizedReason : qsTr("Manual post-processing bypass")
+            try {
+                postEffects.setEffectPersistentFailure("manual_bypass", target, manualReason)
+                return
+            } catch (error) {
+                console.debug("[SimulationRoot] manual bypass routing failed", error)
+            }
+        }
+
+        // Fallback when PostEffects is unavailable
+        if (sceneView) {
+            try {
+                if (target) {
+                    postProcessingEffectBackup = sceneView.effects && typeof sceneView.effects.slice === "function"
+                        ? sceneView.effects.slice()
+                        : []
+                    sceneView.effects = []
+                    postProcessingBypassed = true
+                    postProcessingBypassReason = normalizedReason
+                } else {
+                    if (postProcessingEffectBackup && postProcessingEffectBackup.length > 0)
+                        sceneView.effects = postProcessingEffectBackup
+                    postProcessingEffectBackup = []
+                    postProcessingBypassed = false
+                    postProcessingBypassReason = normalizedReason
+                }
+            } catch (err) {
+                console.debug("[SimulationRoot] fallback bypass handling failed", err)
+            }
+        }
+    }
+
+    function rollbackMaterials() {
+        if (_isEmptyMap(previousMaterialsState)) return materialsState
+        materialsState = _cloneObject(previousMaterialsState)
+        _storeLastUpdate("materials", materialsState)
+        return materialsState
     }
     function applyRenderSettings(params) {
         _logBatchEvent("function_called","applyRenderSettings")
@@ -674,7 +756,44 @@ Item {
         skyboxToggleFlag: false
         reflectionProbeEnabled: root.reflectionProbeEnabled
         // SSAO defaults are kept in sync with Python/UI toggles
-        ssaoEnabled: true
+        ssaoEnabled: root.ssaoEnabled
+        ssaoRadius: root.ssaoRadius
+        ssaoIntensity: root.ssaoIntensity
+        ssaoSoftness: root.ssaoSoftness
+        ssaoBias: root.ssaoBias
+        ssaoDither: root.ssaoDither
+        ssaoSampleRate: root.ssaoSampleRate
+    }
+    Connections {
+        target: envController
+        function onSsaoEnabledChanged() {
+            if (root.ssaoEnabled !== envController.ssaoEnabled)
+                root.ssaoEnabled = envController.ssaoEnabled
+        }
+        function onSsaoRadiusChanged() {
+            if (root.ssaoRadius !== envController.ssaoRadius)
+                root.ssaoRadius = envController.ssaoRadius
+        }
+        function onSsaoIntensityChanged() {
+            if (root.ssaoIntensity !== envController.ssaoIntensity)
+                root.ssaoIntensity = envController.ssaoIntensity
+        }
+        function onSsaoSoftnessChanged() {
+            if (root.ssaoSoftness !== envController.ssaoSoftness)
+                root.ssaoSoftness = envController.ssaoSoftness
+        }
+        function onSsaoBiasChanged() {
+            if (root.ssaoBias !== envController.ssaoBias)
+                root.ssaoBias = envController.ssaoBias
+        }
+        function onSsaoDitherChanged() {
+            if (root.ssaoDither !== envController.ssaoDither)
+                root.ssaoDither = envController.ssaoDither
+        }
+        function onSsaoSampleRateChanged() {
+            if (root.ssaoSampleRate !== envController.ssaoSampleRate)
+                root.ssaoSampleRate = envController.ssaoSampleRate
+        }
     }
     QtObject {
         id: suspensionAssembly

@@ -15,7 +15,7 @@ PyOpenGL-accelerate==3.1.7
 PySide6>=6.10,<7
 PySide6_Addons>=6.10,<7
 PySide6_Essentials>=6.10,<7
-PyYAML==6.0.2
+PyYAML==6.0.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 psutil==6.0.0
