@@ -322,6 +322,12 @@ def _flatten_event_processor(
 ) -> dict[str, Any]:
     """Normalise nested JSON payloads before rendering."""
 
+    event_value = event_dict.get("event")
+    if event_value is None and name:
+        event_dict["event"] = name
+    elif event_value is not None and not isinstance(event_value, str):
+        event_dict["event"] = str(event_value)
+
     record = event_dict.get("_record")
     if record is not None:
         for key, value in event_dict.items():
@@ -332,19 +338,6 @@ def _flatten_event_processor(
             except Exception:  # pragma: no cover - defensive best effort
                 continue
     return _flatten_event_payload(event_dict)
-
-
-def _json_renderer(logger: Any, name: str, event_dict: dict[str, Any]) -> str:
-    """Render structured events as JSON with UTF-8 friendly output."""
-
-    # ``ProcessorFormatter`` shares the event dictionary instance across
-    # processors. ``json.dumps`` mutates neither the mapping nor the values but
-    # copying keeps the renderer side-effect free and avoids surprises for
-    # downstream formatters in custom pipelines.
-    serialisable = _flatten_event_payload(dict(event_dict))
-    if "event" not in serialisable and name:
-        serialisable["event"] = name
-    return _json_dumps(serialisable)
 
 
 def _shared_processors() -> list[Any]:
@@ -393,7 +386,10 @@ def _ensure_stdlib_bridge(
     handler.addFilter(_StructlogBridgeFilter())
     if formatter is None:
         if json_renderer is None:
-            json_renderer = _json_renderer
+            json_renderer = structlog.processors.JSONRenderer(
+                ensure_ascii=False,
+                default=str,
+            )
         formatter = structlog.stdlib.ProcessorFormatter(
             processors=[
                 structlog.stdlib.ProcessorFormatter.remove_processors_meta,
@@ -439,9 +435,9 @@ def configure_logging(
         _configure_fallback_logging(level)
         return
 
-    # NB: _json_dumps sets ensure_ascii=False by default, so UTF-8 characters are serialized correctly.
     json_renderer = structlog.processors.JSONRenderer(
-        serializer=_json_dumps,
+        ensure_ascii=False,
+        default=str,
         event_key="event",
     )
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
