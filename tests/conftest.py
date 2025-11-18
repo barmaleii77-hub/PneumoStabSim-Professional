@@ -279,6 +279,11 @@ def headless_qtbot(request):
                 time.sleep(0.01)
             raise AssertionError("waitUntil timed out")
 
+        def wait(self, timeout: int = 100) -> None:
+            """Mimic pytest-qt's ``wait`` helper using a simple sleep."""
+
+            time.sleep(timeout / 1000.0)
+
     return _StubQtBot()
 
 
