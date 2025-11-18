@@ -358,9 +358,7 @@ def test_restore_rejects_directory_traversal_entry(
         handle.writestr("../escape/", "")
         handle.writestr(
             "PSS_BACKUP_MANIFEST.json",
-            json.dumps(
-                {"included": [], "skipped": []}, ensure_ascii=False
-            ),
+            json.dumps({"included": [], "skipped": []}, ensure_ascii=False),
         )
 
     caplog.set_level(logging.ERROR, logger="services.backup")

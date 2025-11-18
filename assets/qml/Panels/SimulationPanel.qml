@@ -743,21 +743,21 @@ Pane {
                             text: qsTr("Температура среды, °C")
                             Layout.preferredWidth: 150
                         }
-                        SpinBox {
-                            id: ambientTemperatureSpin
-                            Layout.fillWidth: true
-                            from: -80.0
-                            to: 150.0
-                            stepSize: 0.5
-                            value: 20.0
-                            editable: true
-                            validator: DoubleValidator { bottom: -120; top: 200; decimals: 1 }
-                            textFromValue: function(value, locale) { return root._formatValue(value, 1) }
-                            valueFromText: function(text, locale) {
-                                var numeric = Number(text)
-                                return Number.isFinite(numeric) ? numeric : value
-                            }
-                            onValueModified: {
+                            SpinBox {
+                              id: ambientTemperatureSpin
+                              Layout.fillWidth: true
+                              from: -80
+                              to: 150
+                              stepSize: 1
+                              value: 20
+                              editable: true
+                              validator: DoubleValidator { bottom: -120; top: 200; decimals: 1 }
+                              textFromValue: function(value, locale) { return root._formatValue(value, 1) }
+                              valueFromText: function(text, locale) {
+                                  var numeric = Number(text)
+                                  return Number.isFinite(numeric) ? numeric : value
+                              }
+                              onValueModified: {
                                 if (root._updatingFromPython)
                                     return
                                 root._activePresetId = "custom"

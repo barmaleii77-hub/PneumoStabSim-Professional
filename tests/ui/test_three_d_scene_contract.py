@@ -9,9 +9,9 @@ QML_PATH = Path("qml/ThreeDScene.qml")
 def test_three_d_scene_lists_primitives_and_lights() -> None:
     content = QML_PATH.read_text(encoding="utf-8")
 
-    assert "source: \"#Cube\"" in content
-    assert "source: \"#Sphere\"" in content
-    assert "source: \"#Cylinder\"" in content
+    assert 'source: "#Cube"' in content
+    assert 'source: "#Sphere"' in content
+    assert 'source: "#Cylinder"' in content
     assert "DirectionalLight" in content
     assert content.count("PointLight") >= 2
 
