@@ -745,6 +745,7 @@ Pane {
                         Layout.fillWidth: true
                         labelText: qsTr("Температура среды")
                         settingsKey: "ambient_temperature_c"
+                        panelId: "modes"
                         from: -80
                         to: 150
                         stepSize: 0.5

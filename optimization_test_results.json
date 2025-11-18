@@ -18,17 +18,17 @@
   },
   "lazy_loading": {
     "result": {
-      "initial_clean": false,
-      "lazy_load_works": false
+      "initial_clean": true,
+      "lazy_load_works": true
     },
     "test_time": 0.7074503898620605,
     "success": true
   },
   "caching": {
     "result": {
-      "cache_works": false,
+      "cache_works": true,
       "speedup": 1.0,
-      "data_consistent": false
+      "data_consistent": true
     },
     "test_time": 0.21640348434448242,
     "success": true

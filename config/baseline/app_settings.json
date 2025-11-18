@@ -680,7 +680,8 @@
       "physics_dt": 0.001,
       "render_vsync_hz": 60.0,
       "max_steps_per_frame": 10,
-      "max_frame_time": 0.05
+      "max_frame_time": 0.05,
+      "sim_speed": 1.0
     },
     "quality_presets": {
       "ultra": {
@@ -1716,7 +1717,8 @@
       "physics_dt": 0.001,
       "render_vsync_hz": 60.0,
       "max_steps_per_frame": 10,
-      "max_frame_time": 0.05
+      "max_frame_time": 0.05,
+      "sim_speed": 1.0
     },
     "quality_presets": {
       "ultra": {

@@ -30,6 +30,24 @@ def get_camera_hud_telemetry() -> type:
     return CameraHudTelemetry
 
 
+def build_pressure_scale_widget(*args: Any, **kwargs: Any) -> Any:
+    """Instantiate :class:`PressureScaleWidget` lazily."""
+
+    return get_pressure_scale_widget()(*args, **kwargs)
+
+
+def build_tank_overlay_hud(*args: Any, **kwargs: Any) -> Any:
+    """Instantiate :class:`TankOverlayHUD` lazily."""
+
+    return get_tank_overlay_hud()(*args, **kwargs)
+
+
+def build_camera_hud_telemetry(*args: Any, **kwargs: Any) -> Any:
+    """Instantiate :class:`CameraHudTelemetry` lazily."""
+
+    return get_camera_hud_telemetry()(*args, **kwargs)
+
+
 def get_chart_widget() -> type:
     """Return the :class:`ChartWidget` widget lazily."""
     from .charts import ChartWidget
@@ -58,6 +76,9 @@ __all__ = [
     "get_pressure_scale_widget",
     "get_tank_overlay_hud",
     "get_camera_hud_telemetry",
+    "build_pressure_scale_widget",
+    "build_tank_overlay_hud",
+    "build_camera_hud_telemetry",
     "get_chart_widget",
     "get_main_window",
     "build_chart_widget",

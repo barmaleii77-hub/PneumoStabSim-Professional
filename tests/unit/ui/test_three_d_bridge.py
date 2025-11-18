@@ -27,8 +27,10 @@ def test_initial_three_d_payload_defaults() -> None:
     payload = qml_bridge.initial_three_d_payload()
 
     assert payload["camera"]["azimuth"] == pytest.approx(35.0)
+    assert payload["camera"]["minDistance"] == pytest.approx(2.0)
     assert set(payload["primitives"].keys()) == {"box", "sphere", "cylinder"}
     assert payload["lighting"]["keyIntensity"] > 0
+    assert payload["lighting"]["keyShadows"] is True
 
 
 def test_initial_three_d_payload_merges_settings_and_overrides() -> None:

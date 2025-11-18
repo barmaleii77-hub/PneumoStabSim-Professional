@@ -1,0 +1,14 @@
+{
+  "graphics_collect_state": {
+    "iterations": 12,
+    "total_seconds": 0.17278603199997633,
+    "average_ms": 14.398835999998028,
+    "budget_ms": 25.0
+  },
+  "modes_collect_and_validate": {
+    "iterations": 25,
+    "total_seconds": 0.23143184000002748,
+    "average_ms": 9.2572736000011,
+    "budget_ms": 15.0
+  }
+}

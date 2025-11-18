@@ -24,7 +24,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path, PureWindowsPath
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from collections.abc import Iterable, Mapping, MutableMapping
 from collections.abc import Mapping as MappingABC
 
@@ -50,6 +50,9 @@ from src.core.settings_models import AppSettings, dump_settings
 ValidationError = _PydanticValidationError
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from src.core.parameter_manager import ParameterSnapshot
 
 # Запрещённые legacy mesh поля (используются в smoke-тестах)
 LEGACY_GEOMETRY_MESH_EXTRAS: set[str] = {
@@ -982,6 +985,14 @@ class SettingsService:
         self._cache_model = None
         settings = self.load(use_cache=True)
         return dump_settings(settings)
+
+    def validate_dependencies(self) -> "ParameterSnapshot":
+        """Validate cross-parameter constraints via :class:`ParameterManager`."""
+
+        from src.core.parameter_manager import ParameterManager
+
+        payload = dump_settings(self.load())
+        return ParameterManager.validate_payload(payload)
 
     # --- NEW: мягкое наполнение constants из defaults/baseline -----------------
     def _soft_fill_constants(self, payload: MutableMapping[str, Any]) -> None:
