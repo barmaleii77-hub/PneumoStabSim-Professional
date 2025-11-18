@@ -1,5 +1,6 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
+import QtQuick3D 6.10
 import PneumoStabSim 1.0
 import "./"
 import "./effects"          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
@@ -202,19 +203,21 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-        fogEnabled: root.fogEnabled
-        fogDepthEnabled: root.fogDepthEnabled
-        fogColor: root.fogColor
-        fogDensity: root.fogDensity
-        fogDepthCurve: root.fogDepthCurve
-        fogDepthNear: root.fogDepthNear
-        fogDepthFar: root.fogDepthFar
-        fogHeightEnabled: root.fogHeightEnabled
-        fogLeastIntenseY: root.fogLeastIntenseY
-        fogMostIntenseY: root.fogMostIntenseY
-        fogHeightCurve: root.fogHeightCurve
-        fogTransmitEnabled: root.fogTransmitEnabled
-        fogTransmitCurve: root.fogTransmitCurve
+        fog: Fog {
+            enabled: root.fogEnabled
+            color: root.fogColor
+            density: root.fogDensity
+            depthEnabled: root.fogDepthEnabled && root.fogEnabled
+            depthCurve: root.fogDepthCurve
+            depthNear: root.fogDepthNear
+            depthFar: root.fogDepthFar
+            heightEnabled: root.fogHeightEnabled
+            leastIntenseY: root.fogLeastIntenseY
+            mostIntenseY: root.fogMostIntenseY
+            heightCurve: root.fogHeightCurve
+            transmitEnabled: root.fogTransmitEnabled
+            transmitCurve: root.fogTransmitCurve
+        }
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue

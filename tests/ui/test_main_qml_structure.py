@@ -26,10 +26,17 @@ def test_main_qml_contains_required_elements():
         "fallback loader component": "sourceComponent: SimulationFallbackRoot {}",
         "ack hookup": "item.batchUpdatesApplied.connect(root.batchUpdatesApplied)",
         "fog depth toggle": "property bool fogDepthEnabled",
-        "fog depth curve binding": "fogDepthCurve: root.fogDepthCurve",
     }
 
     for label, token in expected_tokens.items():
+        assert token in contents, f"Missing {label} token '{token}' in main.qml"
+
+    fog_structure_tokens = {
+        "fog block present": "fog: Fog {",
+        "fog depth curve": "depthCurve: root.fogDepthCurve",
+    }
+
+    for label, token in fog_structure_tokens.items():
         assert token in contents, f"Missing {label} token '{token}' in main.qml"
 
     assert contents.count("Loader {") >= 2, (
