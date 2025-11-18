@@ -440,11 +440,23 @@
     "ReflectionProbeSettings": {
       "additionalProperties": false,
       "properties": {
-        "enabled": {"title": "Enabled", "type": "boolean"},
-        "padding_m": {"title": "Padding M", "type": "number"},
-        "quality": {"title": "Quality", "type": "string"},
-        "refresh_mode": {"title": "Refresh Mode", "type": "string"},
-        "time_slicing": {"title": "Time Slicing", "type": "string"}
+        "enabled": {"default": true, "title": "Enabled", "type": "boolean"},
+        "padding_m": {"default": 0.15, "title": "Padding M", "type": "number"},
+        "quality": {
+          "default": "veryhigh",
+          "title": "Quality",
+          "type": "string"
+        },
+        "refresh_mode": {
+          "default": "everyframe",
+          "title": "Refresh Mode",
+          "type": "string"
+        },
+        "time_slicing": {
+          "default": "individualfaces",
+          "title": "Time Slicing",
+          "type": "string"
+        }
       },
       "required": ["enabled", "padding_m", "quality", "refresh_mode", "time_slicing"],
       "title": "ReflectionProbeSettings",
@@ -1155,12 +1167,20 @@
     "SceneSettings": {
       "additionalProperties": false,
       "properties": {
-        "scale_factor": {"title": "Scale Factor", "type": "number"},
-        "exposure": {"title": "Exposure", "type": "number"},
-        "default_clear_color": {"title": "Default Clear Color", "type": "string"},
-        "model_base_color": {"title": "Model Base Color", "type": "string"},
-        "model_roughness": {"title": "Model Roughness", "type": "number"},
-        "model_metalness": {"title": "Model Metalness", "type": "number"},
+        "scale_factor": {"default": 1.0, "title": "Scale Factor", "type": "number"},
+        "exposure": {"default": 1.0, "title": "Exposure", "type": "number"},
+        "default_clear_color": {
+          "default": "#1b1f27",
+          "title": "Default Clear Color",
+          "type": "string"
+        },
+        "model_base_color": {
+          "default": "#9da3aa",
+          "title": "Model Base Color",
+          "type": "string"
+        },
+        "model_roughness": {"default": 0.42, "title": "Model Roughness", "type": "number"},
+        "model_metalness": {"default": 0.82, "title": "Model Metalness", "type": "number"},
         "suspension": {"$ref": "#/$defs/SceneSuspensionSettings"}
       },
       "required": ["scale_factor", "exposure", "default_clear_color", "model_base_color", "model_roughness", "model_metalness", "suspension"],
@@ -1183,12 +1203,20 @@
     "SceneDefaultsMetadata": {
       "additionalProperties": false,
       "properties": {
-        "scale_factor": {"title": "Scale Factor", "type": "number"},
-        "exposure": {"title": "Exposure", "type": "number"},
-        "default_clear_color": {"title": "Default Clear Color", "type": "string"},
-        "model_base_color": {"title": "Model Base Color", "type": "string"},
-        "model_roughness": {"title": "Model Roughness", "type": "number"},
-        "model_metalness": {"title": "Model Metalness", "type": "number"},
+        "scale_factor": {"default": 1.0, "title": "Scale Factor", "type": "number"},
+        "exposure": {"default": 1.0, "title": "Exposure", "type": "number"},
+        "default_clear_color": {
+          "default": "#1b1f27",
+          "title": "Default Clear Color",
+          "type": "string"
+        },
+        "model_base_color": {
+          "default": "#9da3aa",
+          "title": "Model Base Color",
+          "type": "string"
+        },
+        "model_roughness": {"default": 0.42, "title": "Model Roughness", "type": "number"},
+        "model_metalness": {"default": 0.82, "title": "Model Metalness", "type": "number"},
         "suspension": {"$ref": "#/$defs/SceneSuspensionSettings"}
       },
       "required": ["suspension"],

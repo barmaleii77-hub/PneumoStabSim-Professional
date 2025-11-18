@@ -167,8 +167,9 @@ Item {
     property string reflectionProbeRefreshModeSetting: "static"
     property string reflectionProbeTimeSlicingSetting: "allfaces"
 
-    // Suspension threshold
-    property real suspensionRodWarningThresholdM: 0.0
+    // Suspension & scene defaults
+    property real sceneScaleFactor: 1.0
+    property real suspensionRodWarningThresholdM: 0.001
 
     // Controllers
     property var cameraController: null
@@ -545,6 +546,31 @@ Item {
             if (env.reflection_padding_m !== undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(env.reflection_padding_m)
             _refreshReflectionProbeObject()
         }
+
+        var sceneDefaults = null
+        if (typeof initialSceneSettings !== "undefined" && initialSceneSettings) {
+            if (initialSceneSettings.scene && typeof initialSceneSettings.scene === "object") {
+                sceneDefaults = initialSceneSettings.scene
+            } else if (initialSceneSettings.graphics && initialSceneSettings.graphics.scene) {
+                sceneDefaults = initialSceneSettings.graphics.scene
+            }
+        }
+
+        if (sceneDefaults) {
+            if (sceneDefaults.scale_factor !== undefined) {
+                var coercedScale = Number(sceneDefaults.scale_factor)
+                if (isFinite(coercedScale) && coercedScale > 0) {
+                    sceneScaleFactor = coercedScale
+                }
+            }
+            var suspensionDefaults = sceneDefaults.suspension
+            if (suspensionDefaults && suspensionDefaults.rod_warning_threshold_m !== undefined) {
+                var rodThreshold = Number(suspensionDefaults.rod_warning_threshold_m)
+                if (isFinite(rodThreshold) && rodThreshold > 0) {
+                    suspensionRodWarningThresholdM = rodThreshold
+                }
+            }
+        }
         _applyBridgeSnapshot(sceneBridge)
     }
     onSceneBridgeChanged: { _applyBridgeSnapshot(sceneBridge) }
@@ -577,6 +603,8 @@ Item {
         objectName: "sceneSuspensionAssembly"
         property bool reflectionProbeEnabled: root.reflectionProbeEnabled
         property real reflectionProbePaddingM: root.reflectionProbePaddingM
+        property real sceneScaleFactor: root.sceneScaleFactor
+        property real rodWarningThreshold: root.suspensionRodWarningThresholdM
         property int reflectionProbeQualityValue: reflectionProbe ? reflectionProbe.quality : 0
         property int reflectionProbeRefreshModeValue: reflectionProbe ? reflectionProbe.refreshMode : 0
         property int reflectionProbeTimeSlicingValue: reflectionProbe ? reflectionProbe.timeSlicing : 0

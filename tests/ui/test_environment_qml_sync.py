@@ -344,3 +344,37 @@ def test_environment_defaults_disable_reflection_probe_visibility(qapp) -> None:
         root.deleteLater()
         component.deleteLater()
         engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_scene_defaults_propagated_to_suspension(qapp) -> None:
+    overrides = {
+        "initialSceneSettings": {
+            "scene": {
+                "scale_factor": 1.25,
+                "suspension": {"rod_warning_threshold_m": 0.0025},
+            }
+        }
+    }
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert math.isclose(
+            float(assembly.property("sceneScaleFactor")),
+            1.25,
+            rel_tol=1e-6,
+            abs_tol=1e-6,
+        )
+        assert math.isclose(
+            float(assembly.property("rodWarningThreshold")),
+            0.0025,
+            rel_tol=1e-6,
+            abs_tol=1e-6,
+        )
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
