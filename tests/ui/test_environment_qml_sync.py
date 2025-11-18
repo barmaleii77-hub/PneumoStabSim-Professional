@@ -58,6 +58,16 @@ def _create_simulation_root(
     return engine, component, root
 
 
+def _as_dict(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if hasattr(value, "toVariant"):
+        variant = value.toVariant()
+        if isinstance(variant, dict):
+            return variant
+    return {}
+
+
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
 def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
@@ -102,8 +112,7 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
         assert scene_environment.property("iblLightingEnabled") == state["ibl_enabled"]
         assert scene_environment.property("skyboxToggleFlag") == state["skybox_enabled"]
 
-        environment_state = root.property("environmentState")
-        assert isinstance(environment_state, dict)
+        environment_state = _as_dict(root.property("environmentState"))
         assert environment_state.get("fog_enabled") == state["fog_enabled"]
         assert math.isclose(
             float(environment_state.get("fog_density", 0.0)),
@@ -222,6 +231,37 @@ def test_reflection_probe_disabled_when_settings_false(qapp) -> None:
         enabled_index = probe.metaObject().indexOfProperty("enabled")
         assert enabled_index >= 0, "ReflectionProbe.enabled property unavailable"
         assert bool(probe.property("enabled")) is False
+        assert bool(probe.property("visible")) is False
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_environment_state_tracks_reflection_enabled_flag(qapp) -> None:
+    overrides = {
+        "initialReflectionProbeSettings": {
+            "enabled": False,
+            "padding_m": 0.2,
+            "quality": "medium",
+            "refresh_mode": "static",
+            "time_slicing": "allfaces",
+        }
+    }
+    engine, component, root = _create_simulation_root(overrides)
+
+    try:
+        environment_state = _as_dict(root.property("environmentState"))
+        assert environment_state.get("reflection_enabled") is False
+
+        assembly = root.property("sceneSuspensionAssembly")
+        assert isinstance(assembly, QObject), "SuspensionAssembly alias missing"
+        assert bool(assembly.property("reflectionProbeEnabled")) is False
+
+        probe = assembly.property("reflectionProbe")
+        assert isinstance(probe, QObject), "ReflectionProbe object unavailable"
         assert bool(probe.property("visible")) is False
     finally:
         root.deleteLater()

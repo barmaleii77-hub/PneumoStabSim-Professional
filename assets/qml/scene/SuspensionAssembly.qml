@@ -258,9 +258,9 @@ Node {
 
     Env.ProbeCompat {
         id: mainReflectionProbe
-        enabled: assembly.reflectionProbeActive
-        visible: assembly.reflectionProbeActive
-        parallaxCorrection: assembly.reflectionProbeActive
+        enabled: assembly.reflectionProbeEnabled
+        visible: assembly.reflectionProbeEnabled
+        parallaxCorrection: assembly.reflectionProbeEnabled
         quality: assembly.reflectionProbeQualityValue
         refreshMode: assembly.reflectionProbeRefreshModeValue
         timeSlicing: assembly.reflectionProbeTimeSlicingValue
