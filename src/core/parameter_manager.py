@@ -63,7 +63,7 @@ class ParameterManager:
         self._manager = settings_manager
 
     # ------------------------------------------------------------------ loaders
-    def _load_payload(self) -> dict[str, Any]:
+    def _load_payload(self) -> Mapping[str, Any]:
         if self._service is not None:
             model = self._service.load()
             return dump_settings(model)
@@ -71,8 +71,8 @@ class ParameterManager:
         manager = self._manager or sm.get_settings_manager()
         return {"current": manager.get("", {})}
 
-    def load_snapshot(self) -> ParameterSnapshot:
-        payload = self._load_payload()
+    @classmethod
+    def build_snapshot(cls, payload: Mapping[str, Any]) -> ParameterSnapshot:
         current = payload.get("current") if isinstance(payload, Mapping) else None
         geometry = current.get("geometry") if isinstance(current, Mapping) else None
         pneumatic = current.get("pneumatic") if isinstance(current, Mapping) else None
@@ -85,6 +85,12 @@ class ParameterManager:
             )
 
         return ParameterSnapshot(dict(geometry), dict(pneumatic))
+
+    def load_snapshot(self) -> ParameterSnapshot:
+        payload = self._load_payload()
+        if not isinstance(payload, Mapping):  # pragma: no cover - guardrail
+            raise ParameterValidationError(["Settings payload must be a mapping"])
+        return self.build_snapshot(payload)
 
     # --------------------------------------------------------------- validations
     @staticmethod
@@ -193,6 +199,24 @@ class ParameterManager:
         return errors
 
     # ------------------------------------------------------------------- public
+    @classmethod
+    def _validate_snapshot(cls, snapshot: ParameterSnapshot) -> list[str]:
+        errors: list[str] = []
+        errors.extend(cls._validate_cylinder_volumes(snapshot.geometry))
+        errors.extend(cls._validate_pressure_hierarchy(snapshot.pneumatic))
+        errors.extend(cls._validate_receiver_volume(snapshot.pneumatic))
+        return errors
+
+    @classmethod
+    def validate_payload(cls, payload: Mapping[str, Any]) -> ParameterSnapshot:
+        """Validate an already loaded payload and return the snapshot."""
+
+        snapshot = cls.build_snapshot(payload)
+        errors = cls._validate_snapshot(snapshot)
+        if errors:
+            raise ParameterValidationError(errors)
+        return snapshot
+
     def validate(self) -> ParameterSnapshot:
         """Load settings and validate dependency rules.
 
@@ -201,10 +225,7 @@ class ParameterManager:
         """
 
         snapshot = self.load_snapshot()
-        errors: list[str] = []
-        errors.extend(self._validate_cylinder_volumes(snapshot.geometry))
-        errors.extend(self._validate_pressure_hierarchy(snapshot.pneumatic))
-        errors.extend(self._validate_receiver_volume(snapshot.pneumatic))
+        errors = self._validate_snapshot(snapshot)
 
         if errors:
             raise ParameterValidationError(errors)
