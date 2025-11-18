@@ -14,7 +14,11 @@ Node {
     property real pointLightZ: 1.5
     property real pointLightRange: 3.6
     property real constantFade: 1.0
-    property real linearFade: 0.01
+    // Align attenuation defaults with the engine's inverse-square fallback (2 / range)
+    // so the UI sliders show the actual brightness behaviour from the start.
+    property real linearFade: pointLightRange > 0
+                                 ? Math.min(10.0, Math.max(0.0, 2.0 / pointLightRange))
+                                 : 0.56
     property real quadraticFade: 1.0
     property bool pointLightCastsShadow: false
     property bool pointLightBindToCamera: false
