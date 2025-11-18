@@ -11,7 +11,9 @@ class _DummySettings:
     def __init__(self, payload: dict | None = None) -> None:
         self._payload = payload or {}
 
-    def get(self, path: str, default: object = None) -> object:  # pragma: no cover - trivial
+    def get(
+        self, path: str, default: object = None
+    ) -> object:  # pragma: no cover - trivial
         if path == "current.threeD":
             return self._payload
         return default
@@ -30,8 +32,12 @@ def test_initial_three_d_payload_defaults() -> None:
 
 
 def test_initial_three_d_payload_merges_settings_and_overrides() -> None:
-    settings = _DummySettings({"camera": {"distance": 4.5}, "lighting": {"keyIntensity": 42}})
-    payload = qml_bridge.initial_three_d_payload(settings, overrides={"camera": {"azimuth": 12}})
+    settings = _DummySettings(
+        {"camera": {"distance": 4.5}, "lighting": {"keyIntensity": 42}}
+    )
+    payload = qml_bridge.initial_three_d_payload(
+        settings, overrides={"camera": {"azimuth": 12}}
+    )
 
     assert payload["camera"]["distance"] == pytest.approx(4.5)
     assert payload["camera"]["azimuth"] == pytest.approx(12)
@@ -47,7 +53,9 @@ def test_sync_three_d_state_enqueues_payload(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(qml_bridge.QMLBridge, "flush_updates", _fake_flush)
 
-    payload = qml_bridge.sync_three_d_state(dummy_window, overrides={"lighting": {"rimIntensity": 123}}, flush=True)
+    payload = qml_bridge.sync_three_d_state(
+        dummy_window, overrides={"lighting": {"rimIntensity": 123}}, flush=True
+    )
 
     assert "threeD" in getattr(dummy_window, "_qml_update_queue")
     queued_payload = dummy_window._qml_update_queue["threeD"]
