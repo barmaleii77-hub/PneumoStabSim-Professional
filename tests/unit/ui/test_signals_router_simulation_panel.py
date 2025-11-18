@@ -284,6 +284,72 @@ def test_pneumo_panel_receives_qml_updates(
     assert panel.receiver_tab.receiver_diameter_knob.value() == pytest.approx(0.25)
 
 
+def test_pneumatic_payload_is_clamped_and_queued(
+    qtbot: pytestqt.qtbot.QtBot,
+    settings_manager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Invalid pneumatic updates must be normalised and echoed back to QML."""
+
+    from src.ui.panels.pneumo import panel_pneumo_refactored as pneumo_module
+
+    state_manager = pneumo_module.PneumoStateManager(settings_manager=settings_manager)
+    monkeypatch.setattr(pneumo_module, "PneumoStateManager", lambda: state_manager)
+
+    panel = pneumo_module.PneumoPanel()
+    qtbot.addWidget(panel)
+
+    queued: list[tuple[str, dict[str, Any]]] = []
+    monkeypatch.setattr(
+        QMLBridge,
+        "queue_update",
+        lambda window, category, payload: queued.append((category, dict(payload))),
+    )
+
+    class _PanelWindow:
+        def __init__(self) -> None:
+            self.settings_updates: list[tuple[str, dict[str, Any]]] = []
+            self.settings_manager = settings_manager
+            self.simulation_manager = _DummySimulationManager()
+            self.pneumo_panel = panel
+
+        def _apply_settings_update(
+            self, category: str, payload: dict[str, Any]
+        ) -> None:
+            self.settings_updates.append((category, copy.deepcopy(payload)))
+
+    window = _PanelWindow()
+
+    payload = {
+        "receiver_volume": -5.0,
+        "relief_min_pressure": 80.0,
+        "relief_stiff_pressure": 2.0,
+    }
+
+    SignalsRouter.handle_pneumatic_settings_changed(window, payload)
+
+    assert queued, "Adjusted pneumatic values must be queued for QML sync"
+    category, queued_payload = queued[-1]
+    assert category == "pneumatic"
+
+    limits = panel.state_manager.get_volume_limits()
+    assert queued_payload["receiver_volume"] >= limits["min_m3"]
+    assert (
+        queued_payload["relief_stiff_pressure"] >= queued_payload["relief_min_pressure"]
+    )
+
+    assert window.settings_updates, "Settings should persist normalised values"
+    settings_category, settings_payload = window.settings_updates[-1]
+    assert settings_category == "pneumatic"
+    assert settings_payload["receiver_volume"] == pytest.approx(
+        queued_payload["receiver_volume"], rel=1e-9
+    )
+    assert (
+        settings_payload["relief_min_pressure"]
+        <= settings_payload["relief_safety_pressure"]
+    )
+
+
 def test_push_pneumatic_state_skips_when_marked_qml(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

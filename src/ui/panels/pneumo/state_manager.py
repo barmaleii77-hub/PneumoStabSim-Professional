@@ -957,3 +957,70 @@ class PneumoStateManager:
         for key, value in pairs:
             self._apply_update(key, value)
         self._enforce_state_invariants()
+
+    def apply_validated_updates(
+        self, updates: Mapping[str, Any]
+    ) -> tuple[dict[str, Any], list[str], list[str], list[str]]:
+        """Apply *updates* with invariants and return the normalised payload.
+
+        The state manager is updated in-place to reflect any clamping, and the
+        returned payload contains only the keys that were touched directly or
+        indirectly (e.g. derived relief pressures and receiver volume).  The
+        accompanying lists capture validation errors, warnings, and user-facing
+        hints produced during normalisation so callers can surface them in the
+        UI.
+        """
+
+        if not updates:
+            return {}, [], [], []
+
+        provided_volume = updates.get("receiver_volume")
+        has_geometry_update = any(
+            key in updates for key in {"receiver_diameter", "receiver_length"}
+        )
+
+        original_state = deepcopy(self._state)
+        self.update_from(dict(updates))
+
+        if (
+            provided_volume is not None
+            and not has_geometry_update
+            and self.get_volume_mode() == "GEOMETRIC"
+        ):
+            self._state["receiver_volume"] = self._clamp_volume_with_limits(
+                float(provided_volume),
+                hint_key="receiver_volume",
+                source_label="Объём ресивера",
+            )
+
+        errors, warnings = self.validate_pneumatic()
+        updated_state = self.get_state()
+
+        touched: set[str] = set(str(key) for key in updates.keys())
+        dependent_keys = {
+            "receiver_volume",
+            "receiver_volume_limits",
+            "relief_min_pressure",
+            "relief_stiff_pressure",
+            "relief_safety_pressure",
+        }
+        for key in dependent_keys:
+            if updated_state.get(key) != original_state.get(key):
+                touched.add(key)
+
+        relief_keys = {
+            "relief_min_pressure",
+            "relief_stiff_pressure",
+            "relief_safety_pressure",
+        }
+        if touched.intersection(relief_keys):
+            touched.update(relief_keys)
+
+        payload: dict[str, Any] = {}
+        for key in touched:
+            if key in updated_state:
+                payload[key] = updated_state[key]
+
+        hint_messages = [message for message in self._hints.values() if message]
+
+        return payload, errors, warnings, hint_messages

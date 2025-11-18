@@ -47,6 +47,7 @@ from ..panels.modes.defaults import (
     DEFAULT_PHYSICS_OPTIONS,
     MODE_PRESETS,
 )
+from ..panels.pneumo.state_manager import PneumoStateManager
 from ..qml_bridge import register_qml_signals
 from .qml_bridge import QMLBridge
 from .validation import (
@@ -1604,11 +1605,55 @@ class SignalsRouter:
         if not pneumatic_updates:
             return
 
-        window._apply_settings_update("pneumatic", pneumatic_updates)
+        validation_errors: list[str] = []
+        validation_warnings: list[str] = []
+        hints: list[str] = []
+
+        panel_manager = getattr(
+            getattr(window, "pneumo_panel", None), "state_manager", None
+        )
+        validator = panel_manager
+        if validator is None:
+            try:
+                validator = PneumoStateManager(settings_manager=manager)
+            except Exception as exc:  # pragma: no cover - defensive guard
+                SignalsRouter.logger.debug(
+                    "Unable to initialise pneumo validator: %s", exc, exc_info=exc
+                )
+                validator = None
+
+        adjusted_updates = dict(pneumatic_updates)
+        if validator is not None:
+            pressure_keys = {
+                "cv_atmo_dp",
+                "cv_tank_dp",
+                "relief_min_pressure",
+                "relief_stiff_pressure",
+                "relief_safety_pressure",
+            }
+            pressure_values = [
+                value
+                for key, value in pneumatic_updates.items()
+                if key in pressure_keys and isinstance(value, (int, float))
+            ]
+            if any(value > 1_000.0 for value in pressure_values):
+                try:
+                    validator.set_pressure_units("Па")
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    SignalsRouter.logger.debug(
+                        "Failed to switch pressure units to Pa: %s", exc, exc_info=exc
+                    )
+            sanitized, validation_errors, validation_warnings, hints = (
+                validator.apply_validated_updates(pneumatic_updates)
+            )
+            if sanitized:
+                adjusted_updates = sanitized
+
+        window._apply_settings_update("pneumatic", adjusted_updates)
         panel = getattr(window, "pneumo_panel", None)
         if panel is not None and hasattr(panel, "set_parameters"):
             try:
-                panel.set_parameters(pneumatic_updates, source="qml")
+                panel.set_parameters(adjusted_updates, source="qml")
             except Exception as exc:
                 SignalsRouter.logger.debug(
                     "Failed to synchronize PneumoPanel: %s", exc, exc_info=exc
@@ -1648,6 +1693,26 @@ class SignalsRouter:
                     SignalsRouter.logger.debug(
                         "Failed to emit receiver volume update: %s", exc
                     )
+
+        if adjusted_updates != pneumatic_updates:
+            try:
+                QMLBridge.queue_update(window, "pneumatic", adjusted_updates)
+            except Exception as exc:  # pragma: no cover - UI sync guard
+                SignalsRouter.logger.debug("Failed to queue pneumatic update: %s", exc)
+
+        status = getattr(window, "status_bar", None)
+        if validation_errors:
+            message = "; ".join(dict.fromkeys(validation_errors))
+            SignalsRouter.logger.error("Pneumatic validation errors: %s", message)
+            if status is not None:
+                status.showMessage(message, 5000)
+        else:
+            notifications = hints or validation_warnings
+            if notifications:
+                message = "; ".join(dict.fromkeys(notifications))
+                SignalsRouter.logger.warning("Pneumatic adjustments: %s", message)
+                if status is not None:
+                    status.showMessage(message, 4000)
 
     @staticmethod
     def handle_simulation_settings_changed(
