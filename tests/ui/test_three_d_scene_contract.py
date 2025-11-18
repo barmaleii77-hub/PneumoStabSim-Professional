@@ -14,6 +14,7 @@ def test_three_d_scene_lists_primitives_and_lights() -> None:
     assert 'source: "#Cylinder"' in content
     assert "DirectionalLight" in content
     assert content.count("PointLight") >= 2
+    assert "shadowBias" in content
 
 
 def test_three_d_scene_supports_batching_and_interaction_telemetry() -> None:
@@ -23,6 +24,7 @@ def test_three_d_scene_supports_batching_and_interaction_telemetry() -> None:
     assert "pendingPythonUpdates" in content
     assert "lastAppliedBatch" in content
     assert "interactionTelemetry" in content
+    assert "fieldOfViewDeg" in content
 
 
 def test_three_d_scene_input_handlers_cover_orbit_pan_zoom() -> None:

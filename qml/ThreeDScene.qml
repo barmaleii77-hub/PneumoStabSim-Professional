@@ -36,6 +36,13 @@ Item {
     property real orbitAzimuthDeg: 35.0
     property real orbitElevationDeg: 25.0
     property real orbitDistance: 8.0
+    property real orbitMinDistance: 2.0
+    property real orbitMaxDistance: 60.0
+    property real minElevationDeg: -80.0
+    property real maxElevationDeg: 80.0
+    property real fieldOfViewDeg: 55.0
+    property real clipNear: 0.1
+    property real clipFar: 2000.0
     property vector3d orbitTarget: Qt.vector3d(0, 0.5, 0)
     property vector3d panOffset: Qt.vector3d(0, 0, 0)
 
@@ -60,6 +67,8 @@ Item {
     property real keyLightIntensity: 600.0
     property real fillLightIntensity: 280.0
     property real rimLightIntensity: 220.0
+    property bool keyLightShadows: true
+    property real keyLightShadowBias: 0.002
     property color keyLightColor: Qt.rgba(1.0, 0.96, 0.9, 1.0)
     property color fillLightColor: Qt.rgba(0.8, 0.9, 1.0, 1.0)
     property color rimLightColor: Qt.rgba(0.78, 0.82, 0.95, 1.0)
@@ -145,13 +154,29 @@ Item {
         if (cam.elevation !== undefined)
             orbitElevationDeg = Number(cam.elevation)
         if (cam.distance !== undefined && cam.distance > 0)
-            orbitDistance = Number(cam.distance)
+            orbitDistance = _clampDistance(Number(cam.distance))
+        if (cam.minDistance !== undefined)
+            orbitMinDistance = _positive(cam.minDistance, orbitMinDistance)
+        if (cam.maxDistance !== undefined)
+            orbitMaxDistance = _positive(cam.maxDistance, orbitMaxDistance)
+        if (cam.minElevation !== undefined)
+            minElevationDeg = Number(cam.minElevation)
+        if (cam.maxElevation !== undefined)
+            maxElevationDeg = Number(cam.maxElevation)
         if (cam.target)
             orbitTarget = _toVector3d(cam.target)
         if (cam.pan)
             panOffset = _toVector3d(cam.pan)
         if (cam.damping !== undefined)
             cameraDamping = Math.max(0.0, Number(cam.damping))
+        if (cam.fieldOfView !== undefined)
+            fieldOfViewDeg = Math.max(20.0, Math.min(120.0, Number(cam.fieldOfView)))
+        if (cam.clipNear !== undefined)
+            clipNear = _positive(cam.clipNear, clipNear)
+        if (cam.clipFar !== undefined)
+            clipFar = _positive(cam.clipFar, clipFar)
+        orbitDistance = _clampDistance(orbitDistance)
+        orbitElevationDeg = _clampElevation(orbitElevationDeg)
         _syncCamera()
     }
 
@@ -203,6 +228,10 @@ Item {
             fillLightPosition = _toVector3d(lighting.fillPosition)
         if (lighting.rimPosition)
             rimLightPosition = _toVector3d(lighting.rimPosition)
+        if (lighting.keyShadows !== undefined)
+            keyLightShadows = !!lighting.keyShadows
+        if (lighting.shadowBias !== undefined)
+            keyLightShadowBias = _positive(lighting.shadowBias, keyLightShadowBias)
         if (lighting.ambient) {
             var ambient = _normalizeMap(lighting.ambient)
             if (ambient.color)
@@ -253,7 +282,7 @@ Item {
     // ---------------------------------------------------------------------
     function _applyOrbitDrag(dx, dy) {
         orbitAzimuthDeg -= dx * orbitRotationSpeed
-        orbitElevationDeg = Math.max(-80, Math.min(80, orbitElevationDeg - dy * orbitRotationSpeed))
+        orbitElevationDeg = _clampElevation(orbitElevationDeg - dy * orbitRotationSpeed)
         telemetry.registerInteraction({ kind: "rotate", dx: dx, dy: dy })
         _syncCamera()
     }
@@ -267,7 +296,7 @@ Item {
 
     function _applyZoom(step) {
         var factor = 1.0 + step * zoomSpeed
-        orbitDistance = Math.max(2.0, Math.min(60.0, orbitDistance * factor))
+        orbitDistance = _clampDistance(orbitDistance * factor)
         telemetry.registerInteraction({ kind: "zoom", delta: step })
         _syncCamera()
     }
@@ -324,7 +353,21 @@ Item {
 
     function _syncCamera() {
         cameraTransform.translation = _orbitPosition()
+        sceneCamera.fieldOfView = fieldOfViewDeg
+        sceneCamera.clipNear = clipNear
+        sceneCamera.clipFar = clipFar
         sceneCamera.lookAt(Qt.vector3d(orbitTarget.x + panOffset.x, orbitTarget.y + panOffset.y, orbitTarget.z + panOffset.z), Qt.vector3d(0, 1, 0))
+    }
+
+    function _clampElevation(value) {
+        return Math.max(minElevationDeg, Math.min(maxElevationDeg, value))
+    }
+
+    function _clampDistance(value) {
+        var clampedMin = Math.max(0.1, orbitMinDistance)
+        var clampedMax = Math.max(clampedMin, orbitMaxDistance)
+        var normalized = Math.max(clampedMin, Math.min(clampedMax, value))
+        return normalized
     }
 
     function _aaModeFromPayload(value) {
@@ -375,9 +418,9 @@ Item {
 
         PerspectiveCamera {
             id: sceneCamera
-            clipFar: 2000
-            clipNear: 0.1
-            fieldOfView: 55
+            clipFar: root.clipFar
+            clipNear: root.clipNear
+            fieldOfView: root.fieldOfViewDeg
             position: _orbitPosition()
             lookAt: Qt.vector3d(orbitTarget.x, orbitTarget.y, orbitTarget.z)
         }
@@ -392,7 +435,8 @@ Item {
             eulerRotation: keyLightEuler
             brightness: keyLightIntensity
             color: keyLightColor
-            castsShadow: true
+            castsShadow: keyLightShadows
+            shadowBias: keyLightShadowBias
         }
 
         PointLight {
