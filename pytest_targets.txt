@@ -4,3 +4,4 @@
 # suites.
 tests/integration/test_backup_restore.py
 tests/test_training_preset_service_headless.py
+tests/test_feedback_service.py

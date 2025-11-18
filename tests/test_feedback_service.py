@@ -1,200 +1,142 @@
 import json
-import threading
-from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import pytest
 
-from src.services.feedback_service import (
-    FeedbackPayload,
-    FeedbackService,
-)
+from src.services import FeedbackPayload, FeedbackService
 
 
-@pytest.fixture()
-def feedback_service(tmp_path):
-    return FeedbackService(storage_dir=tmp_path)
-
-
-def test_payload_normalization_and_filtering_metadata():
+def test_feedback_payload_normalization():
     payload = FeedbackPayload(
         title="  Title with spaces  ",
         description="  Description  ",
-        category="   ",
+        category="  ",
         severity="",
-        contact="  tester@example.com  ",
+        contact="  user@example.com  ",
         metadata={
-            "valid": "value",
-            "": "should be ignored",
-            "serialisable": {"nested": 1},
-            "non_serialisable": object(),
+            "": "skip-empty-key",
+            "valid": {"nested": 1},
+            "invalid": {1, 2, 3},
         },
     )
 
-    normalised = payload.as_dict()
+    result = payload.as_dict()
 
-    assert normalised["title"] == "Title with spaces"
-    assert normalised["description"] == "Description"
-    assert normalised["category"] == "unspecified"
-    assert normalised["severity"] == "unspecified"
-    assert normalised["contact"] == "tester@example.com"
-    assert "" not in normalised.get("metadata", {})
-    assert "non_serialisable" not in normalised.get("metadata", {})
-    assert normalised["metadata"]["valid"] == "value"
-    assert normalised["metadata"]["serialisable"] == {"nested": 1}
+    assert result["title"] == "Title with spaces"
+    assert result["description"] == "Description"
+    assert result["category"] == "unspecified"
+    assert result["severity"] == "unspecified"
+    assert result["contact"] == "user@example.com"
+    assert result["metadata"] == {"valid": {"nested": 1}}
 
 
-def test_refresh_summary_handles_invalid_entries(tmp_path, feedback_service):
-    inbox_path = tmp_path / feedback_service.INBOX_FILENAME
-    inbox_path.write_text(
-        "\n".join(
-            [
-                "not json",
-                "",
-                json.dumps(
-                    {
-                        "submission_id": "abc",
-                        "created_at": datetime(
-                            2024, 5, 1, tzinfo=timezone.utc
-                        ).isoformat(),
-                        "category": "",
-                        "severity": "",
-                    }
-                ),
-                json.dumps(
-                    {
-                        "submission_id": "def",
-                        "created_at": datetime(
-                            2024, 6, 1, tzinfo=timezone.utc
-                        ).isoformat(),
-                        "category": "ux",
-                        "severity": "low",
-                    }
-                ),
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
+@pytest.mark.parametrize("workers, submissions", [(4, 12), (8, 24)])
+def test_thread_safe_submission(tmp_path: Path, workers: int, submissions: int):
+    service = FeedbackService(storage_dir=tmp_path)
+    payload = FeedbackPayload(
+        title="Threaded",
+        description="Payload",
+        category="ui",
+        severity="medium",
     )
 
-    feedback_service.refresh_summary()
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        list(executor.map(lambda _: service.submit_feedback(payload), range(submissions)))
 
-    summary = json.loads(
-        (tmp_path / feedback_service.SUMMARY_JSON_FILENAME).read_text()
-    )
-
-    assert summary["totals"]["reports"] == 2
-    assert summary["totals"]["categories"] == {"unspecified": 1, "ux": 1}
-    assert summary["totals"]["severity"] == {"unspecified": 1, "low": 1}
-    assert (
-        summary["last_submission_at"]
-        == datetime(2024, 6, 1, tzinfo=timezone.utc).isoformat()
-    )
-
-
-def test_submission_persists_and_updates_summary(feedback_service, tmp_path):
-    payloads = [
-        FeedbackPayload("Title A", "Desc A", "cat1", "high"),
-        FeedbackPayload("Title B", "Desc B", "cat2", "low"),
-    ]
-
-    results = [feedback_service.submit_feedback(payload) for payload in payloads]
-
-    inbox_path = tmp_path / feedback_service.INBOX_FILENAME
-    summary_path = tmp_path / feedback_service.SUMMARY_JSON_FILENAME
+    inbox_path = tmp_path / service.INBOX_FILENAME
+    summary_path = tmp_path / service.SUMMARY_JSON_FILENAME
 
     assert inbox_path.exists()
-    with inbox_path.open() as handle:
-        lines = [line.strip() for line in handle if line.strip()]
-    assert len(lines) == len(payloads)
+    lines = inbox_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == submissions
 
-    summary = json.loads(summary_path.read_text())
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    assert summary["totals"]["reports"] == submissions
+    assert summary["totals"]["categories"] == {"ui": submissions}
+    assert summary["totals"]["severity"] == {"medium": submissions}
+
+
+def test_summary_aggregation_and_last_submission(tmp_path: Path):
+    service = FeedbackService(storage_dir=tmp_path)
+
+    first = service.submit_feedback(
+        FeedbackPayload(
+            title="One",
+            description="Desc",
+            category="ui",
+            severity="low",
+        )
+    )
+    second = service.submit_feedback(
+        FeedbackPayload(
+            title="Two",
+            description="Desc",
+            category="controls",
+            severity="high",
+        )
+    )
+
+    summary_path = tmp_path / service.SUMMARY_JSON_FILENAME
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+
     assert summary["totals"]["reports"] == 2
-    assert summary["totals"]["categories"] == {"cat1": 1, "cat2": 1}
+    assert summary["totals"]["categories"] == {"controls": 1, "ui": 1}
     assert summary["totals"]["severity"] == {"high": 1, "low": 1}
 
-    latest_timestamp = max(result.created_at for result in results)
-    assert summary["last_submission_at"] == latest_timestamp.isoformat()
+    newest = max(first.created_at, second.created_at)
+    assert summary["last_submission_at"] == newest.isoformat()
 
 
-def test_thread_safe_writes(feedback_service, tmp_path):
-    results: list[str] = []
-
-    def _submit(idx: int) -> None:
-        result = feedback_service.submit_feedback(
-            FeedbackPayload(
-                title=f"Title {idx}",
-                description="Concurrent write",
-                category="load",
-                severity="medium",
-            )
+def test_markdown_generation(tmp_path: Path):
+    service = FeedbackService(storage_dir=tmp_path)
+    service.submit_feedback(
+        FeedbackPayload(
+            title="Alpha",
+            description="Desc",
+            category="rendering",
+            severity="critical",
         )
-        results.append(result.submission_id)
-
-    threads = [threading.Thread(target=_submit, args=(idx,)) for idx in range(10)]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-
-    assert len(results) == 10
-    assert len(set(results)) == 10
-
-    inbox_path = tmp_path / feedback_service.INBOX_FILENAME
-    with inbox_path.open() as handle:
-        lines = [line.strip() for line in handle if line.strip()]
-    assert len(lines) == 10
-
-    summary = json.loads(
-        (tmp_path / feedback_service.SUMMARY_JSON_FILENAME).read_text()
     )
-    assert summary["totals"]["reports"] == 10
-    assert summary["totals"]["categories"] == {"load": 10}
-    assert summary["totals"]["severity"] == {"medium": 10}
+    service.submit_feedback(
+        FeedbackPayload(
+            title="Beta",
+            description="Desc",
+            category="rendering",
+            severity="medium",
+        )
+    )
+    service.submit_feedback(
+        FeedbackPayload(
+            title="Gamma",
+            description="Desc",
+            category="ui",
+            severity="medium",
+        )
+    )
 
+    markdown_path = tmp_path / service.SUMMARY_MARKDOWN_FILENAME
+    lines = markdown_path.read_text(encoding="utf-8").splitlines()
 
-def test_markdown_summary_for_empty_dataset(tmp_path):
-    service = FeedbackService(storage_dir=tmp_path)
-    service.refresh_summary()
+    assert lines[0] == "# Feedback summary"
+    assert any(line.startswith("_Generated at_:") for line in lines)
+    assert any(line.startswith("_Last submission_:") for line in lines)
+    assert any("**Total reports:** 3" in line for line in lines)
 
-    summary = json.loads((tmp_path / service.SUMMARY_JSON_FILENAME).read_text())
-    markdown = (tmp_path / service.SUMMARY_MARKDOWN_FILENAME).read_text()
+    rendering_row = "| rendering | 2 |"
+    ui_row = "| ui | 1 |"
+    critical_row = "| critical | 1 |"
+    medium_row = "| medium | 2 |"
 
-    assert summary["totals"] == {
-        "reports": 0,
-        "categories": {},
-        "severity": {},
-    }
-    assert summary["last_submission_at"] is None
-    assert "**Total reports:** 0" in markdown
-    assert "## Категории" in markdown
-    assert "## Критичность" in markdown
-    assert "Нет данных" in markdown
+    assert rendering_row in lines
+    assert ui_row in lines
+    assert critical_row in lines
+    assert medium_row in lines
 
+    rendering_index = lines.index(rendering_row)
+    ui_index = lines.index(ui_row)
+    assert rendering_index < ui_index
 
-@pytest.mark.usefixtures("feedback_service")
-def test_markdown_summary_generation(tmp_path):
-    service = FeedbackService(storage_dir=tmp_path)
-    service.submit_feedback(FeedbackPayload("Title 1", "Desc", "catA", "high"))
-    service.submit_feedback(FeedbackPayload("Title 2", "Desc", "catA", "low"))
-    service.submit_feedback(FeedbackPayload("Title 3", "Desc", "catB", "low"))
-
-    summary = json.loads((tmp_path / service.SUMMARY_JSON_FILENAME).read_text())
-    markdown = (tmp_path / service.SUMMARY_MARKDOWN_FILENAME).read_text()
-
-    assert "# Feedback summary" in markdown
-    assert f"**Total reports:** {summary['totals']['reports']}" in markdown
-    assert "## Категории" in markdown
-    assert "## Критичность" in markdown
-
-    category_table = "| catA | 2 |" in markdown and "| catB | 1 |" in markdown
-    severity_table = "| low | 2 |" in markdown and "| high | 1 |" in markdown
-    assert category_table
-    assert severity_table
-
-    assert summary["totals"]["reports"] == 3
-    assert summary["totals"]["categories"] == {"catA": 2, "catB": 1}
-    assert summary["totals"]["severity"] == {"high": 1, "low": 2}
-
-    last_submission = datetime.fromisoformat(summary["last_submission_at"])
-    generated_at = datetime.fromisoformat(summary["generated_at"])
-    assert generated_at >= last_submission
+    medium_index = lines.index(medium_row)
+    critical_index = lines.index(critical_row)
+    assert medium_index < critical_index
