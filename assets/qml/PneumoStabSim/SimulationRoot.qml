@@ -447,7 +447,7 @@ Item {
         shaderWarningRegistered(normalizedId, normalizedMessage)
 
         if (sceneBridge && typeof sceneBridge.registerShaderWarning === "function") {
-            try { sceneBridge.registerShaderWarning(normalizedId, normalizedMessage) } catch (e) { console.debug('[SimulationRoot] sceneBridge.registerShaderWarning failed', e) }
+            try { sceneBridge.registerShaderWarning(effectId, message) } catch (e) { console.debug('[SimulationRoot] sceneBridge.registerShaderWarning failed', e) }
         }
 
         var host = diagnosticsWindow()
@@ -468,7 +468,7 @@ Item {
         shaderWarningCleared(normalizedId)
 
         if (sceneBridge && typeof sceneBridge.clearShaderWarning === "function") {
-            try { sceneBridge.clearShaderWarning(normalizedId) } catch (e) { console.debug('[SimulationRoot] sceneBridge.clearShaderWarning failed', e) }
+            try { sceneBridge.clearShaderWarning(effectId) } catch (e) { console.debug('[SimulationRoot] sceneBridge.clearShaderWarning failed', e) }
         }
 
         var host = diagnosticsWindow()
@@ -498,12 +498,14 @@ Item {
         enabled: !!target && !!root.sceneBridge
         ignoreUnknownSignals: true
 
-        function onEffectsBypassChanged() {
+        function onEffectsBypassChanged(active, reasonText) {
             if (!root.postEffects)
                 return
             try {
-                var bypass = !!root.postEffects.effectsBypass
-                var reason = String(root.postEffects.effectsBypassReason || "")
+                var bypass = active !== undefined ? !!active : !!root.postEffects.effectsBypass
+                var reason = reasonText !== undefined && reasonText !== null
+                    ? String(reasonText)
+                    : String(root.postEffects.effectsBypassReason || "")
                 if (root.postProcessingBypassed !== bypass)
                     root.postProcessingBypassed = bypass
                 if (root.postProcessingBypassReason !== reason)
