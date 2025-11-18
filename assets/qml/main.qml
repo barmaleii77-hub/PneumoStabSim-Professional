@@ -188,7 +188,7 @@ Item {
         tonemapExposureValue: root.environmentTonemapExposure
         tonemapWhitePointValue: root.environmentTonemapWhitePoint
 
-        ssaoEnabled: root.ssaoEnabled
+        aoEnabled: root.ssaoEnabled
         ssaoRadius: root.ssaoRadius
         ssaoIntensity: root.ssaoIntensity
         ssaoSoftness: root.ssaoSoftness
