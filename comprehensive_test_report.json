@@ -1,15 +1,15 @@
 {
-  "timestamp": "2025-10-10 14:25:10",
-  "total_tests": 52,
-  "passed": 48,
-  "failed": 4,
-  "success_rate": 92.3076923076923,
-  "total_duration": 0.649893045425415,
+  "timestamp": "2025-11-18 09:49:31",
+  "total_tests": 56,
+  "passed": 56,
+  "failed": 0,
+  "success_rate": 100.0,
+  "total_duration": 0.2376716136932373,
   "results": [
     {
       "name": "Python Version",
       "success": true,
-      "message": "Python 3.13.7 ✓",
+      "message": "Python 3.13.8 ✓",
       "duration": 0.0
     },
     {
@@ -46,60 +46,60 @@
       "name": "Python Environment",
       "success": true,
       "message": "All dependencies OK",
-      "duration": 0.1242210865020752
+      "duration": 0.030375003814697266
     },
     {
       "name": "File app.py",
       "success": true,
-      "message": "Size: 14964",
+      "message": "Size: 15018",
       "duration": 0.0
     },
     {
       "name": "File src/common/__init__.py",
       "success": true,
-      "message": "Size: 758",
+      "message": "Size: 958",
       "duration": 0.0
     },
     {
       "name": "File src/ui/main_window.py",
       "success": true,
-      "message": "Size: 72758",
+      "message": "Size: 817",
       "duration": 0.0
     },
     {
       "name": "File src/ui/panels/panel_geometry.py",
       "success": true,
-      "message": "Size: 38127",
+      "message": "Size: 48818",
       "duration": 0.0
     },
     {
       "name": "File src/ui/panels/panel_graphics.py",
       "success": true,
-      "message": "Size: 77898",
+      "message": "Size: 201",
       "duration": 0.0
     },
     {
       "name": "File assets/qml/main_optimized.qml",
       "success": true,
-      "message": "Size: 56314",
+      "message": "Size: 1331",
       "duration": 0.0
     },
     {
       "name": "File assets/qml/components/IblProbeLoader.qml",
       "success": true,
-      "message": "Size: 1735",
+      "message": "Size: 8874",
       "duration": 0.0
     },
     {
       "name": "Optional assets/hdr/studio.hdr",
       "success": true,
-      "message": "Available, size: 6312947",
+      "message": "Available, size: 0",
       "duration": 0.0
     },
     {
       "name": "Optional assets/hdr/README.md",
       "success": true,
-      "message": "Available, size: 3635",
+      "message": "Available, size: 19117",
       "duration": 0.0
     },
     {
@@ -111,14 +111,14 @@
     {
       "name": "Optional src/ui/custom_geometry.py",
       "success": true,
-      "message": "Available, size: 8736",
+      "message": "Available, size: 19942",
       "duration": 0.0
     },
     {
       "name": "File Structure",
       "success": true,
       "message": "All critical files present",
-      "duration": 0.0034492015838623047
+      "duration": 0.00029397010803222656
     },
     {
       "name": "QML assets/qml/main_optimized.qml",
@@ -136,7 +136,7 @@
       "name": "QML Syntax",
       "success": true,
       "message": "All QML files valid",
-      "duration": 0.0008184909820556641
+      "duration": 0.00012731552124023438
     },
     {
       "name": "Import src.common",
@@ -166,7 +166,7 @@
       "name": "Python Imports",
       "success": true,
       "message": "All modules imported successfully",
-      "duration": 0.49629855155944824
+      "duration": 0.18758583068847656
     },
     {
       "name": "Qt Imports",
@@ -190,7 +190,7 @@
       "name": "Qt Integration",
       "success": true,
       "message": "Qt components working",
-      "duration": 0.01816868782043457
+      "duration": 0.005003690719604492
     },
     {
       "name": "Graphics Config",
@@ -220,7 +220,7 @@
       "name": "Graphics Panel Config",
       "success": true,
       "message": "Configuration valid",
-      "duration": 0.0004210472106933594
+      "duration": 2.0503997802734375e-05
     },
     {
       "name": "IBL primarySource",
@@ -255,7 +255,7 @@
     {
       "name": "HDR File assets/hdr/studio.hdr",
       "success": true,
-      "message": "Size: 6.0MB",
+      "message": "Size: 0.0MB",
       "duration": 0.0
     },
     {
@@ -286,7 +286,7 @@
       "name": "IBL System",
       "success": true,
       "message": "IBL system configured with HDR assets",
-      "duration": 0.002065896987915039
+      "duration": 0.00028395652770996094
     },
     {
       "name": "App Module Import",
@@ -296,27 +296,51 @@
     },
     {
       "name": "App Global USE_QML_3D_SCHEMA",
-      "success": false,
-      "message": "Missing",
+      "success": true,
+      "message": "Value: True",
       "duration": 0.0
     },
     {
       "name": "App Global app_instance",
-      "success": false,
-      "message": "Missing",
+      "success": true,
+      "message": "Value: None",
       "duration": 0.0
     },
     {
       "name": "App Global window_instance",
-      "success": false,
-      "message": "Missing",
+      "success": true,
+      "message": "Value: None",
       "duration": 0.0
     },
     {
       "name": "App Function main",
-      "success": false,
-      "message": "Missing",
+      "success": true,
+      "message": "Present",
       "duration": 0.0
+    },
+    {
+      "name": "App Function parse_arguments",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "App Function qt_message_handler",
+      "success": true,
+      "message": "Present",
+      "duration": 0.0
+    },
+    {
+      "name": "App Qt Import",
+      "success": true,
+      "message": "QApplication available",
+      "duration": 0.0
+    },
+    {
+      "name": "Application Startup",
+      "success": true,
+      "message": "Core application structure OK",
+      "duration": 0.01388692855834961
     }
   ]
 }
