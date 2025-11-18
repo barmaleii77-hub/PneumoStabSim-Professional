@@ -1,4 +1,5 @@
 import math
+import math
 
 import pytest
 
@@ -62,6 +63,20 @@ def test_simulation_panel_updates_settings(qtbot, settings_snapshot):
 
 
 @pytest.mark.qtbot
+def test_simulation_panel_validation_snapshot(qtbot, settings_snapshot):
+    settings, _ = settings_snapshot
+    settings.set("current.simulation.physics_dt", -1.0, auto_save=False)
+    panel = SimulationPanelAccordion()
+    qtbot.addWidget(panel)
+
+    assert panel.validationState["physics_dt"] is False
+
+    panel.time_step.set_value(0.0015)
+    qtbot.wait(10)
+    assert panel.validationState["physics_dt"] is True
+
+
+@pytest.mark.qtbot
 def test_road_panel_binds_manual_and_profile(qtbot, settings_snapshot):
     settings, _ = settings_snapshot
     panel = RoadPanelAccordion()
@@ -91,6 +106,25 @@ def test_road_panel_binds_manual_and_profile(qtbot, settings_snapshot):
 
 
 @pytest.mark.qtbot
+def test_road_panel_validation_snapshot(qtbot, settings_snapshot):
+    settings, _ = settings_snapshot
+    settings.set("current.modes.amplitude", 0.5, auto_save=False)
+    settings.set("current.modes.profile_avg_speed", 500.0, auto_save=False)
+    panel = RoadPanelAccordion()
+    qtbot.addWidget(panel)
+
+    assert panel.validationState["amplitude"] is False
+    assert panel.validationState["avg_speed"] is False
+
+    panel.amplitude.set_value(0.05)
+    panel.avg_speed.set_value(80.0)
+    qtbot.wait(10)
+
+    assert panel.validationState["amplitude"] is True
+    assert panel.validationState["avg_speed"] is True
+
+
+@pytest.mark.qtbot
 def test_advanced_panel_propagates_to_settings(qtbot, settings_snapshot):
     settings, _ = settings_snapshot
     panel = AdvancedPanelAccordion()
@@ -114,3 +148,23 @@ def test_advanced_panel_propagates_to_settings(qtbot, settings_snapshot):
     assert math.isclose(
         float(settings.get("current.pneumatic.atmo_temp")), 35.0, rel_tol=1e-6
     )
+
+
+@pytest.mark.qtbot
+def test_advanced_panel_validation_snapshot(qtbot, settings_snapshot):
+    settings, _ = settings_snapshot
+    settings.set("current.graphics.quality.render_scale", -2.0, auto_save=False)
+    settings.set("current.physics.suspension.damper_coefficient", 999999.0, auto_save=False)
+
+    panel = AdvancedPanelAccordion()
+    qtbot.addWidget(panel)
+
+    assert panel.validationState["render_scale"] is False
+    assert panel.validationState["damper_coeff"] is False
+
+    panel.aa_quality.set_value(1.1)
+    panel.damper_coeff.set_value(2500.0)
+    qtbot.wait(10)
+
+    assert panel.validationState["render_scale"] is True
+    assert panel.validationState["damper_coeff"] is True

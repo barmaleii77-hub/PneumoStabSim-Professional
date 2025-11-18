@@ -86,6 +86,15 @@ Item {
     readonly property bool geometryStateReady: !_isEmptyMap(geometryState)
     readonly property bool simulationStateReady: !_isEmptyMap(simulationState)
 
+    // SSAO controls mirrored from the embedding UI/root
+    property bool ssaoEnabled: true
+    property real ssaoRadius: 0.008
+    property real ssaoIntensity: 1.0
+    property real ssaoSoftness: 20.0
+    property real ssaoBias: 0.025
+    property bool ssaoDither: true
+    property int ssaoSampleRate: 4
+
     // Batch updates
     property var pendingPythonUpdates: null
     property var lastUpdateByCategory: ({})
@@ -747,43 +756,54 @@ Item {
 
     // Environment & Reflection infrastructure (для тестов)
     // (переименовано чтобы избежать alias self-reference)
-      SceneEnvironmentController {
-          id: envController
-          objectName: "sceneEnvironment"
-          fogEnabled: root.fogEnabled
-          fogColor: root.fogColor
-          fogDensity: root.fogDensity
-          fogDepthEnabled: root.fogDepthEnabled
-          fogDepthCurve: root.fogDepthCurve
-          fogDepthNear: root.fogDepthNear
-          fogDepthFar: root.fogDepthFar
-          fogHeightEnabled: root.fogHeightEnabled
-          fogLeastIntenseY: root.fogLeastIntenseY
-          fogMostIntenseY: root.fogMostIntenseY
-          fogHeightCurve: root.fogHeightCurve
-          fogTransmitEnabled: root.fogTransmitEnabled
-          fogTransmitCurve: root.fogTransmitCurve
-          iblLightingEnabled: false
-          skyboxToggleFlag: false
-          reflectionProbeEnabled: root.reflectionProbeEnabled
-          // SSAO defaults are kept in sync with Python/UI toggles
-          ssaoEnabled: true
-      }
-      property alias fogColorValue: envController.fogColor
-      property alias fogDensityValue: envController.fogDensity
-      property alias fogHeightEnabledValue: envController.fogHeightEnabled
-      property alias fogLeastIntenseYValue: envController.fogLeastIntenseY
-      property alias fogMostIntenseYValue: envController.fogMostIntenseY
-      property alias fogHeightCurveValue: envController.fogHeightCurve
-      property alias fogTransmitEnabledValue: envController.fogTransmitEnabled
-      property alias fogTransmitCurveValue: envController.fogTransmitCurve
-      property alias ssaoEnabled: envController.ssaoEnabled
-      property alias ssaoRadius: envController.ssaoRadius
-      property alias ssaoIntensity: envController.ssaoIntensity
-      property alias ssaoSoftness: envController.ssaoSoftness
-      property alias ssaoBias: envController.ssaoBias
-    property alias ssaoDither: envController.ssaoDither
-    property alias ssaoSampleRate: envController.ssaoSampleRate
+    SceneEnvironmentController {
+        id: envController
+        objectName: "sceneEnvironment"
+        fogEnabled: false
+        fogDensity: 0.0
+        iblLightingEnabled: false
+        skyboxToggleFlag: false
+        reflectionProbeEnabled: root.reflectionProbeEnabled
+        // SSAO defaults are kept in sync with Python/UI toggles
+        ssaoEnabled: root.ssaoEnabled
+        ssaoRadius: root.ssaoRadius
+        ssaoIntensity: root.ssaoIntensity
+        ssaoSoftness: root.ssaoSoftness
+        ssaoBias: root.ssaoBias
+        ssaoDither: root.ssaoDither
+        ssaoSampleRate: root.ssaoSampleRate
+    }
+    Connections {
+        target: envController
+        function onSsaoEnabledChanged() {
+            if (root.ssaoEnabled !== envController.ssaoEnabled)
+                root.ssaoEnabled = envController.ssaoEnabled
+        }
+        function onSsaoRadiusChanged() {
+            if (root.ssaoRadius !== envController.ssaoRadius)
+                root.ssaoRadius = envController.ssaoRadius
+        }
+        function onSsaoIntensityChanged() {
+            if (root.ssaoIntensity !== envController.ssaoIntensity)
+                root.ssaoIntensity = envController.ssaoIntensity
+        }
+        function onSsaoSoftnessChanged() {
+            if (root.ssaoSoftness !== envController.ssaoSoftness)
+                root.ssaoSoftness = envController.ssaoSoftness
+        }
+        function onSsaoBiasChanged() {
+            if (root.ssaoBias !== envController.ssaoBias)
+                root.ssaoBias = envController.ssaoBias
+        }
+        function onSsaoDitherChanged() {
+            if (root.ssaoDither !== envController.ssaoDither)
+                root.ssaoDither = envController.ssaoDither
+        }
+        function onSsaoSampleRateChanged() {
+            if (root.ssaoSampleRate !== envController.ssaoSampleRate)
+                root.ssaoSampleRate = envController.ssaoSampleRate
+        }
+    }
     QtObject {
         id: suspensionAssembly
         objectName: "sceneSuspensionAssembly"

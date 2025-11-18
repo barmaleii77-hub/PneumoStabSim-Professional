@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+from dataclasses import dataclass, field
 from dataclasses import dataclass
 from functools import partial
 from typing import Any
@@ -36,6 +37,20 @@ def _coerce_float(value: float | None, fallback: float) -> float:
         return float(value)
     except (TypeError, ValueError):
         return float(fallback)
+
+
+def _normalize_setting(value: float | None, *, default: float, minimum: float, maximum: float) -> tuple[float, bool]:
+    """Coerce a numeric setting and track validity without trusting the stored value.
+
+    The returned tuple is ``(bounded_value, is_valid)`` where ``bounded_value`` is
+    clamped to the provided range so that UI widgets can be initialised safely even
+    when persisted settings are out of bounds.
+    """
+
+    candidate = _coerce_float(value, default)
+    is_valid = math.isfinite(candidate) and minimum <= candidate <= maximum
+    bounded = min(max(candidate, minimum), maximum)
+    return bounded, is_valid
 
 
 def _build_logger(channel: str, *, panel: str | None = None):
@@ -965,17 +980,31 @@ class PneumoPanelAccordion(QWidget):
         self.rod_volume.set_value(v_rod * 1e6)
 
 
+@dataclass
+class _SimulationAccordionState:
+    physics_dt: float
+    sim_speed: float
+    sim_mode: str
+    thermo_mode: str
+    include_springs: bool
+    include_dampers: bool
+    check_interference: bool
+    validation: dict[str, bool] = field(default_factory=dict)
+
+
 class SimulationPanelAccordion(QWidget):
     """Simulation mode and settings panel"""
 
     sim_mode_changed = Signal(str)  # 'kinematics' or 'dynamics'
     option_changed = Signal(str, bool)  # (option_name, enabled)
     parameter_changed = Signal(str, float)
+    validationStateChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self._settings = get_settings_manager()
+        self._state: _SimulationAccordionState | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1002,6 +1031,25 @@ class SimulationPanelAccordion(QWidget):
         )
 
         self._on_mode_changed(self.sim_mode_combo.currentText())
+        self._refresh_state(use_settings_snapshot=True)
+
+    @Property("QVariantMap", notify=validationStateChanged)
+    def validationState(self) -> dict:
+        return dict(self._state.validation) if self._state else {}
+
+    @Property("QVariantMap", constant=True)
+    def bindingsSnapshot(self) -> dict:
+        if not self._state:
+            return {}
+        return {
+            "physics_dt": self._state.physics_dt,
+            "sim_speed": self._state.sim_speed,
+            "sim_mode": self._state.sim_mode,
+            "thermo_mode": self._state.thermo_mode,
+            "include_springs": self._state.include_springs,
+            "include_dampers": self._state.include_dampers,
+            "check_interference": self._state.check_interference,
+        }
 
     def _build_mode_section(self) -> QWidget:
         container = QWidget()
@@ -1117,8 +1165,9 @@ class SimulationPanelAccordion(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        sim_dt = _coerce_float(
-            self._settings.get("current.simulation.physics_dt", 0.001), 0.001
+        sim_dt_raw = self._settings.get("current.simulation.physics_dt", 0.001)
+        sim_dt, _ = _normalize_setting(
+            sim_dt_raw, default=0.001, minimum=0.0001, maximum=0.01
         )
         self.time_step = ParameterSlider(
             name="Time Step (dt)",
@@ -1133,8 +1182,9 @@ class SimulationPanelAccordion(QWidget):
         self.time_step.value_changed.connect(self._on_time_step_changed)
         layout.addWidget(self.time_step)
 
-        sim_speed = _coerce_float(
-            self._settings.get("current.simulation.sim_speed", 1.0), 1.0
+        sim_speed_raw = self._settings.get("current.simulation.sim_speed", 1.0)
+        sim_speed, _ = _normalize_setting(
+            sim_speed_raw, default=1.0, minimum=0.1, maximum=10.0
         )
         self.sim_speed = ParameterSlider(
             name="Simulation Speed",
@@ -1164,6 +1214,7 @@ class SimulationPanelAccordion(QWidget):
 
         self._settings.set("current.modes.sim_type", mode.upper(), auto_save=False)
         self.sim_mode_changed.emit(mode)
+        self._refresh_state()
 
     def _on_thermo_changed(self, mode_text: str) -> None:
         thermo_mode = mode_text.upper()
@@ -1173,6 +1224,7 @@ class SimulationPanelAccordion(QWidget):
         self.parameter_changed.emit(
             "thermo_mode", 1.0 if thermo_mode == "ADIABATIC" else 0.0
         )
+        self._refresh_state()
 
     def _on_option_changed(self, name: str, enabled: bool) -> None:
         mapping = {
@@ -1184,16 +1236,19 @@ class SimulationPanelAccordion(QWidget):
         if path:
             self._settings.set(path, enabled, auto_save=False)
         self.option_changed.emit(name, enabled)
+        self._refresh_state()
 
     def _on_time_step_changed(self, value: float) -> None:
         self._settings.set(
             "current.simulation.physics_dt", float(value), auto_save=False
         )
-        self.parameter_changed.emit("time_step", value)
+        self.parameter_changed.emit("physics_dt", value)
+        self._refresh_state()
 
     def _on_slider_changed(self, name: str, value: float) -> None:
         self._settings.set(f"current.simulation.{name}", float(value), auto_save=False)
         self.parameter_changed.emit(name, value)
+        self._refresh_state()
 
     def get_parameters(self) -> dict:
         """Get all parameters"""
@@ -1207,6 +1262,67 @@ class SimulationPanelAccordion(QWidget):
             "sim_speed": self.sim_speed.value(),
         }
 
+    def _refresh_state(self, *, use_settings_snapshot: bool = False) -> None:
+        """Synchronise internal state mirrors for tests and validation."""
+
+        def _validate_range(val: float, slider: ParameterSlider) -> bool:
+            low, high = slider.get_range()
+            return math.isfinite(val) and low <= val <= high
+
+        source_dt = (
+            self._settings.get("current.simulation.physics_dt")
+            if use_settings_snapshot
+            else self.time_step.value()
+        )
+        bounded_dt, dt_valid = _normalize_setting(
+            source_dt, default=0.001, minimum=0.0001, maximum=0.01
+        )
+        if not use_settings_snapshot:
+            self.time_step.set_value(bounded_dt)
+
+        source_speed = (
+            self._settings.get("current.simulation.sim_speed")
+            if use_settings_snapshot
+            else self.sim_speed.value()
+        )
+        bounded_speed, speed_valid = _normalize_setting(
+            source_speed, default=1.0, minimum=0.1, maximum=10.0
+        )
+        if not use_settings_snapshot:
+            self.sim_speed.set_value(bounded_speed)
+
+        sim_mode = self.sim_mode_combo.currentText().lower()
+        thermo_mode = self.thermo_combo.currentText().upper()
+        validation = {
+            "physics_dt": dt_valid and _validate_range(bounded_dt, self.time_step),
+            "sim_speed": speed_valid and _validate_range(bounded_speed, self.sim_speed),
+            "sim_mode": sim_mode in {"kinematics", "dynamics"},
+            "thermo_mode": thermo_mode in {"ISOTHERMAL", "ADIABATIC"},
+        }
+
+        self._state = _SimulationAccordionState(
+            physics_dt=bounded_dt,
+            sim_speed=bounded_speed,
+            sim_mode=sim_mode,
+            thermo_mode=thermo_mode,
+            include_springs=self.include_springs_check.isChecked(),
+            include_dampers=self.include_dampers_check.isChecked(),
+            check_interference=self.check_interference.isChecked(),
+            validation=validation,
+        )
+        self.validationStateChanged.emit()
+
+
+@dataclass
+class _RoadAccordionState:
+    road_mode: str
+    amplitude: float
+    frequency: float
+    phase: float
+    profile_type: str
+    avg_speed: float
+    validation: dict[str, bool] = field(default_factory=dict)
+
 
 class RoadPanelAccordion(QWidget):
     """Road input and excitation panel"""
@@ -1214,11 +1330,13 @@ class RoadPanelAccordion(QWidget):
     road_mode_changed = Signal(str)  # 'manual' or 'profile'
     parameter_changed = Signal(str, float)
     profile_type_changed = Signal(str)
+    validationStateChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self._settings = get_settings_manager()
+        self._state: _RoadAccordionState | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1245,6 +1363,24 @@ class RoadPanelAccordion(QWidget):
         )
 
         self._on_mode_changed(self.road_mode_combo.currentText())
+        self._refresh_state(use_settings_snapshot=True)
+
+    @Property("QVariantMap", notify=validationStateChanged)
+    def validationState(self) -> dict:
+        return dict(self._state.validation) if self._state else {}
+
+    @Property("QVariantMap", constant=True)
+    def bindingsSnapshot(self) -> dict:
+        if not self._state:
+            return {}
+        return {
+            "road_mode": self._state.road_mode,
+            "amplitude": self._state.amplitude,
+            "frequency": self._state.frequency,
+            "phase": self._state.phase,
+            "profile_type": self._state.profile_type,
+            "avg_speed": self._state.avg_speed,
+        }
 
     def _build_mode_section(self) -> QWidget:
         container = QWidget()
@@ -1284,8 +1420,9 @@ class RoadPanelAccordion(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        amplitude = _coerce_float(
-            self._settings.get("current.modes.amplitude", 0.05), 0.05
+        amplitude_raw = self._settings.get("current.modes.amplitude", 0.05)
+        amplitude, _ = _normalize_setting(
+            amplitude_raw, default=0.05, minimum=0.0, maximum=0.2
         )
         self.amplitude = ParameterSlider(
             name="Amplitude (A)",
@@ -1302,8 +1439,9 @@ class RoadPanelAccordion(QWidget):
         )
         layout.addWidget(self.amplitude)
 
-        frequency = _coerce_float(
-            self._settings.get("current.modes.frequency", 1.0), 1.0
+        frequency_raw = self._settings.get("current.modes.frequency", 1.0)
+        frequency, _ = _normalize_setting(
+            frequency_raw, default=1.0, minimum=0.1, maximum=10.0
         )
         self.frequency = ParameterSlider(
             name="Frequency (f)",
@@ -1320,7 +1458,10 @@ class RoadPanelAccordion(QWidget):
         )
         layout.addWidget(self.frequency)
 
-        phase = _coerce_float(self._settings.get("current.modes.phase", 0.0), 0.0)
+        phase_raw = self._settings.get("current.modes.phase", 0.0)
+        phase, _ = _normalize_setting(
+            phase_raw, default=0.0, minimum=-180.0, maximum=180.0
+        )
         self.phase_offset = ParameterSlider(
             name="Phase Offset (rear)",
             initial_value=phase,
@@ -1368,8 +1509,9 @@ class RoadPanelAccordion(QWidget):
         self.profile_type_combo.currentTextChanged.connect(self._on_profile_changed)
         layout.addWidget(self.profile_type_combo)
 
-        speed = _coerce_float(
-            self._settings.get("current.modes.profile_avg_speed", 40.0), 40.0
+        speed_raw = self._settings.get("current.modes.profile_avg_speed", 40.0)
+        speed, _ = _normalize_setting(
+            speed_raw, default=40.0, minimum=5.0, maximum=150.0
         )
         self.avg_speed = ParameterSlider(
             name="Average Speed",
@@ -1402,18 +1544,22 @@ class RoadPanelAccordion(QWidget):
         mode = "profile" if is_profile else "manual"
         self._settings.set("current.modes.road_mode", mode, auto_save=False)
         self.road_mode_changed.emit(mode)
+        self._refresh_state()
 
     def _on_parameter_changed(self, name: str, value: float) -> None:
         self._settings.set(f"current.modes.{name}", float(value), auto_save=False)
         self.parameter_changed.emit(name, value)
+        self._refresh_state()
 
     def _on_profile_changed(self, label: str) -> None:
         for key, text in self._profile_map.items():
             if text == label:
                 self._settings.set("current.modes.mode_preset", key, auto_save=False)
                 self.profile_type_changed.emit(key)
+                self._refresh_state()
                 return
         self.profile_type_changed.emit(label.lower())
+        self._refresh_state()
 
     def get_parameters(self) -> dict:
         """Get all parameters"""
@@ -1426,24 +1572,117 @@ class RoadPanelAccordion(QWidget):
                 "frequency": self.frequency.value(),
                 "phase": self.phase_offset.value(),
             }
-        return {
-            "road_mode": "profile",
-            "profile_type": self.profile_type_combo.currentText()
-            .lower()
-            .replace(" ", "_"),
-            "avg_speed": self.avg_speed.value(),
+            return {
+                "road_mode": "profile",
+                "profile_type": self.profile_type_combo.currentText()
+                .lower()
+                .replace(" ", "_"),
+                "avg_speed": self.avg_speed.value(),
         }
+
+    def _refresh_state(self, *, use_settings_snapshot: bool = False) -> None:
+        """Synchronise state mirrors and validation flags."""
+
+        def _validate_range(val: float, slider: ParameterSlider) -> bool:
+            low, high = slider.get_range()
+            return math.isfinite(val) and low <= val <= high
+
+        mode = "profile" if "profile" in self.road_mode_combo.currentText().lower() else "manual"
+
+        source_amp = (
+            self._settings.get("current.modes.amplitude")
+            if use_settings_snapshot
+            else self.amplitude.value()
+        )
+        amplitude, amp_valid = _normalize_setting(
+            source_amp, default=0.05, minimum=0.0, maximum=0.2
+        )
+        if not use_settings_snapshot:
+            self.amplitude.set_value(amplitude)
+
+        source_freq = (
+            self._settings.get("current.modes.frequency")
+            if use_settings_snapshot
+            else self.frequency.value()
+        )
+        frequency, freq_valid = _normalize_setting(
+            source_freq, default=1.0, minimum=0.1, maximum=10.0
+        )
+        if not use_settings_snapshot:
+            self.frequency.set_value(frequency)
+
+        source_phase = (
+            self._settings.get("current.modes.phase")
+            if use_settings_snapshot
+            else self.phase_offset.value()
+        )
+        phase, phase_valid = _normalize_setting(
+            source_phase, default=0.0, minimum=-180.0, maximum=180.0
+        )
+        if not use_settings_snapshot:
+            self.phase_offset.set_value(phase)
+
+        source_speed = (
+            self._settings.get("current.modes.profile_avg_speed")
+            if use_settings_snapshot
+            else self.avg_speed.value()
+        )
+        avg_speed, speed_valid = _normalize_setting(
+            source_speed, default=40.0, minimum=5.0, maximum=150.0
+        )
+        if not use_settings_snapshot:
+            self.avg_speed.set_value(avg_speed)
+
+        profile_key = ""
+        for key, label in self._profile_map.items():
+            if label == self.profile_type_combo.currentText():
+                profile_key = key
+                break
+
+        validation = {
+            "road_mode": mode in {"manual", "profile"},
+            "amplitude": amp_valid and _validate_range(amplitude, self.amplitude),
+            "frequency": freq_valid and _validate_range(frequency, self.frequency),
+            "phase": phase_valid and _validate_range(phase, self.phase_offset),
+            "profile_type": bool(profile_key),
+            "avg_speed": speed_valid and _validate_range(avg_speed, self.avg_speed),
+        }
+
+        self._state = _RoadAccordionState(
+            road_mode=mode,
+            amplitude=amplitude,
+            frequency=frequency,
+            phase=phase,
+            profile_type=profile_key,
+            avg_speed=avg_speed,
+            validation=validation,
+        )
+        self.validationStateChanged.emit()
+
+
+@dataclass
+class _AdvancedAccordionState:
+    spring_stiffness: float
+    damper_coeff: float
+    dead_zone: float
+    atmospheric_temp: float
+    target_fps: float
+    render_scale: float
+    shadow_filter: float
+    validation: dict[str, bool] = field(default_factory=dict)
 
 
 class AdvancedPanelAccordion(QWidget):
     """Advanced parameters panel"""
 
     parameter_changed = Signal(str, float)
+    validationStateChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self._settings = get_settings_manager()
+        self._state: _AdvancedAccordionState | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -1469,14 +1708,35 @@ class AdvancedPanelAccordion(QWidget):
             self._build_graphics_section(),
         )
 
+        self._refresh_state(use_settings_snapshot=True)
+
+    @Property("QVariantMap", notify=validationStateChanged)
+    def validationState(self) -> dict:
+        return dict(self._state.validation) if self._state else {}
+
+    @Property("QVariantMap", constant=True)
+    def bindingsSnapshot(self) -> dict:
+        if not self._state:
+            return {}
+        return {
+            "spring_stiffness": self._state.spring_stiffness,
+            "damper_coeff": self._state.damper_coeff,
+            "dead_zone": self._state.dead_zone,
+            "atmospheric_temp": self._state.atmospheric_temp,
+            "target_fps": self._state.target_fps,
+            "render_scale": self._state.render_scale,
+            "shadow_filter": self._state.shadow_filter,
+        }
+
     def _build_suspension_section(self) -> QWidget:
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        spring_constant = float(
-            self._settings.get("current.physics.suspension.spring_constant", 50000.0)
+        spring_raw = self._settings.get("current.physics.suspension.spring_constant", 50000.0)
+        spring_constant, _ = _normalize_setting(
+            spring_raw, default=50000.0, minimum=10000.0, maximum=200000.0
         )
         self.spring_stiffness = ParameterSlider(
             name="Spring Stiffness (k)",
@@ -1495,13 +1755,11 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.spring_stiffness)
 
-        damper_coeff = float(
-            _coerce_float(
-                self._settings.get(
-                    "current.physics.suspension.damper_coefficient", 2000.0
-                ),
-                2000.0,
-            )
+        damper_raw = self._settings.get(
+            "current.physics.suspension.damper_coefficient", 2000.0
+        )
+        damper_coeff, _ = _normalize_setting(
+            damper_raw, default=2000.0, minimum=500.0, maximum=10000.0
         )
         self.damper_coeff = ParameterSlider(
             name="Damper Coefficient (c)",
@@ -1528,9 +1786,11 @@ class AdvancedPanelAccordion(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        dead_zone = _coerce_float(
-            self._settings.get("current.physics.suspension.dead_zone_percent", 5.0),
-            5.0,
+        dead_zone_raw = self._settings.get(
+            "current.physics.suspension.dead_zone_percent", 5.0
+        )
+        dead_zone, _ = _normalize_setting(
+            dead_zone_raw, default=5.0, minimum=0.0, maximum=20.0
         )
         self.dead_zone = ParameterSlider(
             name="Dead Zone (both ends)",
@@ -1549,8 +1809,9 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.dead_zone)
 
-        atm_temp = _coerce_float(
-            self._settings.get("current.pneumatic.atmo_temp", 20.0), 20.0
+        atm_temp_raw = self._settings.get("current.pneumatic.atmo_temp", 20.0)
+        atm_temp, _ = _normalize_setting(
+            atm_temp_raw, default=20.0, minimum=-80.0, maximum=150.0
         )
         self.atmospheric_temp = ParameterSlider(
             name="Atmospheric Temp",
@@ -1575,8 +1836,11 @@ class AdvancedPanelAccordion(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        frame_limit = float(
-            self._settings.get("current.graphics.quality.frame_rate_limit", 144.0)
+        frame_limit_raw = self._settings.get(
+            "current.graphics.quality.frame_rate_limit", 144.0
+        )
+        frame_limit, _ = _normalize_setting(
+            frame_limit_raw, default=144.0, minimum=30.0, maximum=240.0
         )
         self.target_fps = ParameterSlider(
             name="Target FPS",
@@ -1593,8 +1857,9 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.target_fps)
 
-        render_scale = float(
-            self._settings.get("current.graphics.quality.render_scale", 1.05)
+        render_scale_raw = self._settings.get("current.graphics.quality.render_scale", 1.05)
+        render_scale, _ = _normalize_setting(
+            render_scale_raw, default=1.05, minimum=0.5, maximum=2.0
         )
         self.aa_quality = ParameterSlider(
             name="Render Scale",
@@ -1611,8 +1876,11 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.aa_quality)
 
-        shadow_filter = float(
-            self._settings.get("current.graphics.quality.shadows.filter", 32.0)
+        shadow_filter_raw = self._settings.get(
+            "current.graphics.quality.shadows.filter", 32.0
+        )
+        shadow_filter, _ = _normalize_setting(
+            shadow_filter_raw, default=32.0, minimum=1.0, maximum=128.0
         )
         self.shadow_quality = ParameterSlider(
             name="Shadow Filter Size",
@@ -1643,10 +1911,117 @@ class AdvancedPanelAccordion(QWidget):
             "shadow_filter": self.shadow_quality.value(),
         }
 
+    def _refresh_state(self, *, use_settings_snapshot: bool = False) -> None:
+        """Synchronise state mirrors and validation flags for tests."""
+
+        def _validate_range(val: float, slider: ParameterSlider) -> bool:
+            low, high = slider.get_range()
+            return math.isfinite(val) and low <= val <= high
+
+        source_spring = (
+            self._settings.get("current.physics.suspension.spring_constant")
+            if use_settings_snapshot
+            else self.spring_stiffness.value()
+        )
+        spring, spring_valid = _normalize_setting(
+            source_spring, default=50000.0, minimum=10000.0, maximum=200000.0
+        )
+        if not use_settings_snapshot:
+            self.spring_stiffness.set_value(spring)
+
+        source_damper = (
+            self._settings.get("current.physics.suspension.damper_coefficient")
+            if use_settings_snapshot
+            else self.damper_coeff.value()
+        )
+        damper, damper_valid = _normalize_setting(
+            source_damper, default=2000.0, minimum=500.0, maximum=10000.0
+        )
+        if not use_settings_snapshot:
+            self.damper_coeff.set_value(damper)
+
+        source_dead_zone = (
+            self._settings.get("current.physics.suspension.dead_zone_percent")
+            if use_settings_snapshot
+            else self.dead_zone.value()
+        )
+        dead_zone, dead_zone_valid = _normalize_setting(
+            source_dead_zone, default=5.0, minimum=0.0, maximum=20.0
+        )
+        if not use_settings_snapshot:
+            self.dead_zone.set_value(dead_zone)
+
+        source_temp = (
+            self._settings.get("current.pneumatic.atmo_temp")
+            if use_settings_snapshot
+            else self.atmospheric_temp.value()
+        )
+        atmo_temp, temp_valid = _normalize_setting(
+            source_temp, default=20.0, minimum=-80.0, maximum=150.0
+        )
+        if not use_settings_snapshot:
+            self.atmospheric_temp.set_value(atmo_temp)
+
+        source_fps = (
+            self._settings.get("current.graphics.quality.frame_rate_limit")
+            if use_settings_snapshot
+            else self.target_fps.value()
+        )
+        target_fps, fps_valid = _normalize_setting(
+            source_fps, default=144.0, minimum=30.0, maximum=240.0
+        )
+        if not use_settings_snapshot:
+            self.target_fps.set_value(target_fps)
+
+        source_render_scale = (
+            self._settings.get("current.graphics.quality.render_scale")
+            if use_settings_snapshot
+            else self.aa_quality.value()
+        )
+        render_scale, render_valid = _normalize_setting(
+            source_render_scale, default=1.05, minimum=0.5, maximum=2.0
+        )
+        if not use_settings_snapshot:
+            self.aa_quality.set_value(render_scale)
+
+        source_shadow = (
+            self._settings.get("current.graphics.quality.shadows.filter")
+            if use_settings_snapshot
+            else self.shadow_quality.value()
+        )
+        shadow, shadow_valid = _normalize_setting(
+            source_shadow, default=32.0, minimum=1.0, maximum=128.0
+        )
+        if not use_settings_snapshot:
+            self.shadow_quality.set_value(shadow)
+
+        validation = {
+            "spring_stiffness": spring_valid and _validate_range(spring, self.spring_stiffness),
+            "damper_coeff": damper_valid and _validate_range(damper, self.damper_coeff),
+            "dead_zone": dead_zone_valid and _validate_range(dead_zone, self.dead_zone),
+            "atmospheric_temp": temp_valid and _validate_range(atmo_temp, self.atmospheric_temp),
+            "target_fps": fps_valid and _validate_range(target_fps, self.target_fps),
+            "render_scale": render_valid and _validate_range(render_scale, self.aa_quality),
+            "shadow_filter": shadow_valid and _validate_range(shadow, self.shadow_quality),
+        }
+
+        self._state = _AdvancedAccordionState(
+            spring_stiffness=spring,
+            damper_coeff=damper,
+            dead_zone=dead_zone,
+            atmospheric_temp=atmo_temp,
+            target_fps=target_fps,
+            render_scale=render_scale,
+            shadow_filter=shadow,
+            validation=validation,
+        )
+        self.validationStateChanged.emit()
+
     def _on_parameter_changed(self, dotted_key: str, value: float) -> None:
         self._settings.set(f"current.{dotted_key}", float(value), auto_save=False)
         short_key = dotted_key.split(".")[-1]
         self.parameter_changed.emit(short_key, value)
+        self._refresh_state()
 
 
 # Export
