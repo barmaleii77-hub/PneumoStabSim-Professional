@@ -29,7 +29,7 @@ Target release: PneumoStabSim Professional v4.9.8
 | Settings | `config/app_settings.json` + helper `src/common/settings_manager.py` and lightweight cache `src/core/settings_service.py` | JSON schema exists but lacks exhaustive validation, and duplicate helper utilities cause divergence. |
 | UI/QML bridge | QML assets under `assets/qml` and Python helpers such as `src/ui/qml_host.py`, `src/ui/parameter_slider.py` | Bridge logic is fragmented; signal tracing is manual. |
 | Physics & simulation | Domain modules in `src/pneumo`, `src/mechanics`, and legacy namespaced packages `src/PneumoStabSim.*` | Namespaces mix snake_case and PascalCase packages; constant definitions reside in both Python and JSON. |
-| Tests & automation | `pytest.ini`, `tests/` folder (Qt smoke tests, settings tests), GitHub workflows missing | Local tooling defined but CI pipelines absent; lint configs (`ruff.toml`, `mypy.ini`) exist yet not wired into automation. |
+| Tests & automation | `pytest.ini`, `tests/` folder (Qt smoke tests, settings tests), GitHub workflows missing | Локальное окружение собирается через `make check`; прогон от 2025-11-18 прошёл preflight и unit/integration, но 8 UI-тестов упали на импортах `assets/qml/main.qml`, PostEffects bypass и fallback-текстурах. CI по-прежнему не подключён. |
 | Documentation | README, ROADMAP, and agent manual remain in root; historical reports live under `archive/2025-11/root-reports/` alongside curated plans in `docs/` | Архив оформлен, дубликаты `archive/reports/` и `archive/old_qml/` удалены, требуется актуализация ссылок на Qt 6.10 в локальных планах. |
 
 ---

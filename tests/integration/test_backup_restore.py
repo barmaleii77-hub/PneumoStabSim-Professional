@@ -205,7 +205,9 @@ def test_restore_rejects_manifest_mismatch(
     )
 
 
-def test_restore_logs_manifest_mismatch_details(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_restore_logs_manifest_mismatch_details(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     root = tmp_path / "project"
     backup_dir = root / "backups"
     backup_dir.mkdir(parents=True)
@@ -268,7 +270,9 @@ def test_restore_rejects_unsafe_members(
     )
 
 
-def test_restore_logs_path_escape_attempts(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+def test_restore_logs_path_escape_attempts(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
     root = tmp_path / "project"
     backup_dir = root / "backups"
     backup_dir.mkdir(parents=True)
@@ -279,7 +283,9 @@ def test_restore_logs_path_escape_attempts(tmp_path: Path, caplog: pytest.LogCap
         handle.writestr("/etc/passwd", "forbidden")
         handle.writestr(
             "PSS_BACKUP_MANIFEST.json",
-            json.dumps({"included": ["/etc/passwd"], "skipped": []}, ensure_ascii=False),
+            json.dumps(
+                {"included": ["/etc/passwd"], "skipped": []}, ensure_ascii=False
+            ),
         )
 
     caplog.set_level(logging.ERROR, logger="services.backup")
