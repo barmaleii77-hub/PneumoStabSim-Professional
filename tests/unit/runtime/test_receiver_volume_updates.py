@@ -153,6 +153,53 @@ def test_set_receiver_volume_updates_pneumatic_and_gas_network(
     assert sig_update.temperature == pytest.approx(expected_temperature)
 
 
+def test_set_receiver_volume_emits_error_and_preserves_state_on_failure() -> None:
+    """Volume updates should not mutate state when receiver update fails."""
+
+    worker = _make_worker()
+
+    receiver_spec = ReceiverSpec(V_min=0.01, V_max=0.05)
+    receiver_state = ReceiverState(
+        spec=receiver_spec,
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+    pneumo_tank = _StubPneumoTank(0.02)
+    worker.pneumatic_system = SimpleNamespace(
+        receiver=receiver_state,
+        tank=pneumo_tank,
+    )
+
+    tank_mass = (101325.0 * 0.02) / (R_AIR * 293.15)
+    tank_state = TankGasState(
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        m=tank_mass,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+    worker.gas_network = SimpleNamespace(tank=tank_state)
+
+    update = worker.set_receiver_volume(0.5, ReceiverVolumeMode.ADIABATIC_RECALC)
+
+    assert update is None
+    assert worker.receiver_volume == pytest.approx(0.02)
+    assert worker.receiver_volume_mode == "MANUAL"
+    assert worker.pneumatic_system.receiver.V == pytest.approx(0.02)
+    assert worker.pneumatic_system.receiver.p == pytest.approx(101325.0)
+    assert worker.pneumatic_system.receiver.T == pytest.approx(293.15)
+    assert worker.pneumatic_system.receiver.mode is ReceiverVolumeMode.NO_RECALC
+    assert pneumo_tank.history == []
+    assert worker.gas_network.tank.V == pytest.approx(0.02)
+    assert worker.gas_network.tank.p == pytest.approx(101325.0)
+    assert worker.gas_network.tank.T == pytest.approx(293.15)
+    assert worker._latest_tank_state.volume == pytest.approx(0.02)
+    assert worker.receiver_volume_changed.emitted == []
+    assert worker.error_occurred.emitted
+
+
 def test_set_receiver_volume_updates_latest_state_without_gas_network(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
