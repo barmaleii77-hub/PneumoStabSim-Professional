@@ -160,6 +160,14 @@ _initial_argv = list(sys.argv[1:])
 bootstrap_args, remaining_argv = bootstrap_parser.parse_known_args(_initial_argv)
 _program_name = sys.argv[0]
 
+# Keep the exported schema flag aligned with bootstrap intent so diagnostics and
+# compatibility shims expose the right expectations even before :func:`main`
+# runs.
+USE_QML_3D_SCHEMA = not (
+    bool(getattr(bootstrap_args, "legacy", False))
+    or bool(getattr(bootstrap_args, "no_qml", False))
+)
+
 # Early environment diagnostics path: do NOT import Qt when --env-check/--env-report are requested
 if getattr(bootstrap_args, "env_check", False) or getattr(
     bootstrap_args, "env_report", None
@@ -341,21 +349,50 @@ def _render_exit_status(exit_code: int, locale: str) -> str:
     )
 
 
-def main() -> int:
+def _sync_runner_globals(runner: ApplicationRunner) -> None:
+    """Expose runner state via module-level globals for diagnostics suites."""
+
+    globals()["USE_QML_3D_SCHEMA"] = bool(getattr(runner, "use_qml_3d_schema", False))
+    globals()["app_instance"] = getattr(runner, "app_instance", None)
+    globals()["window_instance"] = getattr(runner, "window_instance", None)
+
+
+def _determine_qml_schema(args: object) -> bool:
+    """Decide whether the Qt Quick 3D schema should be enabled for this launch."""
+
+    disable_reasons = (
+        getattr(args, "legacy", False),
+        getattr(args, "no_qml", False),
+        getattr(args, "force_disable_qml_3d", False),
+    )
+    return not any(disable_reasons)
+
+
+def main(argv: list[str] | None = None) -> int:
     locale = _select_preferred_locale()
     os_name, _ = _log_detected_platform(locale)
 
     print(_render_welcome(locale, os_name))
     print(_render_command_menu(locale))
 
-    args = parse_arguments()
+    args = parse_arguments(remaining_argv if argv is None else argv)
     _validate_cli_arguments(args, locale)
+
+    use_qml_3d_schema = _determine_qml_schema(args)
 
     # Передаём bootstrap-состояние в runner
     setattr(args, "bootstrap_headless", False)
-    setattr(args, "bootstrap_use_qml_3d", True)
-    setattr(args, "force_disable_qml_3d", False)
-    setattr(args, "force_disable_qml_3d_reasons", tuple())
+    setattr(args, "bootstrap_use_qml_3d", use_qml_3d_schema)
+    setattr(
+        args,
+        "force_disable_qml_3d",
+        not use_qml_3d_schema and bool(getattr(args, "no_qml", False)),
+    )
+    setattr(
+        args,
+        "force_disable_qml_3d_reasons",
+        ("cli:no-qml",) if getattr(args, "no_qml", False) else tuple(),
+    )
     setattr(args, "safe_runtime", bool(getattr(args, "safe", False)))
 
     runner = ApplicationRunner(
@@ -366,6 +403,9 @@ def main() -> int:
         logging_preset=SELECTED_LOG_PRESET,
     )
 
+    runner.use_qml_3d_schema = use_qml_3d_schema
+    _sync_runner_globals(runner)
+
     # Поддержка --env-paths для быстрой диагностики
     if getattr(args, "env_paths", False):
         snapshot_path = dump_path_snapshot()
@@ -373,7 +413,11 @@ def main() -> int:
             print(f"[paths] snapshot written: {snapshot_path}")
         print(f"[paths] cwd_ok={verify_repo_root()}")
 
-    exit_code = runner.run(args)
+    try:
+        exit_code = runner.run(args)
+    finally:
+        _sync_runner_globals(runner)
+
     print(_render_exit_status(exit_code, locale))
 
     return exit_code
