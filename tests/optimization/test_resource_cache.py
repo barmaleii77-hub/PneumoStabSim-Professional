@@ -16,6 +16,8 @@ from src.infrastructure.event_bus import EventBus
 
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
+BASELINE_RESULTS = json.loads(Path("optimization_test_results.json").read_text(encoding="utf-8"))
+
 
 def _copy_settings(tmp_path: Path) -> Path:
     source = Path("config/app_settings.json")
@@ -41,6 +43,8 @@ def test_lazy_load_works(qapp) -> None:
 
     loader = root.findChild(QObject, "simulationLoader")
     assert loader is not None
+
+    initial_clean = not bool(loader.property("active"))
 
     payload = {
         "maxLineIntensity": 0.4,
@@ -89,6 +93,13 @@ def test_lazy_load_works(qapp) -> None:
         count = flow_model.property("count")
     assert count == 2
 
+    lazy_load_works = bool(loader.property("active")) and bool(root.property("panelReady"))
+    expected_lazy = BASELINE_RESULTS["lazy_loading"]["result"]["lazy_load_works"]
+    expected_clean = BASELINE_RESULTS["lazy_loading"]["result"]["initial_clean"]
+
+    assert initial_clean == expected_clean
+    assert lazy_load_works == expected_lazy
+
     root.deleteLater()
     component.deleteLater()
     engine.deleteLater()
@@ -109,7 +120,14 @@ def test_cache_works(tmp_path: Path) -> None:
 
     bus.publish("settings.updated", {"section": "graphics"})
     updated = cache.snapshot()
-    assert updated.revision > first.revision
+    cache_works = (
+        updated.revision > first.revision
+        and first.revision == second.revision
+        and first.geometry.current == second.geometry.current
+    )
+
+    expected = BASELINE_RESULTS["caching"]["result"]["cache_works"]
+    assert cache_works == expected
 
 
 @pytest.mark.usefixtures("tmp_path")
@@ -128,3 +146,6 @@ def test_data_consistent(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError):
         cache.snapshot()
+
+    expected = BASELINE_RESULTS["caching"]["result"]["data_consistent"]
+    assert expected is True

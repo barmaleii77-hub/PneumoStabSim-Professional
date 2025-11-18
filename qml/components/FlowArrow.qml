@@ -98,6 +98,7 @@ Item {
     }
 
     readonly property var _flowAnimation: Singletons.UiConstants.flow.animation
+    readonly property var _flowCard: Singletons.UiConstants.flow.card
 
     readonly property int _animationDuration: {
         var base = _flowAnimation.baseMs - _flowAnimation.speedFactor * _normalizedAnimationSpeed
@@ -168,9 +169,9 @@ Item {
         id: background
         anchors.fill: parent
         radius: 12
-        color: Qt.rgba(0.08, 0.11, 0.17, 0.92)
+        color: _flowCard.background
         border.width: 1
-        border.color: Qt.rgba(0.22, 0.29, 0.4, 0.95)
+        border.color: _flowCard.border
     }
 
     ColumnLayout {
@@ -184,7 +185,7 @@ Item {
             text: root.label
             font.bold: true
             font.pixelSize: 14
-            color: "#dfe7f3"
+            color: _flowCard.title
             elide: Text.ElideRight
         }
 
@@ -284,7 +285,7 @@ Item {
                     .arg(root._deltaLabel())
             }
             font.pixelSize: 12
-            color: "#b6c1d4"
+            color: _flowCard.subtitle
             elide: Text.ElideRight
         }
     }

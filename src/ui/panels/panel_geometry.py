@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QComboBox,
 )
-from PySide6.QtCore import QMetaMethod, Signal, Slot, Qt
+from PySide6.QtCore import QObject, QMetaMethod, Signal, Slot, Qt
 from PySide6.QtGui import QFont
 
 from ..widgets import RangeSlider
@@ -177,8 +177,28 @@ class GeometryPanel(QWidget):
                         return bool(signal_connected(meta_method))
 
             is_connected = getattr(self, "isSignalConnected", None)
-            if callable(is_connected) and meta_method is not None:
-                return bool(is_connected(meta_method))
+            if callable(is_connected):
+                try:
+                    return bool(is_connected(meta_method))
+                except TypeError:
+                    self.logger.debug(
+                        "GeometryPanel: isSignalConnected signature mismatch; trying receivers",
+                        exc_info=True,
+                    )
+
+            receivers_fn = getattr(QObject, "receivers", None)
+            if callable(receivers_fn):
+                signature = meta_method.methodSignature()
+                try:
+                    count = receivers_fn(self, signature)
+                except TypeError:
+                    count = receivers_fn(self, bytes(signature))
+                return bool(count)
+
+            instance_receivers = getattr(self, "receivers", None)
+            if callable(instance_receivers):
+                count = instance_receivers(meta_method.methodSignature())
+                return bool(count)
         except Exception:  # pragma: no cover - defensive Qt fallback
             self.logger.debug(
                 "GeometryPanel: subscriber verification failed; proceeding without check",

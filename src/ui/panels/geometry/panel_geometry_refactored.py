@@ -7,7 +7,7 @@ import logging
 from typing import Any, Mapping
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
-from PySide6.QtCore import QMetaMethod, Signal, Slot, QTimer, Qt
+from PySide6.QtCore import QObject, QMetaMethod, Signal, Slot, QTimer, Qt
 from PySide6.QtGui import QCloseEvent, QFont
 
 from .state_manager import GeometryStateManager
@@ -614,7 +614,44 @@ class GeometryPanel(QWidget):
         if signal_obj is None:
             return None
 
-        return self._is_signal_connected(signal_obj)
+        try:
+            meta_method = QMetaMethod.fromSignal(signal_obj)
+        except (TypeError, AttributeError):  # pragma: no cover - Qt internals
+            meta_method = None
+
+        if meta_method is None or not meta_method.isValid():
+            return None
+
+        try:
+            is_connected = getattr(self, "isSignalConnected", None)
+            if callable(is_connected):
+                try:
+                    return bool(is_connected(meta_method))
+                except TypeError:
+                    self.logger.debug(
+                        "GeometryPanel (refactored): isSignalConnected signature mismatch; trying receivers",
+                        exc_info=True,
+                    )
+
+            receivers_fn = getattr(QObject, "receivers", None)
+            if callable(receivers_fn):
+                signature = meta_method.methodSignature()
+                try:
+                    count = receivers_fn(self, signature)
+                except TypeError:
+                    count = receivers_fn(self, bytes(signature))
+                return bool(count)
+
+            instance_receivers = getattr(self, "receivers", None)
+            if callable(instance_receivers):
+                return bool(instance_receivers(meta_method.methodSignature()))
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.debug(
+                "GeometryPanel: subscriber verification failed; proceeding without check",
+                exc_info=True,
+            )
+
+        return None
 
     @staticmethod
     def _get_3d_update_params() -> set:

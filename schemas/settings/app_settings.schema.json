@@ -20,11 +20,10 @@
       "additionalProperties": true,
       "required": ["geometry", "pneumatic", "graphics", "road", "advanced"],
       "properties": {
-        "geometry": {"type": "object"},
-        "pneumatic": {"type": "object"},
-        "graphics": {"type": "object"},
-        "road": {"type": "object"},
-        "advanced": {"type": "object"}
+        "simulation": {"$ref": "#/$defs/SimulationSettings"},
+        "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
+        "road": {"$ref": "#/$defs/RoadSettings"},
+        "advanced": {"$ref": "#/$defs/AdvancedSettings"}
       }
     },
     "defaults_snapshot": {
@@ -32,11 +31,10 @@
       "additionalProperties": true,
       "required": ["geometry", "pneumatic", "graphics", "road", "advanced"],
       "properties": {
-        "geometry": {"type": "object"},
-        "pneumatic": {"type": "object"},
-        "graphics": {"type": "object"},
-        "road": {"type": "object"},
-        "advanced": {"type": "object"}
+        "simulation": {"$ref": "#/$defs/SimulationSettings"},
+        "pneumatic": {"$ref": "#/$defs/PneumaticSettings"},
+        "road": {"$ref": "#/$defs/RoadSettings"},
+        "advanced": {"$ref": "#/$defs/AdvancedSettings"}
       }
     }
   },
@@ -997,38 +995,116 @@
       "additionalProperties": false,
       "properties": {
         "volume_mode": {"title": "Volume Mode", "type": "string"},
-        "receiver_volume": {"title": "Receiver Volume", "type": "number", "minimum": 0},
-        "receiver_diameter": {"title": "Receiver Diameter", "type": "number", "minimum": 0},
-        "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0},
-        "dead_zone_head_m3": {"title": "Dead Zone Head M3", "type": "number", "minimum": 0},
-        "dead_zone_rod_m3": {"title": "Dead Zone Rod M3", "type": "number", "minimum": 0},
+        "receiver_volume": {
+          "title": "Receiver Volume",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1.0
+        },
+        "receiver_diameter": {
+          "title": "Receiver Diameter",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 0.5
+        },
+        "receiver_length": {
+          "title": "Receiver Length",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 2.0
+        },
+        "dead_zone_head_m3": {
+          "title": "Dead Zone Head M3",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
+        "dead_zone_rod_m3": {
+          "title": "Dead Zone Rod M3",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.1
+        },
         "chamber_volumes": {"$ref": "#/$defs/PneumaticChamberVolumes"},
         "line_pressures": {"$ref": "#/$defs/PneumaticLinePressures"},
         "tank_pressure_pa": {
           "title": "Tank Pressure Pa",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 10000000
         },
         "relief_pressure_pa": {
           "title": "Relief Pressure Pa",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 10000000
         },
-        "cv_atmo_dp": {"title": "Cv Atmo Dp", "type": "number", "minimum": 0},
-        "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number", "minimum": 0},
-        "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0},
-        "cv_tank_dia": {"title": "Cv Tank Dia", "type": "number", "minimum": 0},
-        "relief_min_pressure": {"title": "Relief Min Pressure", "type": "number", "minimum": 0},
-        "relief_stiff_pressure": {"title": "Relief Stiff Pressure", "type": "number", "minimum": 0},
-        "relief_safety_pressure": {"title": "Relief Safety Pressure", "type": "number", "minimum": 0},
-        "throttle_min_dia": {"title": "Throttle Min Dia", "type": "number", "minimum": 0},
-        "throttle_stiff_dia": {"title": "Throttle Stiff Dia", "type": "number", "minimum": 0},
+        "cv_atmo_dp": {
+          "title": "Cv Atmo Dp",
+          "type": "number",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "cv_tank_dp": {
+          "title": "Cv Tank Dp",
+          "type": "number",
+          "minimum": 100,
+          "maximum": 10000
+        },
+        "cv_atmo_dia": {
+          "title": "Cv Atmo Dia",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.01
+        },
+        "cv_tank_dia": {
+          "title": "Cv Tank Dia",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.01
+        },
+        "relief_min_pressure": {
+          "title": "Relief Min Pressure",
+          "type": "number",
+          "minimum": 100000,
+          "maximum": 10000000
+        },
+        "relief_stiff_pressure": {
+          "title": "Relief Stiff Pressure",
+          "type": "number",
+          "minimum": 100000,
+          "maximum": 10000000
+        },
+        "relief_safety_pressure": {
+          "title": "Relief Safety Pressure",
+          "type": "number",
+          "minimum": 100000,
+          "maximum": 10000000
+        },
+        "throttle_min_dia": {
+          "title": "Throttle Min Dia",
+          "type": "number",
+          "minimum": 0.0005,
+          "maximum": 0.003
+        },
+        "throttle_stiff_dia": {
+          "title": "Throttle Stiff Dia",
+          "type": "number",
+          "minimum": 0.0005,
+          "maximum": 0.003
+        },
         "diagonal_coupling_dia": {
           "title": "Diagonal Coupling Diameter",
           "type": "number",
-          "minimum": 0
+          "minimum": 0.0005,
+          "maximum": 0.003
         },
-        "atmo_temp": {"title": "Atmo Temp", "type": "number"},
+        "atmo_temp": {
+          "title": "Atmo Temp",
+          "type": "number",
+          "minimum": -100.0,
+          "maximum": 400.0
+        },
         "thermo_mode": {
           "title": "Thermo Mode",
           "type": "string",
@@ -1037,25 +1113,33 @@
         "polytropic_heat_transfer_coeff": {
           "title": "Polytropic Heat Transfer Coeff",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 200.0
         },
         "polytropic_exchange_area": {
           "title": "Polytropic Exchange Area",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.5
         },
         "leak_coefficient": {
           "title": "Leak Coefficient",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.0001
         },
         "leak_reference_area": {
           "title": "Leak Reference Area",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.005
         },
         "master_isolation_open": {"title": "Master Isolation Open", "type": "boolean"},
-        "pressure_units": {"title": "Pressure Units", "type": "string"},
+        "pressure_units": {
+          "title": "Pressure Units",
+          "type": "string",
+          "enum": ["бар", "Па", "кПа", "МПа"]
+        },
         "receiver_volume_limits": {"$ref": "#/$defs/ReceiverVolumeLimits"}
       },
       "required": ["volume_mode", "receiver_volume", "receiver_diameter", "receiver_length", "dead_zone_head_m3", "dead_zone_rod_m3", "chamber_volumes", "line_pressures", "tank_pressure_pa", "relief_pressure_pa", "cv_atmo_dp", "cv_tank_dp", "cv_atmo_dia", "cv_tank_dia", "relief_min_pressure", "relief_stiff_pressure", "relief_safety_pressure", "throttle_min_dia", "throttle_stiff_dia", "diagonal_coupling_dia", "atmo_temp", "thermo_mode", "polytropic_heat_transfer_coeff", "polytropic_exchange_area", "leak_coefficient", "leak_reference_area", "master_isolation_open", "pressure_units", "receiver_volume_limits"],
@@ -1299,8 +1383,18 @@
     "ReceiverVolumeLimits": {
       "additionalProperties": false,
       "properties": {
-        "min_m3": {"title": "Min M3", "type": "number", "minimum": 0},
-        "max_m3": {"title": "Max M3", "type": "number", "minimum": 0}
+        "min_m3": {
+          "title": "Min M3",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1.0
+        },
+        "max_m3": {
+          "title": "Max M3",
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 1.0
+        }
       },
       "required": ["min_m3", "max_m3"],
       "title": "ReceiverVolumeLimits",
@@ -1409,9 +1503,15 @@
           "description": "Целевая частота вертикальной синхронизации рендера, используется контроллером синхронизации настроек."
         },
         "max_steps_per_frame": {"title": "Max Steps Per Frame", "type": "integer"},
-        "max_frame_time": {"title": "Max Frame Time", "type": "number"}
+        "max_frame_time": {"title": "Max Frame Time", "type": "number"},
+        "sim_speed": {
+          "title": "Simulation Speed",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 4.0
+        }
       },
-      "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
+      "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time", "sim_speed"],
       "title": "SimulationSettings",
       "type": "object"
     },

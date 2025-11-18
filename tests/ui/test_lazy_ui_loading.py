@@ -34,6 +34,12 @@ def block_pyside_import(monkeypatch) -> None:
     monkeypatch.setattr(builtins, "__import__", _guarded_import)
 
 
+def _clear_pyside_modules() -> None:
+    for module in list(sys.modules):
+        if module.startswith("PySide6"):
+            sys.modules.pop(module)
+
+
 def test_ui_imports_without_qt(block_pyside_import: None) -> None:
     ui_module = importlib.import_module("src.ui")
     hud_module = importlib.import_module("src.ui.hud")
@@ -50,3 +56,18 @@ def test_lazy_factories_blocked_without_qt(block_pyside_import: None) -> None:
 
     ui_module = importlib.import_module("src.ui")
     assert ui_module.PressureScaleWidget is widget_cls
+
+
+def test_lazy_loader_import_does_not_eagerly_load_qt() -> None:
+    _clear_pyside_modules()
+
+    lazy_loader = importlib.import_module("src.ui.lazy_loader")
+
+    assert not any(key.startswith("PySide6") for key in sys.modules)
+    assert hasattr(lazy_loader, "get_chart_widget")
+
+
+def test_visualization_service_import_is_lightweight(block_pyside_import: None) -> None:
+    module = importlib.import_module("src.ui.services.visualization_service")
+
+    assert hasattr(module, "VisualizationService")
