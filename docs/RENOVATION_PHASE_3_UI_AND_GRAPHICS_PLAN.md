@@ -117,6 +117,12 @@ Track panel completion status, performance runs, and localization updates here.
   `make cross-platform-test` и зафиксированы результаты в
   `reports/tests/ui_phase3_cross_platform_20251202.md`.
 
+### 2025-12-16 – Flow telemetry bridge for SimulationPanel
+- `SimulationRoot` теперь обрабатывает `pendingPythonUpdates` и прокидывает
+  узел `flowNetwork` в `SimulationPanel.applyFlowTelemetry`, обеспечивая
+  синхронизацию стрелок потока, индикаторов клапанов и резервуарной шкалы с
+  данными симуляции.
+
 ### 2025-10-20 – Static load equilibrium for suspension visuals
 - Normalised rigid-body static wheel loads so the scene holds a neutral pose without drift.
 - Added regression tests validating the equilibrium to keep render diagnostics reliable.

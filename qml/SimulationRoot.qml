@@ -19,6 +19,9 @@ Pane {
     /** Полный снимок телеметрии потоков от симулятора. */
     property var flowTelemetry: ({})
 
+    /** Пакет обновлений от Python → QML мостика. */
+    property var pendingPythonUpdates: ({})
+
     /** Прокси к внутренним моделям, экспортируемые для автотестов. */
     property alias flowArrowsModel: simulationPanel.flowArrowsModel
     property alias lineValveModel: simulationPanel.lineValveModel
@@ -62,6 +65,27 @@ Pane {
         flowTelemetry = payload
     }
 
+    function _isPlainObject(value) {
+        return value && typeof value === "object" && !Array.isArray(value)
+    }
+
+    function _applyPendingUpdates(payload) {
+        var updates = _isPlainObject(payload) ? payload : {}
+        var flowUpdate = null
+        if (_isPlainObject(updates.flowTelemetry))
+            flowUpdate = updates.flowTelemetry
+        else if (_isPlainObject(updates.flow_telemetry))
+            flowUpdate = updates.flow_telemetry
+        else if (_isPlainObject(updates.flownetwork))
+            flowUpdate = updates.flownetwork
+        var threeD = updates.threeD || updates.ThreeD || updates.threed || updates["3d"]
+        if (!flowUpdate && _isPlainObject(threeD) && _isPlainObject(threeD.flowNetwork))
+            flowUpdate = threeD.flowNetwork
+
+        if (flowUpdate !== null)
+            applyFlowTelemetry(flowUpdate)
+    }
+
     onFlowTelemetryChanged: simulationPanel.applyFlowTelemetry(flowTelemetry)
 
     function _hostWindow() {
@@ -85,6 +109,8 @@ Pane {
             payload = {}
         geometryUpdatesApplied(payload)
     }
+
+    onPendingPythonUpdatesChanged: _applyPendingUpdates(pendingPythonUpdates)
 
     /**
      * Интерфейс для регистрации предупреждений шейдеров, совместимый со сценой.

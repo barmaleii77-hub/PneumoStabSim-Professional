@@ -63,7 +63,50 @@ def test_simulation_root_accepts_nested_flow_network(qapp) -> None:
 
         arrow_a1 = root.findChild(QObject, "flowArrow-A1")
         assert arrow_a1 is not None
-        assert arrow_a1.property("effectivePressureRatio") == pytest.approx(0.7, rel=1e-6)
+        assert arrow_a1.property("effectivePressureRatio") == pytest.approx(
+            0.7, rel=1e-6
+        )
+    finally:
+        root.deleteLater()
+        component.deleteLater()
+        engine.deleteLater()
+
+
+@pytest.mark.gui
+@pytest.mark.usefixtures("qapp")
+def test_pending_updates_push_flow_network(qapp) -> None:
+    engine, component, root, panel = _load_simulation_panel()
+
+    try:
+        payload = {
+            "threeD": {
+                "flowNetwork": {
+                    "lines": {
+                        "a1": {"netFlow": 0.1, "flowIntensity": 0.8},
+                        "b1": {"netFlow": -0.05, "flowIntensity": 0.4},
+                    },
+                    "receiver": {
+                        "tankPressure": 115_000.0,
+                        "minPressure": 90_000.0,
+                        "maxPressure": 130_000.0,
+                        "pressures": {"a1": 112_000.0, "b1": 101_000.0},
+                    },
+                }
+            }
+        }
+
+        assert root.setProperty("pendingPythonUpdates", payload) is True
+        qapp.processEvents()
+
+        reservoir = panel.findChild(QObject, "reservoirView")
+        assert reservoir.property("pressure") == pytest.approx(115_000.0, rel=1e-6)
+
+        flow_model = panel.property("flowArrowsModel")
+        assert flow_model.rowCount() == 2
+        arrow_a1 = root.findChild(QObject, "flowArrow-A1")
+        assert arrow_a1.property("intensity") == pytest.approx(1.0, rel=1e-6)
+        arrow_b1 = root.findChild(QObject, "flowArrow-B1")
+        assert arrow_b1.property("direction").lower() == "exhaust"
     finally:
         root.deleteLater()
         component.deleteLater()
