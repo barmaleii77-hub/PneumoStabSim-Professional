@@ -204,7 +204,10 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-        fog: fogHelpersSupported ? Fog {
+        fog: fogHelpersSupported ? fogComponent : null
+
+        Fog {
+            id: fogComponent
             enabled: root.fogEnabled
             color: root.fogColor
             density: root.fogDensity
@@ -218,7 +221,7 @@ Item {
             heightCurve: root.fogHeightCurve
             transmitEnabled: root.fogTransmitEnabled
             transmitCurve: root.fogTransmitCurve
-        } : null
+        }
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue
