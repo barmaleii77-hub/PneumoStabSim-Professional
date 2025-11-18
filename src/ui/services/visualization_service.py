@@ -11,7 +11,7 @@ from src.common.settings_manager import SettingsManager
 from src.core.interfaces import VisualizationService as VisualizationServiceProtocol
 from src.graphics.materials import MaterialStateStore
 from src.security.access_control import AccessControlService, get_access_control
-from src.ui.hud import CameraHudTelemetry
+from src.ui.lazy_loader import build_camera_hud_telemetry
 
 
 logger = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class VisualizationService(VisualizationServiceProtocol):
         self._state: dict[str, dict[str, Any]] = {key: {} for key in self._CATEGORIES}
         self._latest_updates: dict[str, dict[str, Any]] = {}
         self._settings_manager = settings_manager
-        self._camera_telemetry = CameraHudTelemetry()
+        self._camera_telemetry = build_camera_hud_telemetry()
         self._materials_store = MaterialStateStore(
             settings_manager=self._resolve_settings_manager()
         )
