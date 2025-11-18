@@ -14,6 +14,7 @@ QtObject {
 
     readonly property var flow: ({
         animation: _flowAnimation(),
+        card: _flowCard(),
         intake: _flowSet("intake", {
             start: Qt.rgba(0.16, 0.44, 0.9, 0.55),
             end: Qt.rgba(0.35, 0.82, 1.0, 0.9),
@@ -120,6 +121,25 @@ QtObject {
             tip: _mixColor(target.start, target.tip, ratio),
             highlight: _mixColor(target.highlight, target.highlightEnd, ratio)
         }
+    }
+
+    function _flowCard() {
+        var defaults = {
+            background: Qt.rgba(0.08, 0.11, 0.17, 0.92),
+            border: Qt.rgba(0.22, 0.29, 0.4, 0.95),
+            title: "#dfe7f3",
+            subtitle: "#b6c1d4"
+        }
+        var node = _section(payload, "flow", "card")
+        if (node && typeof node === "object") {
+            return {
+                background: _color(node.background, defaults.background),
+                border: _color(node.border, defaults.border),
+                title: node.title || defaults.title,
+                subtitle: node.subtitle || defaults.subtitle
+            }
+        }
+        return defaults
     }
 
     function _clamp(value) {

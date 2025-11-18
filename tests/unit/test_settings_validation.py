@@ -113,6 +113,20 @@ def test_validate_settings_missing_physics_dt(
     assert "physics_dt" in _last_error(stub_qmessagebox)
 
 
+def test_validate_settings_missing_sim_speed(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["simulation"].pop("sim_speed")
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "sim_speed" in str(exc.value)
+    assert "sim_speed" in _last_error(stub_qmessagebox)
+
+
 def test_validate_settings_missing_receiver_limit(
     runner: ApplicationRunner, write_config, stub_qmessagebox
 ):
@@ -125,6 +139,20 @@ def test_validate_settings_missing_receiver_limit(
 
     assert "receiver_volume_limits" in str(exc.value)
     assert "receiver_volume_limits" in _last_error(stub_qmessagebox)
+
+
+def test_validate_settings_rejects_out_of_range_volume(
+    runner: ApplicationRunner, write_config, stub_qmessagebox
+):
+    settings = _base_settings()
+    settings["current"]["pneumatic"]["receiver_volume"] = 2.0
+    write_config(settings)
+
+    with pytest.raises(SettingsValidationError) as exc:
+        runner._validate_settings_file()
+
+    assert "receiver_volume" in str(exc.value)
+    assert "receiver_volume" in _last_error(stub_qmessagebox)
 
 
 def test_validate_settings_missing_geometry_section(

@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
 from pathlib import Path, PureWindowsPath
-from typing import Any, TYPE_CHECKING
+from typing import Any
 from collections.abc import Iterable
 
 from src.core.settings_defaults import load_default_settings_payload
@@ -773,6 +773,7 @@ class SettingsManager:
                 "pneumatic.line_pressures",
                 "pneumatic.tank_pressure_pa",
                 "pneumatic.relief_pressure_pa",
+                "simulation.sim_speed",
                 "road",
                 "advanced",
             ):
@@ -1314,6 +1315,19 @@ class SettingsManager:
 
             self._runtime_defaults = load_runtime_defaults()
         return _deep_copy(self._runtime_defaults)
+
+    def get_physics_factories(self):
+        """Lazy import factories for rigid body creation.
+
+        The imports live here to avoid triggering heavyweight defaults when
+        runtime modules are merely imported. Callers should rely on this
+        method instead of importing the factories at module level.
+        """
+
+        from src.physics.integrator import create_default_rigid_body
+        from src.physics.odes import RigidBody3DOF, create_initial_conditions
+
+        return create_default_rigid_body, create_initial_conditions, RigidBody3DOF
 
     def create_default_system_configuration(self) -> dict[str, Any]:
         from src.core.settings_manager import (

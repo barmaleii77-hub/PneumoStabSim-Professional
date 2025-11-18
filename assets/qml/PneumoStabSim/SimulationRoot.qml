@@ -749,6 +749,13 @@ Item {
         // SSAO defaults are kept in sync with Python/UI toggles
         ssaoEnabled: true
     }
+    property alias ssaoEnabled: envController.ssaoEnabled
+    property alias ssaoRadius: envController.ssaoRadius
+    property alias ssaoIntensity: envController.ssaoIntensity
+    property alias ssaoSoftness: envController.ssaoSoftness
+    property alias ssaoBias: envController.ssaoBias
+    property alias ssaoDither: envController.ssaoDither
+    property alias ssaoSampleRate: envController.ssaoSampleRate
     QtObject {
         id: suspensionAssembly
         objectName: "sceneSuspensionAssembly"

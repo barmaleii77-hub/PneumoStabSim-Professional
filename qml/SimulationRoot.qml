@@ -64,6 +64,7 @@ Pane {
 
     property var _pendingFlowTelemetry: null
     property var _pendingGeometry: null
+    property bool _loadRequested: false
 
     // Rollback hooks exposed for bridge-driven undo flows
     signal undoPostEffects()
@@ -71,13 +72,19 @@ Pane {
 
     function applyFlowTelemetry(payload) {
         flowTelemetry = payload
-        _pendingFlowTelemetry = payload
-        _flushPending()
+        if (_hasPayload(payload)) {
+            _pendingFlowTelemetry = payload
+            _requestLoad()
+            _flushPending()
+        }
     }
 
     onFlowTelemetryChanged: {
-        _pendingFlowTelemetry = flowTelemetry
-        _flushPending()
+        if (_hasPayload(flowTelemetry)) {
+            _pendingFlowTelemetry = flowTelemetry
+            _requestLoad()
+            _flushPending()
+        }
     }
 
     function _hostWindow() {
@@ -110,8 +117,11 @@ Pane {
     function applyGeometryUpdates(params) {
         geometryParameters = _normalizeGeometryPayload(params)
         geometryUpdatesApplied(geometryParameters)
-        _pendingGeometry = geometryParameters
-        _flushPending()
+        if (_hasPayload(geometryParameters)) {
+            _pendingGeometry = geometryParameters
+            _requestLoad()
+            _flushPending()
+        }
     }
 
     function triggerUndoPostEffects() { undoPostEffects() }
@@ -119,19 +129,34 @@ Pane {
     function triggerResetSharedMaterials() { resetSharedMaterials() }
 
     onGeometryParametersChanged: {
-        _pendingGeometry = geometryParameters
-        _flushPending()
+        if (_hasPayload(geometryParameters)) {
+            _pendingGeometry = geometryParameters
+            _requestLoad()
+            _flushPending()
+        }
     }
 
     function _flushPending() {
-        if (!simulationPanel)
+        if (!simulationPanel) {
+            if (_pendingGeometry !== null || _pendingFlowTelemetry !== null)
+                _requestLoad()
             return
+        }
         if (_pendingGeometry !== null)
             simulationPanel.applyGeometryParameters(_pendingGeometry)
         if (_pendingFlowTelemetry !== null)
             simulationPanel.applyFlowTelemetry(_pendingFlowTelemetry)
         _pendingGeometry = null
         _pendingFlowTelemetry = null
+    }
+
+    function _requestLoad() {
+        if (!_loadRequested)
+            _loadRequested = true
+    }
+
+    function _hasPayload(payload) {
+        return payload && typeof payload === "object" && Object.keys(payload).length > 0
     }
 
     /**
@@ -193,16 +218,16 @@ Pane {
         id: simulationLoader
         objectName: "simulationLoader"
         anchors.fill: parent
-        active: false
+        active: root._loadRequested
         asynchronous: true
 
-        sourceComponent: Local.SimulationPanel {
-            id: simulationPanel
-            objectName: "simulationPanel"
-            anchors.fill: parent
-            anchors.margins: 24
-
-            geometryParameters: root.geometryParameters
+        sourceComponent: Component {
+            Local.SimulationPanel {
+                id: simulationPanel
+                objectName: "simulationPanel"
+                anchors.fill: parent
+                anchors.margins: 24
+            }
         }
 
         onStatusChanged: {
@@ -210,6 +235,9 @@ Pane {
                 _flushPending()
         }
 
-        Component.onCompleted: active = true
+        Component.onCompleted: {
+            if (_hasPayload(root.flowTelemetry) || _hasPayload(root.geometryParameters))
+                root._requestLoad()
+        }
     }
 }

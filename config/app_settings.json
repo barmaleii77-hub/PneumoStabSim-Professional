@@ -19,6 +19,44 @@
       "Все графические параметры управляются пользователем через UI: один параметр — один контрол без скрытых зависимостей.",
       "Сервис настроек не должен изменять файл при первой загрузке; сохранение происходит только по явному запросу пользователя."
     ],
+    "geometry_accordion_fields": [
+      {
+        "key": "wheelbase",
+        "label": "База (колёсная)",
+        "unit": "м",
+        "settings_path": "current.geometry.wheelbase"
+      },
+      {
+        "key": "track",
+        "label": "Колея",
+        "unit": "м",
+        "settings_path": "current.geometry.track"
+      },
+      {
+        "key": "lever_length",
+        "label": "Длина рычага",
+        "unit": "м",
+        "settings_path": "current.geometry.lever_length"
+      },
+      {
+        "key": "stroke_m",
+        "label": "Ход цилиндра",
+        "unit": "м",
+        "settings_path": "current.geometry.stroke_m"
+      },
+      {
+        "key": "cyl_diam_m",
+        "label": "Диаметр поршня",
+        "unit": "м",
+        "settings_path": "current.geometry.cyl_diam_m"
+      },
+      {
+        "key": "rod_diameter_m",
+        "label": "Диаметр штока",
+        "unit": "м",
+        "settings_path": "current.geometry.rod_diameter_m"
+      }
+    ],
     "environment_slider_ranges": {
       "ibl_intensity": {
         "min": 0.0,

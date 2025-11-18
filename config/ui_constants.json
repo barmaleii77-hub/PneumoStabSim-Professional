@@ -11,6 +11,12 @@
       "maxMs": 1200,
       "activationThreshold": 0.01
     },
+    "card": {
+      "background": [0.08, 0.11, 0.17, 0.92],
+      "border": [0.22, 0.29, 0.4, 0.95],
+      "title": "#dfe7f3",
+      "subtitle": "#b6c1d4"
+    },
     "intake": {
       "start": [0.16, 0.44, 0.9, 0.55],
       "end": [0.35, 0.82, 1.0, 0.9],

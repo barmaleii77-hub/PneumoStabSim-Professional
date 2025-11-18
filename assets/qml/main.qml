@@ -26,6 +26,7 @@ Item {
     signal shaderStatusDumpRequested(var payload)
     signal accordionPresetActivated(string panelId, string presetId)
     signal accordionFieldCommitted(string panelId, string field, var value)
+    signal accordionValidationChanged(string panelId, string field, string state, string message)
 
     // qmllint disable unqualified
     readonly property var hostWindow: (typeof globalThis !== "undefined" && globalThis.window !== undefined) ? globalThis.window : null
@@ -223,22 +224,14 @@ Item {
 
          fog: Fog {
              id: environmentFog
-             readonly property bool supportsDensity: "density" in environmentFog
-             readonly property bool supportsFogDensityAlias: "fogDensity" in environmentFog
 
              enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
              color: root.fogColor
-
-             Binding {
-                 target: environmentFog
-                 when: environmentFog.supportsDensity || environmentFog.supportsFogDensityAlias
-                 property: environmentFog.supportsDensity ? "density" : "fogDensity"
-                 value: root.fogDensity
-             }
+             density: root.fogDensity
 
              Component.onCompleted: {
-                 if (!supportsDensity && !supportsFogDensityAlias) {
-                     console.warn("[main.qml] Fog component is missing density properties; defaulting to zero")
+                 if (!("density" in environmentFog)) {
+                     console.warn("[main.qml] Fog component is missing density property; disabling fog")
                      environmentFog.enabled = false
                  }
              }
@@ -316,6 +309,17 @@ Item {
 
         _queuedBatchedUpdates = remaining
     }
+
+    function _applyFogDensityBinding() {
+        if (typeof environmentFog === "undefined" || !environmentFog)
+            return
+        if ("density" in environmentFog)
+            environmentFog.density = root.fogDensity
+        else if ("fogDensity" in environmentFog)
+            environmentFog.fogDensity = root.fogDensity
+    }
+
+    onFogDensityChanged: _applyFogDensityBinding()
 
     function _deliverBatchedUpdates(payload) {
         return _invokeOnActiveRoot("applyBatchedUpdates", payload)
@@ -558,6 +562,13 @@ Item {
               id: simulationRoot
               sceneBridge: root.contextSceneBridge
               fogDepthCurve: root.fogDepthCurve
+              ssaoEnabled: root.ssaoEnabled
+              ssaoRadius: root.ssaoRadius
+              ssaoIntensity: root.ssaoIntensity
+              ssaoSoftness: root.ssaoSoftness
+              ssaoBias: root.ssaoBias
+              ssaoDither: root.ssaoDither
+              ssaoSampleRate: root.ssaoSampleRate
           }
           onStatusChanged: {
               if (status === Loader.Error) {
@@ -688,6 +699,9 @@ Item {
         }
         onAccordionFieldCommitted: function(panelId, field, value) {
             root.accordionFieldCommitted(panelId, field, value)
+        }
+        onAccordionValidationChanged: function(panelId, field, state, message) {
+            root.accordionValidationChanged(panelId, field, state, message)
         }
     }
 
