@@ -770,6 +770,7 @@ class SettingsManager:
                 "pneumatic.line_pressures",
                 "pneumatic.tank_pressure_pa",
                 "pneumatic.relief_pressure_pa",
+                "simulation.sim_speed",
                 "road",
                 "advanced",
             ):
