@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick 6.10
 import QtQuick3D 6.10
+import QtQml 6.10
 import PneumoStabSim 1.0 as PSS
 import "./"
 import "./effects"          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
@@ -225,13 +226,21 @@ Item {
          fog: Fog {
              id: environmentFog
 
-             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
+             readonly property bool supportsDensity: environmentFog && ("density" in environmentFog)
+
+             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled && supportsDensity
              color: root.fogColor
-             density: root.fogDensity
+
+             Binding {
+                 target: environmentFog
+                 when: environmentFog.supportsDensity
+                 property: "density"
+                 value: root.fogDensity
+             }
 
              Component.onCompleted: {
-                 if (!("density" in environmentFog)) {
-                     console.warn("[main.qml] Fog component is missing density property; disabling fog")
+                 if (!supportsDensity) {
+                     console.warn("[main.qml] Fog component is missing density; disabling fog")
                      environmentFog.enabled = false
                  }
              }
@@ -315,8 +324,6 @@ Item {
             return
         if ("density" in environmentFog)
             environmentFog.density = root.fogDensity
-        else if ("fogDensity" in environmentFog)
-            environmentFog.fogDensity = root.fogDensity
     }
 
     onFogDensityChanged: _applyFogDensityBinding()
