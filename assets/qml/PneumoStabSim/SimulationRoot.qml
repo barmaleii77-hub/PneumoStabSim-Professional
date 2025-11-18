@@ -625,6 +625,24 @@ Item {
         suspensionAssembly.reflectionProbe.refreshMode = (function(m){switch(String(m).toLowerCase()){case "firstframe":return 1; case "everyframe":return 2; default:return 0}})(reflectionProbeRefreshModeSetting)
         suspensionAssembly.reflectionProbe.timeSlicing = (function(m){switch(String(m).toLowerCase()){case "allfaces":return 1; case "allfacesatonce":return 2; case "individualfaces":return 3; default:return 0}})(reflectionProbeTimeSlicingSetting)
         suspensionAssembly.reflectionProbePaddingM = reflectionProbePaddingM
+        _syncReflectionProbeEnvironmentState()
+    }
+
+    function _syncReflectionProbeEnvironmentState(){
+        var reflectionState = {
+            reflection_enabled: !!suspensionAssembly.reflectionProbeEnabled,
+            reflection_padding_m: reflectionProbePaddingM,
+            reflection_quality: reflectionProbeQualitySetting,
+            reflection_refresh_mode: reflectionProbeRefreshModeSetting,
+            reflection_time_slicing: reflectionProbeTimeSlicingSetting
+        }
+        var normalizedState = _normaliseState(environmentState)
+        var merged = _deepMerge(normalizedState, reflectionState)
+        try {
+            environmentState = JSON.parse(JSON.stringify(merged))
+        } catch (error) {
+            environmentState = merged
+        }
     }
 
     // Mapping качества проба (восстановлено)
