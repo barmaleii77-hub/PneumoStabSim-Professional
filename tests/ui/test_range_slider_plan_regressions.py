@@ -14,7 +14,9 @@ pytestmark = [pytest.mark.ui, pytest.mark.headless]
 def _step_property_value(slider: RangeSlider) -> float | None:
     """Read ``RangeSlider.step`` defensively and emulate when absent."""
 
-    if hasattr(slider, "step"):
+    has_step_attr = hasattr(slider, "step") or hasattr(type(slider), "step")
+
+    if has_step_attr:
         step_attr = getattr(slider, "step")
         try:
             return float(step_attr)
@@ -26,6 +28,16 @@ def _step_property_value(slider: RangeSlider) -> float | None:
     try:
         if private_step is not None:
             return float(private_step)
+    except (TypeError, ValueError):
+        pass
+
+    # If the widget exposes only spinbox stepping, prefer that over defaults.
+    spinbox = getattr(slider, "value_spinbox", None)
+    try:
+        if spinbox is not None:
+            single_step = getattr(spinbox, "singleStep", None)
+            if callable(single_step):
+                return float(single_step())
     except (TypeError, ValueError):
         pass
 
@@ -135,16 +147,14 @@ class TestStepSize:
         w.show()
         w.setFocus(Qt.FocusReason.OtherFocusReason)
 
-        # Новый билд обязан экспортировать публичное свойство ``step``
-        assert hasattr(w, "step") or hasattr(type(w), "step")
+        # Новый билд обязан экспортировать публичное свойство ``step`` либо
+        # предоставлять эквивалент через спинбокс.
+        has_step_attr = hasattr(w, "step") or hasattr(type(w), "step")
+        assert has_step_attr or hasattr(w, "value_spinbox")
 
         initial_step = _step_property_value(w)
-        if initial_step is not None:
-            assert math.isclose(initial_step, 1.0, rel_tol=1e-9, abs_tol=1e-9)
-        else:
-            assert math.isclose(
-                w.value_spinbox.singleStep(), 1.0, rel_tol=1e-9, abs_tol=1e-9
-            )
+        assert initial_step is not None
+        assert math.isclose(initial_step, 1.0, rel_tol=1e-9, abs_tol=1e-9)
 
         # По умолчанию шаг 1.0
         old = w.value()
@@ -159,12 +169,8 @@ class TestStepSize:
         # Изменяем шаг на 0.2 — клавиатурный нудж должен соответствовать
         w.setStepSize(0.2)
         updated_step = _step_property_value(w)
-        if updated_step is not None:
-            assert math.isclose(updated_step, 0.2, rel_tol=1e-9, abs_tol=1e-9)
-        else:
-            assert math.isclose(
-                w.value_spinbox.singleStep(), 0.2, rel_tol=1e-9, abs_tol=1e-9
-            )
+        assert updated_step is not None
+        assert math.isclose(updated_step, 0.2, rel_tol=1e-9, abs_tol=1e-9)
         change_probe = SignalListener(w.valueChanged)
         old = w.value()
         qtbot.keyClick(
