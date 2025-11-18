@@ -211,3 +211,10 @@ def test_depth_texture_activator_tracks_error_guard_flags(
 ) -> None:
     assert "property bool _missingViewLogged" in depth_texture_source
     assert "property bool _apiUnavailableLogged" in depth_texture_source
+
+
+def test_depth_texture_activator_logs_missing_property_hint(
+    depth_texture_source: str,
+) -> None:
+    assert "property missing" in depth_texture_source
+    assert "skipped toggle (Qt surface absent)" in depth_texture_source

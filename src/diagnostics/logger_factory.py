@@ -438,7 +438,6 @@ def configure_logging(
     json_renderer = structlog.processors.JSONRenderer(
         ensure_ascii=False,
         default=str,
-        event_key="event",
     )
     chosen_wrapper = wrapper_class or structlog.stdlib.BoundLogger
     configured_processors = list(_shared_processors())
