@@ -924,6 +924,8 @@ class PhysicsWorker(QObject):
 
         receiver_update: ReceiverVolumeUpdate | None = None
         latest_state = getattr(self, "_latest_tank_state", None)
+        latest_state_snapshot = replace(latest_state) if latest_state else None
+        receiver_snapshot: ReceiverVolumeUpdate | None = None
 
         receiver_pressure: float | None = None
         receiver_temperature: float | None = None
@@ -933,6 +935,14 @@ class PhysicsWorker(QObject):
                 receiver_state = getattr(self.pneumatic_system, "receiver", None)
                 if receiver_state is None:
                     raise AttributeError("Pneumatic system missing receiver state")
+
+                receiver_snapshot = ReceiverVolumeUpdate(
+                    volume=receiver_state.V,
+                    pressure=receiver_state.p,
+                    temperature=receiver_state.T,
+                    mode=receiver_state.mode,
+                )
+
                 receiver_update = receiver_state.set_volume(volume, mode=mode_enum)
                 mode_enum = receiver_update.mode
                 if not (preserve_user_mode and user_mode_token == "GEOMETRIC"):
@@ -952,12 +962,19 @@ class PhysicsWorker(QObject):
                             setattr(pneumo_tank, "V", volume)
                         pneumatic_tank_volume = getattr(pneumo_tank, "V", None)
                     except Exception as tank_exc:
+                        if receiver_snapshot is not None:
+                            receiver_state.V = receiver_snapshot.volume
+                            receiver_state.p = receiver_snapshot.pressure
+                            receiver_state.T = receiver_snapshot.temperature
+                            receiver_state.mode = receiver_snapshot.mode
                         _log_with_context(
                             "warning",
                             "WARNING: failed to update pneumatic tank volume",
                             {"error": str(tank_exc)},
                             exc_info=True,
                         )
+                        self.error_occurred.emit(str(tank_exc))
+                        return None
             except Exception as exc:
                 _log_with_context(
                     "warning",
@@ -965,6 +982,8 @@ class PhysicsWorker(QObject):
                     {"error": str(exc)},
                     exc_info=True,
                 )
+                self.error_occurred.emit(str(exc))
+                return None
 
         tank_pressure: float | None = None
         tank_mass: float | None = None
@@ -974,6 +993,7 @@ class PhysicsWorker(QObject):
                 tank_state = getattr(self.gas_network, "tank", None)
                 if tank_state is None:
                     raise AttributeError("Gas network missing tank state")
+                tank_snapshot = replace(tank_state)
                 tank_state.mode = mode_enum
                 apply_instant_volume_change(
                     tank_state,
@@ -995,12 +1015,18 @@ class PhysicsWorker(QObject):
                     ):
                         latest_state.temperature = float(tank_temperature)
             except Exception as exc:
+                if latest_state_snapshot:
+                    self._latest_tank_state = replace(latest_state_snapshot)
                 _log_with_context(
                     "warning",
                     "WARNING: failed to update gas network tank volume",
                     {"error": str(exc)},
                     exc_info=True,
                 )
+                if 'tank_snapshot' in locals():
+                    self.gas_network.tank = tank_snapshot
+                self.error_occurred.emit(str(exc))
+                return None
 
         if receiver_update is None:
             fallback_pressure = receiver_pressure
