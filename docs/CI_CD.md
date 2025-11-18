@@ -4,9 +4,10 @@
 [![Nightly](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/nightly.yml/badge.svg)](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/nightly.yml)
 [![Release](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/release.yml/badge.svg)](https://github.com/barmaleii77-hub/PneumoStabSim-Professional/actions/workflows/release.yml)
 
-Актуальная экосистема GitHub Actions состоит из четырёх взаимодополняющих конвейеров:
+Актуальная экосистема GitHub Actions состоит из четырёх взаимодополняющих конвейеров плюс специализированного CI/CD пайплайна для прогонов по матрице Python:
 
 - `ci.yml` — проверяет каждый push и pull request в ветки `main`, `develop` и `feature/*`, гарантируя прохождение агрегированного `make check` на Linux и Windows.
+- `ci-cd.yml` — унифицированный матричный прогон (`ubuntu-22.04` и `windows-latest`, Python 3.12/3.13), который перед целевыми тестами запускает `python scripts/testing_entrypoint.py` (через `uv run`) для синхронизации зависимостей и валидации базового пайплайна.
 - `nightly.yml` — ночной прогон (cron `0 3 * * *`) и реагирование на push в `main`, `develop`, `feature/*` с расширенной матрицей и сбором метрик качества.
 - `branch-audit.yml` — аудит устаревших веток по расписанию (`0 4 * * 1`) и при push в `main`, `develop`, `feature/*`; открывает/обновляет issue для веток без активности.
 - `release.yml` — пуши в `main`, `develop`, `feature/*` и `feature/hdr-assets-migration`, pull request в те же ветки, а также теги `v*` и ручные запуски собирают релизные артефакты (пакеты PyInstaller/CX-Freeze + wheel/SDist) с опциональным GPG-подписанием.

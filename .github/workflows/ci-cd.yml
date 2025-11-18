@@ -161,6 +161,22 @@ jobs:
         shell: pwsh
         run: ./scripts/setup_windows.ps1 -Python "${{ env.pythonLocation }}\\python.exe" -SummaryPath $env:GITHUB_STEP_SUMMARY
 
+      - name: Run unified test entrypoint
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: ${{ env.QT_QPA_PLATFORM }}
+          QT_QUICK_BACKEND: ${{ env.QT_QUICK_BACKEND }}
+          QSG_RHI_BACKEND: ${{ env.QSG_RHI_BACKEND }}
+          PSS_ENV_PRESET: ${{ env.PSS_ENV_PRESET }}
+        run: |
+          set -euo pipefail
+          entrypoint="uv run python scripts/testing_entrypoint.py"
+          if [ "${{ matrix.os }}" = "ubuntu-22.04" ]; then
+            xvfb-run -a ${entrypoint}
+          else
+            ${entrypoint}
+          fi
+
       - name: Configure pytest command
         shell: bash
         run: |
