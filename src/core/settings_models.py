@@ -115,6 +115,8 @@ class ModesPhysicsSettings(_StrictModel):
     include_springs: bool
     include_dampers: bool
     include_pneumatics: bool
+    include_springs_kinematics: bool
+    include_dampers_kinematics: bool
     spring_constant: float
     damper_coefficient: float
     lever_inertia_multiplier: float
@@ -125,7 +127,12 @@ class ModesPhysicsSettings(_StrictModel):
 
 class ModesSettings(_StrictModel):
     sim_type: str
+    thermo_mode: str
     mode_preset: str
+    road_profile: str
+    custom_profile_path: str
+    check_interference: bool
+    ambient_temperature_c: float
     amplitude: float
     frequency: float
     phase: float
