@@ -49,6 +49,15 @@ ensure the master plan accurately reflects the intended scope.
 - **Testing**: `pytest` (with `pytest-qt`) and scenario runners under `tests/`.
 - **Unified test entrypoint**: run `python scripts/testing_entrypoint.py` from the
   repo root to sync dependencies and execute the standard verification suite.
+  - Always invoke from the repository root with the following environment to
+    avoid display backends or third-party plugins interfering with results:
+    `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PSS_HEADLESS=1 QT_QPA_PLATFORM=offscreen`
+    `QT_QUICK_BACKEND=software LIBGL_ALWAYS_SOFTWARE=1`.
+  - On Linux hosts prefer `make check` (automatically called by the entrypoint);
+    on Windows fallback to `python -m tools.ci_tasks verify` via the entrypoint.
+  - The entrypoint writes its combined log to
+    `reports/tests/test_entrypoint.log`; ensure this log ends with
+    `[entrypoint] Test pipeline completed successfully` before merging.
 - **Logging**: Use `structlog` JSON logger configured in `src/diagnostics`.
 - **Configuration**: `config/app_settings.json` validated against
   `schemas/settings/app_settings.schema.json`; prefer using `src/core/settings_service.py`
