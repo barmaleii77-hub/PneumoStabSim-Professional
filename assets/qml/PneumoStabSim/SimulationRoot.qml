@@ -146,10 +146,19 @@ Item {
     property var sceneQualityDefaults: ({})
     // Используем простой literal для корректной конверсии в Python dict
     property var environmentState: ({})
+    property bool fogEnabled: false
+    property color fogColor: "#aab9cf"
+    property real fogDensity: 0.0
     property bool fogDepthEnabled: true
     property real fogDepthNear: 2.0
     property real fogDepthFar: 20.0
     property real fogDepthCurve: 1.0
+    property bool fogHeightEnabled: false
+    property real fogLeastIntenseY: 0.0
+    property real fogMostIntenseY: 3.0
+    property real fogHeightCurve: 1.0
+    property bool fogTransmitEnabled: true
+    property real fogTransmitCurve: 1.0
 
     property var effectsState: ({})
     property var cameraStateSnapshot: ({})
@@ -329,8 +338,8 @@ Item {
         for (var nk in normalized) if (Object.prototype.hasOwnProperty.call(normalized,nk)) merged[nk] = normalized[nk]
         // Сохраняем как params если обновление происходит впервые, иначе merged
         environmentState = (Object.keys(base).length === 0) ? params : merged
-        if(normalized.fog_enabled !== undefined) envController.fogEnabled = !!normalized.fog_enabled
-        if(normalized.fog_density !== undefined) envController.fogDensity = Number(normalized.fog_density) || 0.0
+        if(normalized.fog_enabled !== undefined) root.fogEnabled = !!normalized.fog_enabled
+        if(normalized.fog_density !== undefined) root.fogDensity = Number(normalized.fog_density) || 0.0
         if(normalized.ibl_enabled !== undefined) envController.iblLightingEnabled = !!normalized.ibl_enabled
         if(normalized.skybox_enabled !== undefined) envController.skyboxToggleFlag = !!normalized.skybox_enabled
         if(normalized.ssao_enabled !== undefined) envController.ssaoEnabled = !!normalized.ssao_enabled

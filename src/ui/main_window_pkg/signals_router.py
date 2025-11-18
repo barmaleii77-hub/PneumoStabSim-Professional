@@ -1927,6 +1927,9 @@ class SignalsRouter:
                 "Accordion validation error", extra={"accordion_validation": payload}
             )
             if status_bar is not None:
+                timeout_ms = (
+                    4000 if status_timeout_ms is None else int(status_timeout_ms)
+                )
                 status_bar.showMessage(
                     resolved_message or f"{panel_key}.{field_key} validation error",
                     timeout_ms if timeout_ms is not None else 4000,
