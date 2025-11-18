@@ -448,16 +448,7 @@ def configure_logging(
     configured_processors = list(_shared_processors())
     if processors is not None:
         configured_processors.extend(processors)
-    configured_processors.append(structlog.stdlib.ProcessorFormatter.wrap_for_formatter)
-
-    formatter = structlog.stdlib.ProcessorFormatter(
-        processors=[
-            structlog.stdlib.ProcessorFormatter.remove_processors_meta,
-            _flatten_event_processor,
-            json_renderer,
-        ],
-        foreign_pre_chain=_shared_processors(),
-    )
+    configured_processors.extend((_flatten_event_processor, json_renderer))
 
     structlog.configure(
         processors=configured_processors,
@@ -466,7 +457,11 @@ def configure_logging(
         cache_logger_on_first_use=cache_logger_on_first_use,
     )
 
-    _ensure_stdlib_bridge(level, formatter, json_renderer=json_renderer)
+    _ensure_stdlib_bridge(
+        level,
+        logging.Formatter("%(message)s"),
+        json_renderer=json_renderer,
+    )
 
 
 @dataclass(slots=True)
