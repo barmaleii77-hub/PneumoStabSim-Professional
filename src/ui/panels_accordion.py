@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 from config.constants import get_geometry_presets
 
 from src.common.settings_manager import get_settings_manager
+from src.ui.accordion import AccordionWidget
 from src.ui.parameter_slider import ParameterSlider
 
 
@@ -978,9 +979,35 @@ class SimulationPanelAccordion(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(0)
 
-        # === SIMULATION MODE ===
+        self.accordion = AccordionWidget()
+        layout.addWidget(self.accordion)
+
+        self._mode_section = self.accordion.add_section(
+            "mode",
+            "Simulation Modes",
+            self._build_mode_section(),
+            expanded=True,
+        )
+        self._options_section = self.accordion.add_section(
+            "options",
+            "Physics & Safety",
+            self._build_options_section(),
+        )
+        self._timing_section = self.accordion.add_section(
+            "timing",
+            "Timing",
+            self._build_timing_section(),
+        )
+
+        self._on_mode_changed(self.sim_mode_combo.currentText())
+
+    def _build_mode_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
         mode_label = QLabel("Simulation Mode:")
         mode_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
@@ -989,10 +1016,9 @@ class SimulationPanelAccordion(QWidget):
         self.sim_mode_combo = QComboBox()
         self.sim_mode_combo.addItems(["Kinematics", "Dynamics"])
         stored_mode = str(self._settings.get("current.modes.sim_type", "DYNAMICS"))
-        if stored_mode.lower() == "kinematics":
-            self.sim_mode_combo.setCurrentIndex(0)
-        else:
-            self.sim_mode_combo.setCurrentIndex(1)
+        self.sim_mode_combo.setCurrentIndex(
+            0 if stored_mode.lower() == "kinematics" else 1
+        )
         self.sim_mode_combo.setStyleSheet(
             """
             QComboBox {
@@ -1008,7 +1034,40 @@ class SimulationPanelAccordion(QWidget):
         self.sim_mode_combo.currentTextChanged.connect(self._on_mode_changed)
         layout.addWidget(self.sim_mode_combo)
 
-        # === KINEMATIC MODE OPTIONS (only for kinematics) ===
+        thermo_label = QLabel("Thermodynamic Model:")
+        thermo_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
+        layout.addWidget(thermo_label)
+
+        self.thermo_combo = QComboBox()
+        self.thermo_combo.addItems(["Isothermal", "Adiabatic"])
+        stored_thermo = str(
+            self._settings.get("current.pneumatic.thermo_mode", "ISOTHERMAL")
+        )
+        self.thermo_combo.setCurrentIndex(
+            0 if stored_thermo.lower() == "isothermal" else 1
+        )
+        self.thermo_combo.currentTextChanged.connect(self._on_thermo_changed)
+        self.thermo_combo.setStyleSheet(
+            """
+            QComboBox {
+                background-color: #2a2a3e;
+                color: #ffffff;
+                border: 1px solid #3a3a4e;
+                border-radius: 3px;
+                padding: 4px 6px;
+                font-size: 9pt;
+            }
+        """
+        )
+        layout.addWidget(self.thermo_combo)
+
+        return container
+
+    def _build_options_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
         self.kinematic_options_label = QLabel("Kinematic Options:")
         self.kinematic_options_label.setStyleSheet(
@@ -1036,13 +1095,6 @@ class SimulationPanelAccordion(QWidget):
         )
         layout.addWidget(self.include_dampers_check)
 
-        # Initially hide kinematic options (dynamics mode)
-        self.kinematic_options_label.hide()
-        self.include_springs_check.hide()
-        self.include_dampers_check.hide()
-
-        # === INTERFERENCE CHECK ===
-
         self.check_interference = QCheckBox("Check Lever-Cylinder Interference")
         self.check_interference.setStyleSheet("color: #ffffff; font-size: 9pt;")
         self.check_interference.setChecked(
@@ -1057,9 +1109,14 @@ class SimulationPanelAccordion(QWidget):
         )
         layout.addWidget(self.check_interference)
 
-        # === TIMING PARAMETERS ===
+        return container
 
-        # Time step
+    def _build_timing_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
         sim_dt = _coerce_float(
             self._settings.get("current.simulation.physics_dt", 0.001), 0.001
         )
@@ -1076,7 +1133,6 @@ class SimulationPanelAccordion(QWidget):
         self.time_step.value_changed.connect(self._on_time_step_changed)
         layout.addWidget(self.time_step)
 
-        # Simulation speed
         sim_speed = _coerce_float(
             self._settings.get("current.simulation.sim_speed", 1.0), 1.0
         )
@@ -1095,22 +1151,28 @@ class SimulationPanelAccordion(QWidget):
         )
         layout.addWidget(self.sim_speed)
 
-        layout.addStretch()
-
-        self._on_mode_changed(self.sim_mode_combo.currentText())
+        return container
 
     def _on_mode_changed(self, mode_text: str):
         """Handle simulation mode change"""
         mode = mode_text.lower()
         is_kinematics = mode == "kinematics"
 
-        # Show/hide kinematic options
         self.kinematic_options_label.setVisible(is_kinematics)
         self.include_springs_check.setVisible(is_kinematics)
         self.include_dampers_check.setVisible(is_kinematics)
 
         self._settings.set("current.modes.sim_type", mode.upper(), auto_save=False)
         self.sim_mode_changed.emit(mode)
+
+    def _on_thermo_changed(self, mode_text: str) -> None:
+        thermo_mode = mode_text.upper()
+        self._settings.set(
+            "current.pneumatic.thermo_mode", thermo_mode, auto_save=False
+        )
+        self.parameter_changed.emit(
+            "thermo_mode", 1.0 if thermo_mode == "ADIABATIC" else 0.0
+        )
 
     def _on_option_changed(self, name: str, enabled: bool) -> None:
         mapping = {
@@ -1137,6 +1199,7 @@ class SimulationPanelAccordion(QWidget):
         """Get all parameters"""
         return {
             "sim_mode": self.sim_mode_combo.currentText().lower(),
+            "thermo_mode": self.thermo_combo.currentText().lower(),
             "include_springs": self.include_springs_check.isChecked(),
             "include_dampers": self.include_dampers_check.isChecked(),
             "check_interference": self.check_interference.isChecked(),
@@ -1159,9 +1222,35 @@ class RoadPanelAccordion(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(0)
 
-        # === ROAD MODE ===
+        self.accordion = AccordionWidget()
+        layout.addWidget(self.accordion)
+
+        self._mode_section = self.accordion.add_section(
+            "mode",
+            "Road Input",
+            self._build_mode_section(),
+            expanded=True,
+        )
+        self._manual_section = self.accordion.add_section(
+            "manual",
+            "Manual Sine",
+            self._build_manual_section(),
+        )
+        self._profile_section = self.accordion.add_section(
+            "profile",
+            "Road Profile",
+            self._build_profile_section(),
+        )
+
+        self._on_mode_changed(self.road_mode_combo.currentText())
+
+    def _build_mode_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
         mode_label = QLabel("Road Input Mode:")
         mode_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
@@ -1181,22 +1270,20 @@ class RoadPanelAccordion(QWidget):
             }
         """
         )
-        self.road_mode_combo.currentTextChanged.connect(self._on_mode_changed)
-        layout.addWidget(self.road_mode_combo)
-
         initial_mode = str(self._settings.get("current.modes.road_mode", "manual"))
         if initial_mode == "profile":
             self.road_mode_combo.setCurrentIndex(1)
+        self.road_mode_combo.currentTextChanged.connect(self._on_mode_changed)
+        layout.addWidget(self.road_mode_combo)
 
-        # === MANUAL MODE PARAMETERS ===
+        return container
 
-        self.manual_label = QLabel("Manual Parameters:")
-        self.manual_label.setStyleSheet(
-            "color: #aaaaaa; font-size: 9pt; font-weight: bold;"
-        )
-        layout.addWidget(self.manual_label)
+    def _build_manual_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
-        # Amplitude (all wheels)
         amplitude = _coerce_float(
             self._settings.get("current.modes.amplitude", 0.05), 0.05
         )
@@ -1215,7 +1302,6 @@ class RoadPanelAccordion(QWidget):
         )
         layout.addWidget(self.amplitude)
 
-        # Frequency (all wheels)
         frequency = _coerce_float(
             self._settings.get("current.modes.frequency", 1.0), 1.0
         )
@@ -1234,7 +1320,6 @@ class RoadPanelAccordion(QWidget):
         )
         layout.addWidget(self.frequency)
 
-        # Phase offset (rear vs front)
         phase = _coerce_float(self._settings.get("current.modes.phase", 0.0), 0.0)
         self.phase_offset = ParameterSlider(
             name="Phase Offset (rear)",
@@ -1251,13 +1336,13 @@ class RoadPanelAccordion(QWidget):
         )
         layout.addWidget(self.phase_offset)
 
-        # === ROAD PROFILE PARAMETERS ===
+        return container
 
-        self.profile_label = QLabel("Road Profile:")
-        self.profile_label.setStyleSheet(
-            "color: #aaaaaa; font-size: 9pt; font-weight: bold;"
-        )
-        layout.addWidget(self.profile_label)
+    def _build_profile_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
         self.profile_type_combo = QComboBox()
         self._profile_map = {
@@ -1283,21 +1368,16 @@ class RoadPanelAccordion(QWidget):
         self.profile_type_combo.currentTextChanged.connect(self._on_profile_changed)
         layout.addWidget(self.profile_type_combo)
 
-        preset = str(self._settings.get("current.modes.mode_preset", "smooth_highway"))
-        label = self._profile_map.get(preset, self._profile_map["smooth_highway"])
-        self.profile_type_combo.setCurrentText(label)
-
-        # Average speed
-        avg_speed = _coerce_float(
-            self._settings.get("current.modes.profile_avg_speed", 60.0), 60.0
+        speed = _coerce_float(
+            self._settings.get("current.modes.profile_avg_speed", 40.0), 40.0
         )
         self.avg_speed = ParameterSlider(
-            name="Average Speed (v_avg)",
-            initial_value=avg_speed,
-            min_value=10.0,
-            max_value=120.0,
-            step=5.0,
-            decimals=1,
+            name="Average Speed",
+            initial_value=speed,
+            min_value=5.0,
+            max_value=150.0,
+            step=1.0,
+            decimals=0,
             unit="km/h",
             allow_range_edit=True,
         )
@@ -1306,28 +1386,18 @@ class RoadPanelAccordion(QWidget):
         )
         layout.addWidget(self.avg_speed)
 
-        # Initially hide profile parameters
-        self.profile_label.hide()
-        self.profile_type_combo.hide()
-        self.avg_speed.hide()
+        return container
 
-        layout.addStretch()
-
-        self._on_mode_changed(self.road_mode_combo.currentText())
-
-    def _on_mode_changed(self, mode_text: str):
-        """Handle road mode change"""
+    def _on_mode_changed(self, mode_text: str) -> None:
         is_profile = "profile" in mode_text.lower()
 
-        # Show/hide parameters
-        self.manual_label.setVisible(not is_profile)
-        self.amplitude.setVisible(not is_profile)
-        self.frequency.setVisible(not is_profile)
-        self.phase_offset.setVisible(not is_profile)
+        self._manual_section.setVisible(not is_profile)
+        self._profile_section.setVisible(is_profile)
 
-        self.profile_label.setVisible(is_profile)
-        self.profile_type_combo.setVisible(is_profile)
-        self.avg_speed.setVisible(is_profile)
+        if is_profile:
+            self._profile_section.expand()
+        else:
+            self._manual_section.expand()
 
         mode = "profile" if is_profile else "manual"
         self._settings.set("current.modes.road_mode", mode, auto_save=False)
@@ -1356,14 +1426,13 @@ class RoadPanelAccordion(QWidget):
                 "frequency": self.frequency.value(),
                 "phase": self.phase_offset.value(),
             }
-        else:
-            return {
-                "road_mode": "profile",
-                "profile_type": self.profile_type_combo.currentText()
-                .lower()
-                .replace(" ", "_"),
-                "avg_speed": self.avg_speed.value(),
-            }
+        return {
+            "road_mode": "profile",
+            "profile_type": self.profile_type_combo.currentText()
+            .lower()
+            .replace(" ", "_"),
+            "avg_speed": self.avg_speed.value(),
+        }
 
 
 class AdvancedPanelAccordion(QWidget):
@@ -1378,15 +1447,34 @@ class AdvancedPanelAccordion(QWidget):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(0)
 
-        # === SUSPENSION COMPONENTS ===
+        self.accordion = AccordionWidget()
+        layout.addWidget(self.accordion)
 
-        susp_label = QLabel("Suspension:")
-        susp_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
-        layout.addWidget(susp_label)
+        self._suspension_section = self.accordion.add_section(
+            "suspension",
+            "Suspension",
+            self._build_suspension_section(),
+            expanded=True,
+        )
+        self._environment_section = self.accordion.add_section(
+            "environment",
+            "Dead Zones & Environment",
+            self._build_environment_section(),
+        )
+        self._graphics_section = self.accordion.add_section(
+            "graphics",
+            "Graphics",
+            self._build_graphics_section(),
+        )
 
-        # Spring stiffness
+    def _build_suspension_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
         spring_constant = float(
             self._settings.get("current.physics.suspension.spring_constant", 50000.0)
         )
@@ -1407,10 +1495,13 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.spring_stiffness)
 
-        # Damper coefficient
-        damper_coeff = _coerce_float(
-            self._settings.get("current.physics.suspension.damper_coefficient", 2000.0),
-            2000.0,
+        damper_coeff = float(
+            _coerce_float(
+                self._settings.get(
+                    "current.physics.suspension.damper_coefficient", 2000.0
+                ),
+                2000.0,
+            )
         )
         self.damper_coeff = ParameterSlider(
             name="Damper Coefficient (c)",
@@ -1429,11 +1520,13 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.damper_coeff)
 
-        # === DEAD ZONES ===
+        return container
 
-        dz_label = QLabel("Cylinder Dead Zones:")
-        dz_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
-        layout.addWidget(dz_label)
+    def _build_environment_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
         dead_zone = _coerce_float(
             self._settings.get("current.physics.suspension.dead_zone_percent", 5.0),
@@ -1474,15 +1567,14 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.atmospheric_temp)
 
-        # === GRAPHICS SETTINGS ===
+        return container
 
-        graphics_label = QLabel("Graphics:")
-        graphics_label.setStyleSheet(
-            "color: #aaaaaa; font-size: 9pt; font-weight: bold;"
-        )
-        layout.addWidget(graphics_label)
+    def _build_graphics_section(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
 
-        # Target FPS
         frame_limit = float(
             self._settings.get("current.graphics.quality.frame_rate_limit", 144.0)
         )
@@ -1519,7 +1611,6 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.aa_quality)
 
-        # Shadow quality
         shadow_filter = float(
             self._settings.get("current.graphics.quality.shadows.filter", 32.0)
         )
@@ -1538,7 +1629,7 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.shadow_quality)
 
-        layout.addStretch()
+        return container
 
     def get_parameters(self) -> dict:
         """Get all parameters"""

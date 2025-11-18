@@ -19,10 +19,12 @@ def settings_snapshot():
         "current.simulation.physics_dt",
         "current.simulation.sim_speed",
         "current.modes.sim_type",
+        "current.pneumatic.thermo_mode",
         "current.modes.amplitude",
         "current.modes.phase",
         "current.modes.mode_preset",
         "current.modes.profile_avg_speed",
+        "current.modes.road_mode",
         "current.physics.suspension.spring_constant",
         "current.physics.suspension.damper_coefficient",
         "current.physics.suspension.dead_zone_percent",
@@ -54,6 +56,10 @@ def test_simulation_panel_updates_settings(qtbot, settings_snapshot):
     qtbot.wait(10)
     assert settings.get("current.modes.sim_type") == "KINEMATICS"
 
+    panel.thermo_combo.setCurrentText("Adiabatic")
+    qtbot.wait(10)
+    assert settings.get("current.pneumatic.thermo_mode") == "ADIABATIC"
+
 
 @pytest.mark.qtbot
 def test_road_panel_binds_manual_and_profile(qtbot, settings_snapshot):
@@ -67,11 +73,21 @@ def test_road_panel_binds_manual_and_profile(qtbot, settings_snapshot):
     assert math.isclose(
         float(settings.get("current.modes.amplitude")), 0.075, rel_tol=1e-6
     )
+    assert settings.get("current.modes.road_mode") == "manual"
+    assert panel._manual_section.isVisible()
 
     panel._on_mode_changed("Road Profile")
     panel.profile_type_combo.setCurrentText("Off-Road")
     qtbot.wait(10)
     assert settings.get("current.modes.mode_preset") == "off_road"
+    assert settings.get("current.modes.road_mode") == "profile"
+    assert panel._profile_section.isVisible()
+
+    panel.avg_speed.set_value(65.0)
+    qtbot.wait(10)
+    assert math.isclose(
+        float(settings.get("current.modes.profile_avg_speed")), 65.0, rel_tol=1e-6
+    )
 
 
 @pytest.mark.qtbot
@@ -82,6 +98,7 @@ def test_advanced_panel_propagates_to_settings(qtbot, settings_snapshot):
 
     panel.spring_stiffness.set_value(75000.0)
     panel.target_fps.set_value(90.0)
+    panel.atmospheric_temp.set_value(35.0)
     qtbot.wait(10)
 
     assert math.isclose(
@@ -93,4 +110,7 @@ def test_advanced_panel_propagates_to_settings(qtbot, settings_snapshot):
         float(settings.get("current.graphics.quality.frame_rate_limit")),
         90.0,
         rel_tol=1e-6,
+    )
+    assert math.isclose(
+        float(settings.get("current.pneumatic.atmo_temp")), 35.0, rel_tol=1e-6
     )
