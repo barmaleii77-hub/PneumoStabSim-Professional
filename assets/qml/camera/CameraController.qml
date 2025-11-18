@@ -86,7 +86,7 @@ Item {
     /**
      * External callbacks
      */
-    property var onToggleAnimation: null
+    property var toggleAnimationHandler: function() {}
 
     // Track whether the initial auto-fit needs to be performed once real
     // geometry dimensions arrive from the SceneBridge.
@@ -180,14 +180,15 @@ Item {
         viewHeight: controller.view3d ? controller.view3d.height : 600
         taaMotionAdaptive: controller.taaMotionAdaptive
 
-        onAutoFit: function() { controller.autoFitFrame() }
-        onResetView: function() { controller.resetView() }
-        onToggleAnimation: function() {
-            if (controller.onToggleAnimation) {
-                controller.onToggleAnimation()
+        autoFitHandler: function() { controller.autoFitFrame() }
+        resetViewHandler: function() { controller.resetView() }
+        toggleAnimationHandler: function() {
+            var handler = controller.toggleAnimationHandler
+            if (typeof handler === "function") {
+                handler()
             }
         }
-        onToggleCameraHud: function() {
+        toggleCameraHudHandler: function() {
             controller.hudToggleRequested()
         }
     }

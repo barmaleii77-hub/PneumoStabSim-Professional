@@ -52,22 +52,50 @@ MouseArea {
     /**
      * Callback for auto-fit (external)
      */
-    property var onAutoFit: null
+    property var autoFitHandler: function() {}
 
     /**
      * Callback for reset view (external)
      */
-    property var onResetView: null
+    property var resetViewHandler: function() {}
 
     /**
      * Callback for toggle animation (external)
      */
-    property var onToggleAnimation: null
+    property var toggleAnimationHandler: function() {}
 
     /**
      * Callback for toggling the camera HUD (Ctrl+H)
      */
-    property var onToggleCameraHud: null
+    property var toggleCameraHudHandler: function() {}
+
+    function invokeResetView() {
+        var handler = resetViewHandler
+        if (typeof handler === "function") {
+            handler()
+        }
+    }
+
+    function invokeAutoFit() {
+        var handler = autoFitHandler
+        if (typeof handler === "function") {
+            handler()
+        }
+    }
+
+    function invokeToggleAnimation() {
+        var handler = toggleAnimationHandler
+        if (typeof handler === "function") {
+            handler()
+        }
+    }
+
+    function invokeToggleCameraHud() {
+        var handler = toggleCameraHudHandler
+        if (typeof handler === "function") {
+            handler()
+        }
+    }
 
     /**
      * Duration (ms) after which motion is considered settled
@@ -179,9 +207,7 @@ MouseArea {
     onDoubleClicked: () => {
         console.log("🖱️ Double-click: resetting view")
 
-        if (onResetView) {
-            onResetView()
-        }
+        invokeResetView()
     }
 
     // ===============================================================
@@ -193,9 +219,7 @@ MouseArea {
             // Reset view
             console.log("⌨️ Key R: reset view")
 
-            if (onResetView) {
-                onResetView()
-            }
+            invokeResetView()
 
             event.accepted = true
 
@@ -203,9 +227,7 @@ MouseArea {
             // Auto-fit frame
             console.log("⌨️ Key F: auto-fit frame")
 
-            if (onAutoFit) {
-                onAutoFit()
-            }
+            invokeAutoFit()
 
             event.accepted = true
 
@@ -213,17 +235,13 @@ MouseArea {
             // Toggle animation
             console.log("⌨️ Key Space: toggle animation")
 
-            if (onToggleAnimation) {
-                onToggleAnimation()
-            }
+            invokeToggleAnimation()
 
             event.accepted = true
         } else if (event.key === Qt.Key_H && (event.modifiers & Qt.ControlModifier)) {
             console.log("⌨️ Ctrl+H: toggle camera HUD")
 
-            if (onToggleCameraHud) {
-                onToggleCameraHud()
-            }
+            invokeToggleCameraHud()
 
             event.accepted = true
         }
