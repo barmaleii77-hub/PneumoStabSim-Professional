@@ -17,7 +17,7 @@ best practices for scientific visualisation software.
 >
 > **Target release**: PneumoStabSim Professional v4.9.8
 
-Target release: PneumoStabSim Professional v4.9.8
+Target release: PneumoStabSim Professional v4.9.8 (synced with `config/app_settings.json` metadata)
 
 ---
 
