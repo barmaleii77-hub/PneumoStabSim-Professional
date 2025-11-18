@@ -892,6 +892,8 @@ class LauncherUI(tk.Tk):
             "При 'Новое окно консоли' вывод идёт в отдельное окно и не захватывается. Снимите 'Новое окно консоли' чтобы активировать захват.\n"
             "Секция 'Логи и ошибки' поможет быстро посмотреть последние строки из каталогов logs/ или пути из config/app_settings.json и увидеть подсчёт ошибок/варнингов.\n"
             "Кнопка 'Быстрый статус (git + линтер)' собирает короткий отчёт по git status и ruff (E/F/W).\n"
+            "Кнопки 'Запуск тестов' выполняют unified entrypoint (python scripts/testing_entrypoint.py) с теми же переменными окружения, что и в CI: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PSS_HEADLESS=1, QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software, LIBGL_ALWAYS_SOFTWARE=1.\n"
+            "Результаты тестов сохраняются в reports/tests/test_entrypoint.log и показываются в окне результатов; там же видно хвост логов и метки FAILED/ERROR.\n"
         )
         try:
             txt.insert("1.0", text_help)
