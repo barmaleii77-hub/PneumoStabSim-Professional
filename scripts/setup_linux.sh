@@ -35,6 +35,17 @@ qt_version="${QT_VERSION:-6.10.0}"
 summary_file="${GITHUB_STEP_SUMMARY:-}"
 installed_apt=()
 
+ensure_uv() {
+  if command -v uv >/dev/null 2>&1; then
+    log "uv already available"
+    return
+  fi
+
+  log "Installing uv via pip"
+  "$python_cmd" -m pip install --upgrade pip
+  "$python_cmd" -m pip install --upgrade uv
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-system)
@@ -129,6 +140,7 @@ if [[ ${skip_system} -eq 0 ]]; then
       libgbm1
       libdrm2
       libxcb-xinerama0
+      libxcb-cursor0
       libxkbcommon0
       libxkbcommon-x11-0
       libxkbcommon-dev
@@ -140,6 +152,13 @@ if [[ ${skip_system} -eq 0 ]]; then
       libxcb-shape0
       libxcb-randr0
       libxcb-glx0
+      libxrender1
+      libxcomposite1
+      libxi6
+      libxrandr2
+      libxcursor1
+      libxtst6
+      libxdamage1
       libvulkan1
       mesa-vulkan-drivers
       vulkan-tools
@@ -186,6 +205,7 @@ fi
 python_for_scripts="${python_cmd}"
 
 if [[ ${skip_python} -eq 0 ]]; then
+  ensure_uv
   if command -v uv >/dev/null 2>&1; then
     log "Synchronising Python environment via uv"
     uv sync --extra dev
