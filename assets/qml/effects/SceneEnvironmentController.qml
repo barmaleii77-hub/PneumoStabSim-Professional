@@ -529,6 +529,13 @@ ExtendedSceneEnvironment {
     property alias internalVignetteStrength: root.vignetteStrength
     property alias vignetteRadiusValue: root.vignetteRadius
 
+    // Reflection probe toggles (mirrors SimulationRoot expectations)
+    property bool reflectionProbeEnabled: environmentBoolDefault(
+        ["reflectionProbeEnabled", "reflection_enabled"],
+        "reflection_enabled",
+        true
+    )
+
     // Fog (SceneEnvironment::fog) -------------------------------------------------
     property bool fogEnabled: environmentBoolDefault("fogEnabled", "fog_enabled", true)
     property color fogColor: environmentColorDefault("fogColor", "fog_color", "#aab9cf")
