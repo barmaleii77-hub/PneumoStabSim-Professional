@@ -222,39 +222,19 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-         fog: Fog {
-             id: environmentFog
-             readonly property bool supportsDensity: "density" in environmentFog
-             readonly property bool supportsFogDensityAlias: "fogDensity" in environmentFog
-
-             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
-             color: root.fogColor
-
-             Binding {
-                 target: environmentFog
-                 when: environmentFog.supportsDensity || environmentFog.supportsFogDensityAlias
-                 property: environmentFog.supportsDensity ? "density" : "fogDensity"
-                 value: root.fogDensity
-             }
-
-             Component.onCompleted: {
-                 if (!supportsDensity && !supportsFogDensityAlias) {
-                     console.warn("[main.qml] Fog component is missing density properties; defaulting to zero")
-                     environmentFog.enabled = false
-                 }
-             }
-
-             depthEnabled: environmentDefaults.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
-             depthCurve: root.fogDepthCurve
-             depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
-             depthFar: environmentDefaults.toSceneLength(root.fogDepthFar)
-             heightEnabled: root.fogHeightEnabled
-             leastIntenseY: environmentDefaults.toSceneLength(root.fogLeastIntenseY)
-             mostIntenseY: environmentDefaults.toSceneLength(root.fogMostIntenseY)
-             heightCurve: root.fogHeightCurve
-             transmitEnabled: root.fogTransmitEnabled
-             transmitCurve: root.fogTransmitCurve
-         }
+        fogEnabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
+        fogColor: root.fogColor
+        fogDensity: environmentDefaults.fogHelpersSupported ? root.fogDensity : 0.0
+        fogDepthEnabled: environmentDefaults.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
+        fogDepthCurve: root.fogDepthCurve
+        fogDepthNear: root.fogDepthNear
+        fogDepthFar: root.fogDepthFar
+        fogHeightEnabled: root.fogHeightEnabled && environmentDefaults.fogHelpersSupported
+        fogLeastIntenseY: root.fogLeastIntenseY
+        fogMostIntenseY: root.fogMostIntenseY
+        fogHeightCurve: root.fogHeightCurve
+        fogTransmitEnabled: root.fogTransmitEnabled && environmentDefaults.fogHelpersSupported
+        fogTransmitCurve: root.fogTransmitCurve
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue
