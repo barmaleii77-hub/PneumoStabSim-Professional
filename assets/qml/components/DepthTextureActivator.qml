@@ -282,8 +282,10 @@ QtObject {
             return false
         }
 
-        if (!_hasProperty(target, propertyName))
+        if (!_hasProperty(target, propertyName)) {
+            _logDebugOnce("property missing", propertyName, "skipped toggle (Qt surface absent)")
             return false
+        }
 
         function logSuccess() {
             console.log("✅ DepthTextureActivator:", propertyName, "=", value)
