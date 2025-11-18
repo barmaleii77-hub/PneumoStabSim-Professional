@@ -224,22 +224,14 @@ Item {
 
          fog: Fog {
              id: environmentFog
-             readonly property bool supportsDensity: "density" in environmentFog
-             readonly property bool supportsFogDensityAlias: "fogDensity" in environmentFog
 
              enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
              color: root.fogColor
-
-             Binding {
-                 target: environmentFog
-                 when: environmentFog.supportsDensity || environmentFog.supportsFogDensityAlias
-                 property: environmentFog.supportsDensity ? "density" : "fogDensity"
-                 value: root.fogDensity
-             }
+             density: root.fogDensity
 
              Component.onCompleted: {
-                 if (!supportsDensity && !supportsFogDensityAlias) {
-                     console.warn("[main.qml] Fog component is missing density properties; defaulting to zero")
+                 if (!("density" in environmentFog)) {
+                     console.warn("[main.qml] Fog component is missing density property; disabling fog")
                      environmentFog.enabled = false
                  }
              }
