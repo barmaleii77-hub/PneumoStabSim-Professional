@@ -2111,6 +2111,7 @@
     "version": "4.9.5",
     "schema_version": "0.2.1",
     "last_modified": "2025-11-01T12:00:00Z",
+    "defaults_seed": "config/baseline/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults"
