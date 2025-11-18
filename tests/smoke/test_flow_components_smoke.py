@@ -50,7 +50,12 @@ def test_full_flow_network_visuals(qapp) -> None:
                     },
                 },
                 "receiver": {
-                    "pressures": {"a1": 130_000.0, "a2": 100_000.0, "b1": 118_000.0, "b2": 95_000.0},
+                    "pressures": {
+                        "a1": 130_000.0,
+                        "a2": 100_000.0,
+                        "b1": 118_000.0,
+                        "b2": 95_000.0,
+                    },
                     "tankPressure": 115_000.0,
                     "minPressure": 90_000.0,
                     "maxPressure": 140_000.0,
@@ -83,7 +88,9 @@ def test_full_flow_network_visuals(qapp) -> None:
         fluid = reservoir.findChild(QObject, "reservoirFluid")
         assert fluid is not None
         fluid_color = fluid.property("color")
-        assert _color_tuple(fluid_color) == _color_tuple(reservoir.property("pressureGradientStops")[1]["color"])
+        assert _color_tuple(fluid_color) == _color_tuple(
+            reservoir.property("pressureGradientStops")[1]["color"]
+        )
 
         sphere_a1 = reservoir.findChild(QObject, "lineSphere-A1")
         sphere_b2 = reservoir.findChild(QObject, "lineSphere-B2")

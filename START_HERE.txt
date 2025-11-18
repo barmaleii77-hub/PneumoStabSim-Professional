@@ -59,6 +59,13 @@ clean            # Очистить кэш
 info             # Показать справку
 ```
 
+## 🧪 Тесты и логи прямо из лаунчера
+
+- Linux/macOS: `python scripts/testing_entrypoint.py` — синхронизирует зависимости и делегирует в `make check`.
+- Windows: `py -3 scripts/testing_entrypoint.py` или `./make.bat check`, если GNU Make недоступен.
+- Быстрый просмотр логов: `tail -f reports/tests/test_entrypoint.log` (Linux/macOS) или `Get-Content reports/tests/test_entrypoint.log -Wait` (PowerShell).
+- Подробности окружения пишутся в `logs/env_check.json`, а результаты тестов — в `reports/tests/test_entrypoint.log`.
+
 ---
 
 # ✅ Перед пушем — обязательные проверки
