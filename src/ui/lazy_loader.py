@@ -63,5 +63,3 @@ __all__ = [
     "build_chart_widget",
     "build_main_window",
 ]
-
-

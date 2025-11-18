@@ -493,7 +493,9 @@ class PhysicsWorker(QObject):
             # Initialize physics state (at rest)
             self.physics_state = create_initial_conditions()
 
-            config_defaults = self.settings_manager.create_default_system_configuration()
+            config_defaults = (
+                self.settings_manager.create_default_system_configuration()
+            )
 
             receiver_spec = ReceiverSpec(
                 V_min=self._volume_limits[0],
