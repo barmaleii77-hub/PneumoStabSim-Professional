@@ -300,9 +300,16 @@ Item {
         // Сохраняем как params если обновление происходит впервые, иначе merged
         environmentState = (Object.keys(base).length === 0) ? params : merged
         if(normalized.fog_enabled !== undefined) envController.fogEnabled = !!normalized.fog_enabled
-        if(normalized.fog_density !== undefined) envController.fog.density = Number(normalized.fog_density) || 0.0
+        if(normalized.fog_density !== undefined) envController.fogDensity = Number(normalized.fog_density) || 0.0
         if(normalized.ibl_enabled !== undefined) envController.iblLightingEnabled = !!normalized.ibl_enabled
         if(normalized.skybox_enabled !== undefined) envController.skyboxToggleFlag = !!normalized.skybox_enabled
+        if(normalized.ssao_enabled !== undefined) envController.ssaoEnabled = !!normalized.ssao_enabled
+        if(normalized.ssao_intensity !== undefined) envController.ssaoIntensity = Number(normalized.ssao_intensity) || envController.ssaoIntensity
+        if(normalized.ssao_radius !== undefined) envController.ssaoRadius = Number(normalized.ssao_radius) || envController.ssaoRadius
+        if(normalized.ssao_softness !== undefined) envController.ssaoSoftness = Number(normalized.ssao_softness) || envController.ssaoSoftness
+        if(normalized.ssao_bias !== undefined) envController.ssaoBias = Number(normalized.ssao_bias) || envController.ssaoBias
+        if(normalized.ssao_dither !== undefined) envController.ssaoDither = !!normalized.ssao_dither
+        if(normalized.ssao_sample_rate !== undefined) envController.ssaoSampleRate = Number(normalized.ssao_sample_rate) || envController.ssaoSampleRate
         var reflectionToggle = normalized.reflection_enabled !== undefined ? normalized.reflection_enabled : normalized.reflectionEnabled
         if (reflectionToggle !== undefined) {
             envController.reflectionProbeEnabled = !!reflectionToggle
@@ -658,14 +665,16 @@ Item {
 
     // Environment & Reflection infrastructure (для тестов)
     // (переименовано чтобы избежать alias self-reference)
-    QtObject {
+    SceneEnvironmentController {
         id: envController
         objectName: "sceneEnvironment"
-        property bool fogEnabled: false
-        property QtObject fog: QtObject { property real density: 0.0 }
-        property bool iblLightingEnabled: false
-        property bool skyboxToggleFlag: false
-        property bool reflectionProbeEnabled: root.reflectionProbeEnabled
+        fogEnabled: false
+        fogDensity: 0.0
+        iblLightingEnabled: false
+        skyboxToggleFlag: false
+        reflectionProbeEnabled: root.reflectionProbeEnabled
+        // SSAO defaults are kept in sync with Python/UI toggles
+        ssaoEnabled: true
     }
     QtObject {
         id: suspensionAssembly
