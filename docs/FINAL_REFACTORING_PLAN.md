@@ -134,7 +134,11 @@ def save_current_as_defaults(self) -> None:
 6. **Обновить кнопки в `_create_ui()`:**
 ```python
 def _create_ui(self) -> None:
-    # ...existing code...
+    layout = QVBoxLayout(self)
+    self.setLayout(layout)
+
+    content = self._build_content()
+    layout.addLayout(content)
 
     button_row = QHBoxLayout()
 

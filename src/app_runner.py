@@ -123,6 +123,8 @@ class ApplicationRunner:
         qt_qpa = os.environ.get("QT_QPA_PLATFORM", "<unset>")
         qsg_backend = os.environ.get("QSG_RHI_BACKEND", "<unset>")
         qt_plugin_path = os.environ.get("QT_PLUGIN_PATH", "<unset>")
+        post_diag = os.environ.get("PSS_POST_DIAG_TRACE", "<unset>")
+        forced_headless = os.environ.get("PSS_HEADLESS", "<unset>")
 
         try:
             import PySide6
@@ -136,6 +138,8 @@ class ApplicationRunner:
             "QT_QPA_PLATFORM": qt_qpa or "<empty>",
             "QSG_RHI_BACKEND": qsg_backend or "<empty>",
             "QT_PLUGIN_PATH": qt_plugin_path or "<empty>",
+            "PSS_HEADLESS": forced_headless or "<empty>",
+            "PSS_POST_DIAG_TRACE": post_diag or "<empty>",
             "PySide6": pyside_version,
         }
 
@@ -1094,7 +1098,11 @@ class ApplicationRunner:
         console_message: str,
         timer_ms: int = 0,
     ) -> None:
-        """Schedule a graceful Qt shutdown without showing the main window."""
+        """Schedule a graceful Qt shutdown without showing the main window.
+
+        The call also annotates ``PSS_POST_DIAG_TRACE`` so post-run diagnostics
+        can explain why the UI did not appear.
+        """
 
         app_instance = getattr(self, "app_instance", None)
         if app_instance is None:
@@ -1104,6 +1112,8 @@ class ApplicationRunner:
             self.app_logger.info(log_message, extra={"reason": reason})
         else:
             print(console_message)
+
+        self._append_post_diag_trace(f"safe-exit:{reason}")
 
         timer = self.QTimer(app_instance)
         timer.setSingleShot(True)
