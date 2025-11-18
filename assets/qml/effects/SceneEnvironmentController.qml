@@ -357,10 +357,11 @@ ExtendedSceneEnvironment {
     property real tonemapWhitePointValue: effectsNumberDefault("tonemapWhitePoint", "tonemap_white_point", 1.0)
 
     // Ambient occlusion (SSAO) --------------------------------------------------
+    readonly property bool ssaoEnabledDefault: true
     property bool ssaoEnabled: environmentBoolDefault(
         ["ssaoEnabled", "ao_enabled"],
         "ssao_enabled",
-        true
+        ssaoEnabledDefault
     )
     property real ssaoIntensity: environmentNumberDefault(
         ["ssaoIntensity", "ao_strength"],
@@ -536,7 +537,8 @@ ExtendedSceneEnvironment {
     // Fog (SceneEnvironment::fog) -------------------------------------------------
     property bool fogEnabled: environmentBoolDefault("fogEnabled", "fog_enabled", true)
     property color fogColor: environmentColorDefault("fogColor", "fog_color", "#aab9cf")
-    property real fogDensity: environmentNumberDefault("fogDensity", "fog_density", 0.06)
+    readonly property real fogDensityDefault: 0.06
+    property real fogDensity: environmentNumberDefault("fogDensity", "fog_density", fogDensityDefault)
     property bool fogDepthEnabled: environmentBoolDefault(
         ["fogDepthEnabled", "fog_depth_enabled"],
         ["fogEnabled", "fog_enabled"],
