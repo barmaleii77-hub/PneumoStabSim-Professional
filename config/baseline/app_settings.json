@@ -2187,6 +2187,266 @@
       "Все графические параметры управляются пользователем через UI: один параметр — один контрол без скрытых зависимостей.",
       "Сервис настроек не должен изменять файл при первой загрузке; сохранение происходит только по явному запросу пользователя."
     ],
+    "geometry_accordion_fields": [
+      {
+        "key": "wheelbase",
+        "label": "База (колёсная)",
+        "unit": "м",
+        "settings_path": "current.geometry.wheelbase"
+      },
+      {
+        "key": "track",
+        "label": "Колея",
+        "unit": "м",
+        "settings_path": "current.geometry.track"
+      },
+      {
+        "key": "lever_length",
+        "label": "Длина рычага",
+        "unit": "м",
+        "settings_path": "current.geometry.lever_length"
+      },
+      {
+        "key": "stroke_m",
+        "label": "Ход цилиндра",
+        "unit": "м",
+        "settings_path": "current.geometry.stroke_m"
+      },
+      {
+        "key": "cyl_diam_m",
+        "label": "Диаметр поршня",
+        "unit": "м",
+        "settings_path": "current.geometry.cyl_diam_m"
+      },
+      {
+        "key": "rod_diameter_m",
+        "label": "Диаметр штока",
+        "unit": "м",
+        "settings_path": "current.geometry.rod_diameter_m"
+      }
+    ],
+    "pneumatic_volume_accordion_fields": [
+      {
+        "key": "receiver_volume",
+        "label": "Объём ресивера",
+        "unit": "м³",
+        "settings_path": "current.pneumatic.receiver_volume"
+      },
+      {
+        "key": "receiver_diameter",
+        "label": "Диаметр ресивера",
+        "unit": "м",
+        "settings_path": "current.pneumatic.receiver_diameter"
+      },
+      {
+        "key": "receiver_length",
+        "label": "Длина ресивера",
+        "unit": "м",
+        "settings_path": "current.pneumatic.receiver_length"
+      },
+      {
+        "key": "dead_zone_head_m3",
+        "label": "Мёртвый объём (головной)",
+        "unit": "м³",
+        "settings_path": "current.pneumatic.dead_zone_head_m3"
+      },
+      {
+        "key": "dead_zone_rod_m3",
+        "label": "Мёртвый объём (штоковый)",
+        "unit": "м³",
+        "settings_path": "current.pneumatic.dead_zone_rod_m3"
+      },
+      {
+        "key": "chamber_head_m3",
+        "label": "Объём камеры A",
+        "unit": "м³",
+        "settings_path": "current.pneumatic.chamber_volumes.head_m3"
+      },
+      {
+        "key": "chamber_rod_m3",
+        "label": "Объём камеры B",
+        "unit": "м³",
+        "settings_path": "current.pneumatic.chamber_volumes.rod_m3"
+      }
+    ],
+    "pneumatic_pressure_accordion_fields": [
+      {
+        "key": "line_pressure_a1_pa",
+        "label": "Давление A1",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.line_pressures.a1_pa"
+      },
+      {
+        "key": "line_pressure_b1_pa",
+        "label": "Давление B1",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.line_pressures.b1_pa"
+      },
+      {
+        "key": "line_pressure_a2_pa",
+        "label": "Давление A2",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.line_pressures.a2_pa"
+      },
+      {
+        "key": "line_pressure_b2_pa",
+        "label": "Давление B2",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.line_pressures.b2_pa"
+      },
+      {
+        "key": "tank_pressure_pa",
+        "label": "Давление ресивера",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.tank_pressure_pa"
+      },
+      {
+        "key": "relief_pressure_pa",
+        "label": "Клапан сброса",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.relief_pressure_pa"
+      }
+    ],
+    "pneumatic_valve_accordion_fields": [
+      {
+        "key": "cv_atmo_dp",
+        "label": "ΔP атмосферного клапана",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.cv_atmo_dp"
+      },
+      {
+        "key": "cv_tank_dp",
+        "label": "ΔP клапана ресивера",
+        "unit": "Па",
+        "settings_path": "current.pneumatic.cv_tank_dp"
+      },
+      {
+        "key": "cv_atmo_dia",
+        "label": "Диаметр клапана атмосферы",
+        "unit": "м",
+        "settings_path": "current.pneumatic.cv_atmo_dia"
+      },
+      {
+        "key": "cv_tank_dia",
+        "label": "Диаметр клапана ресивера",
+        "unit": "м",
+        "settings_path": "current.pneumatic.cv_tank_dia"
+      },
+      {
+        "key": "throttle_min_dia",
+        "label": "Диафрагма (мягкая)",
+        "unit": "м",
+        "settings_path": "current.pneumatic.throttle_min_dia"
+      },
+      {
+        "key": "throttle_stiff_dia",
+        "label": "Диафрагма (жёсткая)",
+        "unit": "м",
+        "settings_path": "current.pneumatic.throttle_stiff_dia"
+      },
+      {
+        "key": "diagonal_coupling_dia",
+        "label": "Диаметр перемычки",
+        "unit": "м",
+        "settings_path": "current.pneumatic.diagonal_coupling_dia"
+      }
+    ],
+    "simulation_panel_fields": [
+      {
+        "key": "physics_dt",
+        "label": "Шаг расчёта",
+        "unit": "с",
+        "settings_path": "current.simulation.physics_dt"
+      },
+      {
+        "key": "sim_speed",
+        "label": "Скорость симуляции",
+        "unit": "x",
+        "settings_path": "current.simulation.sim_speed"
+      },
+      {
+        "key": "max_steps_per_frame",
+        "label": "Шагов за кадр",
+        "unit": "шт",
+        "settings_path": "current.simulation.max_steps_per_frame"
+      },
+      {
+        "key": "max_frame_time",
+        "label": "Лимит кадра",
+        "unit": "с",
+        "settings_path": "current.simulation.max_frame_time"
+      },
+      {
+        "key": "render_vsync_hz",
+        "label": "VSync, Гц",
+        "unit": "Гц",
+        "settings_path": "current.simulation.render_vsync_hz"
+      }
+    ],
+    "road_panel_fields": [
+      {
+        "key": "amplitude",
+        "label": "Амплитуда",
+        "unit": "м",
+        "settings_path": "current.modes.amplitude"
+      },
+      {
+        "key": "frequency",
+        "label": "Частота",
+        "unit": "Гц",
+        "settings_path": "current.modes.frequency"
+      },
+      {
+        "key": "phase",
+        "label": "Фаза",
+        "unit": "рад",
+        "settings_path": "current.modes.phase"
+      },
+      {
+        "key": "profile_avg_speed",
+        "label": "Ср. скорость",
+        "unit": "км/ч",
+        "settings_path": "current.modes.profile_avg_speed"
+      },
+      {
+        "key": "road_mode",
+        "label": "Режим дороги",
+        "unit": "id",
+        "settings_path": "current.modes.road_mode"
+      }
+    ],
+    "advanced_panel_fields": [
+      {
+        "key": "spring_constant",
+        "label": "Жёсткость пружины",
+        "unit": "Н/м",
+        "settings_path": "current.physics.suspension.spring_constant"
+      },
+      {
+        "key": "damper_coefficient",
+        "label": "Коэф. демпфера",
+        "unit": "Н·с/м",
+        "settings_path": "current.physics.suspension.damper_coefficient"
+      },
+      {
+        "key": "dead_zone_percent",
+        "label": "Мёртвая зона",
+        "unit": "%",
+        "settings_path": "current.physics.suspension.dead_zone_percent"
+      },
+      {
+        "key": "frame_rate_limit",
+        "label": "Целевой FPS",
+        "unit": "fps",
+        "settings_path": "current.graphics.quality.frame_rate_limit"
+      },
+      {
+        "key": "shadow_filter",
+        "label": "Фильтр теней",
+        "unit": "tap",
+        "settings_path": "current.graphics.quality.shadows.filter"
+      }
+    ],
     "environment_slider_ranges": {
       "ibl_intensity": {
         "min": 0.0,

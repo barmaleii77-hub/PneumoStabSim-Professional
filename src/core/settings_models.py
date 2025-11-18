@@ -24,6 +24,13 @@ class _StrictModel(BaseModel):
     }
 
 
+class AccordionFieldDescriptor(_StrictModel):
+    key: str
+    label: str
+    unit: str
+    settings_path: str
+
+
 class Metadata(_StrictModel):
     version: str
     schema_version: str
@@ -36,6 +43,13 @@ class Metadata(_StrictModel):
     total_parameters: int
     description: str
     operational_imperatives: list[str]
+    geometry_accordion_fields: list[AccordionFieldDescriptor] | None = None
+    pneumatic_volume_accordion_fields: list[AccordionFieldDescriptor] | None = None
+    pneumatic_pressure_accordion_fields: list[AccordionFieldDescriptor] | None = None
+    pneumatic_valve_accordion_fields: list[AccordionFieldDescriptor] | None = None
+    simulation_panel_fields: list[AccordionFieldDescriptor] | None = None
+    road_panel_fields: list[AccordionFieldDescriptor] | None = None
+    advanced_panel_fields: list[AccordionFieldDescriptor] | None = None
     environment_slider_ranges: "EnvironmentSliderRanges"
     scene_defaults: "SceneDefaultsMetadata | None" = None
     legacy: dict[str, dict[str, Any]] = Field(default_factory=dict)
