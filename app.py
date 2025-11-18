@@ -58,6 +58,22 @@ from src.diagnostics.path_diagnostics import (  # noqa: E402
 from src.ui.startup import bootstrap_graphics_environment  # noqa: E402
 
 
+def _set_high_dpi_policy(qapplication: object, qt_namespace: object) -> None:
+    """Ensure High DPI rounding policy is configured before QApplication creation."""
+
+    set_policy = getattr(qapplication, "setHighDpiScaleFactorRoundingPolicy", None)
+    policy = getattr(getattr(qt_namespace, "HighDpiScaleFactorRoundingPolicy", None), "PassThrough", None)
+
+    if set_policy is None or policy is None:
+        return
+
+    try:
+        set_policy(policy)
+    except Exception:
+        # DPI policy configuration is best-effort; continue bootstrap if unavailable
+        return
+
+
 def _ensure_qt_runtime_paths(project_root: Path) -> None:
     """Настроить Qt/QML пути и запретить offscreen на Windows в интерактиве."""
     try:
@@ -167,6 +183,8 @@ from src.bootstrap.qt_imports import safe_import_qt  # noqa: E402
 QApplication, qInstallMessageHandler, Qt, QTimer = safe_import_qt(  # noqa: E402
     lambda m: None, lambda m: None
 )
+
+_set_high_dpi_policy(QApplication, Qt)
 
 from src.app_runner import ApplicationRunner  # noqa: E402
 
