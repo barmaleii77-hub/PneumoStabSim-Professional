@@ -20,9 +20,10 @@ import logging
 import json
 import numpy as np  # NEW: For calculations
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 # NO OpenGL imports - using Qt Quick3D instead
-from src.ui.charts import ChartWidget
+from src.ui.lazy_loader import build_chart_widget
 from src.ui.panels import GeometryPanel, PneumoPanel, ModesPanel, RoadPanel
 from ..runtime import SimulationManager, StateSnapshot
 
@@ -87,7 +88,12 @@ class MainWindow(QMainWindow):
         self.pneumo_panel: PneumoPanel | None = None
         self.modes_panel: ModesPanel | None = None
         self.road_panel: RoadPanel | None = None
-        self.chart_widget: ChartWidget | None = None
+        if TYPE_CHECKING:
+            from src.ui.charts import ChartWidget
+
+            self.chart_widget: ChartWidget | None
+        else:
+            self.chart_widget: Any | None = None
 
         # Qt Quick3D view reference
         self._qquick_widget: QQuickWidget | None = None  # ? ��������
@@ -340,7 +346,7 @@ class MainWindow(QMainWindow):
         # Create charts panel (right side)
         self.charts_dock = QDockWidget("Charts", self)
         self.charts_dock.setObjectName("ChartsDocker")
-        self.chart_widget = ChartWidget(self)
+        self.chart_widget = build_chart_widget(self)
         self.charts_dock.setWidget(self.chart_widget)
 
         self.charts_dock.setMinimumWidth(300)

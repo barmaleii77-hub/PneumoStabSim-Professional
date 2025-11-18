@@ -1,47 +1,47 @@
-# PySide6 UI components
-# Qt Quick 3D rendering (no OpenGL)
+"""Public UI entrypoints with deferred widget imports."""
 
-# REMOVED: GLView, GLScene (migrated to Qt Quick 3D)
-# from .gl_view import GLView
-# from .gl_scene import GLScene
+from __future__ import annotations
 
-# ИСПРАВЛЕНО: Используем относительные импорты
-from typing import TYPE_CHECKING, Any
+from typing import Any, Callable
 
-if TYPE_CHECKING:  # pragma: no cover - imported for typing only
-    from .hud import PressureScaleWidget as PressureScaleWidget
-    from .hud import TankOverlayHUD as TankOverlayHUD
-else:  # pragma: no cover - executed only at runtime
-    try:
-        from .hud import PressureScaleWidget as PressureScaleWidget
-        from .hud import TankOverlayHUD as TankOverlayHUD
-    except Exception:
+from .lazy_loader import (
+    build_chart_widget,
+    build_main_window,
+    get_camera_hud_telemetry,
+    get_chart_widget,
+    get_main_window,
+    get_pressure_scale_widget,
+    get_tank_overlay_hud,
+)
 
-        class PressureScaleWidget:
-            """Minimal stub used when Qt widgets are unavailable."""
+__all__ = [
+    "build_chart_widget",
+    "build_main_window",
+    "get_chart_widget",
+    "get_main_window",
+    "get_pressure_scale_widget",
+    "get_tank_overlay_hud",
+    "get_camera_hud_telemetry",
+    "ChartWidget",
+    "MainWindow",
+    "PressureScaleWidget",
+    "TankOverlayHUD",
+    "CameraHudTelemetry",
+]
 
-            def __init__(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401
-                """Ignore any construction arguments."""
-
-        class TankOverlayHUD(PressureScaleWidget):
-            pass
-
-
-__all__ = ["PressureScaleWidget", "TankOverlayHUD"]
-
-# NOTE: 3D rendering now done via Qt Quick 3D QML scene
-# See: assets/qml/main.qml
+_lazy_class_loaders: dict[str, Callable[[], Any]] = {
+    "MainWindow": get_main_window,
+    "ChartWidget": get_chart_widget,
+    "PressureScaleWidget": get_pressure_scale_widget,
+    "TankOverlayHUD": get_tank_overlay_hud,
+    "CameraHudTelemetry": get_camera_hud_telemetry,
+}
 
 
 def __getattr__(name: str) -> Any:
-    # Ленивая загрузка компонентов интерфейса пользователя
-    # Например, MainWindow, ChartWidget и т. д.
-    from .main_window import MainWindow
-    from .charts import ChartWidget
-
-    if name == "MainWindow":
-        return MainWindow
-    if name == "ChartWidget":
-        return ChartWidget
-
+    loader = _lazy_class_loaders.get(name)
+    if loader:
+        return loader()
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
