@@ -1,9 +1,10 @@
 """Simple dependency injection container for application services.
 
 This module implements the service composition requirements tracked in the
-"Service Composition" action plan of the renovation blueprint (see
-`docs/RENOVATION_MASTER_PLAN.md`, Section 3, item 2) and the Phase 2 rollout
-milestones in `docs/RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md`
+renovation blueprint (see `docs/RENOVATION_MASTER_PLAN.md`, Section 5,
+"Application Architecture Refinement", action item 2 "Service Composition")
+and the Phase 2 rollout milestones in
+`docs/RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md`
 (`Service container foundation`, dated 2025-07-02). Linking here keeps the
 container lifecycle aligned with the documented onboarding checklist.
 """
