@@ -95,3 +95,22 @@ def test_validate_payload_fails_without_sections() -> None:
         ParameterManager.validate_payload({"current": {}})
 
     assert "geometry" in ",".join(excinfo.value.errors).lower()
+
+
+def test_settings_service_exposes_dependency_validation(tmp_path: Path) -> None:
+    settings_path = _copy_settings(tmp_path)
+    service = SettingsService(settings_path=settings_path)
+
+    snapshot = service.validate_dependencies()
+
+    assert snapshot.geometry["cyl_diam_m"] > snapshot.geometry["rod_diameter_m"]
+
+
+def test_settings_manager_dependency_validation(tmp_path: Path) -> None:
+    settings_path = _copy_settings(tmp_path)
+    manager = SettingsManager(settings_file=settings_path)
+    manager.set("current.pneumatic.receiver_volume", 2.0)
+    manager.set("current.pneumatic.receiver_volume_limits.max_m3", 1.0)
+
+    with pytest.raises(ParameterValidationError):
+        manager.validate_dependencies()

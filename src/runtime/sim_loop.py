@@ -3,12 +3,15 @@ Physics simulation loop with fixed timestep
 Runs in dedicated QThread with QTimer for precise timing
 """
 
+from __future__ import annotations
+
 import logging
 import math
 import sys
 import time
 from dataclasses import replace
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
 import numpy as np
 
 from PySide6.QtCore import QObject, QTimer, Signal, Slot, Qt
@@ -32,10 +35,6 @@ from .sync import (
 )
 
 # Измененные импорты на абсолютные пути
-from src.physics.odes import RigidBody3DOF, create_initial_conditions
-from src.physics.integrator import (
-    create_default_rigid_body,
-)
 from src.physics.forces import project_forces_to_vertical_and_moments
 from src.pneumo.enums import (
     Wheel,
@@ -64,6 +63,9 @@ from src.runtime.steps import (
 from src.runtime.steps.context import LeverDynamicsConfig
 
 from src.diagnostics.logger_factory import LoggerProtocol, get_logger
+
+if TYPE_CHECKING:
+    from src.physics.odes import RigidBody3DOF
 
 
 class PhysicsWorker(QObject):
@@ -108,6 +110,8 @@ class PhysicsWorker(QObject):
         self.road_input: Any | None = None  # Changed type hint
         self.pneumatic_system: Any | None = None
         self.gas_network: Any | None = None
+        self._create_rigid_body = None
+        self._create_initial_conditions = None
 
         # Current physics state
         self.physics_state: np.ndarray = np.zeros(6)  # [Y, φz, θx, dY, dφz, dθx]
@@ -487,11 +491,17 @@ class PhysicsWorker(QObject):
     def _initialize_physics_objects(self):
         """Initialize physics simulation objects"""
         try:
+            (
+                self._create_rigid_body,
+                self._create_initial_conditions,
+                _,
+            ) = self.settings_manager.get_physics_factories()
+
             # Create 3-DOF rigid body
-            self.rigid_body = create_default_rigid_body()
+            self.rigid_body = self._create_rigid_body()
 
             # Initialize physics state (at rest)
-            self.physics_state = create_initial_conditions()
+            self.physics_state = self._create_initial_conditions()
 
             config_defaults = (
                 self.settings_manager.create_default_system_configuration()
@@ -821,8 +831,8 @@ class PhysicsWorker(QObject):
         self.simulation_time = 0.0
         self.step_counter = 0
 
-        if self.rigid_body:
-            self.physics_state = create_initial_conditions()
+        if self.rigid_body and self._create_initial_conditions:
+            self.physics_state = self._create_initial_conditions()
 
         self.timing_accumulator.reset()
         self.performance = PerformanceMetrics()

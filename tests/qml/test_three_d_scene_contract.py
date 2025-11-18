@@ -51,13 +51,28 @@ def test_scene_has_phase3_camera_properties():
     for marker in ("orbitAzimuthDeg", "orbitElevationDeg", "orbitDistance"):
         assert marker in text, f"Не найдено поле камеры: {marker}"
 
+    for marker in (
+        "orbitMinDistance",
+        "orbitMaxDistance",
+        "minElevationDeg",
+        "maxElevationDeg",
+    ):
+        assert marker in text, f"Не найдены ограничения камеры: {marker}"
+    assert "fieldOfViewDeg" in text
+
     assert "frameRendered" in text
     assert "telemetry" in text
 
 
 @pytest.mark.parametrize(
     "expected_token",
-    ["helpersVisible", "gridSpacing", "environmentAaMode", "environmentAaQuality"],
+    [
+        "helpersVisible",
+        "gridSpacing",
+        "environmentAaMode",
+        "environmentAaQuality",
+        "keyLightShadowBias",
+    ],
 )
 def test_scene_environment_tokens(expected_token: str):
     assert expected_token in _scene_text()

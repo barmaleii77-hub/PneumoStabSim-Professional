@@ -9,10 +9,13 @@ NUMERIC_SIMULATION_KEYS: tuple[str, ...] = (
     "render_vsync_hz",
     "max_steps_per_frame",
     "max_frame_time",
+    "sim_speed",
 )
 
 NUMERIC_PNEUMATIC_KEYS: tuple[str, ...] = (
     "receiver_volume",
+    "receiver_diameter",
+    "receiver_length",
     "tank_pressure_pa",
     "relief_pressure_pa",
     "cv_atmo_dp",

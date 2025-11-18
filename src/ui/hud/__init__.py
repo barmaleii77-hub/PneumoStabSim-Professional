@@ -10,6 +10,7 @@ __all__ = [
     "get_camera_hud_telemetry",
     "build_pressure_scale_widget",
     "build_tank_overlay_hud",
+    "build_camera_hud_telemetry",
     "PressureScaleWidget",
     "TankOverlayHUD",
     "CameraHudTelemetry",
@@ -45,6 +46,12 @@ def get_camera_hud_telemetry() -> type:
     from .widgets import CameraHudTelemetry
 
     return CameraHudTelemetry
+
+
+def build_camera_hud_telemetry(*args: Any, **kwargs: Any) -> Any:
+    """Instantiate :class:`CameraHudTelemetry` lazily."""
+
+    return get_camera_hud_telemetry()(*args, **kwargs)
 
 
 _lazy_exports: dict[str, Callable[[], Any]] = {

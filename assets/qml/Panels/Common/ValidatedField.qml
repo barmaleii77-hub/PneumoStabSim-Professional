@@ -7,6 +7,7 @@ ColumnLayout {
 
     property string labelText: ""
     property string settingsKey: ""
+    property string panelId: ""
     property real value: 0
     property real from: 0
     property real to: 1
@@ -27,6 +28,15 @@ ColumnLayout {
 
     spacing: 4
     Layout.fillWidth: true
+
+    function _emitValidationState(state, message) {
+        validationState = state
+        validationMessage = message || ""
+        errorLabel.text = validationMessage
+        errorLabel.visible = validationState === "error" && validationMessage.length > 0
+        helperLabel.visible = helperText.length > 0 && !errorLabel.visible
+        fieldValidationStateChanged(panelId, settingsKey, validationState, validationMessage)
+    }
 
     function _clampValue(rawValue) {
         var numeric = Number(rawValue)

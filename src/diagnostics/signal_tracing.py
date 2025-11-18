@@ -6,6 +6,7 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import RLock
+import time
 from typing import Any
 from collections.abc import Callable
 from collections.abc import Iterable, Iterator
@@ -55,6 +56,45 @@ def _resolve_object_name(obj: Any) -> str:
     return getattr(obj, "__class__", type(obj)).__name__
 
 
+class _BindingBatcher:
+    """Собирает записи подключения сигналов в батчи для логирования."""
+
+    def __init__(
+        self,
+        log: LoggerProtocol,
+        *,
+        window_seconds: float = 0.25,
+        batch_size: int = 16,
+    ) -> None:
+        self._log = log
+        self._window_seconds = window_seconds
+        self._batch_size = batch_size
+        self._pending: list[dict[str, str]] = []
+        self._lock = RLock()
+        self._last_flush = time.monotonic()
+
+    def record(self, sender: str, signal: str) -> None:
+        now = time.monotonic()
+        with self._lock:
+            self._pending.append({"sender": sender, "signal": signal})
+            if len(self._pending) >= self._batch_size or (
+                now - self._last_flush >= self._window_seconds
+            ):
+                self._flush_locked(now)
+
+    def flush(self) -> None:
+        with self._lock:
+            self._flush_locked(time.monotonic())
+
+    def _flush_locked(self, now: float) -> None:
+        if not self._pending:
+            return
+        payload = {"count": len(self._pending), "bindings": list(self._pending)}
+        self._pending.clear()
+        self._last_flush = now
+        self._log.bind(**payload).info("signal_bindings_batch")
+
+
 class SignalTracer:
     """Централизованный менеджер подписки на Qt-сигналы."""
 
@@ -70,6 +110,7 @@ class SignalTracer:
         self._sinks: list[Callable[[SignalTraceRecord], None]] = []
         self._reset_hooks: list[Callable[[], None]] = []
         self._connections: list[tuple[Any, Callable[..., None]]] = []
+        self._binding_batcher = _BindingBatcher(self._log)
 
     @property
     def records(self) -> tuple[SignalTraceRecord, ...]:
@@ -170,6 +211,8 @@ class SignalTracer:
         with self._lock:
             self._connections.append((signal, _handler))
 
+        self._binding_batcher.record(sender_name, alias_name)
+
         def _detach() -> None:
             disconnect = getattr(signal, "disconnect", None)
             if disconnect is None:
@@ -199,6 +242,7 @@ class SignalTracer:
         for name in signals:
             alias = f"{alias_prefix}{name}" if alias_prefix else None
             disposers.append(self.attach(obj, name, alias=alias))
+        self._binding_batcher.flush()
         return disposers
 
     def assert_emitted(
@@ -226,6 +270,8 @@ class SignalTracer:
         with self._lock:
             self._records.clear()
             hooks_snapshot = tuple(self._reset_hooks)
+
+        self._binding_batcher.flush()
 
         for hook in hooks_snapshot:
             try:

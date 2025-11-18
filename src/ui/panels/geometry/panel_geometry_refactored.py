@@ -7,7 +7,7 @@ import logging
 from typing import Any, Mapping
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
-from PySide6.QtCore import QMetaMethod, Signal, Slot, QTimer, Qt
+from PySide6.QtCore import QObject, QMetaMethod, Signal, Slot, QTimer, Qt
 from PySide6.QtGui import QCloseEvent, QFont
 
 from .state_manager import GeometryStateManager
@@ -488,8 +488,38 @@ class GeometryPanel(QWidget):
 
         return self._collect_state_snapshot()
 
+    def _is_signal_connected(
+        self, signal_obj: Any, meta_method: QMetaMethod | None = None
+    ) -> bool | None:
+        try:
+            if meta_method is None:
+                try:
+                    meta_method = QMetaMethod.fromSignal(signal_obj)
+                except (TypeError, AttributeError):  # pragma: no cover - Qt internals
+                    meta_method = None
+
+            signal_connected = getattr(signal_obj, "isSignalConnected", None)
+            if callable(signal_connected):
+                try:
+                    return bool(signal_connected())
+                except TypeError:
+                    if meta_method is not None:
+                        return bool(signal_connected(meta_method))
+
+            obj_is_connected = getattr(self, "isSignalConnected", None)
+            if callable(obj_is_connected) and meta_method is not None:
+                return bool(obj_is_connected(meta_method))
+        except Exception as exc:  # pragma: no cover - diagnostic guardrail
+            self.logger.debug("Signal connection check failed: %s", exc, exc_info=True)
+
+        return None
+
     def _emit_if_connected(
-        self, signal_obj: Any, payload: Any, description: str
+        self,
+        signal_obj: Any,
+        payload: Any,
+        description: str,
+        meta_method: QMetaMethod | None = None,
     ) -> None:
         """Emit a signal only when subscribers are present or emission is safe."""
 
@@ -497,15 +527,10 @@ class GeometryPanel(QWidget):
             self.logger.warning("%s skipped: signal is not available", description)
             return
 
-        try:
-            signal_connected = getattr(signal_obj, "isSignalConnected", None)
-            if callable(signal_connected) and not signal_connected():
-                self.logger.info("%s skipped: no subscribers", description)
-                return
-        except Exception as exc:  # pragma: no cover - diagnostic guardrail
-            self.logger.debug(
-                "%s connection check failed: %s", description, exc, exc_info=True
-            )
+        connected = self._is_signal_connected(signal_obj, meta_method)
+        if connected is False:
+            self.logger.info("%s skipped: no subscribers", description)
+            return
 
         try:
             signal_obj.emit(payload)
@@ -600,11 +625,26 @@ class GeometryPanel(QWidget):
         try:
             is_connected = getattr(self, "isSignalConnected", None)
             if callable(is_connected):
-                return bool(is_connected(meta_method))
+                try:
+                    return bool(is_connected(meta_method))
+                except TypeError:
+                    self.logger.debug(
+                        "GeometryPanel (refactored): isSignalConnected signature mismatch; trying receivers",
+                        exc_info=True,
+                    )
 
-            receivers_fn = getattr(self, "receivers", None)
+            receivers_fn = getattr(QObject, "receivers", None)
             if callable(receivers_fn):
-                return bool(receivers_fn(meta_method.methodSignature()))
+                signature = meta_method.methodSignature()
+                try:
+                    count = receivers_fn(self, signature)
+                except TypeError:
+                    count = receivers_fn(self, bytes(signature))
+                return bool(count)
+
+            instance_receivers = getattr(self, "receivers", None)
+            if callable(instance_receivers):
+                return bool(instance_receivers(meta_method.methodSignature()))
         except Exception:  # pragma: no cover - defensive Qt fallback
             self.logger.debug(
                 "GeometryPanel: subscriber verification failed; proceeding without check",
