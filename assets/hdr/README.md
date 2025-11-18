@@ -64,6 +64,14 @@ removed immediately._
 > ускоренной диагностики после перемещения репозитория или скачивания ассетов из
 > кеша.
 
+**Telemetry quick view**
+
+- Каждая запись дополнена полем `platform`, поэтому различия между Linux и
+  Windows локализацией путей сразу видны при анализе лога.
+- Пример: `{"status":"missing","input":"../hdr/custom.hdr","resolved":null,"candidates":["assets/hdr/custom.hdr","assets/hdri/custom.hdr"],"platform":"linux"}`
+- При `status=remote` запись останется в отчётах автономного прогонки, чтобы
+  напомнить удалить временные HTTP/HTTPS ссылки перед сборкой релиза.
+
 ### How paths are processed
 
 1. **Settings storage**: Use relative paths in `config/app_settings.json`
@@ -110,8 +118,9 @@ removed immediately._
 
 Виджет `FileCyclerWidget` формирует выпадающий список с уникальными именами и
 подсвечивает отсутствующие файлы красным индикатором. При смене значения статус
-`⚠ файл не найден` отображается рядом с селектором и передаётся в tooltip. Это
-поведение реализовано в `EnvironmentTab._discover_hdr_files()` и
+`⚠ файл не найден` отображается рядом с селектором и передаётся в tooltip вместе
+с рекомендацией проверить манифест или корневой каталог. Это поведение
+реализовано в `EnvironmentTab._discover_hdr_files()` и
 `EnvironmentTab._refresh_hdr_status()` и покрыто модульными тестами
 `tests/unit/ui/test_hdr_discovery.py` и
 `tests/unit/ui/test_main_window_hdr_paths.py`. Пользовательские текстуры и EXR-карты
@@ -135,6 +144,17 @@ removed immediately._
   `status=ok|missing|remote|empty` и списком кандидатов. Совмещайте эти записи с
   UI-статусом `⚠ файл не найден`, чтобы быстро локализовать конфликты путей или
   опечатки в конфигурации.
+
+**Operational recommendations**
+
+- После перемещения проекта или обновления ассетов выполните
+  `uv run python -m tools.task_runner verify-hdr-assets --fetch-missing --force-rehash`,
+  затем откройте последние строки `logs/ibl/ibl_events.jsonl` и убедитесь, что
+  все записи отмечены `status=ok`.
+- Перед сборкой релиза добавьте `--attach-hdr-log` к автономному прогону
+  (`uv run python -m tools.task_runner autonomous-check --skip-build --attach-hdr-log`),
+  чтобы включить подсказки `FileCyclerWidget` и записи `status=remote` в
+  финальный отчёт.
 
 ## Installation workflow
 
