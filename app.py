@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import os
 import sys
+import platform
+import textwrap
 from pathlib import Path
 
 # --- Path bootstrap
@@ -203,8 +205,130 @@ _set_high_dpi_policy(QApplication, Qt)
 from src.app_runner import ApplicationRunner  # noqa: E402
 
 
+def _select_preferred_locale() -> str:
+    """Pick RU/EN locale for bootstrap messaging based on environment."""
+
+    lang_hint = (os.environ.get("PSS_LOCALE") or os.environ.get("LANG") or "").lower()
+    return "ru" if "ru" in lang_hint else "en"
+
+
+def _log_detected_platform(locale: str) -> tuple[str, dict[str, str]]:
+    """Detect host OS early and log a friendly, localised message."""
+
+    system_name = platform.system() or "unknown"
+    details = {
+        "system": system_name,
+        "release": platform.release() if hasattr(platform, "release") else "<n/a>",
+        "version": platform.version() if hasattr(platform, "version") else "<n/a>",
+    }
+    message = (
+        f"Обнаружена ОС: {system_name} ({details['release']})"
+        if locale == "ru"
+        else f"Detected OS: {system_name} ({details['release']})"
+    )
+    print(message, flush=True)
+    _BOOTSTRAP_LOGGER.info("platform_detected", **details, locale=locale)
+    return system_name, details
+
+
+def _render_welcome(locale: str, os_name: str) -> str:
+    """Return a bilingual welcome banner with quick pointers."""
+
+    if locale == "ru":
+        return textwrap.dedent(
+            f"""
+            ✅ Добро пожаловать в PneumoStabSim! Точка входа: app.py
+            ℹ️  Платформа: {os_name}
+            👉 Полезные команды: --help (справка), --env-check (диагностика), --test-mode (автотест UI)
+            🔧 Подсказка: для безопасного запуска без QML используйте --no-qml или --legacy.
+            """
+        ).strip()
+    return textwrap.dedent(
+        f"""
+        ✅ Welcome to PneumoStabSim! Entry point: app.py
+        ℹ️  Platform: {os_name}
+        👉 Helpful commands: --help (usage), --env-check (diagnostics), --test-mode (UI autotest)
+        🔧 Hint: use --no-qml or --legacy for safe launch without QML.
+        """
+    ).strip()
+
+
+def _render_command_menu(locale: str) -> str:
+    """Provide a concise launcher menu users can skim before running Qt."""
+
+    if locale == "ru":
+        return textwrap.dedent(
+            """
+            Меню запуска:
+              • --verbose     — подробные логи в консоль
+              • --diag        — вывести диагностику после закрытия
+              • --safe-mode   — передать выбор графического бэкенда Qt
+              • --safe/--test-mode — безопасный режим, авто-закрытие через 5 секунд
+              • --env-report=PATH — сохранить отчёт о среде перед запуском Qt
+            """
+        ).strip()
+    return textwrap.dedent(
+        """
+        Launch menu:
+          • --verbose     — enable verbose console logs
+          • --diag        — print diagnostics after exit
+          • --safe-mode   — let Qt pick the graphics backend
+          • --safe/--test-mode — safe mode with 5s auto-close
+          • --env-report=PATH — save environment report before Qt starts
+        """
+    ).strip()
+
+
+def _validate_cli_arguments(args: object, locale: str) -> None:
+    """Validate mutually exclusive launch options with user-friendly hints."""
+
+    conflicts: list[str] = []
+    if getattr(args, "legacy", False) and getattr(args, "no_qml", False):
+        if locale == "ru":
+            conflicts.append(
+                "Нельзя одновременно использовать --legacy и --no-qml. Выберите один режим упрощённого UI."
+            )
+        else:
+            conflicts.append(
+                "You cannot combine --legacy with --no-qml. Choose a single simplified UI mode."
+            )
+
+    if getattr(args, "env_report", None) is not None:
+        target = str(getattr(args, "env_report"))
+        if target.strip() == "":
+            conflicts.append(
+                "Укажите путь для --env-report (пример: --env-report=reports/env.md)"
+                if locale == "ru"
+                else "Provide a path for --env-report (example: --env-report=reports/env.md)"
+            )
+
+    if conflicts:
+        for conflict in conflicts:
+            print(f"❌ {conflict}", file=sys.stderr)
+        _BOOTSTRAP_LOGGER.error("argument_validation_failed", conflicts=conflicts)
+        raise SystemExit(2)
+
+
+def _render_exit_status(exit_code: int, locale: str) -> str:
+    """Format a friendly completion message for console users."""
+
+    success = exit_code == 0
+    if locale == "ru":
+        return (
+            "✅ Запуск завершён успешно." if success else f"⚠️ Приложение завершилось с кодом {exit_code}."
+        )
+    return "✅ Launch completed successfully." if success else f"⚠️ Application exited with code {exit_code}."
+
+
 def main() -> int:
+    locale = _select_preferred_locale()
+    os_name, _ = _log_detected_platform(locale)
+
+    print(_render_welcome(locale, os_name))
+    print(_render_command_menu(locale))
+
     args = parse_arguments()
+    _validate_cli_arguments(args, locale)
 
     # Передаём bootstrap-состояние в runner
     setattr(args, "bootstrap_headless", False)
@@ -228,7 +352,10 @@ def main() -> int:
             print(f"[paths] snapshot written: {snapshot_path}")
         print(f"[paths] cwd_ok={verify_repo_root()}")
 
-    return runner.run(args)
+    exit_code = runner.run(args)
+    print(_render_exit_status(exit_code, locale))
+
+    return exit_code
 
 
 if __name__ == "__main__":
