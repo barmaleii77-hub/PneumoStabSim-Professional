@@ -1846,6 +1846,45 @@ class SignalsRouter:
             SignalsRouter._push_simulation_state(window)
 
     @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Record accordion field validation state and surface status updates.
+
+        This helper keeps a simple in-memory map on the window for the latest
+        validation results and mirrors the notification shown to the status bar
+        so that UI tests can assert on the most recent feedback.
+        """
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        panel_key = (panel_id or "").strip() or "panels"
+        normalized_state = (state or "").strip().lower() or "unknown"
+        resolved_message = (message or "").strip()
+
+        if not hasattr(window, "_accordion_validation_states"):
+            window._accordion_validation_states = {}
+
+        window._accordion_validation_states[(panel_key, field_key)] = {
+            "state": normalized_state,
+            "message": resolved_message,
+        }
+
+        SignalsRouter.handle_accordion_validation_changed(
+            window, panel_key, field_key, normalized_state, resolved_message
+        )
+
+        status_bar = getattr(window, "status_bar", None)
+        if (
+            status_bar is not None
+            and resolved_message
+            and normalized_state in {"error", "invalid"}
+        ):
+            status_bar.showMessage(resolved_message, 6000)
+
+    @staticmethod
     def handle_accordion_validation_changed(
         window: "MainWindow", panel_id: str, field: str, state: str, message: str
     ) -> None:
