@@ -1,12 +1,12 @@
 # Quality Metrics Summary
 
-- Timestamp: 2025-11-18T11:23:21.179601+00:00
-- Test totals: cases=719, duration=219.919s
+- Timestamp: 2025-11-18T16:17:55.027310+00:00
+- Test totals: cases=723, duration=199.520s
 
 ## Suites
-- integration_cases: 45
-- integration_duration_seconds: 8.982
-- ui_cases: 218
-- ui_duration_seconds: 191.458
+- integration_cases: 46
+- integration_duration_seconds: 4.379
+- ui_cases: 221
+- ui_duration_seconds: 181.020
 - unit_cases: 456
-- unit_duration_seconds: 19.479
+- unit_duration_seconds: 14.121

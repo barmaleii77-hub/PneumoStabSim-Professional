@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-18T12:31:30.296Z",
+    "last_modified": "2025-11-18T16:17:52.546Z",
     "defaults_seed": "config/baseline/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
@@ -361,7 +361,7 @@
   },
   "current": {
     "geometry": {
-      "wheelbase": 3.408,
+      "wheelbase": 3.409,
       "track": 2.34,
       "frame_to_pivot": 0.42,
       "lever_length": 0.75,
@@ -397,7 +397,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0016,
+      "diagonal_coupling_dia": 0.0017,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -437,7 +437,7 @@
       "profile_avg_speed": 60.0,
       "dead_zone": 0.0,
       "stabilizer_dead_zone": 0.0,
-      "road_mode": "manual"
+      "road_mode": "profile"
     },
     "graphics": {
       "lighting": {
@@ -1636,7 +1636,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0016,
+      "diagonal_coupling_dia": 0.0017,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -2068,7 +2068,9 @@
         "color_adjustments_active": true,
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
-        "adjustment_saturation": 0.0
+        "adjustment_saturation": 0.0,
+        "effects_bypass": false,
+        "effects_bypass_reason": ""
       },
       "scene": {
         "scale_factor": 1.0,

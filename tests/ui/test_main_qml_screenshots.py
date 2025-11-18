@@ -87,7 +87,9 @@ def test_main_scene_animation_running_baseline(qapp, integration_reports_dir) ->
 
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
-def test_post_effects_bypass_toggle_restores_baseline(qapp, integration_reports_dir) -> None:
+def test_post_effects_bypass_toggle_restores_baseline(
+    qapp, integration_reports_dir
+) -> None:
     """Bypassing post-effects should change the frame and return to baseline after recovery."""
 
     with load_main_scene(
@@ -109,7 +111,12 @@ def test_post_effects_bypass_toggle_restores_baseline(qapp, integration_reports_
 
         push_updates(
             scene.root,
-            {"effects": {"effects_bypass": True, "effects_bypass_reason": "test toggle"}},
+            {
+                "effects": {
+                    "effects_bypass": True,
+                    "effects_bypass_reason": "test toggle",
+                }
+            },
         )
         wait_for_property(scene.root, "postProcessingBypassed", bool, qapp)
 
@@ -117,13 +124,17 @@ def test_post_effects_bypass_toggle_restores_baseline(qapp, integration_reports_
         bypass_png = output_dir / "main_bypass.png"
         bypassed.save(bypass_png)
         rms_delta = measure_rms_difference(bypassed, DEFAULT_BASELINE)
-        assert rms_delta > 1.5, "Bypassing post-effects should materially alter the frame"
+        assert rms_delta > 1.5, (
+            "Bypassing post-effects should materially alter the frame"
+        )
 
         push_updates(
             scene.root,
             {"effects": {"effects_bypass": False, "effects_bypass_reason": ""}},
         )
-        wait_for_property(scene.root, "postProcessingBypassed", lambda v: v is False, qapp)
+        wait_for_property(
+            scene.root, "postProcessingBypassed", lambda v: v is False, qapp
+        )
 
         recovered = capture_window_image(scene.view, qapp)
         recovered_png = output_dir / "main_bypass_recovered.png"
