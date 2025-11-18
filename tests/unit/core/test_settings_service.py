@@ -194,7 +194,7 @@ def test_settings_service_raises_on_schema_violation(tmp_path: Path) -> None:
     with pytest.raises(SettingsValidationError) as exc:
         service.load()
 
-    assert any("metadata.units_version" in error for error in exc.value.errors)
+    assert "current.graphics" in str(exc.value)
 
 
 def test_get_settings_service_respects_overrides(
