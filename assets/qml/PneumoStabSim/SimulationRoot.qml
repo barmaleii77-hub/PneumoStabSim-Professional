@@ -40,7 +40,12 @@ Item {
     signal simpleFallbackRecovered()
 
     // Shader diagnostics
+    signal shaderWarningRegistered(string effectId, string message)
+    signal shaderWarningCleared(string effectId)
     signal shaderStatusDumpRequested(var payload)
+
+    /** Кэш предупреждений шейдеров (effectId -> message). */
+    property var shaderWarningState: ({})
 
     // Empty defaults helpers
     readonly property var emptyDefaultsObject: Object.freeze({})
@@ -398,16 +403,74 @@ Item {
 
     // Shader diagnostics (simplified forwarding) -----------------
     function diagnosticsWindow() { return typeof window !== "undefined" && window ? window : null }
+
+    function _normalizeEffectId(value) {
+        var normalized = "unknown"
+        if (value !== undefined && value !== null) {
+            normalized = String(value)
+            if (!normalized.length)
+                normalized = "unknown"
+        }
+        return normalized
+    }
+
+    function _normalizeWarningMessage(value) {
+        if (value === undefined || value === null)
+            return ""
+        return String(value)
+    }
+
+    function _cloneWarningState(source) {
+        if (!source || typeof source !== "object")
+            return ({})
+        var clone = {}
+        for (var key in source) {
+            if (Object.prototype.hasOwnProperty.call(source, key))
+                clone[key] = source[key]
+        }
+        return clone
+    }
+
     function registerShaderWarning(effectId, message) {
+        var normalizedId = _normalizeEffectId(effectId)
+        var normalizedMessage = _normalizeWarningMessage(message)
+
+        var previousState = shaderWarningState
+        var nextState = _cloneWarningState(previousState)
+        if (nextState[normalizedId] !== normalizedMessage)
+            nextState[normalizedId] = normalizedMessage
+        shaderWarningState = nextState
+
+        shaderWarningRegistered(normalizedId, normalizedMessage)
+
+        if (sceneBridge && typeof sceneBridge.registerShaderWarning === "function") {
+            try { sceneBridge.registerShaderWarning(normalizedId, normalizedMessage) } catch (e) { console.debug('[SimulationRoot] sceneBridge.registerShaderWarning failed', e) }
+        }
+
         var host = diagnosticsWindow()
         if (host && typeof host.registerShaderWarning === "function") {
-            try { host.registerShaderWarning(effectId, message); return } catch(e) {}
+            try { host.registerShaderWarning(normalizedId, normalizedMessage) } catch(e) { console.debug('[SimulationRoot] window.registerShaderWarning failed', e) }
         }
     }
+
     function clearShaderWarning(effectId) {
+        var normalizedId = _normalizeEffectId(effectId)
+
+        var previousState = shaderWarningState
+        var nextState = _cloneWarningState(previousState)
+        if (Object.prototype.hasOwnProperty.call(nextState, normalizedId))
+            delete nextState[normalizedId]
+        shaderWarningState = nextState
+
+        shaderWarningCleared(normalizedId)
+
+        if (sceneBridge && typeof sceneBridge.clearShaderWarning === "function") {
+            try { sceneBridge.clearShaderWarning(normalizedId) } catch (e) { console.debug('[SimulationRoot] sceneBridge.clearShaderWarning failed', e) }
+        }
+
         var host = diagnosticsWindow()
         if (host && typeof host.clearShaderWarning === "function") {
-            try { host.clearShaderWarning(effectId); return } catch(e) {}
+            try { host.clearShaderWarning(normalizedId) } catch(e) { console.debug('[SimulationRoot] window.clearShaderWarning failed', e) }
         }
     }
 
@@ -426,7 +489,7 @@ Item {
         }
     }
 
-    // Проксирование предупреждений шейдеров из PostEffects в sceneBridge
+        // Проксирование предупреждений шейдеров из PostEffects в sceneBridge
     Connections {
         target: root.postEffects
         enabled: !!target && !!root.sceneBridge
@@ -485,10 +548,7 @@ Item {
         // Добавляем обработчики сигналов PostEffects для маршрутизации shader предупреждений
         function onEffectCompilationError(effectId, fallbackActive, message) {
             try {
-                if (root.sceneBridge && typeof root.sceneBridge.registerShaderWarning === 'function') {
-                    root.sceneBridge.registerShaderWarning(effectId, message)
-                }
-                // Emit status snapshot for tests expecting shaderStatusDumpRequested
+                root.registerShaderWarning(effectId, message)
                 var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
                     ? root.postEffects.dumpShaderStatus(message)
                     : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
@@ -499,9 +559,7 @@ Item {
         }
         function onEffectCompilationRecovered(effectId, wasFallbackActive) {
             try {
-                if (root.sceneBridge && typeof root.sceneBridge.clearShaderWarning === 'function') {
-                    root.sceneBridge.clearShaderWarning(effectId)
-                }
+                root.clearShaderWarning(effectId)
                 var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
                     ? root.postEffects.dumpShaderStatus('recovered')
                     : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
