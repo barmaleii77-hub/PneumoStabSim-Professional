@@ -299,3 +299,78 @@ def test_restore_logs_path_escape_attempts(
     ]
     assert audit_records, "Audit log must capture unsafe path attempts"
     assert any("absolute" in record.getMessage() for record in audit_records)
+
+
+def test_restore_rejects_invalid_manifest_structure(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    root = tmp_path / "project"
+    backup_dir = root / "backups"
+    backup_dir.mkdir(parents=True)
+    service = BackupService(root=root, backup_dir=backup_dir)
+
+    archive_path = backup_dir / "invalid-manifest.zip"
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr("config/app_settings.json", "{}")
+        handle.writestr(
+            "PSS_BACKUP_MANIFEST.json",
+            json.dumps(
+                {
+                    "included": "not-a-list",
+                    "skipped": [],
+                    "version": "1.0",
+                    "root": str(root),
+                    "sources": ["config/app_settings.json"],
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(ValueError, match="structure"):
+        service.restore_backup(archive_path, target_root=root / "restored")
+
+    audit_records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", "") == "backup_manifest_invalid"
+    ]
+    assert audit_records, "Audit log must capture invalid manifest structures"
+    assert audit_records[-1].manifest_keys == [
+        "included",
+        "skipped",
+        "version",
+        "root",
+        "sources",
+    ]
+
+
+def test_restore_rejects_directory_traversal_entry(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    root = tmp_path / "project"
+    backup_dir = root / "backups"
+    backup_dir.mkdir(parents=True)
+    service = BackupService(root=root, backup_dir=backup_dir)
+
+    archive_path = backup_dir / "escape-dir.zip"
+    with zipfile.ZipFile(archive_path, "w") as handle:
+        handle.writestr("../escape/", "")
+        handle.writestr(
+            "PSS_BACKUP_MANIFEST.json",
+            json.dumps(
+                {"included": [], "skipped": []}, ensure_ascii=False
+            ),
+        )
+
+    caplog.set_level(logging.ERROR, logger="services.backup")
+    with pytest.raises(ValueError, match="escapes"):
+        service.restore_backup(archive_path, target_root=root / "restored")
+
+    audit_records = [
+        record
+        for record in caplog.records
+        if getattr(record, "event", "") == "backup_restore_rejected"
+    ]
+    assert audit_records, "Audit log must capture directory traversal attempts"
+    assert "escape" in str(audit_records[-1].error)
