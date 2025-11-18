@@ -793,6 +793,8 @@
         },
         "defaults_seed": {"title": "Defaults Seed", "type": "string"},
         "environment_slider_ranges": {"$ref": "#/$defs/EnvironmentSliderRanges"},
+        "scene_slider_ranges": {"$ref": "#/$defs/SceneSliderRanges"},
+        "geometry_slider_ranges": {"$ref": "#/$defs/GeometrySliderRanges"},
         "scene_defaults": {"$ref": "#/$defs/SceneDefaultsMetadata"},
         "legacy": {
           "additionalProperties": {
@@ -803,7 +805,7 @@
           "type": "object"
         }
       },
-      "required": ["version", "schema_version", "last_modified", "units_version", "migrations", "last_migration", "migrated_from", "migration_date", "total_parameters", "description", "operational_imperatives", "environment_slider_ranges"],
+      "required": ["version", "schema_version", "last_modified", "units_version", "migrations", "last_migration", "migrated_from", "migration_date", "total_parameters", "description", "operational_imperatives", "environment_slider_ranges", "scene_slider_ranges", "geometry_slider_ranges"],
       "title": "Metadata",
       "type": "object"
     },
@@ -1406,6 +1408,27 @@
       "title": "SliderRange",
       "type": "object"
     },
+    "SceneSliderRanges": {
+      "additionalProperties": false,
+      "properties": {
+        "scale_factor": {"$ref": "#/$defs/SliderRange"},
+        "exposure": {"$ref": "#/$defs/SliderRange"},
+        "model_roughness": {"$ref": "#/$defs/SliderRange"},
+        "model_metalness": {"$ref": "#/$defs/SliderRange"},
+        "suspension": {
+          "additionalProperties": false,
+          "properties": {
+            "rod_warning_threshold_m": {"$ref": "#/$defs/SliderRange"}
+          },
+          "required": ["rod_warning_threshold_m"],
+          "title": "SuspensionSceneSliderRanges",
+          "type": "object"
+        }
+      },
+      "required": ["scale_factor", "exposure", "model_roughness", "model_metalness", "suspension"],
+      "title": "SceneSliderRanges",
+      "type": "object"
+    },
     "SpotLightSettings": {
       "additionalProperties": false,
       "properties": {
@@ -1425,6 +1448,20 @@
       },
       "required": ["brightness", "color", "position_x", "position_y", "position_z", "range", "cone_angle", "inner_cone_angle", "angle_x", "angle_y", "angle_z", "cast_shadow", "bind_to_camera"],
       "title": "SpotLightSettings",
+      "type": "object"
+    },
+    "GeometrySliderRanges": {
+      "additionalProperties": false,
+      "properties": {
+        "wheelbase": {"$ref": "#/$defs/SliderRange"},
+        "track": {"$ref": "#/$defs/SliderRange"},
+        "lever_length": {"$ref": "#/$defs/SliderRange"},
+        "stroke_m": {"$ref": "#/$defs/SliderRange"},
+        "cyl_diam_m": {"$ref": "#/$defs/SliderRange"},
+        "rod_diameter_m": {"$ref": "#/$defs/SliderRange"}
+      },
+      "required": ["wheelbase", "track", "lever_length", "stroke_m", "cyl_diam_m", "rod_diameter_m"],
+      "title": "GeometrySliderRanges",
       "type": "object"
     },
     "SystemDependencies": {
