@@ -43,6 +43,26 @@ def test_payload_normalization_and_filtering_metadata():
     assert normalised["metadata"]["serialisable"] == {"nested": 1}
 
 
+def test_payload_handles_missing_optional_fields():
+    payload = FeedbackPayload(
+        title=" Title ",
+        description=" Description ",
+        category="category",
+        severity="critical",
+        contact=None,
+        metadata=None,
+    )
+
+    normalised = payload.as_dict()
+
+    assert normalised["title"] == "Title"
+    assert normalised["description"] == "Description"
+    assert normalised["category"] == "category"
+    assert normalised["severity"] == "critical"
+    assert "contact" not in normalised
+    assert "metadata" not in normalised
+
+
 def test_refresh_summary_handles_invalid_entries(tmp_path, feedback_service):
     inbox_path = tmp_path / feedback_service.INBOX_FILENAME
     inbox_path.write_text(
@@ -114,6 +134,10 @@ def test_submission_persists_and_updates_summary(feedback_service, tmp_path):
 
     latest_timestamp = max(result.created_at for result in results)
     assert summary["last_submission_at"] == latest_timestamp.isoformat()
+
+    for result in results:
+        assert result.storage_path == inbox_path
+        assert result.submission_id
 
 
 def test_thread_safe_writes(feedback_service, tmp_path):
@@ -198,3 +222,31 @@ def test_markdown_summary_generation(tmp_path):
     last_submission = datetime.fromisoformat(summary["last_submission_at"])
     generated_at = datetime.fromisoformat(summary["generated_at"])
     assert generated_at >= last_submission
+
+
+def test_markdown_summary_sorted_tables(tmp_path):
+    service = FeedbackService(storage_dir=tmp_path)
+    summary_payload = {
+        "generated_at": datetime(2024, 6, 1, tzinfo=timezone.utc).isoformat(),
+        "last_submission_at": None,
+        "totals": {
+            "reports": 3,
+            "categories": {"b": 2, "a": 2, "c": 1},
+            "severity": {"critical": 1, "high": 2},
+        },
+    }
+
+    markdown_lines = service._build_markdown_summary(summary_payload)
+
+    categories_idx = markdown_lines.index("## Категории")
+    severity_idx = markdown_lines.index("## Критичность")
+
+    categories_section = markdown_lines[categories_idx + 3 : severity_idx - 1]
+    severity_section = markdown_lines[severity_idx + 3 : -1]
+
+    assert categories_section[0] == "| a | 2 |"
+    assert categories_section[1] == "| b | 2 |"
+    assert categories_section[2] == "| c | 1 |"
+
+    assert severity_section[0] == "| high | 2 |"
+    assert severity_section[1] == "| critical | 1 |"

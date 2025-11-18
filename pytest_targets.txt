@@ -2,3 +2,4 @@
 # The default CI and local tasks always execute the full tests/ tree first; this
 # file only appends extra paths and must never be used to exclude required
 # suites.
+tests/test_feedback_service.py
