@@ -1,3 +1,5 @@
+File: reports\quality\dashboard.csv
+````````
 timestamp,coverage_lines_covered,coverage_lines_total,coverage_percent,lint_duration_seconds,lint_issues,pytest_duration_seconds,pytest_flaky,tests_extra_cases,tests_extra_duration_seconds,tests_integration_cases,tests_integration_duration_seconds,tests_total_cases,tests_total_duration_seconds,tests_ui_cases,tests_ui_duration_seconds,tests_unit_cases,tests_unit_duration_seconds
 2025-10-30T12:30:45+00:00,,,78.0,12.4,0,95.1,0,,,,,,,,,,
 2025-11-08T16:25:23.957445+00:00,8168,29828,27.38,,,,,,,,,278,10.158,,,278,10.158
@@ -58,3 +60,4 @@ timestamp,coverage_lines_covered,coverage_lines_total,coverage_percent,lint_dura
 2025-11-17T17:37:57.422439+00:00,15094,34194,44.14,,,,,,,34,7.424,657,221.907,200,194.563,423,19.920
 2025-11-18T05:14:58.400789+00:00,13964,34253,40.77,,,,,,,34,7.424,660,216.128,200,194.563,426,14.141
 2025-11-18T05:21:00.825225+00:00,15119,34253,44.14,,,,,,,39,5.237,670,203.823,205,189.819,426,8.767
+2025-11-18T11:23:21.179601+00:00,,,,,,,,,,45,8.982,719,219.919,218,191.458,456,19.479
