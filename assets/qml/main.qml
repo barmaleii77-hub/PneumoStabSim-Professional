@@ -30,6 +30,7 @@ Item {
     property bool telemetryPanelVisible: true
 
     readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
+    readonly property bool fogApiAvailable: environmentDefaults && environmentDefaults.fogHelpersSupported
     readonly property var sceneSharedMaterials: simulationLoader.item ? simulationLoader.item.sceneSharedMaterials : null
     readonly property var sceneDirectionalLights: simulationLoader.item ? simulationLoader.item.sceneDirectionalLights : null
     readonly property var scenePointLights: simulationLoader.item ? simulationLoader.item.scenePointLights : null
@@ -202,19 +203,19 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-        fogEnabled: root.fogEnabled
-        fogDepthEnabled: root.fogDepthEnabled
-        fogColor: root.fogColor
-        fogDensity: root.fogDensity
-        fogDepthCurve: root.fogDepthCurve
-        fogDepthNear: root.fogDepthNear
-        fogDepthFar: root.fogDepthFar
-        fogHeightEnabled: root.fogHeightEnabled
-        fogLeastIntenseY: root.fogLeastIntenseY
-        fogMostIntenseY: root.fogMostIntenseY
-        fogHeightCurve: root.fogHeightCurve
-        fogTransmitEnabled: root.fogTransmitEnabled
-        fogTransmitCurve: root.fogTransmitCurve
+        fogEnabled: fogHelpersSupported && root.fogEnabled
+        fogDepthEnabled: fogHelpersSupported && root.fogDepthEnabled
+        fogColor: fogHelpersSupported ? root.fogColor : backgroundColor
+        fogDensity: fogHelpersSupported ? root.fogDensity : 0.0
+        fogDepthCurve: fogHelpersSupported ? root.fogDepthCurve : 1.0
+        fogDepthNear: fogHelpersSupported ? root.fogDepthNear : 0.0
+        fogDepthFar: fogHelpersSupported ? root.fogDepthFar : 0.0
+        fogHeightEnabled: fogHelpersSupported && root.fogHeightEnabled
+        fogLeastIntenseY: fogHelpersSupported ? root.fogLeastIntenseY : 0.0
+        fogMostIntenseY: fogHelpersSupported ? root.fogMostIntenseY : 0.0
+        fogHeightCurve: fogHelpersSupported ? root.fogHeightCurve : 1.0
+        fogTransmitEnabled: fogHelpersSupported && root.fogTransmitEnabled
+        fogTransmitCurve: fogHelpersSupported ? root.fogTransmitCurve : 1.0
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue
@@ -225,6 +226,21 @@ Item {
         adjustmentBrightness: root.adjustmentBrightness
         adjustmentContrast: root.adjustmentContrast
         adjustmentSaturation: root.adjustmentSaturation
+    }
+
+    Connections {
+        target: environmentDefaults
+        ignoreUnknownSignals: true
+
+        function onFogHelpersSupportedChanged() {
+            if (environmentDefaults && !environmentDefaults.fogHelpersSupported) {
+                console.warn("[main.qml] Fog helpers unavailable; fog settings downgraded to defaults")
+                root.fogEnabled = false
+                root.fogDepthEnabled = false
+                root.fogHeightEnabled = false
+                root.fogTransmitEnabled = false
+            }
+        }
     }
 
     onPendingPythonUpdatesChanged: {
