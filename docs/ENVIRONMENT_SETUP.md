@@ -14,7 +14,9 @@ headless-профилей.
 1. **Системные пакеты Qt/X11/GL** — то же, что в CI/Docker. Можно вручную или
    довериться `setup_linux.sh` (он выполнит команды сам) и поставит Xvfb+
    Mesa для софтверного GL **и** бинарные Qt-штуки (`qmlimportscanner`,
-   Shader Baker):
+   Shader Baker), включая «редкие» X11-библиотеки (`libxcb-cursor0`,
+   `libxrender1`, `libxcomposite1`, `libxcursor1`, `libxdamage1`, `libxi6`,
+   `libxrandr2`, `libxtst6`):
 
    ```sh
    sudo apt-get update
@@ -33,9 +35,10 @@ headless-профилей.
    машин с GPU добавьте `nvidia-driver-535`/`mesa-vulkan-drivers` (уже в списке)
    и проверьте ICD-файлы (`ls /usr/share/vulkan/icd.d/`).
 
-2. **Автонастройка окружения** — ставит Python-зависимости (через `uv` или pip),
-   `aqtinstall`, PySide6/QtQuick3D (колёсный дистрибутив PySide6 уже содержит
-   QtQuick3D и QtWidgets), headless-переменные (`QT_QPA_PLATFORM=offscreen`,
+2. **Автонастройка окружения** — ставит Python-зависимости (через `uv`, который
+   скрипт при необходимости доустановит сам, или pip), `aqtinstall`,
+   PySide6/QtQuick3D (колёсный дистрибутив PySide6 уже содержит QtQuick3D и
+   QtWidgets), headless-переменные (`QT_QPA_PLATFORM=offscreen`,
    `QT_OPENGL=desktop`, `QT_QUICK_BACKEND=software`, `QSG_RHI_BACKEND=opengl`).
    В CI Qt загружается отдельным шагом, поэтому обычно используем `--skip-qt`:
 
@@ -92,8 +95,9 @@ headless-профилей.
    `QT_QUICK_BACKEND=rhi`, `QSG_RHI_BACKEND=d3d11` и добавляет пути до Qt
    в `$GITHUB_ENV`.
 
-3. **Автонастройка окружения** — ставит Python-зависимости (`uv`/pip), PySide6
-   (включая QtQuick3D), `pytest-qt`, headless-настройки (`QT_QPA_PLATFORM=offscreen`,
+3. **Автонастройка окружения** — ставит Python-зависимости (`uv`/pip, при
+   необходимости сам доустанавливает `uv`), PySide6 (включая QtQuick3D),
+   `pytest-qt`, headless-настройки (`QT_QPA_PLATFORM=offscreen`,
    `QSG_RHI_BACKEND=d3d11`, `QT_OPENGL=software`, стиль Fusion и HiDPI) и при
    необходимости скачивает Qt через `tools/setup_qt.py`:
 
@@ -151,8 +155,9 @@ headless-профилей.
 | `PSS_DIAG` | `1` | Включение диагностического канала симулятора. |
 | `DISPLAY` | пусто (offscreen) или `:99` при Xvfb | Используется только на Linux. Экспортируется вручную после запуска Xvfb. |
 
-> GitHub Actions (`.github/workflows/ci.yml`) вызывает `scripts/setup_linux.sh --skip-qt`
-> и `scripts/setup_windows.ps1 -SkipQt:$true`, затем шаг «Export Qt paths» записывает
+> GitHub Actions (`.github/workflows/ci.yml`) теперь использует `scripts/setup_linux.sh`
+> и `scripts/setup_windows.ps1` как единые точки входа для установки зависимостей и
+> headless-переменных. После этого шаг «Export Qt paths» записывает
 > `QT_PLUGIN_PATH`/`QML2_IMPORT_PATH` в `GITHUB_ENV`, а шаг «Document headless Qt environment»
 > публикует в summary активные `QT_QPA_PLATFORM`, `QSG_RHI_BACKEND`, `QT_OPENGL`, `DISPLAY`
 > и пути до Qt. При локальной разработке придерживайтесь тех же значений, чтобы

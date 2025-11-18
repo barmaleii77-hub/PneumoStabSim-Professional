@@ -52,6 +52,19 @@ function Invoke-ChocoInstall {
     }
 }
 
+function Ensure-Uv {
+    param([string]$PythonExecutable)
+
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        Write-SetupLog "uv already available"
+        return
+    }
+
+    Write-SetupLog "Installing uv via pip"
+    & $PythonExecutable -m pip install --upgrade pip
+    & $PythonExecutable -m pip install --upgrade uv
+}
+
 function Resolve-PythonCommand {
     param([string]$PreferredPath)
 
@@ -80,11 +93,12 @@ if (-not $SkipSystem) {
 }
 
 if (-not $SkipUvSync) {
+    Ensure-Uv -PythonExecutable $pythonPath
     if (Get-Command uv -ErrorAction SilentlyContinue) {
         Write-SetupLog "Synchronising Python environment via uv"
         uv sync --extra dev
     } else {
-        Write-SetupLog "uv not found; using pip fallback"
+        Write-SetupLog "uv still unavailable; using pip fallback"
         & $pythonPath -m pip install --upgrade pip
         & $pythonPath -m pip install -r requirements-dev.txt
     }
