@@ -7,6 +7,7 @@ ColumnLayout {
 
     property string labelText: ""
     property string settingsKey: ""
+    property string panelId: ""
     property real value: 0
     property real from: 0
     property real to: 1
@@ -15,13 +16,28 @@ ColumnLayout {
     property string unit: ""
     property string helperText: ""
 
-    readonly property bool hasError: errorLabel.visible
+    // Validation state is shared with Python to keep the SettingsManager aware of
+    // failed edits coming from accordion-style panels.
+    property string validationState: "idle"
+    property string validationMessage: ""
+
+    readonly property bool hasError: validationState === "error"
 
     signal valueCommitted(string settingsKey, real value)
     signal validationFailed(string settingsKey, string reason)
+    signal fieldValidationStateChanged(string panelId, string settingsKey, string state, string message)
 
     spacing: 4
     Layout.fillWidth: true
+
+    function _emitValidationState(state, message) {
+        validationState = state
+        validationMessage = message || ""
+        errorLabel.text = validationMessage
+        errorLabel.visible = validationState === "error" && validationMessage.length > 0
+        helperLabel.visible = helperText.length > 0 && !errorLabel.visible
+        fieldValidationStateChanged(panelId, settingsKey, validationState, validationMessage)
+    }
 
     function _clampValue(rawValue) {
         var numeric = Number(rawValue)
@@ -65,12 +81,12 @@ ColumnLayout {
             onValueModified: {
                 var nextValue = root._clampValue(value)
                 if (nextValue === null) {
-                    errorLabel.text = qsTr("Введите числовое значение")
-                    errorLabel.visible = true
-                    root.validationFailed(root.settingsKey, errorLabel.text)
+                    var reason = qsTr("Введите числовое значение")
+                    root._emitValidationState("error", reason)
+                    root.validationFailed(root.settingsKey, reason)
                     return
                 }
-                errorLabel.visible = false
+                root._emitValidationState("valid", "")
                 root.value = nextValue
                 if (root.settingsKey && root.settingsKey.length > 0) {
                     root.valueCommitted(root.settingsKey, nextValue)

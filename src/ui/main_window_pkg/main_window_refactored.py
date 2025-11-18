@@ -1028,6 +1028,16 @@ class MainWindow(QMainWindow):
         """Validated accordion field edit → SettingsManager bridge"""
         SignalsRouter.handle_accordion_field_committed(self, panel_id, field, value)
 
+    @Slot(str, str, str, str)
+    def _on_accordion_field_validation_state(
+        self, panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Validation state coming from shared accordion fields."""
+
+        SignalsRouter.handle_accordion_field_validation_state(
+            self, panel_id, field, state, message
+        )
+
     @Slot(str)
     def _on_sim_control(self, command: str) -> None:
         """Simulation control → SignalsRouter"""

@@ -1846,6 +1846,50 @@ class SignalsRouter:
             SignalsRouter._push_simulation_state(window)
 
     @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Track validation state emitted by shared accordion fields."""
+
+        field_key = (field or "").strip()
+        if not field_key:
+            return
+
+        panel_key = (panel_id or "").strip() or "panels"
+        normalized_state = (state or "").strip().lower() or "unknown"
+        message_text = "" if message is None else str(message).strip()
+
+        validation_states = getattr(window, "_accordion_validation_states", None)
+        if validation_states is None:
+            validation_states = {}
+            setattr(window, "_accordion_validation_states", validation_states)
+
+        validation_states[(panel_key, field_key)] = {
+            "state": normalized_state,
+            "message": message_text,
+        }
+
+        status = getattr(window, "status_bar", None)
+        if normalized_state == "error" and message_text:
+            SignalsRouter.logger.error(
+                "Accordion validation error [%s.%s]: %s",
+                panel_key,
+                field_key,
+                message_text,
+            )
+            if status is not None and hasattr(status, "showMessage"):
+                status.showMessage(message_text, 6000)
+        elif normalized_state in {"warn", "warning"} and message_text:
+            SignalsRouter.logger.warning(
+                "Accordion validation warning [%s.%s]: %s",
+                panel_key,
+                field_key,
+                message_text,
+            )
+            if status is not None and hasattr(status, "showMessage"):
+                status.showMessage(message_text, 4000)
+
+    @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:
         """Persist animation toggle coming from QML."""
 

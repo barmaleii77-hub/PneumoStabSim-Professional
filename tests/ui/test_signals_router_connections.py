@@ -40,6 +40,7 @@ def fake_window() -> Any:
         simulation_manager=simulation_manager,
         _on_state_update=_dummy_handler,
         _on_physics_error=_dummy_handler,
+        _on_accordion_field_validation_state=_dummy_handler,
     )
     return window
 
@@ -62,10 +63,12 @@ def test_simulation_signals_use_queued_connection(fake_window: Any) -> None:
 def test_register_qml_signals_wires_accordion(fake_window: Any) -> None:
     accordion_field = _RecordingSignal()
     accordion_preset = _RecordingSignal()
+    accordion_validation = _RecordingSignal()
 
     qml_root = SimpleNamespace(
         accordionFieldCommitted=accordion_field,
         accordionPresetActivated=accordion_preset,
+        accordionFieldValidationStateChanged=accordion_validation,
         batchUpdatesApplied=_RecordingSignal(),
     )
 
@@ -78,5 +81,7 @@ def test_register_qml_signals_wires_accordion(fake_window: Any) -> None:
     names = {spec.name for spec in connected}
     assert "accordionFieldCommitted" in names
     assert "accordionPresetActivated" in names
+    assert "accordionFieldValidationStateChanged" in names
     assert accordion_field.calls
     assert accordion_preset.calls
+    assert accordion_validation.calls
