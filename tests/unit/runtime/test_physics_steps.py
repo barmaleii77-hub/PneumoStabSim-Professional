@@ -20,7 +20,7 @@ from src.pneumo.enums import (
     Wheel,
 )
 from src.pneumo.gas_state import create_line_gas_state, create_tank_gas_state
-from src.pneumo.geometry import CylinderGeom, LeverGeom
+from src.mechanics.geometry import CylinderGeom, LeverGeom
 from src.pneumo.network import GasNetwork
 from src.pneumo.receiver import ReceiverSpec, ReceiverState
 from src.pneumo.system import create_standard_diagonal_system

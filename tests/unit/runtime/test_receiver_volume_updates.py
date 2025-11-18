@@ -172,8 +172,8 @@ def test_set_receiver_volume_updates_latest_state_without_gas_network(
     )
 
     new_volume = 0.03
-    expected_pressure = receiver_state.p * ((receiver_state.V / new_volume) ** 1.4)
-    expected_temperature = receiver_state.T * ((receiver_state.V / new_volume) ** 0.4)
+    expected_pressure = receiver_state.p
+    expected_temperature = receiver_state.T
 
     update = worker.set_receiver_volume(new_volume, "geometric")
 
@@ -205,7 +205,7 @@ def test_set_receiver_volume_updates_latest_state_without_gas_network(
     assert signal_emissions, "Receiver volume changed signal must fire"
     sig_volume, sig_mode, sig_update = signal_emissions[-1]
     assert sig_volume == pytest.approx(new_volume)
-    assert sig_mode == ReceiverVolumeMode.ADIABATIC_RECALC.value
+    assert sig_mode == ReceiverVolumeMode.NO_RECALC.value
     assert isinstance(sig_update, ReceiverVolumeUpdate)
     assert sig_update.pressure == pytest.approx(expected_pressure)
     assert sig_update.temperature == pytest.approx(expected_temperature)
@@ -234,7 +234,7 @@ def test_receiver_state_set_volume_returns_updated_state() -> None:
     assert update.temperature == pytest.approx(expected_temperature)
     assert state.p == pytest.approx(expected_pressure)
     assert state.T == pytest.approx(expected_temperature)
-
+    
     second_state = ReceiverState(
         spec=spec,
         V=0.03,
@@ -249,6 +249,26 @@ def test_receiver_state_set_volume_returns_updated_state() -> None:
     assert no_recalc_update.mode is ReceiverVolumeMode.ADIABATIC_RECALC
     assert second_state.mode is ReceiverVolumeMode.ADIABATIC_RECALC
     assert second_state.V == pytest.approx(0.025)
+
+
+def test_receiver_state_accepts_geometric_mode_alias() -> None:
+    spec = ReceiverSpec(V_min=0.01, V_max=0.5)
+    state = ReceiverState(
+        spec=spec,
+        V=0.02,
+        p=101325.0,
+        T=293.15,
+        mode=ReceiverVolumeMode.NO_RECALC,
+    )
+
+    update = state.set_volume(0.03, mode="GEOMETRIC")
+
+    assert update.mode is ReceiverVolumeMode.NO_RECALC
+    assert state.mode is ReceiverVolumeMode.NO_RECALC
+    assert update.pressure == pytest.approx(101325.0)
+    assert update.temperature == pytest.approx(293.15)
+    assert state.p == pytest.approx(101325.0)
+    assert state.T == pytest.approx(293.15)
 
 
 def test_receiver_state_set_volume_does_not_mutate_on_error() -> None:
