@@ -642,7 +642,25 @@ Item {
 
     function _normalizeGeometryPayload(payload) {
         var candidate = _cloneObject(payload || ({}))
-        return _isPlainObject(candidate) ? candidate : ({})
+        if (!_isPlainObject(candidate))
+            return ({})
+
+        var numericKeys = [
+            "wheelbase",
+            "track",
+            "lever_length",
+            "stroke_m",
+            "cyl_diam_m",
+            "rod_diameter_m",
+            "rod_diameter_rear_m"
+        ]
+        for (var i = 0; i < numericKeys.length; ++i) {
+            var key = numericKeys[i]
+            var value = Number(candidate[key])
+            if (Number.isFinite(value))
+                candidate[key] = value
+        }
+        return candidate
     }
 
     function _normalizeFlowPayload(payload) {

@@ -8,7 +8,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["GeometryPanel", "get_version_info"]
+__all__ = ["GeometryPanel", "get_version_info", "GeometryAccordionController"]
 
 _GEOMETRY_CLASS: type[Any] | None = None
 _GEOMETRY_ERROR: ImportError | None = None
@@ -89,6 +89,10 @@ def __getattr__(name: str) -> Any:
 
     if name == "GeometryPanel":
         return _load_geometry_panel()
+    if name == "GeometryAccordionController":
+        from .accordion_controller import GeometryAccordionController
+
+        return GeometryAccordionController
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
