@@ -279,6 +279,9 @@ else:
             if callback in self._subscribers:
                 self._subscribers.remove(callback)
 
+        def isSignalConnected(self) -> bool:  # noqa: N802 - mirror Qt API
+            return bool(self._subscribers)
+
         def emit(self, *args: Any, **kwargs: Any) -> None:
             for callback in list(self._subscribers):
                 callback(*args, **kwargs)
