@@ -63,7 +63,11 @@ LEGACY_GEOMETRY_MESH_EXTRAS: set[str] = {
 }
 # Дополнительные разрешённые легаси‑ключи геометрии, которые больше не описаны в схеме,
 # но всё ещё могут встречаться в старых app_settings.json и тестовых фикстурах.
-LEGACY_GEOMETRY_ALLOWED_KEYS: set[str] = {"max_susp_travel_m", "max_susp_travel"}
+LEGACY_GEOMETRY_ALLOWED_KEYS: set[str] = {
+    "max_susp_travel_m",
+    "max_susp_travel",
+    "lever_length_m",
+}
 
 
 class _RelaxedAppSettings(AppSettings):
@@ -614,7 +618,12 @@ class SettingsService:
                 geometry["lever_length"] = (
                     float(lever_m_value) if lever_m_value is not None else 0.0
                 )
-            geometry.pop("lever_length_m", None)
+
+            # Always mirror the lever length into the *_m slot for downstream consumers
+            if "lever_length_m" not in geometry and "lever_length" in geometry:
+                geometry["lever_length_m"] = geometry["lever_length"]
+            elif "lever_length" in geometry and "lever_length_m" in geometry:
+                geometry["lever_length_m"] = geometry["lever_length"]
             # Новая миграция: max_susp_travel_m → max_susp_travel
             if "max_susp_travel" not in geometry and "max_susp_travel_m" in geometry:
                 max_travel_value = geometry.get("max_susp_travel_m")

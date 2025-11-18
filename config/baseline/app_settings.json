@@ -59,7 +59,11 @@
         "b2_pa": 150000.0
       },
       "tank_pressure_pa": 200000.0,
-      "relief_pressure_pa": 500000.0
+      "relief_pressure_pa": 500000.0,
+      "polytropic_heat_transfer_coeff": 45.0,
+      "polytropic_exchange_area": 0.12,
+      "leak_coefficient": 5e-08,
+      "leak_reference_area": 0.0002
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -1128,7 +1132,11 @@
         "max_m3": 1.0
       },
       "dead_zone_head_m3": 0.0,
-      "dead_zone_rod_m3": 0.0
+      "dead_zone_rod_m3": 0.0,
+      "polytropic_heat_transfer_coeff": 45.0,
+      "polytropic_exchange_area": 0.12,
+      "leak_coefficient": 5e-08,
+      "leak_reference_area": 0.0002
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -2166,9 +2174,10 @@
     "defaults_seed": "config/baseline/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
-      "0001_add_diagnostics_defaults"
+      "0001_add_diagnostics_defaults",
+      "0002_remove_geometry_mesh_extras"
     ],
-    "last_migration": "0001_add_diagnostics_defaults",
+    "last_migration": "0002_remove_geometry_mesh_extras",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
     "total_parameters": 333,
