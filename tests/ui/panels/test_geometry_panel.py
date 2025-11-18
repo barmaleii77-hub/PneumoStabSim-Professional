@@ -155,7 +155,10 @@ def test_startup_subscriber_probe_handles_feature_mismatch(
     monkeypatch.setattr(target_module, "QMetaMethod", _Meta, raising=False)
     monkeypatch.setattr(panel, "isSignalConnected", _broken_is_signal_connected)
     monkeypatch.setattr(
-        target_module.QObject, "receivers", staticmethod(_broken_receivers), raising=False
+        target_module.QObject,
+        "receivers",
+        staticmethod(_broken_receivers),
+        raising=False,
     )
 
     assert panel._verify_geometry_subscribers() is None
