@@ -37,6 +37,12 @@ Item {
     property color boxColor: Qt.rgba(0.38, 0.55, 0.78, 1)
     property color sphereColor: Qt.rgba(0.78, 0.44, 0.33, 1)
     property color cylinderColor: Qt.rgba(0.35, 0.74, 0.53, 1)
+    property real boxRoughness: 0.35
+    property real boxMetalness: 0.18
+    property real sphereRoughness: 0.15
+    property real sphereMetalness: 0.35
+    property real cylinderRoughness: 0.42
+    property real cylinderMetalness: 0.12
 
     property real boxScale: 1.2
     property real sphereScale: 0.9
@@ -49,11 +55,24 @@ Item {
     property real keyLightIntensity: 600.0
     property real fillLightIntensity: 280.0
     property real rimLightIntensity: 220.0
+    property color keyLightColor: Qt.rgba(1.0, 0.96, 0.9, 1.0)
+    property color fillLightColor: Qt.rgba(0.8, 0.9, 1.0, 1.0)
+    property color rimLightColor: Qt.rgba(0.78, 0.82, 0.95, 1.0)
+    property vector3d keyLightEuler: Qt.vector3d(-45, -35, 0)
+    property vector3d fillLightPosition: Qt.vector3d(-3, 4, 3)
+    property vector3d rimLightPosition: Qt.vector3d(3, 2.5, -4)
 
     property real cameraDamping: 0.2
     property real orbitRotationSpeed: 0.35
     property real panSpeed: 0.015
     property real zoomSpeed: 0.015
+    property bool inputEnabled: true
+    property bool helpersVisible: true
+    property real gridSpacing: 0.25
+    property real gridMinorScale: 0.5
+
+    property int environmentAaMode: SceneEnvironment.MSAA
+    property int environmentAaQuality: SceneEnvironment.High
 
     signal frameRendered(var metrics)
 
@@ -93,9 +112,13 @@ Item {
         if (normalized.lighting)
             applyLightingOverrides(normalized.lighting)
         if (normalized.interaction)
-            telemetry.registerInteraction(normalized.interaction)
+            applyInteractionOverrides(normalized.interaction)
         if (normalized.zoom !== undefined)
             _applyZoom(normalized.zoom)
+        if (normalized.environment)
+            applyEnvironmentOverrides(normalized.environment)
+        if (normalized.helpers)
+            applyHelperOverrides(normalized.helpers)
     }
 
     function applyCameraOverrides(payload) {
@@ -122,18 +145,24 @@ Item {
             if (box.color) boxColor = _toColor(box.color, boxColor)
             if (box.scale !== undefined) boxScale = _positive(box.scale, boxScale)
             if (box.position) boxPosition = _toVector3d(box.position)
+            if (box.roughness !== undefined) boxRoughness = _clamp01(box.roughness, boxRoughness)
+            if (box.metalness !== undefined) boxMetalness = _clamp01(box.metalness, boxMetalness)
         }
         if (data.sphere) {
             var sphere = _normalizeMap(data.sphere)
             if (sphere.color) sphereColor = _toColor(sphere.color, sphereColor)
             if (sphere.scale !== undefined) sphereScale = _positive(sphere.scale, sphereScale)
             if (sphere.position) spherePosition = _toVector3d(sphere.position)
+            if (sphere.roughness !== undefined) sphereRoughness = _clamp01(sphere.roughness, sphereRoughness)
+            if (sphere.metalness !== undefined) sphereMetalness = _clamp01(sphere.metalness, sphereMetalness)
         }
         if (data.cylinder) {
             var cyl = _normalizeMap(data.cylinder)
             if (cyl.color) cylinderColor = _toColor(cyl.color, cylinderColor)
             if (cyl.scale !== undefined) cylinderScale = _positive(cyl.scale, cylinderScale)
             if (cyl.position) cylinderPosition = _toVector3d(cyl.position)
+            if (cyl.roughness !== undefined) cylinderRoughness = _clamp01(cyl.roughness, cylinderRoughness)
+            if (cyl.metalness !== undefined) cylinderMetalness = _clamp01(cyl.metalness, cylinderMetalness)
         }
     }
 
@@ -145,11 +174,61 @@ Item {
             fillLightIntensity = _positive(lighting.fillIntensity, fillLightIntensity)
         if (lighting.rimIntensity !== undefined)
             rimLightIntensity = _positive(lighting.rimIntensity, rimLightIntensity)
+        if (lighting.keyColor)
+            keyLightColor = _toColor(lighting.keyColor, keyLightColor)
+        if (lighting.fillColor)
+            fillLightColor = _toColor(lighting.fillColor, fillLightColor)
+        if (lighting.rimColor)
+            rimLightColor = _toColor(lighting.rimColor, rimLightColor)
+        if (lighting.keyEuler)
+            keyLightEuler = _toVector3d(lighting.keyEuler)
+        if (lighting.fillPosition)
+            fillLightPosition = _toVector3d(lighting.fillPosition)
+        if (lighting.rimPosition)
+            rimLightPosition = _toVector3d(lighting.rimPosition)
         if (lighting.ambient) {
             var ambient = _normalizeMap(lighting.ambient)
             if (ambient.color)
                 sceneEnvironment.clearColor = _toColor(ambient.color, sceneEnvironment.clearColor)
         }
+    }
+
+    function applyEnvironmentOverrides(payload) {
+        var environment = _normalizeMap(payload)
+        if (environment.clearColor)
+            sceneEnvironment.clearColor = _toColor(environment.clearColor, sceneEnvironment.clearColor)
+        if (environment.antialiasingMode !== undefined)
+            environmentAaMode = _aaModeFromPayload(environment.antialiasingMode)
+        if (environment.antialiasingQuality !== undefined)
+            environmentAaQuality = _aaQualityFromPayload(environment.antialiasingQuality)
+    }
+
+    function applyHelperOverrides(payload) {
+        var helpers = _normalizeMap(payload)
+        if (helpers.visible !== undefined)
+            helpersVisible = !!helpers.visible
+        if (helpers.gridSpacing !== undefined)
+            gridSpacing = _positive(helpers.gridSpacing, gridSpacing)
+        if (helpers.gridMinorScale !== undefined)
+            gridMinorScale = _positive(helpers.gridMinorScale, gridMinorScale)
+    }
+
+    function applyInteractionOverrides(payload) {
+        var interaction = _normalizeMap(payload)
+        if (interaction.rotationSpeed !== undefined)
+            orbitRotationSpeed = _positive(interaction.rotationSpeed, orbitRotationSpeed)
+        if (interaction.panSpeed !== undefined)
+            panSpeed = _positive(interaction.panSpeed, panSpeed)
+        if (interaction.zoomSpeed !== undefined)
+            zoomSpeed = _positive(interaction.zoomSpeed, zoomSpeed)
+        if (interaction.damping !== undefined)
+            cameraDamping = Math.max(0.0, Number(interaction.damping))
+        if (interaction.enabled !== undefined)
+            inputEnabled = !!interaction.enabled
+        if (interaction.target)
+            orbitTarget = _toVector3d(interaction.target)
+        telemetry.registerInteraction(interaction)
+        _syncCamera()
     }
 
     // ---------------------------------------------------------------------
@@ -210,6 +289,13 @@ Item {
         return isFinite(n) && n > 0 ? n : fallback
     }
 
+    function _clamp01(value, fallback) {
+        var n = Number(value)
+        if (!isFinite(n))
+            return fallback
+        return Math.max(0, Math.min(1, n))
+    }
+
     function _orbitPosition() {
         var azimuthRad = orbitAzimuthDeg * Math.PI / 180.0
         var elevationRad = orbitElevationDeg * Math.PI / 180.0
@@ -222,6 +308,33 @@ Item {
     function _syncCamera() {
         cameraTransform.translation = _orbitPosition()
         sceneCamera.lookAt(Qt.vector3d(orbitTarget.x + panOffset.x, orbitTarget.y + panOffset.y, orbitTarget.z + panOffset.z), Qt.vector3d(0, 1, 0))
+    }
+
+    function _aaModeFromPayload(value) {
+        if (typeof value === "string") {
+            var normalized = value.toLowerCase()
+            if (normalized === "noaa" || normalized === "disabled")
+                return SceneEnvironment.NoAA
+            if (normalized === "smaa")
+                return SceneEnvironment.SSAA
+            if (normalized === "temporal")
+                return SceneEnvironment.TemporalAA
+            return SceneEnvironment.MSAA
+        }
+        return SceneEnvironment.MSAA
+    }
+
+    function _aaQualityFromPayload(value) {
+        if (typeof value === "string") {
+            var normalized = value.toLowerCase()
+            if (normalized === "veryhigh")
+                return SceneEnvironment.VeryHigh
+            if (normalized === "medium")
+                return SceneEnvironment.Medium
+            if (normalized === "low")
+                return SceneEnvironment.Low
+        }
+        return SceneEnvironment.High
     }
 
     Component.onCompleted: _syncCamera()
@@ -239,8 +352,8 @@ Item {
             id: sceneEnvironment
             clearColor: Qt.rgba(0.06, 0.09, 0.13, 1.0)
             backgroundMode: SceneEnvironment.Color
-            antialiasingMode: SceneEnvironment.MSAA
-            antialiasingQuality: SceneEnvironment.High
+            antialiasingMode: environmentAaMode
+            antialiasingQuality: environmentAaQuality
         }
 
         PerspectiveCamera {
@@ -259,23 +372,25 @@ Item {
 
         DirectionalLight {
             id: keyLight
-            eulerRotation.x: -45
-            eulerRotation.y: -35
+            eulerRotation: keyLightEuler
             brightness: keyLightIntensity
+            color: keyLightColor
             castsShadow: true
         }
 
         PointLight {
             id: fillLight
-            position: Qt.vector3d(-3, 4, 3)
+            position: fillLightPosition
             brightness: fillLightIntensity
+            color: fillLightColor
             castsShadow: false
         }
 
         PointLight {
             id: rimLight
-            position: Qt.vector3d(3, 2.5, -4)
+            position: rimLightPosition
             brightness: rimLightIntensity
+            color: rimLightColor
             castsShadow: false
         }
 
@@ -292,6 +407,22 @@ Item {
         }
 
         Model {
+            id: helperGrid
+            visible: helpersVisible
+            objectName: "helperGrid"
+            scale: Qt.vector3d(10, 1, 10)
+            geometry: GridGeometry {
+                id: helperGeometry
+                gridSpacing: root.gridSpacing
+                minorGridlinesPerMajor: Math.max(1, Math.floor(1 / gridMinorScale))
+            }
+            materials: DefaultMaterial {
+                diffuseColor: Qt.rgba(0.18, 0.24, 0.28, 0.35)
+                lighting: DefaultMaterial.NoLighting
+            }
+        }
+
+        Model {
             id: boxPrimitive
             objectName: "boxPrimitive"
             source: "#Cube"
@@ -299,8 +430,8 @@ Item {
             position: boxPosition
             materials: PrincipledMaterial {
                 baseColor: boxColor
-                roughness: 0.35
-                metalness: 0.18
+                roughness: boxRoughness
+                metalness: boxMetalness
             }
         }
 
@@ -312,8 +443,8 @@ Item {
             position: spherePosition
             materials: PrincipledMaterial {
                 baseColor: sphereColor
-                roughness: 0.15
-                metalness: 0.35
+                roughness: sphereRoughness
+                metalness: sphereMetalness
             }
         }
 
@@ -325,8 +456,8 @@ Item {
             position: cylinderPosition
             materials: PrincipledMaterial {
                 baseColor: cylinderColor
-                roughness: 0.42
-                metalness: 0.12
+                roughness: cylinderRoughness
+                metalness: cylinderMetalness
             }
         }
 
@@ -347,6 +478,7 @@ Item {
             id: orbitDrag
             acceptedButtons: Qt.LeftButton
             target: null
+            enabled: inputEnabled
             onActiveChanged: telemetry.registerInteraction({ kind: "drag", active: active })
             onTranslationChanged: _applyOrbitDrag(translation.x, translation.y)
         }
@@ -355,18 +487,31 @@ Item {
             id: panDrag
             acceptedButtons: Qt.MiddleButton
             target: null
+            enabled: inputEnabled
             onTranslationChanged: _applyPan(translation.x, translation.y)
         }
 
         WheelHandler {
             id: zoomWheel
             rotationScale: 1.0
+            enabled: inputEnabled
             onWheel: _applyZoom(wheel.angleDelta.y / 120.0)
         }
 
         PinchHandler {
             id: pinchZoom
+            enabled: inputEnabled
             onScaleChanged: _applyZoom(scale - 1.0)
+        }
+
+        AxisHelper {
+            id: axisHelper
+            anchors.margins: 8
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            width: 96
+            height: 96
+            visible: helpersVisible
         }
     }
 
