@@ -249,7 +249,7 @@ class UISetup:
         )
 
         reflection_defaults: dict[str, Any] = {
-            "enabled": False,
+            "enabled": True,
             "padding_m": 0.15,
             "quality": "veryhigh",
             "refresh_mode": "everyframe",
@@ -386,6 +386,19 @@ class UISetup:
 
             fallback_sources: list[Mapping[str, Any]] = []
             fallback_sources.append(_map_environment_to_reflection(environment_payload))
+
+            try:
+                metadata_probe = (
+                    manager.get("metadata.reflection_probe_defaults", {}) or {}
+                )
+            except Exception as exc:
+                UISetup.logger.debug(
+                    "    ⚠️ Не удалось прочитать metadata.reflection_probe_defaults: %s",
+                    exc,
+                )
+                metadata_probe = {}
+            if isinstance(metadata_probe, Mapping):
+                fallback_sources.append(metadata_probe)
 
             try:
                 snapshot_probe = (

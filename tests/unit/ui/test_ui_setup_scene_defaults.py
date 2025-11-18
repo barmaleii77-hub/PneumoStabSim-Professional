@@ -128,3 +128,27 @@ def test_scene_basics_use_metadata_defaults(
     assert context["scene"]["exposure"] == pytest.approx(2.5)
     assert context["scene"]["default_clear_color"] == "#abcdef"
     assert "Scene settings missing keys: default_clear_color, exposure" in caplog.text
+
+
+def test_reflection_probe_missing_keys_use_defaults(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    payload = _load_settings_payload()
+    payload["current"]["graphics"].pop("reflection_probe", None)
+    payload["defaults_snapshot"]["graphics"].pop("reflection_probe", None)
+
+    manager = _make_settings_manager(tmp_path, payload)
+
+    caplog.set_level(logging.WARNING)
+    context = UISetup.build_qml_context_payload(manager)
+
+    probe_defaults = context["reflection_probe"]
+    assert probe_defaults["enabled"] is True
+    assert probe_defaults["padding_m"] == pytest.approx(0.15)
+    assert probe_defaults["quality"] == "veryhigh"
+    assert probe_defaults["refresh_mode"] == "everyframe"
+    assert probe_defaults["time_slicing"] == "individualfaces"
+    assert (
+        "Reflection probe settings missing keys: enabled, padding_m, quality, refresh_mode, time_slicing"
+        in caplog.text
+    )

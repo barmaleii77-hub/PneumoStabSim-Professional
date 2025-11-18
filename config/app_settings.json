@@ -11,7 +11,7 @@
     "last_migration": "0002_remove_geometry_mesh_extras",
     "migrated_from": "src/ui/panels/graphics/defaults.py",
     "migration_date": "2025-10-18",
-    "total_parameters": 313,
+    "total_parameters": 318,
     "description": "✅ FIXED: tonemap_enabled=false, depth_of_field=false, vignette=false по умолчанию",
     "operational_imperatives": [
       "Запрещены дефолты и магические константы в коде — все значения настраиваются через config/app_settings.json.",
@@ -157,6 +157,13 @@
       "suspension": {
         "rod_warning_threshold_m": 0.001
       }
+    },
+    "reflection_probe_defaults": {
+      "enabled": true,
+      "padding_m": 0.15,
+      "quality": "veryhigh",
+      "refresh_mode": "everyframe",
+      "time_slicing": "individualfaces"
     },
     "legacy": {
       "current": {
@@ -382,6 +389,13 @@
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
+      },
+      "reflection_probe": {
+        "enabled": true,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
       },
       "quality": {
         "preset": "ultra",
@@ -1198,6 +1212,13 @@
         "ao_softness": 20.0,
         "ao_dither": true,
         "ao_sample_rate": 4
+      },
+      "reflection_probe": {
+        "enabled": true,
+        "padding_m": 0.15,
+        "quality": "veryhigh",
+        "refresh_mode": "everyframe",
+        "time_slicing": "individualfaces"
       },
       "lighting": {
         "key": {
