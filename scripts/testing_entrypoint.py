@@ -28,9 +28,13 @@ class MissingTool(RuntimeError):
     """Raised when a required tool cannot be located."""
 
 
+def _reset_log() -> None:
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text("", encoding="utf-8")
+
+
 def _log(message: str) -> None:
     print(message)
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with REPORT_PATH.open("a", encoding="utf-8") as log:
         log.write(f"{message}\n")
 
@@ -77,19 +81,29 @@ def _sync_environment(uv_path: str) -> None:
 
 
 def _prepare_system(system: str) -> None:
-    if system != "Linux":
-        _log("[entrypoint] Non-Linux host detected; skipping system package prep")
+    if system == "Linux":
+        setup_script = PROJECT_ROOT / "scripts" / "setup_linux.sh"
+        if not setup_script.exists():
+            _log("[entrypoint] setup_linux.sh missing; skipping system package prep")
+            return
+
+        _log(
+            "[entrypoint] Ensuring Linux system dependencies via scripts/setup_linux.sh --skip-python --skip-qt"
+        )
+        _stream_command([str(setup_script), "--skip-python", "--skip-qt"])
         return
 
-    setup_script = PROJECT_ROOT / "scripts" / "setup_linux.sh"
-    if not setup_script.exists():
-        _log("[entrypoint] setup_linux.sh missing; skipping system package prep")
+    if system == "Windows":
+        setup_script = PROJECT_ROOT / "scripts" / "setup_dev.py"
+        if not setup_script.exists():
+            _log("[entrypoint] setup_dev.py missing; skipping Windows system prep")
+            return
+
+        _log("[entrypoint] Running scripts/setup_dev.py to refresh Windows toolchain")
+        _stream_command([sys.executable, str(setup_script)])
         return
 
-    _log(
-        "[entrypoint] Ensuring Linux system dependencies via scripts/setup_linux.sh --skip-python --skip-qt"
-    )
-    _stream_command([str(setup_script), "--skip-python", "--skip-qt"])
+    _log(f"[entrypoint] No system prep defined for platform '{system}'")
 
 
 def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
@@ -126,6 +140,7 @@ def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
 
 def main(argv: list[str]) -> int:
     system = platform.system()
+    _reset_log()
     _log(f"[entrypoint] Detected platform: {system}")
 
     try:
