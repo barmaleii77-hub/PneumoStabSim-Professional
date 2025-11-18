@@ -463,9 +463,7 @@ def compare_with_baseline(
     return overall
 
 
-def measure_rms_difference(
-    captured: Image.Image, baseline_path: Path | str
-) -> float:
+def measure_rms_difference(captured: Image.Image, baseline_path: Path | str) -> float:
     """Return RMS deviation between ``captured`` and the encoded baseline."""
 
     baseline, captured_rgba = _prepare_images_for_diff(captured, baseline_path)
