@@ -3,10 +3,88 @@
 Автоматическая настройка среды разработки PneumoStabSim
 """
 
+import os
 import sys
 import subprocess
 import platform
 from pathlib import Path
+from typing import Dict, Iterable, Tuple
+
+
+def merge_paths(current: str, new_entries: Iterable[str], separator: str) -> str:
+    values = []
+    if current:
+        values.extend(segment for segment in current.split(separator) if segment)
+
+    for entry in new_entries:
+        if entry and entry not in values:
+            values.append(entry)
+
+    return separator.join(values)
+
+
+def detect_qt_paths(python_executable: Path) -> Tuple[str | None, str | None]:
+    """Resolve Qt plugin and QML import paths using the specified interpreter."""
+
+    script = """
+from __future__ import annotations
+
+import sys
+
+try:
+    from PySide6 import QtCore  # type: ignore
+except Exception:
+    sys.exit(1)
+
+library_path = getattr(
+    QtCore.QLibraryInfo.LibraryPath, "QmlImportsPath", QtCore.QLibraryInfo.LibraryPath.Qml2ImportsPath
+)
+print(QtCore.QLibraryInfo.path(QtCore.QLibraryInfo.LibraryPath.PluginsPath))
+print(QtCore.QLibraryInfo.path(library_path))
+"""
+
+    try:
+        result = subprocess.run(
+            [str(python_executable), "-c", script], capture_output=True, text=True, check=True
+        )
+    except subprocess.CalledProcessError:
+        return None, None
+
+    lines = result.stdout.strip().splitlines()
+    if len(lines) < 2:
+        return None, None
+
+    return lines[0].strip() or None, lines[1].strip() or None
+
+
+def update_env_paths(env_path: Path, updates: Dict[str, str], separator: str) -> None:
+    """Update or append environment variables in .env without dropping comments."""
+
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    original_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    processed_keys = set()
+    output_lines = []
+
+    for line in original_lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            output_lines.append(line)
+            continue
+
+        key, _, value = stripped.partition("=")
+        if key in updates:
+            merged_value = merge_paths(value, [updates[key]], separator)
+            output_lines.append(f"{key}={merged_value}")
+            processed_keys.add(key)
+        else:
+            output_lines.append(line)
+
+    for key, value in updates.items():
+        if key in processed_keys:
+            continue
+        output_lines.append(f"{key}={value}")
+
+    env_path.write_text("\n".join(output_lines) + "\n", encoding="utf-8")
 
 
 def run_command(cmd, description=""):
@@ -150,6 +228,42 @@ def activate_and_install():
     return True
 
 
+def configure_qt_environment():
+    """Detect Qt plugin/QML paths and persist them into .env for Windows sessions."""
+
+    env_path = Path(".env")
+    separator = os.pathsep
+    venv_python = Path(".venv") / ("Scripts" if platform.system() == "Windows" else "bin") / (
+        "python.exe" if platform.system() == "Windows" else "python"
+    )
+
+    interpreter = venv_python if venv_python.exists() else Path(sys.executable)
+    plugin_path, qml_path = detect_qt_paths(interpreter)
+
+    if not plugin_path and not qml_path:
+        print("⚠️ PySide6 not available; skipping Qt path export")
+        return True
+
+    updates: Dict[str, str] = {}
+    if plugin_path:
+        updates["QT_PLUGIN_PATH"] = plugin_path
+    if qml_path:
+        updates["QML2_IMPORT_PATH"] = merge_paths("", [qml_path], separator)
+        updates["QML_IMPORT_PATH"] = qml_path
+        updates["QT_QML_IMPORT_PATH"] = qml_path
+
+    try:
+        update_env_paths(env_path, updates, separator)
+        if "QT_QUICK_CONTROLS_STYLE" not in env_path.read_text(encoding="utf-8"):
+            with env_path.open("a", encoding="utf-8") as handle:
+                handle.write(f"QT_QUICK_CONTROLS_STYLE=Basic\n")
+        print("✅ Qt environment variables persisted to .env")
+        return True
+    except Exception as exc:  # pragma: no cover - defensive logging for setup utility
+        print(f"❌ Не удалось обновить .env: {exc}")
+        return False
+
+
 def setup_git_hooks():
     """Настраивает Git hooks"""
     print("\n=== НАСТРОЙКА GIT HOOKS ===")
@@ -257,6 +371,7 @@ def main():
         ("Проверка предустановок", check_prerequisites),
         ("Создание виртуального окружения", create_virtual_environment),
         ("Установка зависимостей", activate_and_install),
+        ("Настройка Qt путей", configure_qt_environment),
         ("Настройка Git hooks", setup_git_hooks),
         ("Настройка IDE", setup_ide_config),
         ("Финальная проверка", final_check),
