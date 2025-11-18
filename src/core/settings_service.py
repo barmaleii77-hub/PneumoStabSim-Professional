@@ -38,6 +38,7 @@ from src.infrastructure.container import (
     get_default_container,
 )
 from src.infrastructure.event_bus import EVENT_BUS_TOKEN
+from src.core.settings_defaults import load_default_settings_payload
 from src.core.settings_validation import (
     DEFAULT_REQUIRED_MATERIALS,
     FORBIDDEN_MATERIAL_ALIASES,
@@ -96,6 +97,21 @@ class _LooseAppSettings:
 
 
 _MISSING = object()
+
+
+@lru_cache(maxsize=1)
+def _default_metadata_snapshot() -> dict[str, Any]:
+    """Return a deep copy of the baseline metadata section.
+
+    This snapshot is used to backfill missing metadata fields when loading
+    legacy settings files that predate the metadata schema.
+    """
+
+    payload = load_default_settings_payload()
+    metadata = payload.get("metadata") if isinstance(payload, MappingABC) else None
+    if not isinstance(metadata, MappingABC):
+        return {}
+    return json.loads(json.dumps(metadata))
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -614,6 +630,60 @@ class SettingsService:
 
         # 6) Ensure current.graphics.environment_ranges exists
         _ensure_current_environment_ranges(metadata, current, defaults)
+
+        self._ensure_metadata_defaults(payload)
+
+    def _ensure_metadata_defaults(self, payload: MutableMapping[str, Any]) -> None:
+        """Backfill metadata fields for legacy settings payloads.
+
+        Legacy configurations often ship without ``metadata`` or omit the
+        migration markers introduced in later schema versions. This helper
+        recreates the required fields using the baseline metadata snapshot and
+        the migrations declared in ``config/migrations`` so the resulting payload
+        passes schema validation and records which upgrades were applied.
+        """
+
+        if not isinstance(payload, MutableMapping):
+            return
+
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, MutableMapping):
+            metadata = {}
+            payload["metadata"] = metadata
+
+        defaults = _default_metadata_snapshot()
+        for key, value in defaults.items():
+            if key not in metadata or metadata[key] in (None, ""):
+                metadata[key] = deepcopy(value)
+
+        # Deduplicate and normalise migrations list
+        migrations_raw = metadata.get("migrations", [])
+        migrations: list[str] = []
+        if isinstance(migrations_raw, Iterable) and not isinstance(
+            migrations_raw, (str, bytes)
+        ):
+            for entry in migrations_raw:
+                try:
+                    normalised = str(entry).strip()
+                except Exception:
+                    continue
+                if normalised and normalised not in migrations:
+                    migrations.append(normalised)
+
+        migrations_dir = PROJECT_ROOT / "config" / "migrations"
+        if migrations_dir.exists():
+            for migration_file in sorted(migrations_dir.glob("*.json")):
+                migration_name = migration_file.stem
+                if migration_name not in migrations:
+                    migrations.append(migration_name)
+
+        metadata["migrations"] = migrations
+
+        if not metadata.get("last_migration") and migrations:
+            metadata["last_migration"] = migrations[-1]
+
+        if not metadata.get("migration_date"):
+            metadata["migration_date"] = datetime.now(UTC).date().isoformat()
 
     def _normalise_fog_depth_aliases(
         self, payload: MutableMapping[str, Any] | None
