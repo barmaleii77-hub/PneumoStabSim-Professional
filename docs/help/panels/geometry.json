@@ -11,7 +11,7 @@
       "patch": {
         "frame_length_m": 5.5,
         "frame_beam_size_m": 0.24,
-        "wheelbase": 3.4
+        "wheelbase": 5.5
       }
     }
   }

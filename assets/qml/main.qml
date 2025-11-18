@@ -2,6 +2,7 @@ import QtQuick 6.10
 import QtQuick.Controls 6.10
 import PneumoStabSim 1.0
 import "./"
+import "./effects" as Effects
 import "./Panels" as Panels
 import "training" as Training
 import components 1.0 as Components
@@ -133,7 +134,7 @@ Item {
     property real adjustmentContrast: 0.0
     property real adjustmentSaturation: 0.0
 
-    SceneEnvironmentController {
+    Effects.SceneEnvironmentController {
         id: environmentDefaults
         objectName: "environmentDefaults"
 

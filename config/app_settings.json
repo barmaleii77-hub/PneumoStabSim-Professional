@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-18T05:57:39.212Z",
+    "last_modified": "2025-11-18T06:51:47.980Z",
     "defaults_seed": "config/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
@@ -224,7 +224,7 @@
       "max_frame_time": 0.05
     },
     "geometry": {
-      "wheelbase": 3.401,
+      "wheelbase": 3.404,
       "track": 2.34,
       "frame_to_pivot": 0.42,
       "lever_length": 0.75,
@@ -269,7 +269,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0031,
+      "diagonal_coupling_dia": 0.0034,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 0.0,
@@ -514,7 +514,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "frame",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.55,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "lever": {
           "base_color": "#A7ADB4",
@@ -533,7 +537,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "lever",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "cylinder": {
           "base_color": "#E1F5FF",
@@ -552,7 +560,11 @@
           "alpha_mode": "blend",
           "alpha_cutoff": 0.0,
           "id": "cylinder",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 1.0,
+          "ior": 1.52
         },
         "piston_body": {
           "base_color": "#FF3C6E",
@@ -571,7 +583,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "piston_body",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.6,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "piston_rod": {
           "base_color": "#F0F0F0",
@@ -590,7 +606,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "piston_rod",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "joint_tail": {
           "base_color": "#2A82FF",
@@ -609,7 +629,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "joint_tail",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.6,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "joint_arm": {
           "base_color": "#FF9C3A",
@@ -628,7 +652,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "joint_arm",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.65,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "joint_rod": {
           "base_color": "#B6BBC1",
@@ -647,7 +675,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "joint_rod",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.6,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.45
         },
         "tail_rod": {
           "base_color": "#D5D9DF",
@@ -666,7 +698,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "tail_rod",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         }
       },
       "effects": {
@@ -1051,7 +1087,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "frame",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.55,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "lever": {
           "base_color": "#A7ADB4",
@@ -1070,7 +1110,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "lever",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "tail_rod": {
           "base_color": "#D5D9DF",
@@ -1089,7 +1133,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "tail_rod",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "cylinder": {
           "base_color": "#E1F5FF",
@@ -1108,7 +1156,11 @@
           "alpha_mode": "blend",
           "alpha_cutoff": 0.0,
           "id": "cylinder",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 1.0,
+          "ior": 1.52
         },
         "piston_body": {
           "base_color": "#FF3C6E",
@@ -1127,7 +1179,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "piston_body",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.6,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "piston_rod": {
           "base_color": "#F0F0F0",
@@ -1146,7 +1202,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "piston_rod",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 1.0,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "joint_tail": {
           "base_color": "#2A82FF",
@@ -1165,7 +1225,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "joint_tail",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.6,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "joint_arm": {
           "base_color": "#FF9C3A",
@@ -1184,7 +1248,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "joint_arm",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.65,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.5
         },
         "joint_rod": {
           "base_color": "#B6BBC1",
@@ -1203,7 +1271,11 @@
           "alpha_mode": "default",
           "alpha_cutoff": 0.0,
           "id": "joint_rod",
-          "texture_path": ""
+          "texture_path": "",
+          "specular": 0.6,
+          "specular_tint": 0.0,
+          "transmission": 0.0,
+          "ior": 1.45
         }
       },
       "environment": {
@@ -1786,7 +1858,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0031,
+      "diagonal_coupling_dia": 0.0033,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 0.0,

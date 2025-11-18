@@ -607,7 +607,8 @@ class GeometryStateManager:
                         _log_fallback(name, "invalid explicit fallback", None)
                 return 0.0
 
-        frame_length = _value("wheelbase")
+        frame_length = _value("frame_length_m", fallback=_value("wheelbase"))
+        wheelbase = _value("wheelbase", fallback=frame_length)
         frame_height = _value("frame_height_m")
         frame_beam_size = _value("frame_beam_size_m")
         lever_length = _value("lever_length")
@@ -678,7 +679,7 @@ class GeometryStateManager:
         payload["rodDiameterRear"] = rod_diameter_rear
         payload["rodDiameterFront"] = rod_diameter_front
 
-        payload["wheelbase"] = frame_length
+        payload["wheelbase"] = wheelbase
         payload["track"] = track_width
         payload["frame_to_pivot"] = frame_to_pivot
         payload["rod_position"] = rod_position

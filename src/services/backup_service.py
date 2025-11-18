@@ -12,6 +12,7 @@ in future releases.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import shutil
 import zipfile
@@ -21,7 +22,7 @@ from pathlib import Path
 from typing import cast
 from collections.abc import Iterable, Iterator, Sequence
 
-from src.diagnostics.logger_factory import get_logger
+from src.diagnostics.logger_factory import _FallbackBoundLogger, get_logger
 
 
 __all__ = [
@@ -97,7 +98,12 @@ class BackupService:
         backup_dir: Path | str | None = None,
         data_sources: Sequence[Path | str] | None = None,
     ) -> None:
-        self._logger = get_logger("services.backup")
+        base_logger = get_logger("services.backup")
+        if isinstance(base_logger, _FallbackBoundLogger):
+            self._logger = base_logger
+        else:
+            # Ensure structured fields are available on LogRecords for audit assertions
+            self._logger = _FallbackBoundLogger(logging.getLogger("services.backup"))
         self._root = Path(root or Path.cwd()).resolve()
 
         if backup_dir is None:

@@ -918,6 +918,9 @@ class PhysicsWorker(QObject):
         ).upper()
         preserve_user_mode = bool(getattr(self, "preserve_user_volume_mode", False))
         mode_enum = self._resolve_receiver_mode(mode)
+        if user_mode_token == "GEOMETRIC" and preserve_user_mode:
+            mode_enum = ReceiverVolumeMode.ADIABATIC_RECALC
+
         applied_mode_token = (
             "GEOMETRIC"
             if user_mode_token == "GEOMETRIC" and preserve_user_mode
