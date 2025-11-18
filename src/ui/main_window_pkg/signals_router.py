@@ -1847,7 +1847,13 @@ class SignalsRouter:
 
     @staticmethod
     def handle_accordion_validation_changed(
-        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+        window: "MainWindow",
+        panel_id: str,
+        field: str,
+        state: str,
+        message: str,
+        *,
+        timeout_ms: int | None = None,
     ) -> None:
         """Handle validation state updates coming from accordion-driven panels."""
 
@@ -1867,6 +1873,13 @@ class SignalsRouter:
         if resolved_message:
             payload["message"] = resolved_message
 
+        registry = getattr(window, "_accordion_validation_states", None)
+        if registry is None:
+            registry = {}
+            setattr(window, "_accordion_validation_states", registry)
+
+        registry[(panel_key, field_key)] = payload.copy()
+
         logger = getattr(window, "logger", SignalsRouter.logger)
         status_bar = getattr(window, "status_bar", None)
 
@@ -1877,12 +1890,27 @@ class SignalsRouter:
             if status_bar is not None:
                 status_bar.showMessage(
                     resolved_message or f"{panel_key}.{field_key} validation error",
-                    4000,
+                    timeout_ms if timeout_ms is not None else 4000,
                 )
         else:
             logger.info(
                 "Accordion validation state", extra={"accordion_validation": payload}
             )
+
+    @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Legacy wrapper for renamed accordion validation handler.
+
+        Older QML bindings invoke ``handle_accordion_field_validation_state`` while
+        newer code uses :func:`handle_accordion_validation_changed`. Keep both
+        entrypoints to avoid breaking signal contracts during migrations.
+        """
+
+        SignalsRouter.handle_accordion_validation_changed(
+            window, panel_id, field, state, message, timeout_ms=6000
+        )
 
     @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:
