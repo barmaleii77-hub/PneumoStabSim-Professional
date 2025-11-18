@@ -218,6 +218,12 @@ class LeverGeom:
                 "создайте отдельный экземпляр LeverGeom"
             )
 
+        if self._attached_geom is not None and self._attached_geom is not geometry:
+            raise GeometryError(
+                "Рычаг уже содержит внешнюю привязку цилиндра; "
+                "создайте новый LeverGeom для каждой стойки"
+            )
+
         self._cylinder_geom = geometry
         self._attached_geom = geometry
 

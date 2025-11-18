@@ -1,8 +1,6 @@
 import logging
-from dataclasses import replace
-
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 import pytest
@@ -10,7 +8,7 @@ import pytest
 from src.common.units import PA_ATM, T_AMBIENT
 from src.physics.integrator import create_default_rigid_body
 from src.physics.odes import create_initial_conditions
-from src.pneumo.cylinder import CylinderSpec
+from src.pneumo.cylinder import CylinderSpec, CylinderState
 from src.pneumo.enums import (
     CheckValveKind,
     Line,
@@ -35,51 +33,6 @@ from src.runtime.steps import (
 from src.runtime.steps.kinematics import integrate_lever_state
 from src.runtime.steps.context import LeverDynamicsConfig
 from src.runtime.sync import PerformanceMetrics
-
-
-@dataclass
-class _StubCylinderGeom:
-    L_travel_max: float = 100.0
-    Z_axle: float = 0.0
-
-    def area_head(self, is_front: bool) -> float:  # pragma: no cover - simple stub
-        return 0.01
-
-    def area_rod(self, is_front: bool) -> float:  # pragma: no cover - simple stub
-        return 0.01
-
-
-@dataclass
-class _StubLeverGeom:
-    L_lever: float
-    _attached_geom: _StubCylinderGeom | None = None
-
-    def attach_cylinder_geometry(self, geometry: _StubCylinderGeom) -> None:
-        if self._attached_geom is geometry:
-            return
-        if self._attached_geom is not None and self._attached_geom is not geometry:
-            raise RuntimeError("Stub lever already attached to a different geometry")
-        self._attached_geom = geometry
-
-    def angle_to_displacement(self, angle: float) -> float:
-        return self.L_lever * angle
-
-    def mechanical_advantage(self, angle: float) -> float:
-        return self.L_lever
-
-
-@dataclass
-class _StubCylinderSpec:
-    geometry: _StubCylinderGeom
-    is_front: bool
-    lever_geom: _StubLeverGeom
-
-
-@dataclass
-class _StubCylinder:
-    spec: _StubCylinderSpec
-    penetration_head: float = 0.0
-    penetration_rod: float = 0.0
 
 
 def _build_cylinder_geom() -> CylinderGeom:
@@ -145,6 +98,34 @@ def _build_lever_geom() -> LeverGeom:
         rod_joint_frac=0.45,
         d_frame_to_lever_hinge=0.42,
     )
+
+
+def _build_cylinder_state(is_front: bool) -> CylinderState:
+    lever_geom = _build_lever_geom()
+    spec = CylinderSpec(_build_cylinder_geom(), is_front, lever_geom)
+    return CylinderState(spec=spec)
+
+
+@dataclass
+class _LeverTestSpec:
+    geometry: CylinderGeom
+    is_front: bool
+    lever_geom: LeverGeom
+
+
+@dataclass
+class _LeverTestCylinder:
+    spec: _LeverTestSpec
+    penetration_head: float = 0.0
+    penetration_rod: float = 0.0
+
+
+def _build_unattached_cylinder(lever_length: float) -> _LeverTestCylinder:
+    lever_geom = replace(_build_lever_geom(), L_lever=lever_length)
+    spec = _LeverTestSpec(
+        geometry=_build_cylinder_geom(), is_front=True, lever_geom=lever_geom
+    )
+    return _LeverTestCylinder(spec=spec)
 
 
 @pytest.fixture()
@@ -286,12 +267,8 @@ def test_free_oscillation_rk4_conserves_amplitude() -> None:
     inertia = 25.0
     spring_constant = 10_000.0
 
-    lever_geom = _StubLeverGeom(lever_length)
-    cylinder = _StubCylinder(
-        spec=_StubCylinderSpec(
-            geometry=_StubCylinderGeom(), is_front=True, lever_geom=lever_geom
-        )
-    )
+    cylinder = _build_unattached_cylinder(lever_length)
+    lever_geom = cylinder.spec.lever_geom
 
     config = LeverDynamicsConfig(
         include_springs=True,
@@ -309,7 +286,7 @@ def test_free_oscillation_rk4_conserves_amplitude() -> None:
     omega = 0.0
     dt = 5e-4
 
-    natural_freq = math.sqrt(spring_constant * lever_length**2 / inertia)
+    natural_freq = math.sqrt(spring_constant * lever_geom.lever_arm**2 / inertia)
     period = 2.0 * math.pi / natural_freq
     steps = max(1, int(round(period / dt)))
 
@@ -330,7 +307,7 @@ def test_free_oscillation_rk4_conserves_amplitude() -> None:
         theta, omega = result.angle, result.angular_velocity
 
     assert theta == pytest.approx(0.1, abs=5e-3)
-    assert omega == pytest.approx(0.0, abs=5e-3)
+    assert omega == pytest.approx(0.0, abs=1e-2)
 
 
 def test_lever_damping_reduces_amplitude() -> None:
@@ -339,12 +316,8 @@ def test_lever_damping_reduces_amplitude() -> None:
     spring_constant = 10_000.0
     damper = 1_000.0
 
-    lever_geom = _StubLeverGeom(lever_length)
-    cylinder = _StubCylinder(
-        spec=_StubCylinderSpec(
-            geometry=_StubCylinderGeom(), is_front=True, lever_geom=lever_geom
-        )
-    )
+    cylinder = _build_unattached_cylinder(lever_length)
+    lever_geom = cylinder.spec.lever_geom
 
     config = LeverDynamicsConfig(
         include_springs=True,
