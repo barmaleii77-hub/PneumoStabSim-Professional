@@ -409,7 +409,7 @@ class GraphicsPanel(QWidget):
         save_btn.setToolTip(
             self.preset_manager.get_tooltip(
                 "save_current_button",
-                "Сохранить текущие настройки в current graphics", 
+                "Сохранить текущие настройки в current graphics",
             )
         )
         save_btn.clicked.connect(self.save_current)
