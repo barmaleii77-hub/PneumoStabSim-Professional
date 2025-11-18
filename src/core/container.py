@@ -1,8 +1,16 @@
 """Dependency injection primitives for core services.
 
-The renovation master plan calls for a lightweight service container that can
-wire together the Python back-end without relying on Qt specific globals.  The
-container implemented here is intentionally minimal yet opinionated:
+Alignment with the renovation plans:
+
+* Master plan: `docs/RENOVATION_MASTER_PLAN.md`, Section 5 "Application
+  Architecture Refinement", action item 2 "Service Composition" describing the
+  typed service container with canonical registrations.
+* Phase 2: `docs/RENOVATION_PHASE_2_ARCHITECTURE_AND_SETTINGS_PLAN.md`, work
+  breakdown item "Dependency Injection & Services" and log entry
+  "Service container foundation" (2025-07-02) that tracks the bootstrap
+  lifecycle and override strategy.
+
+The container implemented here is intentionally minimal yet opinionated:
 
 * Services are addressed by their Python type which enables static type checkers
   and IDEs to infer the returned instance types.
