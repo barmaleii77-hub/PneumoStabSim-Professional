@@ -1,5 +1,6 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
+import QtQuick3D 6.10
 import PneumoStabSim 1.0
 import "./"
 import "./effects"          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
@@ -203,19 +204,21 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-        fogEnabled: fogHelpersSupported && root.fogEnabled
-        fogDepthEnabled: fogHelpersSupported && root.fogDepthEnabled
-        fogColor: fogHelpersSupported ? root.fogColor : backgroundColor
-        fogDensity: fogHelpersSupported ? root.fogDensity : 0.0
-        fogDepthCurve: fogHelpersSupported ? root.fogDepthCurve : 1.0
-        fogDepthNear: fogHelpersSupported ? root.fogDepthNear : 0.0
-        fogDepthFar: fogHelpersSupported ? root.fogDepthFar : 0.0
-        fogHeightEnabled: fogHelpersSupported && root.fogHeightEnabled
-        fogLeastIntenseY: fogHelpersSupported ? root.fogLeastIntenseY : 0.0
-        fogMostIntenseY: fogHelpersSupported ? root.fogMostIntenseY : 0.0
-        fogHeightCurve: fogHelpersSupported ? root.fogHeightCurve : 1.0
-        fogTransmitEnabled: fogHelpersSupported && root.fogTransmitEnabled
-        fogTransmitCurve: fogHelpersSupported ? root.fogTransmitCurve : 1.0
+        fog: fogHelpersSupported ? Fog {
+            enabled: root.fogEnabled
+            color: root.fogColor
+            density: root.fogDensity
+            depthEnabled: root.fogDepthEnabled && root.fogEnabled
+            depthCurve: root.fogDepthCurve
+            depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
+            depthFar: environmentDefaults.toSceneLength(root.fogDepthFar)
+            heightEnabled: root.fogHeightEnabled
+            leastIntenseY: environmentDefaults.toSceneLength(root.fogLeastIntenseY)
+            mostIntenseY: environmentDefaults.toSceneLength(root.fogMostIntenseY)
+            heightCurve: root.fogHeightCurve
+            transmitEnabled: root.fogTransmitEnabled
+            transmitCurve: root.fogTransmitCurve
+        } : null
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue
