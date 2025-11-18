@@ -10,6 +10,7 @@ from .baseline import (
     load_materials_baseline,
 )
 from .cache import MaterialCache, MATERIAL_CACHE_TOKEN, get_material_cache
+from .state import MaterialStateStore
 
 __all__ = [
     "BaselineLoadError",
@@ -19,6 +20,7 @@ __all__ = [
     "SkyboxOrientation",
     "TonemapPreset",
     "MaterialCache",
+    "MaterialStateStore",
     "MATERIAL_CACHE_TOKEN",
     "get_material_cache",
     "load_materials_baseline",
