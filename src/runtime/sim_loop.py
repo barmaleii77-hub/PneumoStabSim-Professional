@@ -55,10 +55,6 @@ from src.pneumo.thermo import PolytropicParameters
 from src.road.engine import create_road_input_from_preset
 from src.road.scenarios import get_preset_by_name, resolve_preset_name
 from src.common.units import KELVIN_0C, PA_ATM
-from src.core.settings_manager import (
-    create_default_gas_network,
-    create_default_system_configuration,
-)
 from src.runtime.steps import (
     PhysicsStepState,
     compute_kinematics,
@@ -176,11 +172,15 @@ class PhysicsWorker(QObject):
     def _load_initial_settings(self) -> None:
         """Load simulation-related settings from SettingsManager"""
         defaults = self.settings_manager.get_all_defaults()
+        runtime_defaults = self.settings_manager.get_runtime_defaults()
 
         def _current(path: str) -> Any:
             return self.settings_manager.get(path, None)
 
         def _default(category: str, key: str) -> Any:
+            runtime_block = runtime_defaults.get(category, {})
+            if isinstance(runtime_block, dict) and key in runtime_block:
+                return runtime_block.get(key)
             block = defaults.get(category, {})
             if isinstance(block, dict):
                 return block.get(key)
@@ -493,9 +493,7 @@ class PhysicsWorker(QObject):
             # Initialize physics state (at rest)
             self.physics_state = create_initial_conditions()
 
-            config_defaults = create_default_system_configuration(
-                settings_manager=self.settings_manager
-            )
+            config_defaults = self.settings_manager.create_default_system_configuration()
 
             receiver_spec = ReceiverSpec(
                 V_min=self._volume_limits[0],
@@ -556,9 +554,7 @@ class PhysicsWorker(QObject):
                 master_isolation_open=self.master_isolation_open,
             )
 
-            gas_network = create_default_gas_network(
-                structure, settings_manager=self.settings_manager
-            )
+            gas_network = self.settings_manager.create_default_gas_network(structure)
 
             relief_min_threshold = _get_pressure_setting(
                 "relief_min_pressure", float(gas_network.relief_min_threshold)

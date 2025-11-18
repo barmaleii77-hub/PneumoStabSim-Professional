@@ -114,8 +114,45 @@ def _default_metadata_snapshot() -> dict[str, Any]:
     return json.loads(json.dumps(metadata))
 
 
+@lru_cache(maxsize=1)
+def load_runtime_defaults() -> dict[str, Any]:
+    """Load lightweight runtime defaults for timing and pneumatics."""
+
+    try:
+        raw = RUNTIME_DEFAULTS_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        logger.warning(
+            "Runtime defaults not found at %s; returning empty mapping.",
+            RUNTIME_DEFAULTS_PATH,
+        )
+        return {}
+    except OSError as exc:
+        logger.error(
+            "Unable to read runtime defaults %s: %s", RUNTIME_DEFAULTS_PATH, exc
+        )
+        return {}
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        logger.error(
+            "Runtime defaults %s contain invalid JSON: %s", RUNTIME_DEFAULTS_PATH, exc
+        )
+        return {}
+
+    if not isinstance(payload, dict):
+        logger.error(
+            "Runtime defaults root must be an object (found %s); ignoring payload.",
+            type(payload).__name__,
+        )
+        return {}
+
+    return payload
+
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LOG_DIR = PROJECT_ROOT / "logs" / "validation"
+RUNTIME_DEFAULTS_PATH = PROJECT_ROOT / "config" / "runtime_defaults.json"
 
 
 class SettingsValidationError(ValueError):
