@@ -829,7 +829,9 @@
         "color_adjustments_active": true,
         "adjustment_brightness": 0.0,
         "adjustment_contrast": 0.0,
-        "adjustment_saturation": 0.0
+        "adjustment_saturation": 0.0,
+        "effects_bypass": false,
+        "effects_bypass_reason": ""
       },
       "scene": {
         "scale_factor": 1.0,

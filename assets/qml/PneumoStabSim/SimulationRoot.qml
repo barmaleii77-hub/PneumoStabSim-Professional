@@ -32,6 +32,10 @@ Item {
     property var postEffects: null
     property var sceneView: null
 
+    // Manual overrides for post-processing toggles (from UI/settings)
+    property bool effectsBypassRequested: false
+    property string effectsBypassReason: ""
+
     // Post-processing bypass
     property bool postProcessingBypassed: false
     property string postProcessingBypassReason: ""
@@ -353,7 +357,52 @@ Item {
         _logBatchEvent("function_called","applyEffectsUpdates")
         var normalized = _normaliseState(params)
         effectsState = _deepMerge(effectsState, normalized)
+        if (normalized.effects_bypass !== undefined)
+            _applyEffectsBypassOverride(normalized.effects_bypass, normalized.effects_bypass_reason)
+        else if (normalized.effects_bypass_reason !== undefined)
+            _applyEffectsBypassOverride(effectsBypassRequested, normalized.effects_bypass_reason)
         _storeLastUpdate("effects", normalized)
+    }
+
+    function _applyEffectsBypassOverride(active, reason) {
+        var target = !!active
+        var normalizedReason = reason !== undefined && reason !== null
+                ? String(reason)
+                : ""
+        effectsBypassRequested = target
+        effectsBypassReason = normalizedReason
+
+        if (postEffects && typeof postEffects.setEffectPersistentFailure === "function") {
+            var manualReason = normalizedReason.length ? normalizedReason : qsTr("Manual post-processing bypass")
+            try {
+                postEffects.setEffectPersistentFailure("manual_bypass", target, manualReason)
+                return
+            } catch (error) {
+                console.debug("[SimulationRoot] manual bypass routing failed", error)
+            }
+        }
+
+        // Fallback when PostEffects is unavailable
+        if (sceneView) {
+            try {
+                if (target) {
+                    postProcessingEffectBackup = sceneView.effects && typeof sceneView.effects.slice === "function"
+                        ? sceneView.effects.slice()
+                        : []
+                    sceneView.effects = []
+                    postProcessingBypassed = true
+                    postProcessingBypassReason = normalizedReason
+                } else {
+                    if (postProcessingEffectBackup && postProcessingEffectBackup.length > 0)
+                        sceneView.effects = postProcessingEffectBackup
+                    postProcessingEffectBackup = []
+                    postProcessingBypassed = false
+                    postProcessingBypassReason = normalizedReason
+                }
+            } catch (err) {
+                console.debug("[SimulationRoot] fallback bypass handling failed", err)
+            }
+        }
     }
 
     function rollbackMaterials() {

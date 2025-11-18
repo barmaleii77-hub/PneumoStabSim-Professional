@@ -240,6 +240,8 @@ Item {
             controls.suspensionThresholdSlider.value = Number(
                 _sceneState.suspension && _sceneState.suspension.rod_warning_threshold_m
             ) || 0.001
+            controls.postEffectsBypass.checked = !!_sceneState.effects_bypass
+            controls.postEffectsReason.text = _sceneState.effects_bypass_reason || ""
         } finally {
             _syncingSceneControls = false
         }
@@ -442,6 +444,47 @@ Item {
                 }
             }
 
+            GroupBox {
+                Layout.fillWidth: true
+                title: qsTr("Post-processing overrides")
+                background: Rectangle {
+                    radius: 6
+                    color: Qt.darker(root.surfaceColor, 1.1)
+                    border.color: root.borderColor
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    CheckBox {
+                        id: postEffectsBypass
+                        text: qsTr("Bypass post-effects")
+                        checked: false
+                        onToggled: root._setSceneValue("effects_bypass", checked)
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Label {
+                            text: qsTr("Bypass reason")
+                            color: root.textColor
+                            Layout.preferredWidth: 140
+                        }
+                        TextField {
+                            id: postEffectsReason
+                            Layout.fillWidth: true
+                            placeholderText: qsTr("Describe why post-processing is bypassed")
+                            onEditingFinished: root._setSceneValue(
+                                                   "effects_bypass_reason",
+                                                   text
+                                               )
+                        }
+                    }
+                }
+            }
+
             Component.onCompleted: root._registerSceneControls({
                 scaleSlider: scaleSlider,
                 exposureSlider: exposureSlider,
@@ -449,7 +492,9 @@ Item {
                 baseColorSwatch: baseColorSwatch,
                 roughnessSlider: roughnessSlider,
                 metalnessSlider: metalnessSlider,
-                suspensionThresholdSlider: suspensionThresholdSlider
+                suspensionThresholdSlider: suspensionThresholdSlider,
+                postEffectsBypass: postEffectsBypass,
+                postEffectsReason: postEffectsReason
             })
         }
     }
