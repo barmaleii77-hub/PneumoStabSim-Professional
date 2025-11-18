@@ -132,7 +132,9 @@ def test_detect_platform_slug_includes_machine(monkeypatch: pytest.MonkeyPatch) 
     assert ApplicationRunner._detect_platform_slug() == "linux-x86_64"
 
 
-def test_detect_platform_slug_handles_missing_machine(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_detect_platform_slug_handles_missing_machine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(app_runner.sys, "platform", "darwin")
     monkeypatch.setattr(app_runner.platform, "machine", lambda: "")
 
@@ -292,7 +294,9 @@ def test_startup_environment_snapshot_includes_diag_trace(
 
 
 def test_log_startup_environment_logs_to_file(
-    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")

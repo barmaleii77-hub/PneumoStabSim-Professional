@@ -28,6 +28,7 @@ from config.constants import get_geometry_presets
 
 from src.common.settings_manager import get_settings_manager
 from src.ui.parameter_slider import ParameterSlider
+from src.ui.panels.geometry.accordion_sections import build_geometry_sections
 
 
 def _build_logger(channel: str, *, panel: str | None = None):
@@ -684,157 +685,13 @@ class GeometryPanelAccordion(SettingsBackedAccordionPanel):
             preset_settings_key="active_preset",
         )
 
-        field_specs = (
-            (
-                "wheelbase",
-                SliderFieldSpec(
-                    key="wheelbase",
-                    label="Wheelbase (L)",
-                    min_value=2.0,
-                    max_value=5.0,
-                    step=0.01,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=3.0,
-                    settings_key="wheelbase",
-                    telemetry_key="geometry.wheelbase",
-                ),
-            ),
-            (
-                "track_width",
-                SliderFieldSpec(
-                    key="track_width",
-                    label="Track Width (B)",
-                    min_value=1.0,
-                    max_value=2.5,
-                    step=0.01,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=1.8,
-                    settings_key="track",
-                    telemetry_key="geometry.track",
-                ),
-            ),
-            (
-                "lever_arm",
-                SliderFieldSpec(
-                    key="lever_arm",
-                    label="Lever Arm (r)",
-                    min_value=0.1,
-                    max_value=0.6,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.3,
-                    settings_key="lever_length",
-                    telemetry_key="geometry.lever_length",
-                ),
-            ),
-            (
-                "lever_angle",
-                SliderFieldSpec(
-                    key="lever_angle",
-                    label="Lever Angle (?)",
-                    min_value=-30.0,
-                    max_value=30.0,
-                    step=0.1,
-                    decimals=2,
-                    unit="deg",
-                    allow_range_edit=False,
-                    default=0.0,
-                    read_only=True,
-                    emit_signal=False,
-                    telemetry_key="geometry.lever_angle",
-                ),
-            ),
-            (
-                "cylinder_stroke",
-                SliderFieldSpec(
-                    key="cylinder_stroke",
-                    label="Cylinder Stroke (s_max)",
-                    min_value=0.05,
-                    max_value=0.5,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.2,
-                    settings_key="stroke_m",
-                    telemetry_key="geometry.stroke",
-                ),
-            ),
-            (
-                "piston_diameter",
-                SliderFieldSpec(
-                    key="piston_diameter",
-                    label="Piston Diameter (D_p)",
-                    min_value=0.03,
-                    max_value=0.15,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.08,
-                    settings_key="cyl_diam_m",
-                    telemetry_key="geometry.cyl_diameter",
-                ),
-            ),
-            (
-                "rod_diameter",
-                SliderFieldSpec(
-                    key="rod_diameter",
-                    label="Rod Diameter (D_r)",
-                    min_value=0.01,
-                    max_value=0.10,
-                    step=0.001,
-                    decimals=3,
-                    unit="m",
-                    allow_range_edit=True,
-                    default=0.04,
-                    settings_key="rod_diameter_m",
-                    telemetry_key="geometry.rod_diameter",
-                ),
-            ),
-            (
-                "frame_mass",
-                SliderFieldSpec(
-                    key="frame_mass",
-                    label="Frame Mass (M_frame)",
-                    min_value=500.0,
-                    max_value=5000.0,
-                    step=10.0,
-                    decimals=1,
-                    unit="kg",
-                    allow_range_edit=True,
-                    default=1500.0,
-                    settings_key="frame_mass",
-                    telemetry_key="geometry.frame_mass",
-                ),
-            ),
-            (
-                "wheel_mass",
-                SliderFieldSpec(
-                    key="wheel_mass",
-                    label="Wheel Mass (M_wheel)",
-                    min_value=10.0,
-                    max_value=200.0,
-                    step=1.0,
-                    decimals=1,
-                    unit="kg",
-                    allow_range_edit=True,
-                    default=50.0,
-                    settings_key="wheel_mass",
-                    telemetry_key="geometry.wheel_mass",
-                ),
-            ),
-        )
-
-        for attr, spec in field_specs:
-            slider = self.add_slider_field(spec)
-            setattr(self, attr, slider)
+        for section in build_geometry_sections():
+            created = section.register(self)
+            if created:
+                setattr(self, section.name, created[0])
+                if len(created) > 1:
+                    for index, widget in enumerate(created[1:], start=1):
+                        setattr(self, f"{section.name}_{index}", widget)
 
         self._initialise_geometry_presets()
 

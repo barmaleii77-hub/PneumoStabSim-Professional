@@ -315,9 +315,15 @@ def _render_exit_status(exit_code: int, locale: str) -> str:
     success = exit_code == 0
     if locale == "ru":
         return (
-            "✅ Запуск завершён успешно." if success else f"⚠️ Приложение завершилось с кодом {exit_code}."
+            "✅ Запуск завершён успешно."
+            if success
+            else f"⚠️ Приложение завершилось с кодом {exit_code}."
         )
-    return "✅ Launch completed successfully." if success else f"⚠️ Application exited with code {exit_code}."
+    return (
+        "✅ Launch completed successfully."
+        if success
+        else f"⚠️ Application exited with code {exit_code}."
+    )
 
 
 def main() -> int:

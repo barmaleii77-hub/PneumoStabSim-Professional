@@ -28,6 +28,14 @@ Pane {
     signal shaderWarningRegistered(string effectId, string message)
     signal shaderWarningCleared(string effectId)
 
+    /** Снимок ключевых параметров геометрии, обновляемый из Python. */
+    property real geometryWheelbase: NaN
+    property real geometryTrack: NaN
+    property real geometryLeverLength: NaN
+    property real geometryCylinderStroke: NaN
+    property real geometryPistonDiameter: NaN
+    property real geometryRodDiameter: NaN
+
     /** Кэш активных предупреждений шейдеров (effectId -> message). */
     property var shaderWarningState: ({})
 
@@ -92,7 +100,22 @@ Pane {
      * В заглушке просто ретранслируем полезную нагрузку наружу.
      */
     function applyGeometryUpdates(params) {
-        geometryUpdatesApplied(_normalizeGeometryPayload(params))
+        var normalized = _normalizeGeometryPayload(params)
+
+        if (Object.prototype.hasOwnProperty.call(normalized, "wheelbase"))
+            geometryWheelbase = Number(normalized.wheelbase)
+        if (Object.prototype.hasOwnProperty.call(normalized, "track"))
+            geometryTrack = Number(normalized.track)
+        if (Object.prototype.hasOwnProperty.call(normalized, "lever_length"))
+            geometryLeverLength = Number(normalized.lever_length)
+        if (Object.prototype.hasOwnProperty.call(normalized, "stroke_m"))
+            geometryCylinderStroke = Number(normalized.stroke_m)
+        if (Object.prototype.hasOwnProperty.call(normalized, "cyl_diam_m"))
+            geometryPistonDiameter = Number(normalized.cyl_diam_m)
+        if (Object.prototype.hasOwnProperty.call(normalized, "rod_diameter_m"))
+            geometryRodDiameter = Number(normalized.rod_diameter_m)
+
+        geometryUpdatesApplied(normalized)
     }
 
     /**
