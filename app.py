@@ -133,6 +133,9 @@ def _ensure_qt_runtime_paths(project_root: Path) -> None:
 
         os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
         os.environ.setdefault("PSS_QML_SCENE", "realism")
+        # Установка политики округления масштабирования до создания QApplication
+        # устраняет предупреждение Qt о поздней конфигурации DPI.
+        os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
     except Exception:
         pass
 
