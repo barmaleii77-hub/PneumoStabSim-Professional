@@ -9,6 +9,12 @@ on:
       - develop
       - 'feature/*'
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs nightly sweep
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs nightly sweep on PRs
   workflow_dispatch:
 
 env:

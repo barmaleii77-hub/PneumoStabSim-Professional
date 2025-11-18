@@ -8,6 +8,11 @@ on:
       - develop
       - 'feature/*'
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs autonomous checks
+  pull_request:
+    branches:
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch runs autonomous checks on PRs
   workflow_dispatch:
 
 env:

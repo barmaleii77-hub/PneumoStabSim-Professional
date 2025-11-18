@@ -9,6 +9,12 @@ on:
       - develop
       - 'feature/*'
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch stays monitored
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch stays monitored on PRs
   workflow_dispatch:
 
 permissions:
@@ -39,230 +45,98 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           python3 <<'PY'
-import json
-import os
-import sys
-import urllib.error
-import urllib.parse
-import urllib.request
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+          import json
+          import os
+          import sys
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
 
-def fail(message: str) -> None:
-    print(f"::error::{message}")
-    sys.exit(1)
+          def fail(message: str) -> None:
+              print(f"::error::{message}")
+              sys.exit(1)
 
-api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
-token = os.environ.get("GH_TOKEN")
-repo = os.environ.get("REPO")
-if not token or not repo:
-    fail("Missing authentication context for branch audit.")
+          api_url = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
+          token = os.environ.get("GH_TOKEN")
+          repo = os.environ.get("REPO")
+          if not token or not repo:
+              fail("Missing authentication context for branch audit.")
 
-try:
-    threshold_days = int(os.environ.get("THRESHOLD_DAYS", "30"))
-except ValueError as exc:
-    fail(f"Invalid THRESHOLD_DAYS value: {exc}")
+          try:
+              threshold_days = int(os.environ.get("THRESHOLD_DAYS", "30"))
+          except ValueError as exc:
+              fail(f"Invalid THRESHOLD_DAYS value: {exc}")
 
-protected_branches = {
-    branch.strip()
-    for branch in os.environ.get("PROTECTED_BRANCHES", "").split(",")
-    if branch.strip()
-}
-issue_label = os.environ.get("ISSUE_LABEL", "branch-audit")
+          protected_branches = {
+              branch.strip()
+              for branch in os.environ.get("PROTECTED_BRANCHES", "").split(",")
+              if branch.strip()
+          }
+          issue_label = os.environ.get("ISSUE_LABEL", "branch-audit")
 
-headers = {
-    "Authorization": f"token {token}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-}
+          headers = {
+              "Authorization": f"token {token}",
+              "Accept": "application/vnd.github+json",
+              "User-Agent": "branch-audit-script",
+          }
 
+          def api_request(path: str) -> dict:
+              url = f"{api_url}/{path.lstrip('/') }"
+              req = urllib.request.Request(url, headers=headers)
+              try:
+                  with urllib.request.urlopen(req) as resp:
+                      if resp.status >= 400:
+                          fail(f"GitHub API request failed: {resp.status} {resp.reason}")
+                      return json.load(resp)
+              except urllib.error.HTTPError as exc:
+                  fail(f"GitHub API error: {exc}")
+              except urllib.error.URLError as exc:
+                  fail(f"Network error when calling GitHub API: {exc}")
 
-def api_request(path: str, *, method: str = "GET", params=None, data=None):
-    url = f"{api_url}/{path.lstrip('/')}"
-    if params:
-        url = f"{url}?{urllib.parse.urlencode(params)}"
-    request = urllib.request.Request(url, method=method, headers=headers)
-    if data is not None:
-        payload = json.dumps(data).encode("utf-8")
-        request.data = payload
-        request.add_header("Content-Type", "application/json")
-    try:
-        with urllib.request.urlopen(request) as response:
-            body = response.read()
-            if not body:
-                return None
-            return json.loads(body.decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            return None
-        raise
+          def days_since(timestamp: str) -> int:
+              dt = datetime.fromisoformat(timestamp.rstrip("Z")).replace(tzinfo=timezone.utc)
+              return (datetime.now(timezone.utc) - dt).days
 
+          def filter_stale(branches: list[dict], threshold: int) -> list[dict]:
+              stale = []
+              for branch in branches:
+                  name = branch.get("name")
+                  if not name or name in protected_branches:
+                      continue
 
-def api_paginate(path: str, *, params=None):
-    per_page = int((params or {}).get("per_page", 100))
-    page = 1
-    results = []
-    while True:
-        page_params = dict(params or {})
-        page_params["per_page"] = per_page
-        page_params["page"] = page
-        data = api_request(path, params=page_params)
-        if not data:
-            break
-        results.extend(data)
-        if len(data) < per_page:
-            break
-        page += 1
-    return results
+                  commit = branch.get("commit", {})
+                  commit_url = commit.get("url")
+                  if not commit_url:
+                      continue
 
+                  commit_data = api_request(commit_url.replace(api_url + "/", ""))
+                  last_commit_date = commit_data.get("commit", {}).get("committer", {}).get("date")
+                  if not last_commit_date:
+                      continue
 
-branches = api_paginate(f"repos/{repo}/branches", params={"per_page": 100})
-repo_info = api_request(f"repos/{repo}") or {}
-default_branch = repo_info.get("default_branch", "main")
-protected_branches.update({"main", "develop", "gh-pages", default_branch})
+                  age_days = days_since(last_commit_date)
+                  if age_days >= threshold:
+                      stale.append({
+                          "name": name,
+                          "age_days": age_days,
+                          "last_commit": last_commit_date,
+                      })
+              return stale
 
-cutoff = datetime.now(timezone.utc) - timedelta(days=threshold_days)
-stale = []
+          branches = api_request(f"repos/{repo}/branches?per_page=100")
+          stale_branches = filter_stale(branches, threshold_days)
 
-for branch in branches:
-    name = branch.get("name")
-    if not name or name in protected_branches or name.startswith("dependabot/"):
-        continue
-    sha = branch.get("commit", {}).get("sha")
-    if not sha:
-        continue
-    commit_data = api_request(f"repos/{repo}/commits/{sha}") or {}
-    commit_payload = commit_data.get("commit", {})
-    date_str = (
-        commit_payload.get("committer", {}).get("date")
-        or commit_payload.get("author", {}).get("date")
-    )
-    if not date_str:
-        continue
-    commit_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-    if commit_date < cutoff:
-        stale.append({
-            "name": name,
-            "commit_date": commit_date,
-            "sha": sha,
-        })
+          summary_lines = []
+          if not stale_branches:
+              summary_lines.append("All branches are fresh. No action required.")
+          else:
+              summary_lines.append("The following branches appear stale:")
+              for branch in sorted(stale_branches, key=lambda b: b["age_days"], reverse=True):
+                  summary_lines.append(
+                      f"- {branch['name']}: {branch['age_days']} days since last commit (last at {branch['last_commit']})"
+                  )
 
-summary_lines = [
-    "## Branch Audit Report",
-    "",
-    f"Threshold: {threshold_days} days (cut-off {cutoff:%Y-%m-%d})",
-    "",
-]
-
-if not stale:
-    summary_lines.append("✅ No stale branches detected.")
-else:
-    summary_lines.append("The following branches have had no commits within the threshold:")
-    summary_lines.append("")
-    for item in sorted(stale, key=lambda entry: entry["commit_date"]):
-        summary_lines.append(
-            f"- `{item['name']}` — last commit on {item['commit_date']:%Y-%m-%d}"
-        )
-    summary_lines.append("")
-    summary_lines.append(
-        "> Consider archiving, rebasing, or merging these branches to keep the history tidy."
-    )
-
-summary_path = Path(os.environ["GITHUB_STEP_SUMMARY"])
-summary_path.write_text("\n".join(summary_lines) + "\n", encoding="utf-8")
-
-output_path = os.environ.get("GITHUB_OUTPUT")
-if output_path:
-    with open(output_path, "a", encoding="utf-8") as handle:
-        handle.write(f"stale-count={len(stale)}\n")
-
-if not stale:
-    sys.exit(0)
-
-for item in stale:
-    print(f"::warning::Branch '{item['name']}' stale since {item['commit_date']:%Y-%m-%d}")
-
-
-def ensure_label(name: str) -> None:
-    label_path = f"repos/{repo}/labels/{urllib.parse.quote(name)}"
-    label = api_request(label_path)
-    if label is None:
-        api_request(
-            f"repos/{repo}/labels",
-            method="POST",
-            data={
-                "name": name,
-                "color": "0E8A16",
-                "description": "Automated branch audit notifications",
-            },
-        )
-
-
-def list_open_issues(label: str):
-    issues = api_paginate(
-        f"repos/{repo}/issues",
-        params={
-            "state": "open",
-            "labels": label,
-            "per_page": 100,
-        },
-    )
-    return [issue for issue in issues if "pull_request" not in issue]
-
-
-def upsert_issue(branches_info):
-    ensure_label(issue_label)
-    open_issues = list_open_issues(issue_label)
-    now_iso = datetime.now(timezone.utc).isoformat()
-    table_lines = [
-        "| Branch | Last commit | SHA | Link |",
-        "| --- | --- | --- | --- |",
-    ]
-    for entry in sorted(branches_info, key=lambda item: item["commit_date"], reverse=True):
-        table_lines.append(
-            "| {name} | {date} | {sha} | https://github.com/{repo}/tree/{name} |".format(
-                name=entry["name"],
-                date=entry["commit_date"].isoformat(),
-                sha=entry["sha"],
-                repo=repo,
-            )
-        )
-
-    issue_body = "\n".join(
-        [
-            f"Branch audit executed on {now_iso}.",
-            f"Threshold: {threshold_days} days.",
-            "",
-            *table_lines,
-        ]
-    )
-
-    if not open_issues:
-        api_request(
-            f"repos/{repo}/issues",
-            method="POST",
-            data={
-                "title": "Branch audit: stale branches detected",
-                "body": issue_body,
-                "labels": [issue_label],
-            },
-        )
-        return
-
-    issue_number = open_issues[0]["number"]
-    api_request(
-        f"repos/{repo}/issues/{issue_number}",
-        method="PATCH",
-        data={"body": issue_body},
-    )
-    api_request(
-        f"repos/{repo}/issues/{issue_number}/comments",
-        method="POST",
-        data={
-            "body": f"Branch audit refreshed on {now_iso}. Found {len(branches_info)} stale branches.",
-        },
-    )
-
-
-upsert_issue(stale)
-PY
+          Path(os.environ.get("GITHUB_STEP_SUMMARY", "branch_audit_summary.md")).write_text("\n".join(summary_lines), encoding="utf-8")
+          PY
