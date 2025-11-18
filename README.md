@@ -23,9 +23,11 @@
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libgl1 libegl1 libxkbcommon0
+sudo apt-get install -y libgl1 libegl1 libgles2 libxkbcommon0
 make uv-sync
 ```
 
-Альтернатива: выполните `scripts/setup_linux.sh` (без флага `--skip-system`) — скрипт установит системные пакеты, синхронизирует
-Python-зависимости (включая PyYAML 6.0.3) и подготовит окружение для запуска `pytest`.
+Если при запуске тестов появляются сообщения об отсутствующих Qt/GL библиотеках (например, `libEGL.so.1` или `libxkbcommon.so.0`),
+используйте скрипт `tools/install_qt_runtime.sh` или полный установщик `scripts/setup_linux.sh` (без флага `--skip-system`).
+Оба варианта автоматически подтянут системные зависимости, синхронизируют Python-зависимости (включая PyYAML 6.0.3) и подготовят
+окружение для запуска `pytest`.
