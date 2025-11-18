@@ -5,14 +5,14 @@
     "options_validate": "Запускает проверку зависимостей и сообщает о конфликтах перед сохранением."
   },
   "presets": {
-    "geometry.compact": {
-      "label": "Компактная рама",
-      "description": "Уменьшает ключевые размеры для отладки в стеснённом пространстве.",
-      "patch": {
-        "frame_length_m": 5.5,
-        "frame_beam_size_m": 0.24,
-        "wheelbase": 3.4
+      "geometry.compact": {
+        "label": "Компактная рама",
+        "description": "Уменьшает ключевые размеры для отладки в стеснённом пространстве.",
+        "patch": {
+          "frame_length_m": 5.5,
+          "frame_beam_size_m": 0.24,
+          "wheelbase": 5.5
+        }
       }
-    }
   }
 }
