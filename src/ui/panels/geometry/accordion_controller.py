@@ -12,7 +12,12 @@ from typing import Any
 
 from PySide6.QtCore import QObject, Signal
 
-from src.common.settings_manager import SettingsManager, get_settings_manager
+from src.common.settings_manager import (
+    SettingsEventBus,
+    SettingsManager,
+    get_settings_event_bus,
+    get_settings_manager,
+)
 
 from .accordion_panel import GeometryAccordion
 
@@ -27,11 +32,13 @@ class GeometryAccordionController(QObject):
         self,
         *,
         settings_manager: SettingsManager | None = None,
+        event_bus: SettingsEventBus | None = None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
         self.logger = logging.getLogger(__name__)
         self.settings = settings_manager or get_settings_manager()
+        self._event_bus = event_bus or get_settings_event_bus()
         self.panel = GeometryAccordion()
         self.panel.parameter_changed.connect(self._on_parameter_changed)
 
@@ -59,6 +66,8 @@ class GeometryAccordionController(QObject):
         try:
             self.settings.set("current.geometry", snapshot, auto_save=False)
             self.settings.save()
+            if self._event_bus is not None:
+                self._event_bus.emit_settings_batch({"geometry": snapshot})
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error("Failed to persist geometry snapshot: %s", exc)
         return snapshot
