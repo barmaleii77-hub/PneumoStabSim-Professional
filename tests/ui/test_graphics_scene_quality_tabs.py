@@ -9,6 +9,7 @@ pytest.importorskip(
 )
 
 from copy import deepcopy
+import json
 from pathlib import Path
 
 from PySide6.QtCore import QtMsgType, qInstallMessageHandler
@@ -208,6 +209,39 @@ def test_scene_tab_roundtrip_preserves_types(qapp):
     assert math.isclose(
         state["suspension"]["rod_warning_threshold_m"], 0.0025, rel_tol=1e-6
     )
+
+
+@pytest.mark.gui
+def test_scene_tab_save_current_persists_to_settings(monkeypatch, tmp_path, qapp):
+    from src.common import settings_manager as settings_manager_module
+
+    settings_path = tmp_path / "settings.json"
+    settings_template = Path("config/app_settings.json").read_text(encoding="utf-8")
+    settings_path.write_text(settings_template, encoding="utf-8")
+
+    original_manager = settings_manager_module._settings_manager
+    settings_manager_module.get_settings_manager(settings_path)
+
+    panel = GraphicsPanel()
+
+    try:
+        payload = panel.scene_tab.get_state()
+        payload["exposure"] = 3.2
+        payload["suspension"]["rod_warning_threshold_m"] = 0.0042
+        panel.scene_tab.set_state(payload)
+
+        panel.save_current()
+
+        saved = json.loads(settings_path.read_text(encoding="utf-8"))
+        scene_state = saved["current"]["graphics"]["scene"]
+
+        assert scene_state["exposure"] == pytest.approx(3.2)
+        assert scene_state["suspension"]["rod_warning_threshold_m"] == pytest.approx(
+            0.0042
+        )
+    finally:
+        panel.deleteLater()
+        settings_manager_module._settings_manager = original_manager
 
 
 @pytest.mark.gui
