@@ -14,6 +14,7 @@ import asyncio
 import json
 import logging
 import os
+import platform
 import signal
 import subprocess
 import sys
@@ -141,13 +142,30 @@ class ApplicationRunner:
             "PSS_HEADLESS": forced_headless or "<empty>",
             "PSS_POST_DIAG_TRACE": post_diag or "<empty>",
             "PySide6": pyside_version,
+            "platform_slug": ApplicationRunner._detect_platform_slug(),
         }
 
     @staticmethod
     def _detect_platform_slug() -> str:
-        """Return a stable platform identifier for bootstrap logic."""
+        """Return a stable platform identifier for bootstrap logic.
 
-        return sys.platform
+        The value is designed for logging and cross-platform diagnostics, so
+        we combine ``sys.platform`` with the machine architecture when
+        available. This helps differentiate between linux distributions and
+        Windows/WSL without making tests depend on host-specific strings.
+        """
+
+        base = sys.platform
+        try:
+            machine = platform.machine()
+        except Exception:  # pragma: no cover - defensive guard for exotic runtimes
+            machine = ""
+
+        normalized_machine = (machine or "").strip().lower()
+        if normalized_machine and normalized_machine not in base:
+            return f"{base}-{normalized_machine}"
+
+        return base
 
     @staticmethod
     def _format_startup_environment_message(snapshot: dict[str, str]) -> str:
@@ -155,6 +173,7 @@ class ApplicationRunner:
 
         ordered_keys = [
             "platform",
+            "platform_slug",
             "QT_QPA_PLATFORM",
             "QSG_RHI_BACKEND",
             "QT_PLUGIN_PATH",

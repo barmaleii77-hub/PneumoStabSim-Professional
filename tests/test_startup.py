@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
 import os
+import pathlib
+import sys
 import types
 
 import pytest
 
+import src.app_runner as app_runner
 from src.app_runner import ApplicationRunner
 
 from src.ui.startup import (
@@ -121,6 +125,20 @@ def test_bootstrap_graphics_environment_respects_pss_headless_flag() -> None:
     assert env["QT_QPA_PLATFORM"] == "offscreen"
 
 
+def test_detect_platform_slug_includes_machine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(app_runner.sys, "platform", "linux")
+    monkeypatch.setattr(app_runner.platform, "machine", lambda: "x86_64")
+
+    assert ApplicationRunner._detect_platform_slug() == "linux-x86_64"
+
+
+def test_detect_platform_slug_handles_missing_machine(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(app_runner.sys, "platform", "darwin")
+    monkeypatch.setattr(app_runner.platform, "machine", lambda: "")
+
+    assert ApplicationRunner._detect_platform_slug() == "darwin"
+
+
 class _DummySignal:
     def __init__(self) -> None:
         self._callback = None
@@ -229,6 +247,34 @@ def test_schedule_safe_exit_exits_cleanly(monkeypatch: pytest.MonkeyPatch) -> No
     assert "safe-exit:test" in os.environ.get("PSS_POST_DIAG_TRACE", "")
 
 
+def test_schedule_safe_exit_records_timer_and_trace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(os, "environ", {})
+
+    qt_core = _DummyQtModule.QCoreApplication._instance
+
+    def _exit(code: int) -> None:  # pragma: no cover - trivial assignment
+        qt_core.exit_code = code
+
+    qt_core.exit = _exit
+    qt_core.quit = lambda: setattr(qt_core, "quit_called", True)
+
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, _DummyQtModule, _DummyQTimer
+    )
+    runner.app_logger = logging.getLogger("app.runner.test")
+    runner.app_instance = types.SimpleNamespace()
+
+    runner._schedule_safe_exit(
+        reason="graceful", log_message="msg", console_message="console", timer_ms=15
+    )
+
+    assert isinstance(runner._safe_exit_timer, _DummyQTimer)
+    assert runner._safe_exit_timer.started_with == 15
+    assert "safe-exit:graceful" in os.environ.get("PSS_POST_DIAG_TRACE", "")
+
+
 def test_startup_environment_snapshot_includes_diag_trace(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -242,6 +288,34 @@ def test_startup_environment_snapshot_includes_diag_trace(
     assert snapshot["QT_QPA_PLATFORM"] == "offscreen"
     assert snapshot["PSS_HEADLESS"] == "1"
     assert snapshot["PSS_POST_DIAG_TRACE"] == "headless|safe-exit"
+    assert snapshot["platform_slug"].startswith(sys.platform)
+
+
+def test_log_startup_environment_logs_to_file(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("QT_QPA_PLATFORM", "offscreen")
+    monkeypatch.setenv("QSG_RHI_BACKEND", "opengl")
+    monkeypatch.setenv("PSS_POST_DIAG_TRACE", "trace-entry")
+    monkeypatch.setattr(app_runner.sys, "platform", "linux")
+    monkeypatch.setattr(app_runner.platform, "machine", lambda: "amd64")
+
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, types.SimpleNamespace(), _DummyQTimer
+    )
+    runner.platform_slug = runner._detect_platform_slug()
+
+    runner._log_startup_environment()
+
+    captured = capsys.readouterr().out
+    assert "STARTUP_ENVIRONMENT" in captured
+    assert "platform_slug=linux-amd64" in captured
+
+    log_path = tmp_path / "logs" / "startup.log"
+    assert log_path.exists()
+    contents = log_path.read_text(encoding="utf-8")
+    assert "platform_slug=linux-amd64" in contents
 
 
 def test_run_triggers_post_diagnostics_and_records_trace(
@@ -309,3 +383,59 @@ def test_run_triggers_post_diagnostics_and_records_trace(
     assert "safe-test:" in os.environ.get("PSS_POST_DIAG_TRACE", "")
     assert "bootstrap-ci" in os.environ["PSS_POST_DIAG_TRACE"]
     assert scheduled == ["cli-safe"]
+
+
+def test_run_honours_env_forced_diagnostics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(os, "environ", {"PSS_POST_DIAG_TRACE": "auto"})
+
+    class _Args:
+        verbose = False
+        safe_mode = False
+        safe_cli_mode = False
+        safe_runtime = True
+        test_mode = False
+        diag = False
+        legacy = False
+        no_qml = False
+        force_disable_qml_3d = False
+        force_disable_qml_3d_reasons: tuple[str, ...] = ()
+
+    runner = ApplicationRunner(
+        object, lambda *_, **__: None, _DummyQtModule, _DummyQTimer
+    )
+    runner.platform_slug = "linux"
+    runner.app_instance = types.SimpleNamespace(exec=lambda: 0)
+
+    def _fake_bootstrap() -> GraphicsBootstrapState:
+        from src.ui.startup import GraphicsBootstrapState as _State
+
+        state = _State(
+            backend="opengl",
+            use_qml_3d=True,
+            safe_mode=False,
+            headless=False,
+            headless_reasons=(),
+        )
+        runner.graphics_state = state
+        return state
+
+    diagnostics_called: list[bool] = []
+
+    runner._bootstrap_graphics_environment = _fake_bootstrap  # type: ignore[assignment]
+    runner._log_startup_environment = lambda: None  # type: ignore[assignment]
+    runner.setup_high_dpi = lambda: None  # type: ignore[assignment]
+    runner.create_application = lambda: None  # type: ignore[assignment]
+    runner._validate_settings_file = lambda: None  # type: ignore[assignment]
+    runner.create_main_window = lambda: None  # type: ignore[assignment]
+    runner.setup_signals = lambda: None  # type: ignore[assignment]
+    runner._activate_safe_runtime_mode = lambda: None  # type: ignore[assignment]
+    runner.setup_test_mode = lambda _flag: None  # type: ignore[assignment]
+    runner._run_post_diagnostics = lambda: diagnostics_called.append(True)  # type: ignore[assignment]
+
+    result = runner.run(_Args())
+
+    assert result == 0
+    assert diagnostics_called == [True]
+    assert os.environ.get("PSS_POST_DIAG_TRACE") == "auto"
