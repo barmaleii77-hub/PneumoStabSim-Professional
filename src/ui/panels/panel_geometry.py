@@ -92,6 +92,7 @@ class GeometryPanel(QWidget):
         self._active_preset: str = "custom"
         self._block_preset_signal = False
         self._applying_preset = False
+        self._geometry_changed_meta: QMetaMethod | None = None
 
         from src.common import get_category_logger
 
@@ -116,20 +117,46 @@ class GeometryPanel(QWidget):
         QTimer.singleShot(300, self._emit_initial)
 
     def _emit_initial(self):
-        self._verify_geometry_subscribers()
-        payload = self._get_fast_geometry_update("init", 0.0)
-        self.geometry_changed.emit(payload)
-        self.geometry_updated.emit(self.parameters.copy())
+        meta_method = self._get_geometry_meta_method()
+        self._verify_geometry_subscribers(meta_method)
 
-    def _verify_geometry_subscribers(self) -> bool | None:
+        payload = self._get_fast_geometry_update("init", 0.0)
+        self._emit_if_connected(
+            self.geometry_changed,
+            payload,
+            "GeometryPanel: initial geometry_changed",
+            meta_method,
+        )
+        self._emit_if_connected(
+            self.geometry_updated,
+            self.parameters.copy(),
+            "GeometryPanel: initial geometry_updated",
+        )
+
+    def _get_meta_method(self, signal_obj: Any) -> QMetaMethod | None:
+        try:
+            meta_method = QMetaMethod.fromSignal(signal_obj)
+        except (TypeError, AttributeError):  # pragma: no cover - Qt internals
+            return None
+
+        if meta_method.isValid():
+            return meta_method
+        return None
+
+    def _get_geometry_meta_method(self) -> QMetaMethod | None:
+        if self._geometry_changed_meta is None:
+            self._geometry_changed_meta = self._get_meta_method(self.geometry_changed)
+        return self._geometry_changed_meta
+
+    def _is_signal_connected(
+        self, signal_obj: Any, meta_method: QMetaMethod | None = None
+    ) -> bool | None:
         """Attempt to detect whether QML subscribers are attached.
 
         Qt 6 APIs differ across releases: ``QObject.isSignalConnected`` was
-        introduced in Qt 6.5 while ``QObject.receivers`` accepts a normalized
-        signature in earlier versions.  This helper feature-detects the
-        available API to avoid touching ``SignalInstance.receivers`` (which is
-        absent in PySide6) and swallows any Qt-specific errors so initial
-        emissions never crash.
+        introduced in Qt 6.5 while some bindings expose ``SignalInstance``
+        helpers instead.  This helper feature-detects supported variants and
+        swallows any Qt-specific errors so initial emissions never crash.
 
         Returns:
             ``True`` when a supported API reports at least one receiver,
@@ -137,20 +164,18 @@ class GeometryPanel(QWidget):
             detection is unsupported.
         """
 
-        signal_obj = getattr(self, "geometry_changed", None)
-        if signal_obj is None:
-            return None
-
-        meta_method: QMetaMethod | None
-        try:
-            meta_method = QMetaMethod.fromSignal(signal_obj)
-        except (TypeError, AttributeError):  # pragma: no cover - Qt internals
-            meta_method = None
-
-        if meta_method is None or not meta_method.isValid():
-            return None
+        if meta_method is None:
+            meta_method = self._get_meta_method(signal_obj)
 
         try:
+            signal_connected = getattr(signal_obj, "isSignalConnected", None)
+            if callable(signal_connected):
+                try:
+                    return bool(signal_connected())
+                except TypeError:
+                    if meta_method is not None:
+                        return bool(signal_connected(meta_method))
+
             is_connected = getattr(self, "isSignalConnected", None)
             if callable(is_connected):
                 try:
@@ -181,6 +206,36 @@ class GeometryPanel(QWidget):
             )
 
         return None
+
+    def _verify_geometry_subscribers(
+        self, meta_method: QMetaMethod | None = None
+    ) -> bool | None:
+        signal_obj = getattr(self, "geometry_changed", None)
+        if signal_obj is None:
+            return None
+
+        return self._is_signal_connected(signal_obj, meta_method)
+
+    def _emit_if_connected(
+        self,
+        signal_obj: Any,
+        payload: Any,
+        description: str,
+        meta_method: QMetaMethod | None = None,
+    ) -> None:
+        if signal_obj is None:
+            self.logger.warning("%s skipped: signal is not available", description)
+            return
+
+        connected = self._is_signal_connected(signal_obj, meta_method)
+        if connected is False:
+            self.logger.info("%s skipped: no subscribers", description)
+            return
+
+        try:
+            signal_obj.emit(payload)
+        except RuntimeError as exc:
+            self.logger.warning("%s failed: %s", description, exc)
 
     # Чтение только из JSON
     def _load_from_settings(self) -> None:
@@ -560,7 +615,11 @@ class GeometryPanel(QWidget):
         self._persist_parameter(
             "interference_check", self.parameters["interference_check"]
         )
-        self.geometry_updated.emit(self.parameters.copy())
+        self._emit_if_connected(
+            self.geometry_updated,
+            self.parameters.copy(),
+            "GeometryPanel: interference_check toggled",
+        )
         self._mark_custom_on_user_change()
         self._show_interference_toggle_feedback(bool(checked))
 
@@ -592,7 +651,11 @@ class GeometryPanel(QWidget):
             # Preserve the current synced values; users can now adjust sliders independently.
             self._rod_link_snapshot = None
 
-        self.geometry_updated.emit(self.parameters.copy())
+        self._emit_if_connected(
+            self.geometry_updated,
+            self.parameters.copy(),
+            "GeometryPanel: link_rod_diameters toggled",
+        )
         self._mark_custom_on_user_change()
 
     def _show_interference_toggle_feedback(self, enabled: bool) -> None:
@@ -626,7 +689,11 @@ class GeometryPanel(QWidget):
             self._update_active_preset(key, update_combo=False)
         finally:
             self._applying_preset = False
-        self.geometry_updated.emit(self.parameters.copy())
+        self._emit_if_connected(
+            self.geometry_updated,
+            self.parameters.copy(),
+            "GeometryPanel: preset applied",
+        )
 
     def set_parameters(
         self, params: Mapping[str, float], *, from_preset: bool = False
@@ -655,7 +722,11 @@ class GeometryPanel(QWidget):
             for k, v in self.parameters.items():
                 self._set_parameter_value(k, v)
             self._select_preset(self._active_preset)
-            self.geometry_updated.emit(self.parameters.copy())
+            self._emit_if_connected(
+                self.geometry_updated,
+                self.parameters.copy(),
+                "GeometryPanel: reset to defaults",
+            )
         except Exception as e:
             self.logger.error(f"Reset to geometry defaults failed: {e}")
 
@@ -727,7 +798,12 @@ class GeometryPanel(QWidget):
             return
         self.parameters[param_name] = value
         geometry_3d = self._get_fast_geometry_update(param_name, value)
-        self.geometry_changed.emit(geometry_3d)
+        self._emit_if_connected(
+            self.geometry_changed,
+            geometry_3d,
+            f"GeometryPanel: live change {param_name}",
+            self._get_geometry_meta_method(),
+        )
 
     @Slot(str, float)
     def _on_parameter_changed(self, param_name: str, value: float):
@@ -739,7 +815,11 @@ class GeometryPanel(QWidget):
         self.parameters[param_name] = value
         self._persist_parameter(param_name, value)
         self.parameter_changed.emit(param_name, value)
-        self.geometry_updated.emit(self.parameters.copy())
+        self._emit_if_connected(
+            self.geometry_updated,
+            self.parameters.copy(),
+            f"GeometryPanel: parameter {param_name} changed",
+        )
         if param_name in [
             "wheelbase",
             "track",
@@ -755,8 +835,11 @@ class GeometryPanel(QWidget):
             "piston_rod_length_m",
             "piston_thickness_m",
         ]:
-            self.geometry_changed.emit(
-                self._get_fast_geometry_update(param_name, value)
+            self._emit_if_connected(
+                self.geometry_changed,
+                self._get_fast_geometry_update(param_name, value),
+                f"GeometryPanel: geometry change {param_name}",
+                self._get_geometry_meta_method(),
             )
         self._mark_custom_on_user_change()
 
@@ -785,13 +868,25 @@ class GeometryPanel(QWidget):
 
         if live:
             geometry_3d = self._get_fast_geometry_update(param_name, value)
-            self.geometry_changed.emit(geometry_3d)
+            self._emit_if_connected(
+                self.geometry_changed,
+                geometry_3d,
+                f"GeometryPanel: rod diameter live change {param_name}",
+                self._get_geometry_meta_method(),
+            )
         else:
             self._persist_parameter(param_name, value)
             self.parameter_changed.emit(param_name, value)
-            self.geometry_updated.emit(self.parameters.copy())
-            self.geometry_changed.emit(
-                self._get_fast_geometry_update(param_name, value)
+            self._emit_if_connected(
+                self.geometry_updated,
+                self.parameters.copy(),
+                f"GeometryPanel: rod diameter change {param_name}",
+            )
+            self._emit_if_connected(
+                self.geometry_changed,
+                self._get_fast_geometry_update(param_name, value),
+                f"GeometryPanel: rod diameter geometry change {param_name}",
+                self._get_geometry_meta_method(),
             )
             self._mark_custom_on_user_change()
 
