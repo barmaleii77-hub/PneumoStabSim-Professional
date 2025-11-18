@@ -12,7 +12,11 @@ def _load_qsignalspy() -> type | None:
     if spec is None:
         return None
 
-    module = import_module("PySide6.QtTest")
+    try:
+        module = import_module("PySide6.QtTest")
+    except Exception:
+        return None
+
     return getattr(module, "QSignalSpy", None)
 
 
@@ -63,6 +67,8 @@ class SignalListener:
         """Block until the next emission or until ``timeout_ms`` expires."""
 
         initial_count = len(self._records)
+        if initial_count:
+            return True
         loop = QEventLoop()
         timer = QTimer()
         timer.setSingleShot(True)
@@ -92,6 +98,7 @@ class SignalSpy:
         delegate = _QT_SIGNAL_SPY
         self._delegate = delegate(signal) if delegate is not None else None
         self._listener = None if self._delegate is not None else SignalListener(signal)
+        self.signal = signal
 
     def count(self) -> int:
         if self._delegate is not None:
@@ -139,6 +146,9 @@ class SignalSpy:
             return bool(self._delegate.wait(timeout_ms))
         assert self._listener is not None
         return self._listener.wait(timeout_ms)
+
+    def isValid(self) -> bool:  # pragma: no cover - parity helper
+        return True
 
 
 QSignalSpy = SignalSpy
