@@ -75,15 +75,24 @@ Pane {
         return null
     }
 
+    function _normalizeGeometryPayload(params) {
+        if (!params || typeof params !== "object")
+            return ({})
+
+        var normalized = {}
+        for (var key in params) {
+            if (Object.prototype.hasOwnProperty.call(params, key))
+                normalized[key] = params[key]
+        }
+        return normalized
+    }
+
     /**
      * Принимает обновления геометрии (имитация продакшн‑моста Python→QML).
      * В заглушке просто ретранслируем полезную нагрузку наружу.
      */
     function applyGeometryUpdates(params) {
-        var payload = params
-        if (!payload || typeof payload !== "object")
-            payload = {}
-        geometryUpdatesApplied(payload)
+        geometryUpdatesApplied(_normalizeGeometryPayload(params))
     }
 
     /**
