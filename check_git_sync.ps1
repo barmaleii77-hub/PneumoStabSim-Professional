@@ -1,9 +1,26 @@
 # Git Repository Status Checker
-# Version: 1.0.0
+# Version: 1.1.0
 
 Write-Host "===================================================================" -ForegroundColor Cyan
 Write-Host "  Git Repository Status Check" -ForegroundColor Cyan
 Write-Host "===================================================================" -ForegroundColor Cyan
+Write-Host ""
+
+function Invoke-GitSafe {
+    param(
+        [string[]]$Arguments
+    )
+
+    $output = & git @Arguments 2>&1
+    return [pscustomobject]@{
+        ExitCode = $LASTEXITCODE
+        Output   = $output
+    }
+}
+
+# 0. Platform detection for cross-platform logging
+$osDescription = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+Write-Host "[0] Platform: $osDescription" -ForegroundColor Green
 Write-Host ""
 
 # 1. Current branch
@@ -28,81 +45,68 @@ if ($status) {
 }
 Write-Host ""
 
-# 4. Fetch updates
-Write-Host "[4] Fetching remote updates..." -ForegroundColor Green
-git fetch origin | Out-Null
-Write-Host "    Done" -ForegroundColor Green
-Write-Host ""
+# 4. Remote detection and fetch
+$remotes = git remote
+$hasOrigin = $remotes -contains "origin"
+
+if (-not $hasOrigin) {
+    Write-Host "[4] Remote: origin not configured — skipping fetch" -ForegroundColor Yellow
+    Write-Host "    Hint: git remote add origin <url>" -ForegroundColor Gray
+    Write-Host ""
+} else {
+    Write-Host "[4] Fetching remote updates..." -ForegroundColor Green
+    $fetchResult = Invoke-GitSafe @('fetch','origin')
+    if ($fetchResult.ExitCode -eq 0) {
+        Write-Host "    Done" -ForegroundColor Green
+    } else {
+        Write-Host "    Fetch failed: $($fetchResult.Output -join ' ')" -ForegroundColor Red
+    }
+    Write-Host ""
+}
 
 # 5. Compare with remote
-Write-Host "[5] Compare with origin/${currentBranch}:" -ForegroundColor Green
-$ahead = git rev-list --count "origin/${currentBranch}..HEAD" 2>$null
-$behind = git rev-list --count "HEAD..origin/${currentBranch}" 2>$null
-
-if ($ahead -eq 0 -and $behind -eq 0) {
-    Write-Host "    Branch is fully synchronized" -ForegroundColor Green
-} elseif ($ahead -gt 0 -and $behind -eq 0) {
-    Write-Host "    Ahead by $ahead commit(s)" -ForegroundColor Cyan
-} elseif ($ahead -eq 0 -and $behind -gt 0) {
-    Write-Host "    Behind by $behind commit(s)" -ForegroundColor Yellow
+if (-not $hasOrigin) {
+    Write-Host "[5] Compare with remote: skipped (no origin remote)" -ForegroundColor Yellow
 } else {
-    Write-Host "    Diverged: +$ahead / -$behind" -ForegroundColor Red
+    Write-Host "[5] Compare with origin/${currentBranch}:" -ForegroundColor Green
+    $ahead = git rev-list --count "origin/${currentBranch}..HEAD" 2>$null
+    $behind = git rev-list --count "HEAD..origin/${currentBranch}" 2>$null
+
+    if ($ahead -eq $null -or $behind -eq $null) {
+        Write-Host "    Remote branch not found. Push to create origin/${currentBranch}." -ForegroundColor Yellow
+    } elseif ($ahead -eq 0 -and $behind -eq 0) {
+        Write-Host "    Branch is fully synchronized" -ForegroundColor Green
+    } elseif ($ahead -gt 0 -and $behind -eq 0) {
+        Write-Host "    Ahead by $ahead commit(s)" -ForegroundColor Cyan
+    } elseif ($ahead -eq 0 -and $behind -gt 0) {
+        Write-Host "    Behind by $behind commit(s)" -ForegroundColor Yellow
+    } else {
+        Write-Host "    Diverged: +$ahead / -$behind" -ForegroundColor Red
+    }
 }
 Write-Host ""
 
 # 6. Remote branches
 Write-Host "[6] Remote branches:" -ForegroundColor Green
-$remoteBranches = git branch -r
-$remoteBranches | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+if ($remotes) {
+    $remoteBranches = git branch -r
+    if ($remoteBranches) {
+        $remoteBranches | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
+    } else {
+        Write-Host "    No remote branches found" -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "    No remotes configured" -ForegroundColor Yellow
+}
 Write-Host ""
 
 # 7. Recent commits
 Write-Host "[7] Recent 5 commits:" -ForegroundColor Green
-$recentCommits = git log --oneline -5
-$recentCommits | ForEach-Object { Write-Host "    $_" -ForegroundColor White }
+$recentCommits = git log -5 --oneline
+$recentCommits | ForEach-Object { Write-Host "    $_" -ForegroundColor Gray }
 Write-Host ""
 
-# 8. Modified files
-Write-Host "[8] Modified files:" -ForegroundColor Green
-$modifiedFiles = git diff --name-only
-if ($modifiedFiles) {
-    $modifiedFiles | ForEach-Object { Write-Host "    Modified: $_" -ForegroundColor Yellow }
-} else {
-    Write-Host "    No modified files" -ForegroundColor Green
-}
-Write-Host ""
-
-# 9. Untracked files
-Write-Host "[9] Untracked files:" -ForegroundColor Green
-$untrackedFiles = git ls-files --others --exclude-standard
-if ($untrackedFiles) {
-    $untrackedFiles | ForEach-Object { Write-Host "    Untracked: $_" -ForegroundColor Cyan }
-} else {
-    Write-Host "    No untracked files" -ForegroundColor Green
-}
-Write-Host ""
-
-# 10. Recommendations
 Write-Host "===================================================================" -ForegroundColor Cyan
-Write-Host "  Recommendations:" -ForegroundColor Cyan
+Write-Host "  Git Repository Status Check Complete" -ForegroundColor Cyan
 Write-Host "===================================================================" -ForegroundColor Cyan
-
-if ($behind -gt 0) {
-    Write-Host "    [ACTION] Pull updates: git pull origin $currentBranch" -ForegroundColor Yellow
-}
-
-if ($ahead -gt 0) {
-    Write-Host "    [ACTION] Push commits: git push origin $currentBranch" -ForegroundColor Cyan
-}
-
-if ($modifiedFiles -or $untrackedFiles) {
-    Write-Host "    [ACTION] Commit changes: git add . && git commit -m 'message'" -ForegroundColor Magenta
-}
-
-if ($behind -eq 0 -and $ahead -eq 0 -and -not $modifiedFiles -and -not $untrackedFiles) {
-    Write-Host "    [OK] Repository is in perfect state!" -ForegroundColor Green
-}
-
-Write-Host ""
-Write-Host "Check completed!" -ForegroundColor Green
 Write-Host ""
