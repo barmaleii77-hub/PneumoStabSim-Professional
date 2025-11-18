@@ -745,6 +745,20 @@ class QMLBridge:
             QMLBridge.logger.debug("QML call failed: %s - %s", method_name, exc)
             return False
 
+    @staticmethod
+    def trigger_undo_post_effects(
+        window: MainWindow, payload: dict[str, Any] | None = None
+    ) -> bool:
+        """Request QML to roll back post-processing settings."""
+
+        return QMLBridge.invoke_qml_function(window, "undoPostEffects", payload)
+
+    @staticmethod
+    def trigger_reset_shared_materials(window: MainWindow) -> bool:
+        """Request QML to refresh shared materials from snapshots."""
+
+        return QMLBridge.invoke_qml_function(window, "resetSharedMaterials")
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------

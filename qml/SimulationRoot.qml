@@ -65,6 +65,10 @@ Pane {
     property var _pendingFlowTelemetry: null
     property var _pendingGeometry: null
 
+    // Rollback hooks exposed for bridge-driven undo flows
+    signal undoPostEffects()
+    signal resetSharedMaterials()
+
     function applyFlowTelemetry(payload) {
         flowTelemetry = payload
         _pendingFlowTelemetry = payload
@@ -109,6 +113,10 @@ Pane {
         _pendingGeometry = geometryParameters
         _flushPending()
     }
+
+    function triggerUndoPostEffects() { undoPostEffects() }
+
+    function triggerResetSharedMaterials() { resetSharedMaterials() }
 
     onGeometryParametersChanged: {
         _pendingGeometry = geometryParameters
