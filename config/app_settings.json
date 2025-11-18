@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-18T05:57:39.212Z",
+    "last_modified": "2025-11-18T06:25:03.307Z",
     "defaults_seed": "config/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
@@ -224,7 +224,7 @@
       "max_frame_time": 0.05
     },
     "geometry": {
-      "wheelbase": 3.401,
+      "wheelbase": 3.402,
       "track": 2.34,
       "frame_to_pivot": 0.42,
       "lever_length": 0.75,
@@ -269,7 +269,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0031,
+      "diagonal_coupling_dia": 0.0032,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 0.0,

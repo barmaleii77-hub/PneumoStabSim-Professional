@@ -175,9 +175,10 @@ validate-hdr-orientation:
 
 check: uv-sync
 	# Strict preflight: fail fast when core modules are missing
-	$(PYTHON) scripts/check_environment.py --compact --output $(LOG_DIR)/env_check.json
+	$(PYTHON) scripts/check_environment.py --compact --auto-repair --output $(LOG_DIR)/env_check.json
 	$(PYTHON) -m json.tool config/app_settings.json >/dev/null
 	$(PYTHON) tools/validate_settings.py --quiet
+	CI_TASKS_ENABLE_COVERAGE=0 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software LIBGL_ALWAYS_SOFTWARE=1 \
 	$(PYTHON) -m tools.ci_tasks verify
 	$(PYTHON) tools/check_workflow_pins.py
 	$(MAKE) check-shaders
