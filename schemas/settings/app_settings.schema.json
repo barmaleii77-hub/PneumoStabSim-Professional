@@ -15,8 +15,22 @@
         "total_parameters": {"type": "integer"}
       }
     },
-    "current": {"type": "object"},
-    "defaults_snapshot": {"type": "object"}
+    "current": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["graphics"],
+      "properties": {
+        "graphics": {"$ref": "#/$defs/GraphicsSettings"}
+      }
+    },
+    "defaults_snapshot": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["graphics"],
+      "properties": {
+        "graphics": {"$ref": "#/$defs/GraphicsSettings"}
+      }
+    }
   },
   "$defs": {
     "AnimationSettings": {

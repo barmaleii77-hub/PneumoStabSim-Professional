@@ -148,6 +148,13 @@ def test_reflection_probe_missing_keys_use_defaults(
     assert probe_defaults["quality"] == "veryhigh"
     assert probe_defaults["refresh_mode"] == "everyframe"
     assert probe_defaults["time_slicing"] == "individualfaces"
+    assert set(probe_defaults.get("missing_keys", [])) == {
+        "enabled",
+        "padding_m",
+        "quality",
+        "refresh_mode",
+        "time_slicing",
+    }
     assert (
         "Reflection probe settings missing keys: enabled, padding_m, quality, refresh_mode, time_slicing"
         in caplog.text

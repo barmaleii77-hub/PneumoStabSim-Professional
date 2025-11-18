@@ -427,6 +427,7 @@ class UISetup:
             unique_missing = sorted(
                 {key for key in missing if key in reflection_required_keys}
             )
+            sanitized["missing_keys"] = unique_missing
             return sanitized, unique_missing
 
         def _fallback_section(path: str) -> dict[str, Any]:

@@ -578,8 +578,15 @@ Item {
         console.log("[SimulationRoot] Component completed; sceneBridge:", sceneBridge ? "available" : "missing")
         if (typeof initialReflectionProbeSettings !== "undefined" && initialReflectionProbeSettings) {
             var keys = ["enabled","padding_m","quality","refresh_mode","time_slicing"]
+            var missingFromContext = Array.isArray(initialReflectionProbeSettings.missing_keys)
+                    ? initialReflectionProbeSettings.missing_keys.slice()
+                    : []
             var missingTmp = []
-            for (var i=0;i<keys.length;++i){ if(initialReflectionProbeSettings[keys[i]] === undefined) missingTmp.push(keys[i]) }
+            for (var idx=0; idx<missingFromContext.length; ++idx) {
+                if (keys.indexOf(missingFromContext[idx]) !== -1 && missingTmp.indexOf(missingFromContext[idx]) === -1)
+                    missingTmp.push(missingFromContext[idx])
+            }
+            for (var i=0;i<keys.length;++i){ if(initialReflectionProbeSettings[keys[i]] === undefined && missingTmp.indexOf(keys[i]) === -1) missingTmp.push(keys[i]) }
             reflectionProbeMissingKeys = missingTmp  // Прямое присваивание типизированному списку
             reflectionProbeDefaultsWarningIssued = missingTmp.length > 0
             if (initialReflectionProbeSettings.enabled !== undefined) {
