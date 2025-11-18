@@ -5,6 +5,7 @@ import pytest
 
 from src.common.settings_manager import SettingsManager
 from src.core.parameter_manager import ParameterManager, ParameterValidationError
+from src.core.settings_models import dump_settings
 from src.core.settings_service import SettingsService
 
 
@@ -17,7 +18,7 @@ def _copy_settings(tmp_path: Path) -> Path:
 
 def test_parameter_manager_accepts_default_config(tmp_path: Path) -> None:
     settings_path = _copy_settings(tmp_path)
-    service = SettingsService(settings_path=settings_path, validate_schema=False)
+    service = SettingsService(settings_path=settings_path)
 
     snapshot = ParameterManager(settings_service=service).validate()
 
@@ -36,7 +37,7 @@ def test_detects_invalid_cylinder_geometry(tmp_path: Path) -> None:
     ]
     settings_path.write_text(json.dumps(payload), encoding="utf-8")
 
-    service = SettingsService(settings_path=settings_path, validate_schema=False)
+    service = SettingsService(settings_path=settings_path)
     manager = ParameterManager(settings_service=service)
 
     with pytest.raises(ParameterValidationError) as excinfo:
@@ -53,9 +54,7 @@ def test_detects_pressure_hierarchy_regression(tmp_path: Path) -> None:
     settings_path.write_text(json.dumps(payload), encoding="utf-8")
 
     manager = ParameterManager(
-        settings_service=SettingsService(
-            settings_path=settings_path, validate_schema=False
-        )
+        settings_service=SettingsService(settings_path=settings_path)
     )
 
     with pytest.raises(ParameterValidationError) as excinfo:
@@ -79,3 +78,20 @@ def test_receiver_volume_range_uses_settings_manager(tmp_path: Path) -> None:
         param_manager.validate()
 
     assert any("receiver volume" in error.lower() for error in excinfo.value.errors)
+
+
+def test_validate_payload_works_with_dumped_settings(tmp_path: Path) -> None:
+    settings_path = _copy_settings(tmp_path)
+    service = SettingsService(settings_path=settings_path)
+
+    payload = dump_settings(service.load())
+    snapshot = ParameterManager.validate_payload(payload)
+
+    assert snapshot.geometry["stroke_m"] > 0
+
+
+def test_validate_payload_fails_without_sections() -> None:
+    with pytest.raises(ParameterValidationError) as excinfo:
+        ParameterManager.validate_payload({"current": {}})
+
+    assert "geometry" in ",".join(excinfo.value.errors).lower()

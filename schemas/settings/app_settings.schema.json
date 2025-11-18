@@ -18,17 +18,21 @@
     "current": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["graphics"],
+      "required": ["geometry", "pneumatic", "graphics"],
       "properties": {
-        "graphics": {"$ref": "#/$defs/GraphicsSettings"}
+        "geometry": {"type": "object"},
+        "pneumatic": {"type": "object"},
+        "graphics": {"type": "object"}
       }
     },
     "defaults_snapshot": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["graphics"],
+      "required": ["geometry", "pneumatic", "graphics"],
       "properties": {
-        "graphics": {"$ref": "#/$defs/GraphicsSettings"}
+        "geometry": {"type": "object"},
+        "pneumatic": {"type": "object"},
+        "graphics": {"type": "object"}
       }
     }
   },
