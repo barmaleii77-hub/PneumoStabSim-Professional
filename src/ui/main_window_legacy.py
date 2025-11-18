@@ -24,9 +24,9 @@ import logging
 import time
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from src.ui.charts import ChartWidget
+from src.ui.lazy_loader import build_chart_widget
 from src.ui.panels import (
     GeometryPanel,
     PneumoPanel,
@@ -111,7 +111,12 @@ class MainWindow(QMainWindow):
         self.modes_panel: ModesPanel | None = None
         self.road_panel: RoadPanel | None = None
         self.graphics_panel: GraphicsPanel | None = None
-        self.chart_widget: ChartWidget | None = None
+        if TYPE_CHECKING:
+            from src.ui.charts import ChartWidget
+
+            self.chart_widget: ChartWidget | None
+        else:
+            self.chart_widget: Any | None = None
 
         # Tab widget and splitters
         self.tab_widget: QTabWidget | None = None
@@ -184,7 +189,7 @@ class MainWindow(QMainWindow):
             self.main_splitter.addWidget(placeholder)
             self.logger.info("[Legacy UI] QML сцена отключена по требованию CLI")
 
-        self.chart_widget = ChartWidget(self)
+        self.chart_widget = build_chart_widget(self)
         self.chart_widget.setMinimumHeight(200)
         self.main_splitter.addWidget(self.chart_widget)
 
