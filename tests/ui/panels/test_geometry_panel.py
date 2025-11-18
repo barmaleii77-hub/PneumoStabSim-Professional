@@ -8,6 +8,7 @@ from importlib import import_module
 import pytest
 
 from src.ui.geometry_schema import GeometrySettings
+from src.ui.panels import panel_geometry
 
 from ._slider_utils import get_slider_value, nudge_slider
 
@@ -102,3 +103,23 @@ def test_get_parameters_tracks_slider_updates(
     assert not math.isclose(updated, initial, rel_tol=1e-9, abs_tol=1e-9)
     assert settings.items() <= params.items()
     assert params["wheelbase"] == pytest.approx(get_slider_value(slider))
+
+
+@pytest.mark.gui
+def test_startup_subscriber_probe_handles_missing_receivers(
+    geometry_panel, qtbot: pytestqt.qtbot.QtBot, monkeypatch
+) -> None:
+    panel = geometry_panel
+    qtbot.addWidget(panel)
+
+    target_module = import_module(panel.__module__)
+
+    class _BrokenMeta:
+        @staticmethod
+        def fromSignal(_signal):
+            raise AttributeError("receivers unavailable")
+
+    monkeypatch.setattr(target_module, "QMetaMethod", _BrokenMeta, raising=False)
+
+    assert panel._verify_geometry_subscribers() is None
+    panel._emit_initial()  # should not raise despite probe failure

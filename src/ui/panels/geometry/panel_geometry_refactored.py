@@ -7,7 +7,7 @@ import logging
 from typing import Any, Mapping
 
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QTabWidget, QLabel, QSizePolicy
-from PySide6.QtCore import Signal, Slot, QTimer, Qt
+from PySide6.QtCore import QMetaMethod, Signal, Slot, QTimer, Qt
 from PySide6.QtGui import QCloseEvent, QFont
 
 from .state_manager import GeometryStateManager
@@ -539,11 +539,49 @@ class GeometryPanel(QWidget):
         """Send initial geometry to QML"""
         self.logger.info("Sending initial geometry to QML...")
 
+        self._verify_geometry_subscribers()
+
         geometry_3d = self.state_manager.get_3d_geometry_update()
         self.geometry_changed.emit(geometry_3d)
         self.geometry_updated.emit(self.state_manager.get_all_parameters())
 
         self.logger.info("Initial geometry sent successfully")
+
+    def _emit_initial(self) -> None:
+        """Alias for legacy panel compatibility in tests and bridges."""
+
+        self._send_initial_geometry()
+
+    def _verify_geometry_subscribers(self) -> bool | None:
+        """Best-effort detection of QML receivers for startup emissions."""
+
+        signal_obj = getattr(self, "geometry_changed", None)
+        if signal_obj is None:
+            return None
+
+        try:
+            meta_method = QMetaMethod.fromSignal(signal_obj)
+        except (TypeError, AttributeError):  # pragma: no cover - Qt internals
+            meta_method = None
+
+        if meta_method is None or not meta_method.isValid():
+            return None
+
+        try:
+            is_connected = getattr(self, "isSignalConnected", None)
+            if callable(is_connected):
+                return bool(is_connected(meta_method))
+
+            receivers_fn = getattr(self, "receivers", None)
+            if callable(receivers_fn):
+                return bool(receivers_fn(meta_method.methodSignature()))
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.debug(
+                "GeometryPanel: subscriber verification failed; proceeding without check",
+                exc_info=True,
+            )
+
+        return None
 
     @staticmethod
     def _get_3d_update_params() -> set:
