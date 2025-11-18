@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-18T07:54:09.841Z",
+    "last_modified": "2025-11-18T08:33:23.723Z",
     "defaults_seed": "config/baseline/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
@@ -197,7 +197,7 @@
   },
   "current": {
     "geometry": {
-      "wheelbase": 3.402,
+      "wheelbase": 3.403,
       "track": 2.34,
       "frame_to_pivot": 0.42,
       "lever_length": 0.75,
@@ -216,7 +216,10 @@
       "frame_beam_size_m": 0.12,
       "frame_length_m": 3.4,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "frame_mass": 1500.0,
+      "wheel_mass": 40.0,
+      "active_preset": "custom"
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -232,7 +235,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.001,
+      "diagonal_coupling_dia": 0.0011,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -265,8 +268,15 @@
         "lever_inertia_multiplier": 1.0,
         "damper_force_threshold_n": 50.0,
         "spring_rest_position_m": 0.0,
-        "integrator_method": "rk4"
-      }
+        "integrator_method": "rk4",
+        "include_springs_kinematics": true,
+        "include_dampers_kinematics": true
+      },
+      "thermo_mode": "ISOTHERMAL",
+      "road_profile": "flat",
+      "custom_profile_path": "",
+      "check_interference": false,
+      "ambient_temperature_c": 20.0
     },
     "graphics": {
       "lighting": {
@@ -453,13 +463,9 @@
           "base_color": "#2D323C",
           "metalness": 0.0,
           "roughness": 0.58,
-          "specular": 0.55,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.35,
           "clearcoat_roughness": 0.12,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -475,13 +481,9 @@
           "base_color": "#A7ADB4",
           "metalness": 1.0,
           "roughness": 0.38,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.05,
           "clearcoat_roughness": 0.05,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -497,13 +499,9 @@
           "base_color": "#E1F5FF",
           "metalness": 0.0,
           "roughness": 0.05,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.0,
           "clearcoat_roughness": 0.0,
-          "transmission": 1.0,
-          "ior": 1.52,
           "thickness": 0.0,
           "attenuation_distance": 1800.0,
           "attenuation_color": "#B7E7FF",
@@ -519,13 +517,9 @@
           "base_color": "#FF3C6E",
           "metalness": 0.0,
           "roughness": 0.45,
-          "specular": 0.6,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.42,
           "clearcoat_roughness": 0.18,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -541,13 +535,9 @@
           "base_color": "#F0F0F0",
           "metalness": 1.0,
           "roughness": 0.12,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.05,
           "clearcoat_roughness": 0.02,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -563,13 +553,9 @@
           "base_color": "#2A82FF",
           "metalness": 0.0,
           "roughness": 0.42,
-          "specular": 0.6,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.28,
           "clearcoat_roughness": 0.16,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -585,13 +571,9 @@
           "base_color": "#FF9C3A",
           "metalness": 0.0,
           "roughness": 0.4,
-          "specular": 0.65,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.3,
           "clearcoat_roughness": 0.14,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -607,13 +589,9 @@
           "base_color": "#B6BBC1",
           "metalness": 0.68,
           "roughness": 0.33,
-          "specular": 0.6,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.12,
           "clearcoat_roughness": 0.08,
-          "transmission": 0.0,
-          "ior": 1.45,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -629,13 +607,9 @@
           "base_color": "#D5D9DF",
           "metalness": 1.0,
           "roughness": 0.32,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.08,
           "clearcoat_roughness": 0.05,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -895,7 +869,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 64,
+          "cylinder_rings": 12
+        }
       },
       "high": {
         "shadows": {
@@ -919,7 +897,11 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 48,
+          "cylinder_rings": 10
+        }
       },
       "medium": {
         "shadows": {
@@ -943,7 +925,11 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 32,
+          "cylinder_rings": 8
+        }
       },
       "low": {
         "shadows": {
@@ -967,7 +953,11 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none"
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 24,
+          "cylinder_rings": 6
+        }
       }
     },
     "diagnostics": {
@@ -984,7 +974,12 @@
         "showPivot": true,
         "showPan": true,
         "showAngles": true,
-        "showMotion": true
+        "showMotion": true,
+        "showDamping": false,
+        "showInertia": false,
+        "showPreset": false,
+        "showSmoothing": false,
+        "showTimestamp": false
       }
     },
     "system": {
@@ -1141,7 +1136,9 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {},
+        "presets": []
       },
       "pneumo": {
         "valves": {
@@ -1274,7 +1271,10 @@
       "frame_beam_size_m": 0.12,
       "frame_length_m": 3.4,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "frame_mass": 1500.0,
+      "wheel_mass": 40.0,
+      "active_preset": "custom"
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -1290,7 +1290,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0009,
+      "diagonal_coupling_dia": 0.001,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -1323,8 +1323,15 @@
         "lever_inertia_multiplier": 1.0,
         "damper_force_threshold_n": 50.0,
         "spring_rest_position_m": 0.0,
-        "integrator_method": "rk4"
-      }
+        "integrator_method": "rk4",
+        "include_springs_kinematics": true,
+        "include_dampers_kinematics": true
+      },
+      "thermo_mode": "ISOTHERMAL",
+      "road_profile": "flat",
+      "custom_profile_path": "",
+      "check_interference": false,
+      "ambient_temperature_c": 20.0
     },
     "graphics": {
       "lighting": {
@@ -1511,13 +1518,9 @@
           "base_color": "#2D323C",
           "metalness": 0.0,
           "roughness": 0.58,
-          "specular": 0.55,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.35,
           "clearcoat_roughness": 0.12,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1533,13 +1536,9 @@
           "base_color": "#A7ADB4",
           "metalness": 1.0,
           "roughness": 0.38,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.05,
           "clearcoat_roughness": 0.05,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1555,13 +1554,9 @@
           "base_color": "#E1F5FF",
           "metalness": 0.0,
           "roughness": 0.05,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.0,
           "clearcoat_roughness": 0.0,
-          "transmission": 1.0,
-          "ior": 1.52,
           "thickness": 0.0,
           "attenuation_distance": 1800.0,
           "attenuation_color": "#B7E7FF",
@@ -1577,13 +1572,9 @@
           "base_color": "#FF3C6E",
           "metalness": 0.0,
           "roughness": 0.45,
-          "specular": 0.6,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.42,
           "clearcoat_roughness": 0.18,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1599,13 +1590,9 @@
           "base_color": "#F0F0F0",
           "metalness": 1.0,
           "roughness": 0.12,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.05,
           "clearcoat_roughness": 0.02,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1621,13 +1608,9 @@
           "base_color": "#2A82FF",
           "metalness": 0.0,
           "roughness": 0.42,
-          "specular": 0.6,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.28,
           "clearcoat_roughness": 0.16,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1643,13 +1626,9 @@
           "base_color": "#FF9C3A",
           "metalness": 0.0,
           "roughness": 0.4,
-          "specular": 0.65,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.3,
           "clearcoat_roughness": 0.14,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1665,13 +1644,9 @@
           "base_color": "#B6BBC1",
           "metalness": 0.68,
           "roughness": 0.33,
-          "specular": 0.6,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.12,
           "clearcoat_roughness": 0.08,
-          "transmission": 0.0,
-          "ior": 1.45,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -1687,13 +1662,9 @@
           "base_color": "#D5D9DF",
           "metalness": 1.0,
           "roughness": 0.32,
-          "specular": 1.0,
-          "specular_tint": 0.0,
           "opacity": 1.0,
           "clearcoat": 0.08,
           "clearcoat_roughness": 0.05,
-          "transmission": 0.0,
-          "ior": 1.5,
           "thickness": 0.0,
           "attenuation_distance": 10000.0,
           "attenuation_color": "#FFFFFF",
@@ -2058,7 +2029,12 @@
         "showPivot": true,
         "showPan": true,
         "showAngles": true,
-        "showMotion": true
+        "showMotion": true,
+        "showDamping": false,
+        "showInertia": false,
+        "showPreset": false,
+        "showSmoothing": false,
+        "showTimestamp": false
       }
     },
     "system": {
@@ -2215,7 +2191,9 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {},
+        "presets": []
       },
       "pneumo": {
         "valves": {

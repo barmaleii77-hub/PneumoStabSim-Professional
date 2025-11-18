@@ -21,7 +21,10 @@
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "frame_mass": 1500.0,
+      "wheel_mass": 40.0,
+      "active_preset": "custom"
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -45,7 +48,11 @@
       "receiver_volume_limits": {
         "min_m3": 0.001,
         "max_m3": 1.0
-      }
+      },
+      "polytropic_heat_transfer_coeff": 45.0,
+      "polytropic_exchange_area": 0.12,
+      "leak_coefficient": 5e-08,
+      "leak_reference_area": 0.0002
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -66,8 +73,15 @@
         "lever_inertia_multiplier": 1.0,
         "damper_force_threshold_n": 50.0,
         "spring_rest_position_m": 0.0,
-        "integrator_method": "rk4"
-      }
+        "integrator_method": "rk4",
+        "include_springs_kinematics": true,
+        "include_dampers_kinematics": true
+      },
+      "thermo_mode": "ISOTHERMAL",
+      "road_profile": "flat",
+      "custom_profile_path": "",
+      "check_interference": false,
+      "ambient_temperature_c": 20.0
     },
     "graphics": {
       "lighting": {
@@ -689,7 +703,11 @@
         "render_scale": 1.05,
         "render_policy": "always",
         "frame_rate_limit": 144.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 64,
+          "cylinder_rings": 12
+        }
       },
       "high": {
         "shadows": {
@@ -713,7 +731,11 @@
         "render_scale": 1.0,
         "render_policy": "always",
         "frame_rate_limit": 120.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 48,
+          "cylinder_rings": 10
+        }
       },
       "medium": {
         "shadows": {
@@ -737,7 +759,11 @@
         "render_scale": 0.9,
         "render_policy": "always",
         "frame_rate_limit": 90.0,
-        "oit": "weighted"
+        "oit": "weighted",
+        "mesh": {
+          "cylinder_segments": 32,
+          "cylinder_rings": 8
+        }
       },
       "low": {
         "shadows": {
@@ -761,7 +787,11 @@
         "render_scale": 0.8,
         "render_policy": "ondemand",
         "frame_rate_limit": 60.0,
-        "oit": "none"
+        "oit": "none",
+        "mesh": {
+          "cylinder_segments": 24,
+          "cylinder_rings": 6
+        }
       }
     },
     "diagnostics": {
@@ -778,7 +808,12 @@
         "showPivot": true,
         "showPan": true,
         "showAngles": true,
-        "showMotion": true
+        "showMotion": true,
+        "showDamping": false,
+        "showInertia": false,
+        "showPreset": false,
+        "showSmoothing": false,
+        "showTimestamp": false
       }
     },
     "system": {
@@ -935,7 +970,9 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {},
+        "presets": []
       },
       "pneumo": {
         "valves": {
@@ -1069,7 +1106,10 @@
       "frame_length_m": 3.4,
       "lever_length_m": 0.75,
       "cylinder_body_length_m": 0.46,
-      "tail_rod_length_m": 0.18
+      "tail_rod_length_m": 0.18,
+      "frame_mass": 1500.0,
+      "wheel_mass": 40.0,
+      "active_preset": "custom"
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -1093,7 +1133,11 @@
       "receiver_volume_limits": {
         "min_m3": 0.001,
         "max_m3": 1.0
-      }
+      },
+      "polytropic_heat_transfer_coeff": 45.0,
+      "polytropic_exchange_area": 0.12,
+      "leak_coefficient": 5e-08,
+      "leak_reference_area": 0.0002
     },
     "modes": {
       "sim_type": "KINEMATICS",
@@ -1114,8 +1158,15 @@
         "lever_inertia_multiplier": 1.0,
         "damper_force_threshold_n": 50.0,
         "spring_rest_position_m": 0.0,
-        "integrator_method": "rk4"
-      }
+        "integrator_method": "rk4",
+        "include_springs_kinematics": true,
+        "include_dampers_kinematics": true
+      },
+      "thermo_mode": "ISOTHERMAL",
+      "road_profile": "flat",
+      "custom_profile_path": "",
+      "check_interference": false,
+      "ambient_temperature_c": 20.0
     },
     "graphics": {
       "lighting": {
@@ -1838,7 +1889,12 @@
         "showPivot": true,
         "showPan": true,
         "showAngles": true,
-        "showMotion": true
+        "showMotion": true,
+        "showDamping": false,
+        "showInertia": false,
+        "showPreset": false,
+        "showSmoothing": false,
+        "showTimestamp": false
       }
     },
     "system": {
@@ -1995,7 +2051,9 @@
             0.35,
             -0.5
           ]
-        }
+        },
+        "ui_ranges": {},
+        "presets": []
       },
       "pneumo": {
         "valves": {

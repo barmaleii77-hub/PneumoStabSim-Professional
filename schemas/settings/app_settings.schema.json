@@ -15,22 +15,8 @@
         "total_parameters": {"type": "integer"}
       }
     },
-    "current": {
-      "type": "object",
-      "additionalProperties": true,
-      "required": ["graphics"],
-      "properties": {
-        "graphics": {"$ref": "#/$defs/GraphicsSettings"}
-      }
-    },
-    "defaults_snapshot": {
-      "type": "object",
-      "additionalProperties": true,
-      "required": ["graphics"],
-      "properties": {
-        "graphics": {"$ref": "#/$defs/GraphicsSettings"}
-      }
-    }
+    "current": {"$ref": "#/$defs/CurrentSettings"},
+    "defaults_snapshot": {"$ref": "#/$defs/CurrentSettings"}
   },
   "$defs": {
     "AnimationSettings": {
@@ -617,7 +603,7 @@
           }
         }
       ],
-      "required": ["wheelbase", "track", "frame_to_pivot", "lever_length", "rod_position", "cylinder_length", "cyl_diam_m", "stroke_m", "dead_gap_m", "rod_diameter_m", "rod_diameter_rear_m", "piston_rod_length_m", "piston_thickness_m", "frame_mass", "wheel_mass", "tail_rod_length_m", "interference_check", "link_rod_diameters", "frame_height_m", "frame_beam_size_m", "frame_length_m", "lever_length_m", "cylinder_body_length_m", "active_preset"],
+      "required": ["wheelbase", "track", "frame_to_pivot", "lever_length", "rod_position", "cylinder_length", "cyl_diam_m", "stroke_m", "dead_gap_m", "rod_diameter_m", "rod_diameter_rear_m", "piston_rod_length_m", "piston_thickness_m", "frame_mass", "wheel_mass", "tail_rod_length_m", "interference_check", "link_rod_diameters", "frame_height_m", "frame_beam_size_m", "frame_length_m", "cylinder_body_length_m", "active_preset"],
       "title": "GeometrySettings",
       "type": "object"
     },
@@ -987,22 +973,23 @@
       "additionalProperties": false,
       "properties": {
         "volume_mode": {"title": "Volume Mode", "type": "string"},
-        "receiver_volume": {"title": "Receiver Volume", "type": "number", "minimum": 0},
-        "receiver_diameter": {"title": "Receiver Diameter", "type": "number", "minimum": 0},
-        "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0},
+        "receiver_volume": {"title": "Receiver Volume", "type": "number", "minimum": 0.0001},
+        "receiver_diameter": {"title": "Receiver Diameter", "type": "number", "minimum": 0.01, "maximum": 2},
+        "receiver_length": {"title": "Receiver Length", "type": "number", "minimum": 0.05, "maximum": 5},
         "cv_atmo_dp": {"title": "Cv Atmo Dp", "type": "number", "minimum": 0},
         "cv_tank_dp": {"title": "Cv Tank Dp", "type": "number", "minimum": 0},
-        "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0},
-        "cv_tank_dia": {"title": "Cv Tank Dia", "type": "number", "minimum": 0},
+        "cv_atmo_dia": {"title": "Cv Atmo Dia", "type": "number", "minimum": 0, "maximum": 0.5},
+        "cv_tank_dia": {"title": "Cv Tank Dia", "type": "number", "minimum": 0, "maximum": 0.5},
         "relief_min_pressure": {"title": "Relief Min Pressure", "type": "number", "minimum": 0},
         "relief_stiff_pressure": {"title": "Relief Stiff Pressure", "type": "number", "minimum": 0},
         "relief_safety_pressure": {"title": "Relief Safety Pressure", "type": "number", "minimum": 0},
-        "throttle_min_dia": {"title": "Throttle Min Dia", "type": "number", "minimum": 0},
-        "throttle_stiff_dia": {"title": "Throttle Stiff Dia", "type": "number", "minimum": 0},
+        "throttle_min_dia": {"title": "Throttle Min Dia", "type": "number", "minimum": 0, "maximum": 0.25},
+        "throttle_stiff_dia": {"title": "Throttle Stiff Dia", "type": "number", "minimum": 0, "maximum": 0.25},
         "diagonal_coupling_dia": {
           "title": "Diagonal Coupling Diameter",
           "type": "number",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 0.25
         },
         "atmo_temp": {"title": "Atmo Temp", "type": "number"},
         "thermo_mode": {
@@ -1052,16 +1039,48 @@
     "PneumoGasConstants": {
       "additionalProperties": false,
       "properties": {
-        "tank_volume_initial_m3": {"title": "Tank Volume Initial M3", "type": "number"},
-        "tank_pressure_initial_pa": {"title": "Tank Pressure Initial Pa", "type": "number"},
-        "tank_temperature_initial_k": {"title": "Tank Temperature Initial K", "type": "number"},
+        "tank_volume_initial_m3": {
+          "title": "Tank Volume Initial M3",
+          "type": "number",
+          "minimum": 0.0001
+        },
+        "tank_pressure_initial_pa": {
+          "title": "Tank Pressure Initial Pa",
+          "type": "number",
+          "minimum": 0
+        },
+        "tank_temperature_initial_k": {
+          "title": "Tank Temperature Initial K",
+          "type": "number",
+          "minimum": 0
+        },
         "tank_volume_mode": {"title": "Tank Volume Mode", "type": "string"},
         "thermo_mode": {"title": "Thermo Mode", "type": "string"},
-        "time_step_s": {"title": "Time Step S", "type": "number"},
-        "total_time_s": {"title": "Total Time S", "type": "number"},
-        "relief_min_threshold_pa": {"title": "Relief Min Threshold Pa", "type": "number"},
-        "relief_stiff_threshold_pa": {"title": "Relief Stiff Threshold Pa", "type": "number"},
-        "relief_safety_threshold_pa": {"title": "Relief Safety Threshold Pa", "type": "number"}
+        "time_step_s": {
+          "title": "Time Step S",
+          "type": "number",
+          "minimum": 1e-06
+        },
+        "total_time_s": {
+          "title": "Total Time S",
+          "type": "number",
+          "minimum": 0.001
+        },
+        "relief_min_threshold_pa": {
+          "title": "Relief Min Threshold Pa",
+          "type": "number",
+          "minimum": 0
+        },
+        "relief_stiff_threshold_pa": {
+          "title": "Relief Stiff Threshold Pa",
+          "type": "number",
+          "minimum": 0
+        },
+        "relief_safety_threshold_pa": {
+          "title": "Relief Safety Threshold Pa",
+          "type": "number",
+          "minimum": 0
+        }
       },
       "required": ["tank_volume_initial_m3", "tank_pressure_initial_pa", "tank_temperature_initial_k", "tank_volume_mode", "thermo_mode", "time_step_s", "total_time_s", "relief_min_threshold_pa", "relief_stiff_threshold_pa", "relief_safety_threshold_pa"],
       "title": "PneumoGasConstants",
@@ -1070,11 +1089,11 @@
     "PneumoReceiverConstants": {
       "additionalProperties": false,
       "properties": {
-        "volume_min_m3": {"title": "Volume Min M3", "type": "number"},
-        "volume_max_m3": {"title": "Volume Max M3", "type": "number"},
-        "initial_volume_m3": {"title": "Initial Volume M3", "type": "number"},
-        "initial_pressure_pa": {"title": "Initial Pressure Pa", "type": "number"},
-        "initial_temperature_k": {"title": "Initial Temperature K", "type": "number"},
+        "volume_min_m3": {"title": "Volume Min M3", "type": "number", "minimum": 0.0001},
+        "volume_max_m3": {"title": "Volume Max M3", "type": "number", "minimum": 0.0001},
+        "initial_volume_m3": {"title": "Initial Volume M3", "type": "number", "minimum": 0.0001},
+        "initial_pressure_pa": {"title": "Initial Pressure Pa", "type": "number", "minimum": 0},
+        "initial_temperature_k": {"title": "Initial Temperature K", "type": "number", "minimum": 0},
         "volume_mode": {"title": "Volume Mode", "type": "string"}
       },
       "required": ["volume_min_m3", "volume_max_m3", "initial_volume_m3", "initial_pressure_pa", "initial_temperature_k", "volume_mode"],
@@ -1084,10 +1103,10 @@
     "PneumoValveConstants": {
       "additionalProperties": false,
       "properties": {
-        "delta_open_pa": {"title": "Delta Open Pa", "type": "number"},
-        "equivalent_diameter_m": {"title": "Equivalent Diameter M", "type": "number"},
-        "relief_min_orifice_diameter_m": {"title": "Relief Min Orifice Diameter M", "type": "number"},
-        "relief_stiff_orifice_diameter_m": {"title": "Relief Stiff Orifice Diameter M", "type": "number"}
+        "delta_open_pa": {"title": "Delta Open Pa", "type": "number", "minimum": 0},
+        "equivalent_diameter_m": {"title": "Equivalent Diameter M", "type": "number", "minimum": 0, "maximum": 0.5},
+        "relief_min_orifice_diameter_m": {"title": "Relief Min Orifice Diameter M", "type": "number", "minimum": 0, "maximum": 0.5},
+        "relief_stiff_orifice_diameter_m": {"title": "Relief Stiff Orifice Diameter M", "type": "number", "minimum": 0, "maximum": 0.5}
       },
       "required": ["delta_open_pa", "equivalent_diameter_m", "relief_min_orifice_diameter_m", "relief_stiff_orifice_diameter_m"],
       "title": "PneumoValveConstants",
@@ -1274,14 +1293,14 @@
     "SimulationSettings": {
       "additionalProperties": false,
       "properties": {
-        "physics_dt": {"title": "Physics Dt", "type": "number"},
+        "physics_dt": {"title": "Physics Dt", "type": "number", "exclusiveMinimum": 0},
         "render_vsync_hz": {
           "title": "Render Vsync Hz",
           "type": "number",
           "description": "Целевая частота вертикальной синхронизации рендера, используется контроллером синхронизации настроек."
         },
-        "max_steps_per_frame": {"title": "Max Steps Per Frame", "type": "integer"},
-        "max_frame_time": {"title": "Max Frame Time", "type": "number"}
+        "max_steps_per_frame": {"title": "Max Steps Per Frame", "type": "integer", "minimum": 1},
+        "max_frame_time": {"title": "Max Frame Time", "type": "number", "minimum": 0.0}
       },
       "required": ["physics_dt", "render_vsync_hz", "max_steps_per_frame", "max_frame_time"],
       "title": "SimulationSettings",
