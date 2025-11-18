@@ -1847,7 +1847,12 @@ class SignalsRouter:
 
     @staticmethod
     def handle_accordion_validation_changed(
-        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+        window: "MainWindow",
+        panel_id: str,
+        field: str,
+        state: str,
+        message: str,
+        status_timeout_ms: int | None = None,
     ) -> None:
         """Handle validation state updates coming from accordion-driven panels."""
 
@@ -1875,14 +1880,54 @@ class SignalsRouter:
                 "Accordion validation error", extra={"accordion_validation": payload}
             )
             if status_bar is not None:
+                timeout_ms = (
+                    4000 if status_timeout_ms is None else int(status_timeout_ms)
+                )
                 status_bar.showMessage(
                     resolved_message or f"{panel_key}.{field_key} validation error",
-                    4000,
+                    timeout_ms,
                 )
         else:
             logger.info(
                 "Accordion validation state", extra={"accordion_validation": payload}
             )
+
+    @staticmethod
+    def handle_accordion_field_validation_state(
+        window: "MainWindow", panel_id: str, field: str, state: str, message: str
+    ) -> None:
+        """Legacy alias that also records validation state on the host window.
+
+        Older QML panels emit ``handle_accordion_field_validation_state`` while new
+        ones use :func:`handle_accordion_validation_changed`.  Preserve both entry
+        points and keep a window-level cache so tests and status bars can surface
+        the latest validation results consistently.
+        """
+
+        panel_key = (panel_id or "").strip() or "panels"
+        field_key = (field or "").strip()
+        normalized_state = (state or "").strip().lower() or "unknown"
+        resolved_message = (message or "").strip()
+
+        if not field_key:
+            return
+
+        if getattr(window, "_accordion_validation_states", None) is None:
+            window._accordion_validation_states = {}
+
+        window._accordion_validation_states[(panel_key, field_key)] = {
+            "state": normalized_state,
+            "message": resolved_message,
+        }
+
+        SignalsRouter.handle_accordion_validation_changed(
+            window,
+            panel_key,
+            field_key,
+            normalized_state,
+            resolved_message,
+            status_timeout_ms=6000,
+        )
 
     @staticmethod
     def handle_animation_toggled(window: MainWindow, running: bool) -> None:

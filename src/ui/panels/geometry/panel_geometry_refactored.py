@@ -605,7 +605,13 @@ class GeometryPanel(QWidget):
     def _emit_initial(self) -> None:
         """Alias for legacy panel compatibility in tests and bridges."""
 
-        self._send_initial_geometry()
+        try:
+            self._send_initial_geometry()
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.warning(
+                "GeometryPanel (refactored): subscriber verification failed; continuing",
+                exc_info=True,
+            )
 
     def _verify_geometry_subscribers(self) -> bool | None:
         """Best-effort detection of QML receivers for startup emissions."""

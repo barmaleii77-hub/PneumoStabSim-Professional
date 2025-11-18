@@ -118,7 +118,13 @@ class GeometryPanel(QWidget):
 
     def _emit_initial(self):
         meta_method = self._get_geometry_meta_method()
-        self._verify_geometry_subscribers(meta_method)
+        try:
+            self._verify_geometry_subscribers(meta_method)
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.warning(
+                "GeometryPanel: subscriber verification failed; sending payloads anyway",
+                exc_info=True,
+            )
 
         payload = self._get_fast_geometry_update("init", 0.0)
         self._emit_if_connected(

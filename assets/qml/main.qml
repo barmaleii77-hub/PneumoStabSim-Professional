@@ -575,15 +575,27 @@ Item {
           objectName: "simulationLoader"
           anchors.fill: parent
           active: true
-          sourceComponent: PSS.SimulationRoot {
-              id: simulationRoot
-              sceneBridge: root.contextSceneBridge
-              fogDepthCurve: root.fogDepthCurve
-              ssaoEnabled: root.ssaoEnabled
-              ssaoRadius: root.ssaoRadius
-              ssaoIntensity: root.ssaoIntensity
-              ssaoSoftness: root.ssaoSoftness
-              ssaoBias: root.ssaoBias
+            sourceComponent: PSS.SimulationRoot {
+                id: simulationRoot
+                sceneBridge: root.contextSceneBridge
+                fogEnabled: root.fogEnabled
+                fogColor: root.fogColor
+                fogDensity: root.fogDensity
+                fogDepthCurve: root.fogDepthCurve
+                fogDepthEnabled: root.fogDepthEnabled
+                fogDepthNear: root.fogDepthNear
+                fogDepthFar: root.fogDepthFar
+                fogHeightEnabled: root.fogHeightEnabled
+                fogLeastIntenseY: root.fogLeastIntenseY
+                fogMostIntenseY: root.fogMostIntenseY
+                fogHeightCurve: root.fogHeightCurve
+                fogTransmitEnabled: root.fogTransmitEnabled
+                fogTransmitCurve: root.fogTransmitCurve
+                ssaoEnabled: root.ssaoEnabled
+                ssaoRadius: root.ssaoRadius
+                ssaoIntensity: root.ssaoIntensity
+                ssaoSoftness: root.ssaoSoftness
+                ssaoBias: root.ssaoBias
               ssaoDither: root.ssaoDither
               ssaoSampleRate: root.ssaoSampleRate
           }
