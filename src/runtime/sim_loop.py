@@ -1419,9 +1419,14 @@ class PhysicsWorker(QObject):
             return mode
 
         raw_mode = (mode or self.receiver_volume_mode or "MANUAL").strip().upper()
+        preserve_user_mode = bool(getattr(self, "preserve_user_volume_mode", False))
         mapping = {
             "MANUAL": ReceiverVolumeMode.NO_RECALC,
-            "GEOMETRIC": ReceiverVolumeMode.NO_RECALC,
+            "GEOMETRIC": (
+                ReceiverVolumeMode.ADIABATIC_RECALC
+                if preserve_user_mode
+                else ReceiverVolumeMode.NO_RECALC
+            ),
             ReceiverVolumeMode.NO_RECALC.name: ReceiverVolumeMode.NO_RECALC,
             ReceiverVolumeMode.ADIABATIC_RECALC.name: ReceiverVolumeMode.ADIABATIC_RECALC,
         }

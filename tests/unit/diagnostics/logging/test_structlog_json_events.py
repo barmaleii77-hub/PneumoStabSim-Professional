@@ -6,7 +6,11 @@ from typing import Any
 
 import structlog
 
-from src.diagnostics.logger_factory import configure_logging, _flatten_event_payload, _json_dumps
+from src.diagnostics.logger_factory import (
+    configure_logging,
+    _flatten_event_payload,
+    _json_dumps,
+)
 
 
 def _normalise_payload(raw: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
