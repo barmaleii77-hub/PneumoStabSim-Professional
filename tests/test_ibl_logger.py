@@ -14,7 +14,11 @@ def test_structured_log_written(tmp_path: Path) -> None:
     json_log = tmp_path / "ibl_events.jsonl"
     assert json_log.exists(), "JSON log file should be created for structured logging"
 
-    lines = [line for line in json_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+    lines = [
+        line
+        for line in json_log.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     assert len(lines) >= 2, "Both QML and Python events should be recorded"
 
     first_entry = json.loads(lines[0])
