@@ -3,10 +3,11 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from defusedxml import ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
+
+from defusedxml import ElementTree as ET
 
 _TRUTHY = {"1", "true", "yes", "on"}
 EXPECTED_SKIP_TOKEN = "pytest-skip-ok"

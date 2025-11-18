@@ -9,7 +9,7 @@ export LIBGL_ALWAYS_SOFTWARE="${LIBGL_ALWAYS_SOFTWARE:-1}"
 export MESA_GL_VERSION_OVERRIDE="${MESA_GL_VERSION_OVERRIDE:-4.1}"
 export MESA_GLSL_VERSION_OVERRIDE="${MESA_GLSL_VERSION_OVERRIDE:-410}"
 
-mkdir -p reports reports/quality
+mkdir -p reports reports/quality reports/tests
 warnings_log="reports/warnings.log"
 : > "${warnings_log}"
 
@@ -142,9 +142,21 @@ else:
 PY
 
 echo "== PyTest =="
+pytest_report="reports/tests/container-pytest.xml"
+set +e
 run_with_warnings_capture \
   "pytest" \
-  /usr/local/bin/xvfb_wrapper.sh pytest -q -n auto --maxfail=1 --cov=src || true
+  /usr/local/bin/xvfb_wrapper.sh pytest -q -n auto --maxfail=1 --cov=src \
+    --junitxml="${pytest_report}"
+pytest_status=$?
+set -e
+
+python -m tools.quality.skip_policy --ci --junitxml "${pytest_report}" \
+  --summary reports/tests/skipped_container.md
+
+if (( pytest_status != 0 )); then
+  exit "${pytest_status}"
+fi
 
 echo "== Final readiness =="
 /usr/local/bin/xvfb_wrapper.sh python final_readiness_test.py
