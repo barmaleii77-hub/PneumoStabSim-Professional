@@ -6,7 +6,9 @@ import argparse
 import base64
 import io
 import json
+import json
 import math
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,9 +31,30 @@ _ASSETS_IMPORT = Path("assets/qml").resolve()
 _BASELINE_VERSION = 1
 
 
+def _read_baseline_size(path: Path) -> tuple[int, int] | None:
+    try:
+        payload = json.loads(path.read_text())
+    except Exception:
+        return None
+
+    size = payload.get("size") if isinstance(payload, dict) else None
+    if (
+        isinstance(size, (list, tuple))
+        and len(size) == 2
+        and all(isinstance(v, (int, float)) for v in size)
+    ):
+        return int(size[0]), int(size[1])
+
+    return None
+
+
 def _ensure_qt_environment() -> None:
     if headless_requested():
         apply_headless_defaults()
+
+    # Ensure stable HiDPI scaling so captured screenshots match recorded baselines
+    os.environ.setdefault("QT_SCALE_FACTOR", "1.5")
+    os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
 
 
 def _process_events(qapp, iterations: int = 10) -> None:
@@ -132,6 +155,7 @@ def load_main_scene(
     width: int = 800,
     height: int = 450,
     qml_file: Path | str = Path("assets/qml/main.qml"),
+    baseline_path: Path | None = None,
 ) -> QMLScene:
     """Load the main QML entry point into an offscreen ``QQuickView``."""
 
@@ -139,7 +163,12 @@ def load_main_scene(
     if not qml_path.exists():
         raise FileNotFoundError(qml_path)
 
-    return _initialise_view(qapp, qml_path=qml_path, width=width, height=height)
+    baseline_size = _read_baseline_size(baseline_path) if baseline_path else None
+    target_width, target_height = baseline_size if baseline_size else (width, height)
+
+    return _initialise_view(
+        qapp, qml_path=qml_path, width=target_width, height=target_height
+    )
 
 
 def load_qml_scene(

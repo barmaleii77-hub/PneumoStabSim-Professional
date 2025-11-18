@@ -1,5 +1,5 @@
 import QtQuick 6.10
-import "../Panels" as Panels
+import "./Panels" as Panels
 
 Item {
     id: root

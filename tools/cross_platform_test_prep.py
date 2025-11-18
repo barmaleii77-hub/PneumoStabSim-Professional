@@ -148,16 +148,40 @@ def install_linux_system_packages(packages: Iterable[str]) -> None:
 
     prefix = _apt_prefix()
     update_cmd = [*prefix, "apt-get", "update"]
+    _run_step(CommandStep(update_cmd, "Update APT package index"))
+
+    available_packages: list[str] = []
+    missing_packages: list[str] = []
+    for package in packages:
+        result = subprocess.run(
+            ["apt-cache", "show", package],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if result.returncode == 0:
+            available_packages.append(package)
+        else:
+            missing_packages.append(package)
+
+    if missing_packages:
+        print("⚠️ Skipping unavailable packages: " + ", ".join(sorted(missing_packages)))
+
+    if not available_packages:
+        print(
+            "⚠️ No installable Linux packages detected; continuing without system provisioning."
+        )
+        return
+
     install_cmd = [
         *prefix,
         "apt-get",
         "install",
         "-y",
         "--no-install-recommends",
-        *packages,
+        *available_packages,
     ]
 
-    _run_step(CommandStep(update_cmd, "Update APT package index"))
     _run_step(CommandStep(install_cmd, "Install Linux Qt runtime dependencies"))
 
 

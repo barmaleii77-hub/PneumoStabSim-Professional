@@ -918,6 +918,12 @@ class PhysicsWorker(QObject):
         ).upper()
         preserve_user_mode = bool(getattr(self, "preserve_user_volume_mode", False))
         mode_enum = self._resolve_receiver_mode(mode)
+        if (
+            user_mode_token == "GEOMETRIC"
+            and mode_enum is ReceiverVolumeMode.ADIABATIC_RECALC
+            and getattr(self, "gas_network", None) is None
+        ):
+            mode_enum = ReceiverVolumeMode.NO_RECALC
         applied_mode_token = (
             "GEOMETRIC"
             if user_mode_token == "GEOMETRIC" and preserve_user_mode
@@ -1421,7 +1427,7 @@ class PhysicsWorker(QObject):
         raw_mode = (mode or self.receiver_volume_mode or "MANUAL").strip().upper()
         mapping = {
             "MANUAL": ReceiverVolumeMode.NO_RECALC,
-            "GEOMETRIC": ReceiverVolumeMode.NO_RECALC,
+            "GEOMETRIC": ReceiverVolumeMode.ADIABATIC_RECALC,
             ReceiverVolumeMode.NO_RECALC.name: ReceiverVolumeMode.NO_RECALC,
             ReceiverVolumeMode.ADIABATIC_RECALC.name: ReceiverVolumeMode.ADIABATIC_RECALC,
         }

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -85,6 +86,7 @@ def _check_imports() -> dict[str, Any]:
         "src",
     ]
     failures: list[str] = []
+    failure_details: list[dict[str, str]] = []
 
     sys.path.insert(0, str(PROJECT_ROOT))
     sys.path.insert(0, str(SRC_PATH))
@@ -92,8 +94,9 @@ def _check_imports() -> dict[str, Any]:
     for module_name in required_modules:
         try:
             __import__(module_name)
-        except Exception:  # pragma: no cover - diagnostics path
+        except Exception as exc:  # pragma: no cover - diagnostics path
             failures.append(module_name)
+            failure_details.append({"module": module_name, "error": str(exc)})
 
     if failures:
         status = "error"
@@ -107,7 +110,45 @@ def _check_imports() -> dict[str, Any]:
         "status": status,
         "required": required_modules,
         "failed": failures,
+        "failure_details": failure_details,
         "message": message,
+    }
+
+
+def _should_attempt_auto_repair(import_check: dict[str, Any]) -> bool:
+    failed_modules = import_check.get("failed", [])
+    return any(name.startswith("PySide6") for name in failed_modules)
+
+
+def _run_auto_repair(import_check: dict[str, Any]) -> dict[str, Any]:
+    if not _should_attempt_auto_repair(import_check):
+        return {
+            "attempted": False,
+            "success": True,
+            "message": "Auto-repair not required for current failures",
+        }
+
+    command = [
+        sys.executable,
+        "-m",
+        "tools.cross_platform_test_prep",
+        "--use-uv",
+        "--skip-python",
+    ]
+
+    try:
+        subprocess.run(command, cwd=PROJECT_ROOT, check=True)
+    except subprocess.CalledProcessError as exc:  # pragma: no cover - external command
+        return {
+            "attempted": True,
+            "success": False,
+            "message": f"Auto-repair failed: {exc}",
+        }
+
+    return {
+        "attempted": True,
+        "success": True,
+        "message": "Installed system Qt runtime dependencies via cross_platform_test_prep",
     }
 
 
@@ -144,9 +185,30 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Environment diagnostics")
     parser.add_argument("--compact", action="store_true", help="Однострочный вывод в stdout; полный JSON сохраняется в файл")
     parser.add_argument("--output", type=str, default="", help="Путь к файлу для записи полного JSON-отчёта")
+    parser.add_argument(
+        "--auto-repair",
+        action="store_true",
+        help="Автоматически установить системные зависимости Qt при провале импортов PySide6",
+    )
     args = parser.parse_args()
 
     payload = _build_payload()
+    auto_repair_result: dict[str, Any] | None = None
+
+    if payload["status"] != "ok" and args.auto_repair:
+        import_check = next((c for c in payload["checks"] if c["check"] == "python-imports"), None)
+        if import_check:
+            auto_repair_result = _run_auto_repair(import_check)
+            payload = _build_payload()
+        else:  # pragma: no cover - defensive fallback
+            auto_repair_result = {
+                "attempted": False,
+                "success": False,
+                "message": "Auto-repair skipped: python-imports check is missing",
+            }
+
+    if auto_repair_result is not None:
+        payload["auto_repair"] = auto_repair_result
 
     # Если указан выходной файл — записываем полный JSON
     if args.output:

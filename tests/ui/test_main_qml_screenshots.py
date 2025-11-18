@@ -30,7 +30,9 @@ ANIMATION_RUNNING_BASELINE = BASELINE_DIR / "main_animation_running.json"
 def test_main_scene_matches_default_baseline(qapp, integration_reports_dir) -> None:
     """The default scene should match the recorded baseline frame."""
 
-    with load_main_scene(qapp, width=640, height=360) as scene:
+    with load_main_scene(
+        qapp, width=640, height=360, baseline_path=DEFAULT_BASELINE
+    ) as scene:
         ensure_simulation_panel_ready(scene, qapp)
         log_window_metrics(scene.view)
         image = capture_window_image(scene.view, qapp)
@@ -51,7 +53,9 @@ def test_main_scene_matches_default_baseline(qapp, integration_reports_dir) -> N
 def test_main_scene_animation_running_baseline(qapp, integration_reports_dir) -> None:
     """Activating the animation flag must update the simulation panel status."""
 
-    with load_main_scene(qapp, width=640, height=360) as scene:
+    with load_main_scene(
+        qapp, width=640, height=360, baseline_path=DEFAULT_BASELINE
+    ) as scene:
         panel = ensure_simulation_panel_ready(scene, qapp)
         log_window_metrics(scene.view)
         push_updates(
