@@ -16,7 +16,9 @@ from src.infrastructure.event_bus import EventBus
 
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
-BASELINE_RESULTS = json.loads(Path("optimization_test_results.json").read_text(encoding="utf-8"))
+BASELINE_RESULTS = json.loads(
+    Path("optimization_test_results.json").read_text(encoding="utf-8")
+)
 
 
 def _copy_settings(tmp_path: Path) -> Path:
@@ -93,7 +95,9 @@ def test_lazy_load_works(qapp) -> None:
         count = flow_model.property("count")
     assert count == 2
 
-    lazy_load_works = bool(loader.property("active")) and bool(root.property("panelReady"))
+    lazy_load_works = bool(loader.property("active")) and bool(
+        root.property("panelReady")
+    )
     expected_lazy = BASELINE_RESULTS["lazy_loading"]["result"]["lazy_load_works"]
     expected_clean = BASELINE_RESULTS["lazy_loading"]["result"]["initial_clean"]
 
