@@ -72,6 +72,7 @@ uv-sync:
 		exit 1; \
 	fi
 	cd $(UV_PROJECT_DIR) && $(UV) sync $(UV_SYNC_ARGS)
+	cd $(UV_PROJECT_DIR) && $(UV) run $(UV_RUN_ARGS) -- python -c "import yaml; print(yaml.__version__)"
 
 uv-sync-qt: uv-sync
 	@python -c "import platform; print(f'[make] Running Qt setup via tools/setup_qt.py (platform={platform.system()})')"
