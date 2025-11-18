@@ -40,24 +40,29 @@ qml-lint qmllint:
 	 exit 1; \
 	 fi; \
 	fi; \
-	if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
-	 mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
-	else \
-	 qml_files=(); \
-	fi; \
-	if [ $${#qml_files[@]} -eq 0 ]; then \
-	 echo "No QML lint targets specified; skipping."; \
-	 exit 0; \
-	fi; \
-	for file in "$$${qml_files[@]}"; do \
-	 if [ -n "$$file" ]; then \
-	 if [ -d "$$file" ]; then \
-	 find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
-	 else \
-	 "$$LINTER" "$$file"; \
-	 fi; \
-	 fi; \
-	done
+if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
+mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
+else \
+qml_files=(); \
+fi; \
+# Filter out comments and empty lines to avoid feeding garbage paths to the linter. \
+filtered_qml_files=(); \
+for entry in "$${qml_files[@]}"; do \
+if [ -n "$$entry" ] && [ "$$entry" != \#* ]; then \
+filtered_qml_files+=("$$entry"); \
+fi; \
+done; \
+if [ $${#filtered_qml_files[@]} -eq 0 ]; then \
+echo "No QML lint targets specified; skipping."; \
+exit 0; \
+fi; \
+for file in "$${filtered_qml_files[@]}"; do \
+if [ -d "$$file" ]; then \
+find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
+else \
+"$$LINTER" "$$file"; \
+fi; \
+done
 
 .PHONY: uv-sync uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 

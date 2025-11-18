@@ -11,7 +11,14 @@ pragma ComponentBehavior: Bound
 Item {
     id: hud
 
-    property var safeApplyConfigChange: null
+    property var safeApplyConfigChangeHandler: function() {}
+
+    function safeApplyConfigChange(section, patch) {
+        var handler = safeApplyConfigChangeHandler
+        if (typeof handler === "function") {
+            handler(section, patch)
+        }
+    }
 
     property var cameraController: null
     property var settings: ({})
@@ -153,17 +160,21 @@ Item {
                     ]
 
                     delegate: CheckDelegate {
-                        text: modelData.text
-                        checked: hud[modelData.binding]
-                        onToggled: hud.persistSetting(modelData.settingKey, checked)
+                        id: toggleOption
+                        required property var modelData
+
+                        text: toggleOption.modelData.text
+                        checked: hud[toggleOption.modelData.binding]
+                        onToggled: hud.persistSetting(toggleOption.modelData.settingKey, checked)
                     }
                 }
             }
 
             Repeater {
-                model: metricsModel()
+                model: hud.metricsModel()
 
                 delegate: RowLayout {
+                    id: metricRow
                     required property var modelData
 
                     spacing: 6
@@ -177,7 +188,7 @@ Item {
                         : "—"
 
                     Text {
-                        text: metricLabel.length ? metricLabel + ":" : "—"
+                        text: metricRow.metricLabel.length ? metricRow.metricLabel + ":" : "—"
                         font.pixelSize: 13
                         color: "#8fa6d3"
                         horizontalAlignment: Text.AlignLeft
@@ -186,7 +197,7 @@ Item {
                     }
 
                     Text {
-                        text: metricValue
+                        text: metricRow.metricValue
                         font.pixelSize: 13
                         color: "#e9f0ff"
                         horizontalAlignment: Text.AlignRight
