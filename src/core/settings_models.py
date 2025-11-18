@@ -59,6 +59,8 @@ class PneumaticSettings(_StrictModel):
     receiver_volume: float
     receiver_diameter: float
     receiver_length: float
+    dead_zone_head_m3: float
+    dead_zone_rod_m3: float
     cv_atmo_dp: float
     cv_tank_dp: float
     cv_atmo_dia: float
@@ -78,6 +80,24 @@ class PneumaticSettings(_StrictModel):
     master_isolation_open: bool
     pressure_units: str
     receiver_volume_limits: ReceiverVolumeLimits
+
+
+class RoadSettings(_StrictModel):
+    mode: str
+    amplitude_m: float
+    frequency_hz: float
+    phase_offset_deg: float
+    profile_type: str
+    avg_speed_kmh: float
+
+
+class AdvancedSettings(_StrictModel):
+    spring_stiffness_n_m: float
+    damper_coefficient_n_s_m: float
+    dead_zone_percent: float
+    target_fps: float
+    aa_quality: int
+    shadow_quality: int
 
 
 class GeometrySettings(_StrictModel):
@@ -723,6 +743,8 @@ class CurrentSettings(_StrictModel):
     simulation: SimulationSettings
     pneumatic: PneumaticSettings
     geometry: GeometrySettings
+    road: RoadSettings
+    advanced: AdvancedSettings
     modes: ModesSettings
     graphics: GraphicsSettings
     animation: AnimationSettings

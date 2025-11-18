@@ -24,6 +24,8 @@ NUMERIC_PNEUMATIC_KEYS: tuple[str, ...] = (
     "throttle_stiff_dia",
     "diagonal_coupling_dia",
     "atmo_temp",
+    "dead_zone_head_m3",
+    "dead_zone_rod_m3",
     "polytropic_heat_transfer_coeff",
     "polytropic_exchange_area",
     "leak_coefficient",
@@ -46,6 +48,8 @@ REQUIRED_CURRENT_SECTIONS: tuple[str, ...] = (
     "current.simulation",
     "current.pneumatic",
     "current.geometry",
+    "current.road",
+    "current.advanced",
     "current.pneumatic.receiver_volume_limits",
 )
 
