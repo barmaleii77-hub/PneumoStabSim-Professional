@@ -62,7 +62,11 @@ def _set_high_dpi_policy(qapplication: object, qt_namespace: object) -> None:
     """Ensure High DPI rounding policy is configured before QApplication creation."""
 
     set_policy = getattr(qapplication, "setHighDpiScaleFactorRoundingPolicy", None)
-    policy = getattr(getattr(qt_namespace, "HighDpiScaleFactorRoundingPolicy", None), "PassThrough", None)
+    policy = getattr(
+        getattr(qt_namespace, "HighDpiScaleFactorRoundingPolicy", None),
+        "PassThrough",
+        None,
+    )
 
     if set_policy is None or policy is None:
         return
