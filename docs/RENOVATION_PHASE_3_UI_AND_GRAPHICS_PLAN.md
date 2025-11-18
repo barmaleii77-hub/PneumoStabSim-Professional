@@ -30,6 +30,9 @@
    - Add contextual tooltips and inline documentation linking to docs.
    - Перевести панели на `SettingsSyncController`, обеспечив батчевую синхронизацию
      значений и использование `simulation.render_vsync_hz` как ритма обновления.
+   - Визуализировать телеметрию потоков через `FlowArrow`/`ValveIndicator`,
+     синхронизировать шкалы давления и резервуар с телеметрией, добавить строгие
+     проверки пользовательских вводов (температура, профили дороги) с автотестами.
 4. **Animation & Performance**
    - Replace legacy animation loops with `NumberAnimation` or `Animator` classes tuned for smooth playback.
    - Integrate GPU profiler overlay toggled via diagnostics panel.
