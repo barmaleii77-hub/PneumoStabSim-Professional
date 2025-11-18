@@ -129,6 +129,10 @@ Item {
     property var sceneQualityDefaults: ({})
     // Используем простой literal для корректной конверсии в Python dict
     property var environmentState: ({})
+    property bool fogDepthEnabled: true
+    property real fogDepthNear: 2.0
+    property real fogDepthFar: 20.0
+    property real fogDepthCurve: 1.0
 
     property var effectsState: ({})
     property var cameraStateSnapshot: ({})

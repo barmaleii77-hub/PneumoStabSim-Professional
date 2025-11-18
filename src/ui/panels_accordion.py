@@ -30,6 +30,13 @@ from src.common.settings_manager import get_settings_manager
 from src.ui.parameter_slider import ParameterSlider
 
 
+def _coerce_float(value: float | None, fallback: float) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return float(fallback)
+
+
 def _build_logger(channel: str, *, panel: str | None = None):
     """Return a logger compatible with structlog bindings."""
 
@@ -1053,7 +1060,9 @@ class SimulationPanelAccordion(QWidget):
         # === TIMING PARAMETERS ===
 
         # Time step
-        sim_dt = float(self._settings.get("current.simulation.physics_dt", 0.001))
+        sim_dt = _coerce_float(
+            self._settings.get("current.simulation.physics_dt", 0.001), 0.001
+        )
         self.time_step = ParameterSlider(
             name="Time Step (dt)",
             initial_value=sim_dt,
@@ -1068,7 +1077,9 @@ class SimulationPanelAccordion(QWidget):
         layout.addWidget(self.time_step)
 
         # Simulation speed
-        sim_speed = float(self._settings.get("current.simulation.sim_speed", 1.0))
+        sim_speed = _coerce_float(
+            self._settings.get("current.simulation.sim_speed", 1.0), 1.0
+        )
         self.sim_speed = ParameterSlider(
             name="Simulation Speed",
             initial_value=sim_speed,
@@ -1186,7 +1197,9 @@ class RoadPanelAccordion(QWidget):
         layout.addWidget(self.manual_label)
 
         # Amplitude (all wheels)
-        amplitude = float(self._settings.get("current.modes.amplitude", 0.05))
+        amplitude = _coerce_float(
+            self._settings.get("current.modes.amplitude", 0.05), 0.05
+        )
         self.amplitude = ParameterSlider(
             name="Amplitude (A)",
             initial_value=amplitude,
@@ -1203,7 +1216,9 @@ class RoadPanelAccordion(QWidget):
         layout.addWidget(self.amplitude)
 
         # Frequency (all wheels)
-        frequency = float(self._settings.get("current.modes.frequency", 1.0))
+        frequency = _coerce_float(
+            self._settings.get("current.modes.frequency", 1.0), 1.0
+        )
         self.frequency = ParameterSlider(
             name="Frequency (f)",
             initial_value=frequency,
@@ -1220,7 +1235,7 @@ class RoadPanelAccordion(QWidget):
         layout.addWidget(self.frequency)
 
         # Phase offset (rear vs front)
-        phase = float(self._settings.get("current.modes.phase", 0.0))
+        phase = _coerce_float(self._settings.get("current.modes.phase", 0.0), 0.0)
         self.phase_offset = ParameterSlider(
             name="Phase Offset (rear)",
             initial_value=phase,
@@ -1273,7 +1288,9 @@ class RoadPanelAccordion(QWidget):
         self.profile_type_combo.setCurrentText(label)
 
         # Average speed
-        avg_speed = float(self._settings.get("current.modes.profile_avg_speed", 60.0))
+        avg_speed = _coerce_float(
+            self._settings.get("current.modes.profile_avg_speed", 60.0), 60.0
+        )
         self.avg_speed = ParameterSlider(
             name="Average Speed (v_avg)",
             initial_value=avg_speed,
@@ -1391,8 +1408,9 @@ class AdvancedPanelAccordion(QWidget):
         layout.addWidget(self.spring_stiffness)
 
         # Damper coefficient
-        damper_coeff = float(
-            self._settings.get("current.physics.suspension.damper_coefficient", 2000.0)
+        damper_coeff = _coerce_float(
+            self._settings.get("current.physics.suspension.damper_coefficient", 2000.0),
+            2000.0,
         )
         self.damper_coeff = ParameterSlider(
             name="Damper Coefficient (c)",
@@ -1417,8 +1435,9 @@ class AdvancedPanelAccordion(QWidget):
         dz_label.setStyleSheet("color: #aaaaaa; font-size: 9pt; font-weight: bold;")
         layout.addWidget(dz_label)
 
-        dead_zone = float(
-            self._settings.get("current.physics.suspension.dead_zone_percent", 5.0)
+        dead_zone = _coerce_float(
+            self._settings.get("current.physics.suspension.dead_zone_percent", 5.0),
+            5.0,
         )
         self.dead_zone = ParameterSlider(
             name="Dead Zone (both ends)",
@@ -1437,7 +1456,9 @@ class AdvancedPanelAccordion(QWidget):
         )
         layout.addWidget(self.dead_zone)
 
-        atm_temp = float(self._settings.get("current.pneumatic.atmo_temp", 20.0))
+        atm_temp = _coerce_float(
+            self._settings.get("current.pneumatic.atmo_temp", 20.0), 20.0
+        )
         self.atmospheric_temp = ParameterSlider(
             name="Atmospheric Temp",
             initial_value=atm_temp,

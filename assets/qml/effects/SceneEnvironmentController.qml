@@ -43,6 +43,9 @@ ExtendedSceneEnvironment {
     readonly property var sceneEnvironmentEnum: SceneEnvironment
     // qmllint enable unqualified
 
+    // Reflection probe toggles (used by SimulationRoot bindings)
+    property bool reflectionProbeEnabled: false
+
     function _globalContextObject() {
         if (root._globalContextRef !== undefined)
             return root._globalContextRef
@@ -525,6 +528,13 @@ ExtendedSceneEnvironment {
     property alias internalVignetteEnabled: root.vignetteEnabled
     property alias internalVignetteStrength: root.vignetteStrength
     property alias vignetteRadiusValue: root.vignetteRadius
+
+    // Reflection probe toggles (mirrors SimulationRoot expectations)
+    property bool reflectionProbeEnabled: environmentBoolDefault(
+        ["reflectionProbeEnabled", "reflection_enabled"],
+        "reflection_enabled",
+        true
+    )
 
     // Fog (SceneEnvironment::fog) -------------------------------------------------
     property bool fogEnabled: environmentBoolDefault("fogEnabled", "fog_enabled", true)

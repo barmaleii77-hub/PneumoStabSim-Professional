@@ -204,21 +204,21 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-        fog: fogHelpersSupported ? Fog {
-            enabled: root.fogEnabled
-            color: root.fogColor
-            density: root.fogDensity
-            depthEnabled: root.fogDepthEnabled && root.fogEnabled
-            depthCurve: root.fogDepthCurve
-            depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
-            depthFar: environmentDefaults.toSceneLength(root.fogDepthFar)
-            heightEnabled: root.fogHeightEnabled
-            leastIntenseY: environmentDefaults.toSceneLength(root.fogLeastIntenseY)
-            mostIntenseY: environmentDefaults.toSceneLength(root.fogMostIntenseY)
-            heightCurve: root.fogHeightCurve
-            transmitEnabled: root.fogTransmitEnabled
-            transmitCurve: root.fogTransmitCurve
-        } : null
+         fog: Fog {
+             enabled: fogHelpersSupported && root.fogEnabled
+             color: root.fogColor
+             density: root.fogDensity
+             depthEnabled: fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
+             depthCurve: root.fogDepthCurve
+             depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
+             depthFar: environmentDefaults.toSceneLength(root.fogDepthFar)
+             heightEnabled: root.fogHeightEnabled
+             leastIntenseY: environmentDefaults.toSceneLength(root.fogLeastIntenseY)
+             mostIntenseY: environmentDefaults.toSceneLength(root.fogMostIntenseY)
+             heightCurve: root.fogHeightCurve
+             transmitEnabled: root.fogTransmitEnabled
+             transmitCurve: root.fogTransmitCurve
+         }
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue
@@ -522,6 +522,7 @@ Item {
         sourceComponent: SimulationRoot {
             id: simulationRoot
             sceneBridge: root.hasSceneBridge ? pythonSceneBridge : null
+            fogDepthCurve: root.fogDepthCurve
         }
         onStatusChanged: function(newStatus) {
             if (newStatus === Loader.Error) {

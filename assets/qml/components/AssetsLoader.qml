@@ -129,6 +129,8 @@ Texture {
         } else if (currentStatus === Texture.Null) {
             if (!primarySource || String(primarySource).length === 0) {
                 _activateFallback("Primary source not provided", false)
+            } else if (!fallbackActive) {
+                _activateFallback("Primary source unavailable", false)
             }
         }
     }
@@ -146,6 +148,19 @@ Texture {
 
         function onStatusChanged() {
             root._handleStatusChanged()
+        }
+    }
+
+    // Defensive polling to catch loaders that never emit status updates in headless tests
+    Timer {
+        interval: 150
+        running: true
+        repeat: true
+
+        onTriggered: {
+            root._handleStatusChanged()
+            if (root.status === Texture.Ready || root.fallbackActive)
+                stop()
         }
     }
 
