@@ -76,6 +76,34 @@ def _sync_environment(uv_path: str) -> None:
     _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"])
 
 
+def _preinstall_dependencies(system: str, uv_path: str) -> bool:
+    """Perform platform-specific dependency preparation."""
+
+    if system == "Linux":
+        make_path = shutil.which("make")
+        if make_path:
+            _log("[entrypoint] Preinstalling dependencies via `make uv-sync`")
+            _stream_command([make_path, "uv-sync"])
+            return True
+
+        _log("[entrypoint] GNU Make not available; using uv sync fallback")
+        _sync_environment(uv_path)
+        return True
+
+    if system == "Windows":
+        setup_script = PROJECT_ROOT / "scripts" / "setup_dev.py"
+        if setup_script.exists():
+            _log("[entrypoint] Preinstalling dependencies via scripts/setup_dev.py")
+            _stream_command([sys.executable, str(setup_script)])
+            return True
+
+        _log("[entrypoint] setup_dev.py missing; falling back to uv sync")
+        _sync_environment(uv_path)
+        return True
+
+    return False
+
+
 def _prepare_system(system: str) -> None:
     if system != "Linux":
         _log("[entrypoint] Non-Linux host detected; skipping system package prep")
@@ -118,7 +146,9 @@ def main(argv: list[str]) -> int:
     try:
         uv_path = _require_uv()
         _prepare_system(system)
-        _sync_environment(uv_path)
+        preinstall_performed = _preinstall_dependencies(system, uv_path)
+        if not preinstall_performed:
+            _sync_environment(uv_path)
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
