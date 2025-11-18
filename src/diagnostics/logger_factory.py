@@ -387,6 +387,7 @@ def _ensure_stdlib_bridge(
     if formatter is None:
         if json_renderer is None:
             json_renderer = structlog.processors.JSONRenderer(
+                serializer=_json_dumps,
                 ensure_ascii=False,
                 default=str,
             )
@@ -436,6 +437,7 @@ def configure_logging(
         return
 
     json_renderer = structlog.processors.JSONRenderer(
+        serializer=_json_dumps,
         ensure_ascii=False,
         default=str,
     )
