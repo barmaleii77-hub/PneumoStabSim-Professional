@@ -42,7 +42,9 @@ def test_thread_safe_submission(tmp_path: Path, workers: int, submissions: int):
     )
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        list(executor.map(lambda _: service.submit_feedback(payload), range(submissions)))
+        list(
+            executor.map(lambda _: service.submit_feedback(payload), range(submissions))
+        )
 
     inbox_path = tmp_path / service.INBOX_FILENAME
     summary_path = tmp_path / service.SUMMARY_JSON_FILENAME

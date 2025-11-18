@@ -36,6 +36,48 @@ DETECTED_PLATFORM = platform.system()
 print(f"🖥️ Interactive launcher detected platform: {DETECTED_PLATFORM}")
 
 
+def _log(message: str) -> None:
+    timestamp = time.strftime("%H:%M:%S")
+    print(f"[launcher {timestamp}] {message}")
+
+
+def _format_command(cmd: Sequence[str]) -> str:
+    return " ".join(cmd)
+
+
+def run_command_logged(
+    cmd: Sequence[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    _log(f"Executing: {_format_command(cmd)}")
+    completed = subprocess.run(
+        cmd,
+        cwd=str(cwd) if cwd else None,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    _log(
+        "Finished: %s (exit=%s)" % (_format_command(cmd), completed.returncode)
+    )
+    return completed
+
+
+def format_completed_process(cmd: Sequence[str], completed: subprocess.CompletedProcess[str]) -> str:
+    stdout = (completed.stdout or "").strip()
+    stderr = (completed.stderr or "").strip()
+    lines: list[str] = [f"$ {_format_command(cmd)}", f"exit={completed.returncode}"]
+    if stdout:
+        lines.append(stdout)
+    if stderr:
+        lines.append("[stderr]\n" + stderr)
+    return "\n".join(lines)
+
+
 # --- Tooltip helper
 class Tooltip:
     def __init__(self, widget: tk.Widget, text: str, *, delay_ms: int = 350) -> None:
@@ -246,14 +288,8 @@ def run_log_analysis(env: dict[str, str]) -> str:
 
     python_exe = detect_venv_python(prefer_console=True)
     try:
-        completed = subprocess.run(
-            [str(python_exe), "-m", "tools.analyze_logs"],
-            cwd=str(root),
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
+        completed = run_command_logged(
+            [str(python_exe), "-m", "tools.analyze_logs"], cwd=root, env=env
         )
     except FileNotFoundError as exc:
         return f"Python интерпретатор недоступен: {exc}"
@@ -287,6 +323,7 @@ def launch_app(
     python_exe = detect_venv_python(prefer_console=prefer_console)
 
     cmd = [str(python_exe), str(root / "app.py"), *list(args)]
+    _log(f"Launching app with mode={mode}: {_format_command(cmd)}")
 
     creationflags = 0
     popen_kwargs: dict[str, object] = {
@@ -362,6 +399,22 @@ class LauncherUI(tk.Tk):
     # --- UI build
     def _build_ui(self) -> None:
         pad = {"padx": 10, "pady": 6}
+
+        menubar = tk.Menu(self)
+        actions_menu = tk.Menu(menubar, tearoff=0)
+        actions_menu.add_command(label="Запустить приложение", command=self._on_run)
+        actions_menu.add_command(label="Выбор конфигурации...", command=self._open_configuration_dialog)
+        menubar.add_cascade(label="Действия", menu=actions_menu)
+
+        tests_menu = tk.Menu(menubar, tearoff=0)
+        tests_menu.add_command(
+            label="Базовые тесты (entrypoint)", command=lambda: self._run_tests(scope="main")
+        )
+        tests_menu.add_command(
+            label="Интеграционные тесты", command=lambda: self._run_tests(scope="integration")
+        )
+        menubar.add_cascade(label="Тесты", menu=tests_menu)
+        self.config(menu=menubar)
 
         frm_launch = ttk.Labelframe(self, text="Параметры запуска (CLI)")
         frm_launch.pack(fill="x", **pad)
@@ -494,6 +547,63 @@ class LauncherUI(tk.Tk):
                 except Exception:
                     pass
 
+    def _open_configuration_dialog(self) -> None:
+        win = tk.Toplevel(self)
+        win.title("Выбор конфигурации")
+        win.geometry("760x520")
+
+        frm_flags = ttk.Labelframe(win, text="Флаги запуска")
+        frm_flags.pack(fill="x", padx=10, pady=8)
+        ttk.Checkbutton(frm_flags, text="Verbose (--verbose)", variable=self.var_verbose).grid(
+            row=0, column=0, sticky="w", padx=6, pady=4
+        )
+        ttk.Checkbutton(frm_flags, text="Diagnostics (--diag)", variable=self.var_diag).grid(
+            row=0, column=1, sticky="w", padx=6, pady=4
+        )
+        ttk.Checkbutton(frm_flags, text="Test mode (--test-mode)", variable=self.var_test).grid(
+            row=1, column=0, sticky="w", padx=6, pady=4
+        )
+        ttk.Checkbutton(frm_flags, text="Safe mode (--safe-mode)", variable=self.var_safe_mode).grid(
+            row=1, column=1, sticky="w", padx=6, pady=4
+        )
+        ttk.Checkbutton(frm_flags, text="Legacy UI (--legacy)", variable=self.var_legacy).grid(
+            row=2, column=0, sticky="w", padx=6, pady=4
+        )
+        ttk.Checkbutton(frm_flags, text="No QML (--no-qml)", variable=self.var_no_qml).grid(
+            row=2, column=1, sticky="w", padx=6, pady=4
+        )
+
+        frm_env = ttk.Labelframe(win, text="Параметры среды")
+        frm_env.pack(fill="x", padx=10, pady=8)
+        ttk.Checkbutton(frm_env, text="Headless (PSS_HEADLESS)", variable=self.var_headless).grid(
+            row=0, column=0, sticky="w", padx=6, pady=4
+        )
+        ttk.Label(frm_env, text="QT_QPA_PLATFORM:").grid(row=1, column=0, sticky="e", padx=6, pady=4)
+        ttk.Combobox(frm_env, textvariable=self.var_qpa, values=QPA_CHOICES, state="readonly", width=20).grid(
+            row=1, column=1, sticky="w", padx=6, pady=4
+        )
+        ttk.Label(frm_env, text="QSG_RHI_BACKEND:").grid(row=2, column=0, sticky="e", padx=6, pady=4)
+        ttk.Combobox(frm_env, textvariable=self.var_rhi, values=RHI_CHOICES, state="readonly", width=20).grid(
+            row=2, column=1, sticky="w", padx=6, pady=4
+        )
+        ttk.Label(frm_env, text="QT_QUICK_CONTROLS_STYLE:").grid(row=3, column=0, sticky="e", padx=6, pady=4)
+        ttk.Combobox(frm_env, textvariable=self.var_style, values=STYLE_CHOICES, state="readonly", width=20).grid(
+            row=3, column=1, sticky="w", padx=6, pady=4
+        )
+        ttk.Label(frm_env, text="PSS_QML_SCENE:").grid(row=4, column=0, sticky="e", padx=6, pady=4)
+        ttk.Combobox(frm_env, textvariable=self.var_scene, values=SCENE_CHOICES, state="readonly", width=20).grid(
+            row=4, column=1, sticky="w", padx=6, pady=4
+        )
+        ttk.Label(frm_env, text="QT_QUICK_BACKEND:").grid(row=5, column=0, sticky="e", padx=6, pady=4)
+        ttk.Entry(frm_env, textvariable=self.var_quick_backend, width=24).grid(
+            row=5, column=1, sticky="w", padx=6, pady=4
+        )
+
+        ttk.Label(win, text="Настройки обновляются мгновенно, отдельного подтверждения не требуется.").pack(
+            fill="x", padx=10, pady=8
+        )
+        ttk.Button(win, text="Закрыть", command=win.destroy).pack(pady=6)
+
     # --- Helpers: logs and repo status
     def _autodetect_log_dir(self) -> Path:
         root = project_root()
@@ -619,6 +729,49 @@ class LauncherUI(tk.Tk):
         except Exception:
             pass
 
+    def _run_tests(self, scope: Literal["main", "integration"]) -> None:
+        label = "интеграционные" if scope == "integration" else "базовые"
+        self._set_status(f"Запуск {label} тестов через unified entrypoint...")
+        threading.Thread(target=self._execute_tests, args=(scope,), daemon=True).start()
+
+    def _execute_tests(self, scope: Literal["main", "integration"]) -> None:
+        root = project_root()
+        python_exe = detect_venv_python(prefer_console=True)
+        entrypoint = root / "scripts" / "testing_entrypoint.py"
+        env = os.environ.copy()
+        env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+
+        sections: list[str] = []
+        sections.append(
+            self._run_command([str(python_exe), str(entrypoint)], "testing_entrypoint", cwd=root, env=env)
+        )
+
+        if scope == "integration":
+            sections.append(
+                self._run_command(
+                    [
+                        str(python_exe),
+                        "-m",
+                        "pytest",
+                        "--maxfail=1",
+                        "-m",
+                        "integration",
+                    ],
+                    "pytest -m integration",
+                    cwd=root,
+                    env=env,
+                )
+            )
+
+        text = "\n\n".join(sections)
+        self.after(
+            0,
+            lambda: self._show_text_window(
+                title="Результаты тестов", text=text, geometry="1100x820"
+            ),
+        )
+        self.after(0, lambda: self._set_status("Тестовый прогон завершён."))
+
     def _run_repo_status(self) -> None:
         self._set_status("Сбор статуса репозитория и линтера...")
         threading.Thread(target=self._collect_repo_status, daemon=True).start()
@@ -653,37 +806,26 @@ class LauncherUI(tk.Tk):
         )
         self.after(0, lambda: self._set_status("Статус репозитория обновлён."))
 
-    def _run_command(self, cmd: list[str], title: str, *, cwd: Path | None = None) -> str:
+    def _run_command(
+        self, cmd: list[str], title: str, *, cwd: Path | None = None, env: dict[str, str] | None = None
+    ) -> str:
         try:
-            completed = subprocess.run(
-                cmd,
-                cwd=str(cwd) if cwd else None,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
+            completed = run_command_logged(cmd, cwd=cwd, env=env)
         except FileNotFoundError:
             return f"{title}: команда не найдена ({cmd[0]})."
         except Exception as e:
             return f"{title}: ошибка запуска {e}"
 
-        stdout = (completed.stdout or "").strip()
-        stderr = (completed.stderr or "").strip()
-        lines: list[str] = []
-        lines.append(f"$ {' '.join(cmd)}")
-        lines.append(f"exit={completed.returncode}")
-        if stdout:
-            lines.append(stdout)
-        if stderr:
-            lines.append("[stderr]\n" + stderr)
+        stdout_lines = (completed.stdout or "").splitlines()
+        stderr_lines = (completed.stderr or "").splitlines()
+        text = format_completed_process(cmd, completed)
 
         if completed.returncode != 0:
-            hint = self._build_failure_hint(stdout.splitlines() + stderr.splitlines())
+            hint = self._build_failure_hint(stdout_lines + stderr_lines)
             if hint:
-                lines.append("Подсказка: " + hint)
+                text = f"{text}\nПодсказка: {hint}"
 
-        return "\n".join(lines)
+        return text
 
     def _count_severities(self, lines: Sequence[str]) -> dict[str, int]:
         counts = {"error": 0, "warning": 0}
@@ -816,6 +958,11 @@ class LauncherUI(tk.Tk):
         extra = self._summarize_captured_output() if mode == "capture" else ""
         if extra:
             analysis_text = f"{analysis_text}\n\n=== CAPTURED STDOUT/STDERR (tail) ===\n{extra}" if analysis_text else extra
+        try:
+            command_repr = _format_command(proc.args) if isinstance(proc.args, Sequence) else str(proc.args)
+        except Exception:
+            command_repr = str(proc.args)
+        _log(f"Application process exited with code {exit_code}: {command_repr}")
         if exit_code != 0:
             source_lines: list[str] = []
             if self._captured_output:
