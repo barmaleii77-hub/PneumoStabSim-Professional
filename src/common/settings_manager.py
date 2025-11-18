@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
 from pathlib import Path, PureWindowsPath
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from collections.abc import Iterable
 
 from src.core.settings_defaults import load_default_settings_payload
@@ -250,7 +250,7 @@ def _normalise_dict_keys(
 def _load_qt_core():
     try:
         spec = util.find_spec("PySide6.QtCore")
-    except ModuleNotFoundError:
+    except (ModuleNotFoundError, ImportError):
         return None
     if spec is None:
         return None
