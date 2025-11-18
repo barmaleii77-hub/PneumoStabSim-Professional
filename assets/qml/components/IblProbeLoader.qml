@@ -81,15 +81,28 @@ Item {
     }
 
     // ✅ FILE LOGGING SYSTEM для анализа сигналов
+    property var _lastLog: ({})
+
     function writeLog(level, message) {
         const timestamp = new Date().toISOString()
         const logEntry = `${timestamp} | ${level} | IblProbeLoader | ${message}`
+
+        // Избегаем спама одинаковыми сообщениями (например, когда источник пуст)
+        if (_lastLog[level] === logEntry)
+            return
+
+        _lastLog[level] = logEntry
+
         const appWindow = Qt.application ? Qt.application.activeWindow : null
         if (appWindow && typeof appWindow.logIblEvent === "function") {
             appWindow.logIblEvent(logEntry)
         }
-        if (level === "ERROR" || level === "WARN") {
+
+        if (level === "ERROR") {
             console.warn(logEntry)
+        } else if (level === "WARN") {
+            // Для пустых источников не используем предупреждения, чтобы не шуметь
+            console.info(logEntry)
         } else {
             console.log(logEntry)
         }
@@ -148,7 +161,7 @@ Item {
 
         if (hdrProbe.status === Texture.Null) {
             if (!controller.primarySource || String(controller.primarySource) === "")
-                controller._activateFallback("No primary HDR source provided")
+                controller._activateFallback("No primary HDR source provided", /*quiet=*/true)
         } else if (hdrProbe.status === Texture.Error) {
             if (controller.fallbackActive) {
                 writeLog(
@@ -171,7 +184,8 @@ Item {
                     )
             } else {
                 var emptyFallback = controller._activateFallback(
-                    "No primary HDR source provided"
+                    "No primary HDR source provided",
+                    /*quiet=*/true
                 )
                 if (!emptyFallback)
                     writeLog("INFO", "No HDR source specified; skybox remains empty")
@@ -188,13 +202,20 @@ Item {
         }
     }
 
-    function _activateFallback(reason) {
+    function _activateFallback(reason, quiet) {
         if (controller.fallbackActive)
             return true
-        writeLog(
-            "WARN",
-            reason + "; switching to fallback HDR source: " + controller.fallbackDescriptor
-        )
+        if (quiet === true) {
+            writeLog(
+                "INFO",
+                reason + "; switching to fallback HDR source: " + controller.fallbackDescriptor
+            )
+        } else {
+            writeLog(
+                "WARN",
+                reason + "; switching to fallback HDR source: " + controller.fallbackDescriptor
+            )
+        }
         controller.fallbackActive = true
         controller._lastStatus = -1
         return true
@@ -233,7 +254,7 @@ Item {
             "IblProbeLoader initialized | Primary: " + (primarySource || "<empty>")
         )
         if (!primarySource || String(primarySource) === "") {
-            writeLog("WARN", "No primarySource provided at init")
+            writeLog("INFO", "No primarySource provided at init")
         }
         _checkStatus()
     }
