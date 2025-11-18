@@ -50,6 +50,12 @@ jobs:
             requirements*.txt
             pyproject.toml
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf
+
+      - name: Sync Python environment with uv
+        run: uv sync --frozen --extra dev
+
       - name: Bootstrap Linux environment
         if: runner.os == 'Linux'
         env:
