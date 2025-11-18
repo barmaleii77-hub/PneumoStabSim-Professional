@@ -1,0 +1,19 @@
+{
+  "pressure": {
+    "min": 0.0,
+    "max": 250000.0,
+    "userMin": 0.0,
+    "userMax": 250000.0,
+    "tickStep": 5000.0
+  },
+  "temperature": {
+    "tankMin": 200.0,
+    "tankMax": 450.0,
+    "ambientMin": -80.0,
+    "ambientMax": 150.0
+  },
+  "layout": {
+    "panelPadding": 24,
+    "contentMargin": 24
+  }
+}

@@ -13,6 +13,7 @@ Item {
     implicitWidth: layout.implicitWidth
     implicitHeight: layout.implicitHeight
 
+    readonly property var uiConstants: Components.UiConstants
     readonly property var objectHasOwn: ({}).hasOwnProperty
 
     /**
@@ -46,10 +47,10 @@ Item {
 
     property string title: qsTr("Резервуар давления")
     property real pressure: 0.0
-    property real minPressure: 0.0
-    property real maxPressure: 250000.0
-    property real userMinPressure: minPressure
-    property real userMaxPressure: maxPressure
+    property real minPressure: Number(uiConstants.pressure.min || 0.0)
+    property real maxPressure: Number(uiConstants.pressure.max || 250000.0)
+    property real userMinPressure: Number(uiConstants.pressure.userMin || minPressure)
+    property real userMaxPressure: Number(uiConstants.pressure.userMax || maxPressure)
     property real atmosphericPressure: 101325.0
     property real reservoirPressure: pressure
     property var pressureMarkers: []
@@ -76,10 +77,10 @@ Item {
         { value: "custom", label: qsTr("Пользовательский профиль") }
     ]
 
-    readonly property real _tankTemperatureMin: 200.0
-    readonly property real _tankTemperatureMax: 450.0
-    readonly property real _ambientTemperatureMin: -80.0
-    readonly property real _ambientTemperatureMax: 150.0
+    readonly property real _tankTemperatureMin: Number(uiConstants.temperature.tankMin || 200.0)
+    readonly property real _tankTemperatureMax: Number(uiConstants.temperature.tankMax || 450.0)
+    readonly property real _ambientTemperatureMin: Number(uiConstants.temperature.ambientMin || -80.0)
+    readonly property real _ambientTemperatureMax: Number(uiConstants.temperature.ambientMax || 150.0)
 
     // Кэшированные снимки настроек для синхронизации с SettingsManager.
     property var _pneumaticDefaults: ({})

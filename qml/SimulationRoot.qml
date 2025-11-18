@@ -3,6 +3,7 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
 import "." as Local
+import "components" as Components
 
 /**
  * Минимальный корневой компонент для стенд‑запуска панели симуляции.
@@ -14,7 +15,7 @@ Pane {
 
     width: 960
     height: 640
-    padding: 24
+    padding: Components.UiConstants.defaultPadding
 
     /** Полный снимок телеметрии потоков от симулятора. */
     property var flowTelemetry: ({})
@@ -149,11 +150,11 @@ Pane {
         border.width: 1
     }
 
-    // Основной контент — панель симуляции (как прямой потомок, чтобы findChild() находил её)
+    // Основной контент — лениво инициализируем панель симуляции через Loader
     contentItem: Local.SimulationPanel {
         id: simulationPanel
         objectName: "simulationPanel"
         anchors.fill: parent
-        anchors.margins: 24
+        anchors.margins: Components.UiConstants.defaultContentMargin
     }
 }
