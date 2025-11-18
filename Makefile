@@ -183,6 +183,7 @@ check: uv-sync-qt
 	$(PYTHON) -m json.tool config/app_settings.json >/dev/null
 	$(PYTHON) tools/validate_settings.py --quiet
 	CI_TASKS_ENABLE_COVERAGE=0 QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software LIBGL_ALWAYS_SOFTWARE=1 \
+	PSS_HEADLESS=$${PSS_HEADLESS:-1} \
 	$(PYTHON) -m tools.ci_tasks verify
 	$(PYTHON) tools/check_workflow_pins.py
 	$(MAKE) check-shaders

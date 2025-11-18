@@ -33,6 +33,7 @@ def qt_message_handler(mode, context, message):
     # importing PySide6 at module import time.
     return None
 
+
 # --- Prefer project venv python (console/python.exe in headless/trace modes)
 _DEF_VENV = _PROJECT_ROOT / ".venv" / ("Scripts" if os.name == "nt" else "bin")
 _VENV_PY_CONSOLE = _DEF_VENV / ("python.exe" if os.name == "nt" else "python")
