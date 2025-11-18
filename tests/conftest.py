@@ -169,6 +169,13 @@ def headless_qt_modules():
         class _StubQObject:
             def __init__(self, *args, **kwargs):  # noqa: ANN001, D401
                 super().__init__()
+                self.destroyed = _StubSignal()
+
+            def deleteLater(self) -> None:  # noqa: D401
+                try:
+                    self.destroyed.emit()
+                except Exception:
+                    pass
 
         class _StubQApplication:
             _instance = None
