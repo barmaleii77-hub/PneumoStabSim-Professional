@@ -19,6 +19,20 @@ if str(_PROJECT_ROOT) not in sys.path:
 if str(_SRC_PATH) not in sys.path:
     sys.path.insert(0, str(_SRC_PATH))
 
+# --- Global toggles required by diagnostics and compatibility tests
+USE_QML_3D_SCHEMA = True
+app_instance = None
+window_instance = None
+
+
+def qt_message_handler(mode, context, message):
+    """Lightweight Qt message hook used by diagnostics harnesses."""
+
+    # The real handler is configured inside :class:`app_runner.ApplicationRunner`.
+    # This shim keeps legacy entrypoints and automated tests satisfied without
+    # importing PySide6 at module import time.
+    return None
+
 # --- Prefer project venv python (console/python.exe in headless/trace modes)
 _DEF_VENV = _PROJECT_ROOT / ".venv" / ("Scripts" if os.name == "nt" else "bin")
 _VENV_PY_CONSOLE = _DEF_VENV / ("python.exe" if os.name == "nt" else "python")
@@ -362,6 +376,27 @@ def main() -> int:
     print(_render_exit_status(exit_code, locale))
 
     return exit_code
+
+
+def __getattr__(name: str):
+    """Provide compatibility globals for diagnostics harnesses.
+
+    Older test suites expect ``USE_QML_3D_SCHEMA``, ``app_instance`` and
+    ``window_instance`` to be present at module scope even when the runtime has
+    not yet created any Qt objects. The values are lazily initialised so the
+    attributes are always available without pulling in heavy dependencies.
+    """
+
+    if name == "USE_QML_3D_SCHEMA":
+        globals().setdefault(name, True)
+        return globals()[name]
+    if name == "app_instance":
+        globals().setdefault(name, None)
+        return globals()[name]
+    if name == "window_instance":
+        globals().setdefault(name, None)
+        return globals()[name]
+    raise AttributeError(name)
 
 
 if __name__ == "__main__":

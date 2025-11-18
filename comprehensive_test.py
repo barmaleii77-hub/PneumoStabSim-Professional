@@ -10,8 +10,13 @@ import time
 from pathlib import Path
 import json
 
-# Добавляем src в путь для импортов
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Добавляем корень репозитория и src в путь для импортов
+_PROJECT_ROOT = Path(__file__).parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+src_path = _PROJECT_ROOT / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(1, str(src_path))
 
 from src.diagnostics.logger_factory import get_logger
 
