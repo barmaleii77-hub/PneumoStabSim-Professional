@@ -1,9 +1,10 @@
-# HDR Branch Release Notes (v2.0.2)
+# HDR Branch Release Notes (v4.9.8)
 
 ## Overview
-HDR improvements from `hdr/bloom-tonemap` are part of PneumoStabSim Professional v2.0.2. The release
+HDR improvements from `hdr/bloom-tonemap` are part of PneumoStabSim Professional v4.9.8. The release
 consolidates tone mapping controls, normalizes HDR asset handling, and documents migration paths so
-teams can adopt the updated pipeline without breaking existing presets.
+teams can adopt the updated pipeline without breaking existing presets. Version strings align with
+`pyproject.toml` and the stabilization plan, removing earlier references to the 2.0.x line.
 
 ## Key Changes
 - **Tone mapping controls**: `HDR Maximum` and `HDR Scale` sliders complement the existing threshold,
@@ -28,3 +29,5 @@ teams can adopt the updated pipeline without breaking existing presets.
 - Settings schema remains stable; no new keys are required beyond tone mapping adjustments.
 - The release targets Qt/PySide 6.10 and Python 3.13; Windows and Linux builds share the same
   manifest expectations and logging format.
+- Documentation, manifests, and release metadata uniformly reference v4.9.8 to avoid
+  cross-branch confusion when validating HDR assets.
