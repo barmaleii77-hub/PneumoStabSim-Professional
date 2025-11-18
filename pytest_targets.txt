@@ -3,3 +3,4 @@
 # file only appends extra paths and must never be used to exclude required
 # suites.
 tests/integration/test_backup_restore.py
+tests/test_feedback_service.py
