@@ -18,6 +18,7 @@ from typing import Iterable, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_PATH = PROJECT_ROOT / "reports" / "tests" / "test_entrypoint.log"
+PERFORMANCE_REPORT = PROJECT_ROOT / "reports" / "tests" / "performance.xml"
 
 
 class CommandFailure(RuntimeError):
@@ -111,6 +112,29 @@ def _primary_commands(uv_path: str) -> Iterable[Sequence[str]]:
         ]
 
 
+def _performance_commands(uv_path: str) -> Iterable[Sequence[str]]:
+    perf_dir = PROJECT_ROOT / "tests" / "performance"
+    if not perf_dir.exists():
+        _log("[entrypoint] Performance suite missing; skipping")
+        return []
+
+    _log("[entrypoint] Running performance render/sync suite")
+    yield [
+        uv_path,
+        "run",
+        "--locked",
+        "--",
+        "pytest",
+        "tests/performance",
+        "-m",
+        "performance or True",
+        "--maxfail",
+        "1",
+        "--junitxml",
+        str(PERFORMANCE_REPORT),
+    ]
+
+
 def main(argv: list[str]) -> int:
     system = platform.system()
     _log(f"[entrypoint] Detected platform: {system}")
@@ -123,6 +147,9 @@ def main(argv: list[str]) -> int:
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
         for command in _primary_commands(uv_path):
+            _stream_command(command, env=env)
+
+        for command in _performance_commands(uv_path):
             _stream_command(command, env=env)
     except (CommandFailure, MissingTool) as exc:  # pragma: no cover - cli guard
         _log(f"[entrypoint] ERROR: {exc}")

@@ -43,6 +43,7 @@ _MARKERS = [
     "qtbot: pytest-qt qtbot tests",
     "qt_no_exception_capture: Disable pytest-qt exception capture",
     "ui: Legacy UI tests",
+    "performance: Performance and render timing tests",
 ]
 
 
