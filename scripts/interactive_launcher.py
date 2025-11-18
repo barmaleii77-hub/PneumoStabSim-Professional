@@ -8,8 +8,9 @@ Windows Interactive Launcher for PneumoStabSim-Professional
 from __future__ import annotations
 
 import os
-import sys
+import platform
 import subprocess
+import sys
 from pathlib import Path
 from typing import Iterable, Literal
 import threading
@@ -25,6 +26,9 @@ STYLE_CHOICES: list[str] = ["(auto)", "Basic", "Fusion"]
 SCENE_CHOICES: list[str] = ["(auto)", "realism"]
 
 CreateFlag = Literal["new_console", "detached", "capture"]
+
+DETECTED_PLATFORM = platform.system()
+print(f"🖥️ Interactive launcher detected platform: {DETECTED_PLATFORM}")
 
 
 # --- Tooltip helper
@@ -116,17 +120,35 @@ def _append_env_path(env: dict[str, str], name: str, path: Path) -> None:
 def ensure_qt_environment(env: dict[str, str]) -> None:
     root = project_root()
     venv_root = root / ".venv"
-    pyside_dir = venv_root / "Lib" / "site-packages" / "PySide6"
-    plugins_dir = pyside_dir / "plugins"
-    qml_dir = pyside_dir / "qml"
+    site_packages_candidates: list[Path] = []
+    if os.name == "nt":
+        site_packages_candidates.append(venv_root / "Lib" / "site-packages")
+    else:
+        site_packages_candidates.extend(
+            path for path in (venv_root / "lib").glob("python*/site-packages") if path.exists()
+        )
+
+    pyside_dir = next(
+        (candidate / "PySide6" for candidate in site_packages_candidates if (candidate / "PySide6").exists()),
+        None,
+    )
+    if pyside_dir:
+        print(f"ℹ️ PySide6 detected at: {pyside_dir}")
+    else:
+        print(
+            "⚠️ PySide6 site-packages not found; ensure the virtual environment is synced before launching."
+        )
+    plugins_dir = pyside_dir / "plugins" if pyside_dir else None
+    qml_dir = pyside_dir / "qml" if pyside_dir else None
     assets_qml = root / "assets" / "qml"
 
-    if plugins_dir.exists() and not env.get("QT_PLUGIN_PATH"):
+    if plugins_dir and plugins_dir.exists() and not env.get("QT_PLUGIN_PATH"):
         env["QT_PLUGIN_PATH"] = str(plugins_dir)
 
-    _append_env_path(env, "QML2_IMPORT_PATH", qml_dir)
+    if qml_dir:
+        _append_env_path(env, "QML2_IMPORT_PATH", qml_dir)
+        _append_env_path(env, "QML_IMPORT_PATH", qml_dir)
     _append_env_path(env, "QML2_IMPORT_PATH", assets_qml)
-    _append_env_path(env, "QML_IMPORT_PATH", qml_dir)
     _append_env_path(env, "QML_IMPORT_PATH", assets_qml)
 
     env.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
@@ -345,7 +367,12 @@ class LauncherUI(tk.Tk):
         self._widgets["btn_exit"] = ttk.Button(frm_actions, text="Выход", command=self.destroy)
         self._widgets["btn_exit"].pack(side="right", padx=6)
 
-        self.lbl_status = ttk.Label(self, text=f"Project root: {project_root()}\nPython: {sys.executable}")
+        status_text = (
+            f"Platform: {DETECTED_PLATFORM}\n"
+            f"Project root: {project_root()}\n"
+            f"Python: {sys.executable}"
+        )
+        self.lbl_status = ttk.Label(self, text=status_text)
         self.lbl_status.pack(fill="x", padx=10, pady=10)
 
     # --- Tooltips
