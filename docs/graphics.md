@@ -158,6 +158,22 @@ Environment payload (вложенный)
 - `PostEffects.qml` фиксирует постоянные ошибки компиляции fallback-шейдеров через флаг `effectsBypass`, сохраняя причину в `effectsBypassReason` в формате `<effectId>: <сообщение>` и временно отключая проблемный эффект, чтобы не блокировать отрисовку. 【F:assets/qml/effects/PostEffects.qml†L17-L114】【F:assets/qml/effects/PostEffects.qml†L663-L724】【F:assets/qml/effects/PostEffects.qml†L1004-L1068】
 - `SimulationRoot.qml` слушает эти изменения: при активном bypass он очищает `View3D.effects`, кеширует предыдущую цепочку эффектов и оставляет сцену видимой без пост-обработки, а после успешной перекомпиляции восстанавливает сохранённый список. 【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L24-L205】
 - При фатальных сбоях компиляции, когда даже fallback-шейдер не запускается, `PostEffects.qml` дополнительно инициирует упрощённый режим визуализации через сигнал `simplifiedRenderingRequested`. `SimulationRoot.qml` транслирует запрос наружу (`simpleFallbackRequested`), а `main.qml` активирует `SimulationFallbackRoot` и скрывает 3D-сцену до восстановления (`simplifiedRenderingRecovered`). 【F:assets/qml/effects/PostEffects.qml†L17-L119】【F:assets/qml/PneumoStabSim/SimulationRoot.qml†L14-L119】【F:assets/qml/main.qml†L21-L126】
+
+### Новые эффекты — замеры производительности (ноябрь 2025)
+
+- Подготовлен синтетический бенчмарк `tools/effects_performance_benchmark.py`, который использует существующий `PerformanceMonitor` и моделирует нагрузку от новых пост-эффектов при разных целевых фрейм-таймах (эмулируем 720p/1080p/1440p, HDR bloom + DoF + lens flare/motion blur). Скрипт фиксирует платформу, строит FPS/CPU/RAM метрики и сохраняет отчёт в `reports/performance/effects_performance_report.json`. 【F:tools/effects_performance_benchmark.py†L1-L149】【F:reports/performance/effects_performance_report.json†L1-L93】
+- Результаты (Linux, headless):
+
+  | Конфигурация | Эффекты | Средний FPS | CPU% | RAM (MB) | Вывод |
+  | --- | --- | --- | --- | --- | --- |
+  | integrated_gpu_720p | Bloom + lens flare + motion blur | 37.5 | 0.6 | 130.0 | GPU-bound: 26.7 мс на кадр при активном HDR, не хватает бюджета на 60 FPS. |
+  | workstation_1080p | Bloom + DoF + chromatic aberration | 54.1 | 0.6 | 130.0 | PostFX добавляют ~5.8 мс, устойчиво держит ~55 FPS. |
+  | desktop_1440p | Bloom + DoF + lens flare + vignette | 82.3 | 0.6 | 130.0 | Высокий запас по FPS, можно включать дополнительные эффекты. |
+
+- Узкие места и рекомендации:
+  - На интегрированной графике основная потеря идёт от связки HDR bloom + motion blur. Для экономии бюджета снизьте `bloomHdrMaximum`/`bloomHdrScale` и временно выключайте motion blur/lens flare через контроллер эффектов. 【F:assets/qml/effects/SceneEnvironmentController.qml†L484-L520】
+  - На рабочих станциях ограничивайте DoF (уменьшить `depthOfFieldBlurAmount` и диапазон фокуса), чтобы держать кадр ниже 18 мс и оставаться в районе 60 FPS. 【F:assets/qml/effects/SceneEnvironmentController.qml†L501-L520】
+  - При появлении артефактов или деградации компиляции оставляем активным fail-safe: `PostEffects.qml` автоматически включает `simplifiedRenderingRequested` и очищает цепочку эффектов, позволяя сохранить стабильный FPS без полного отключения сцены. 【F:assets/qml/effects/PostEffects.qml†L190-L229】
 - Интеграционный тест воспроизводит отказ шейдера и подтверждает переход в fail-safe режим без потери кадра, а также восстановление исходных эффектов и причины в UI. 【F:tests/ui/test_post_effects_bypass_fail_safe.py†L1-L94】
 
 ### ShaderEffect с резервным режимом

@@ -1,0 +1,93 @@
+{
+  "platform": "Linux",
+  "scenarios": [
+    {
+      "name": "integrated_gpu_720p",
+      "resolution": "1280x720",
+      "effects": [
+        "hdr_bloom",
+        "lens_flare",
+        "motion_blur"
+      ],
+      "frame_time_ms": 26.0,
+      "base_frame_time_ms": 16.7,
+      "effect_overhead_ms": 9.3,
+      "duration_s": 6.0,
+      "sample_interval_s": 0.5,
+      "sample_count": 13,
+      "averages": {
+        "avg_cpu_percent": 0.6,
+        "avg_memory_mb": 129.9921875,
+        "avg_memory_percent": 0.7079685930682561,
+        "avg_fps": 37.518395270865014,
+        "avg_frame_time_ms": 26.677043437957764,
+        "avg_cpu_time_user": 2.059,
+        "avg_cpu_time_system": 0.502,
+        "avg_cpu_time_total": 2.561,
+        "avg_gpu_utilization_percent": null,
+        "avg_gpu_memory_total_mb": null,
+        "avg_gpu_memory_used_mb": null,
+        "avg_gpu_memory_free_mb": null
+      }
+    },
+    {
+      "name": "workstation_1080p",
+      "resolution": "1920x1080",
+      "effects": [
+        "hdr_bloom",
+        "dof",
+        "chromatic_aberration"
+      ],
+      "frame_time_ms": 17.8,
+      "base_frame_time_ms": 12.0,
+      "effect_overhead_ms": 5.8,
+      "duration_s": 6.0,
+      "sample_interval_s": 0.5,
+      "sample_count": 13,
+      "averages": {
+        "avg_cpu_percent": 0.6,
+        "avg_memory_mb": 129.9921875,
+        "avg_memory_percent": 0.7079685930682561,
+        "avg_fps": 54.08578020007926,
+        "avg_frame_time_ms": 18.541958332061768,
+        "avg_cpu_time_user": 2.088,
+        "avg_cpu_time_system": 0.51,
+        "avg_cpu_time_total": 2.598,
+        "avg_gpu_utilization_percent": null,
+        "avg_gpu_memory_total_mb": null,
+        "avg_gpu_memory_used_mb": null,
+        "avg_gpu_memory_free_mb": null
+      }
+    },
+    {
+      "name": "desktop_1440p",
+      "resolution": "2560x1440",
+      "effects": [
+        "hdr_bloom",
+        "dof",
+        "lens_flare",
+        "vignette"
+      ],
+      "frame_time_ms": 11.7,
+      "base_frame_time_ms": 8.5,
+      "effect_overhead_ms": 3.2,
+      "duration_s": 6.0,
+      "sample_interval_s": 0.5,
+      "sample_count": 12,
+      "averages": {
+        "avg_cpu_percent": 0.6,
+        "avg_memory_mb": 129.9921875,
+        "avg_memory_percent": 0.7079685930682561,
+        "avg_fps": 82.29416595020449,
+        "avg_frame_time_ms": 12.212550640106201,
+        "avg_cpu_time_user": 2.12,
+        "avg_cpu_time_system": 0.523,
+        "avg_cpu_time_total": 2.643,
+        "avg_gpu_utilization_percent": null,
+        "avg_gpu_memory_total_mb": null,
+        "avg_gpu_memory_used_mb": null,
+        "avg_gpu_memory_free_mb": null
+      }
+    }
+  ]
+}
