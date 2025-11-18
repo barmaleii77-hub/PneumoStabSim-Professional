@@ -31,7 +31,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib import import_module, util
 from pathlib import Path, PureWindowsPath
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from collections.abc import Iterable
 
 from src.core.settings_defaults import load_default_settings_payload
@@ -358,6 +358,7 @@ class SettingsManager:
         self._orbit_presets: dict[str, Any] | None = None
         self._orbit_presets_path = orbit_presets_path()
         self._access_control = get_access_control()
+        self._runtime_defaults: dict[str, Any] | None = None
         self.load()
 
     # ------------------------------------------------------------------ helpers
@@ -1218,6 +1219,27 @@ class SettingsManager:
     # Defaults ---------------------------------------------------------------
     def get_all_defaults(self) -> dict[str, Any]:
         return _deep_copy(self._defaults)
+
+    def get_runtime_defaults(self) -> dict[str, Any]:
+        if self._runtime_defaults is None:
+            from src.core.settings_service import load_runtime_defaults
+
+            self._runtime_defaults = load_runtime_defaults()
+        return _deep_copy(self._runtime_defaults)
+
+    def create_default_system_configuration(self) -> dict[str, Any]:
+        from src.core.settings_manager import (
+            create_default_system_configuration as _create_default_system_configuration,
+        )
+
+        return _create_default_system_configuration(settings_manager=self)
+
+    def create_default_gas_network(self, system: Any):
+        from src.core.settings_manager import (
+            create_default_gas_network as _create_default_gas_network,
+        )
+
+        return _create_default_gas_network(system, settings_manager=self)
 
     # Category helpers -------------------------------------------------------
     def get_category(

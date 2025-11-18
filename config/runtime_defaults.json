@@ -1,0 +1,40 @@
+{
+  "simulation": {
+    "physics_dt": 0.001,
+    "render_vsync_hz": 60.0,
+    "max_steps_per_frame": 10,
+    "max_frame_time": 0.05
+  },
+  "pneumatic": {
+    "volume_mode": "MANUAL",
+    "receiver_volume": 0.02,
+    "thermo_mode": "ISOTHERMAL",
+    "receiver_volume_limits": {
+      "min_m3": 0.001,
+      "max_m3": 1.0
+    },
+    "polytropic_heat_transfer_coeff": 45.0,
+    "polytropic_exchange_area": 0.12,
+    "leak_coefficient": 5e-08,
+    "leak_reference_area": 0.0002,
+    "diagonal_coupling_dia": 0.001,
+    "master_isolation_open": false,
+    "dead_zone_head_m3": 0.0,
+    "dead_zone_rod_m3": 0.0,
+    "atmo_temp": 20.0
+  },
+  "constants": {
+    "pneumo": {
+      "gas": {
+        "tank_volume_mode": "ADIABATIC_RECALC",
+        "relief_min_threshold_pa": 250000.0,
+        "relief_stiff_threshold_pa": 1500000.0,
+        "relief_safety_threshold_pa": 5000000.0
+      },
+      "valves": {
+        "relief_min_orifice_diameter_m": 0.001,
+        "relief_stiff_orifice_diameter_m": 0.0015
+      }
+    }
+  }
+}
