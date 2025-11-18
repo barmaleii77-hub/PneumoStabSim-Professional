@@ -106,3 +106,17 @@ qml_signals:
       PostEffects requested a shader diagnostics snapshot. Persist the
       payload so CI logs include shader compilation state when bypasses
       activate.
+  - signal: accordionPresetActivated
+    handler: _on_accordion_preset_activated
+    connection: queued
+    description: >-
+      Generic preset activation propagated from accordion-based panels.
+      The handler maps panel identifiers onto SettingsManager sections
+      and reuses existing preset application helpers.
+  - signal: accordionFieldCommitted
+    handler: _on_accordion_field_committed
+    connection: queued
+    description: >-
+      Normalised accordion field edit. Payload includes the panel id,
+      field key, and validated numeric value so Python can update
+      SettingsManager without bespoke per-field slots.

@@ -49,6 +49,8 @@ Pane {
     signal pneumaticSettingsChanged(var payload)
     signal simulationSettingsChanged(var payload)
     signal cylinderSettingsChanged(var payload)
+    signal accordionPresetActivated(string panelId, string presetId)
+    signal accordionFieldCommitted(string panelId, string field, var value)
 
     padding: 16
     width: 420
@@ -335,7 +337,7 @@ Pane {
         if (Object.prototype.hasOwnProperty.call(data, "check_interference"))
             _setCheckBox(interferenceCheck, data.check_interference, false)
         if (Object.prototype.hasOwnProperty.call(data, "ambient_temperature_c"))
-            ambientTemperatureSpin.value = Number(data.ambient_temperature_c) || 0.0
+            ambientTemperatureField.value = Number(data.ambient_temperature_c) || 0.0
         if (data.physics) {
             _setCheckBox(springsCheck, data.physics.include_springs, true)
             _setCheckBox(dampersCheck, data.physics.include_dampers, true)
@@ -576,6 +578,7 @@ Pane {
                                 return
                             root._activePresetId = presetId
                             modesPresetSelected(presetId)
+                            accordionPresetActivated("modes", presetId)
                         }
                     }
 
@@ -736,33 +739,29 @@ Pane {
                         }
                     }
 
-                    RowLayout {
+                    Common.ValidatedField {
+                        id: ambientTemperatureField
                         Layout.fillWidth: true
-                        spacing: 8
-                        Label {
-                            text: qsTr("Температура среды, °C")
-                            Layout.preferredWidth: 150
+                        labelText: qsTr("Температура среды")
+                        settingsKey: "ambient_temperature_c"
+                        from: -80
+                        to: 150
+                        stepSize: 0.5
+                        decimals: 1
+                        unit: "°C"
+                        helperText: qsTr("Доступный диапазон соответствует значениям из SettingsManager")
+                        value: 20
+
+                        onValueCommitted: function(key, numericValue) {
+                            if (root._updatingFromPython)
+                                return
+                            root._activePresetId = "custom"
+                            _emitAmbientTemperature(numericValue)
+                            accordionFieldCommitted("modes", key, numericValue)
                         }
-                            SpinBox {
-                              id: ambientTemperatureSpin
-                              Layout.fillWidth: true
-                              from: -80
-                              to: 150
-                              stepSize: 1
-                              value: 20
-                              editable: true
-                              validator: DoubleValidator { bottom: -120; top: 200; decimals: 1 }
-                              textFromValue: function(value, locale) { return root._formatValue(value, 1) }
-                              valueFromText: function(text, locale) {
-                                  var numeric = Number(text)
-                                  return Number.isFinite(numeric) ? numeric : value
-                              }
-                              onValueModified: {
-                                if (root._updatingFromPython)
-                                    return
-                                root._activePresetId = "custom"
-                                _emitAmbientTemperature(value)
-                            }
+
+                        onValidationFailed: function(key, reason) {
+                            console.warn("Validation error for", key, reason)
                         }
                     }
 
