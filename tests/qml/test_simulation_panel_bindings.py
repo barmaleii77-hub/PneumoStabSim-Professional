@@ -221,7 +221,9 @@ def test_temperature_inputs_are_clamped(qapp) -> None:
         qapp.processEvents()
 
         pneumatic_state = _as_mapping(panel.property("pneumaticStateSnapshot"))
-        assert pneumatic_state["gas"]["tank_temperature_initial_k"] == pytest.approx(450.0, rel=1e-6)
+        assert pneumatic_state["gas"]["tank_temperature_initial_k"] == pytest.approx(
+            450.0, rel=1e-6
+        )
         assert temperature_field.property("text").startswith("450")
 
         ambient_field.setProperty("text", "-200")
