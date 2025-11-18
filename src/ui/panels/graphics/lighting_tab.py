@@ -27,7 +27,7 @@ from src.common.settings_manager import get_settings_manager
 from src.common.logging_widgets import LoggingCheckBox
 
 
-_POINT_ATTENUATION_MIN = 0.0
+_POINT_ATTENUATION_MIN = 0.01
 _POINT_ATTENUATION_MAX = 10.0
 _POINT_ATTENUATION_STEP = 0.01
 
@@ -71,12 +71,14 @@ class LightingTab(QWidget):
             self._defaults: dict[str, Any] = copy.deepcopy(lighting_settings)
         else:
             self._defaults = {}
-        self._state = copy.deepcopy(self._defaults)
+        self._state = self._merge_with_defaults(
+            self._defaults, prefer_engine_defaults=True
+        )
 
         self._setup_ui()
         # Применяем состояние сразу, чтобы слайдеры отображали корректные
         # значения по умолчанию вместо минимальных порогов (например, 0.0).
-        self.set_state(self._state)
+        self.set_state(self._state, prefer_engine_defaults=True)
 
     def _setup_ui(self) -> None:
         """Настроить интерфейс"""
@@ -798,7 +800,9 @@ class LightingTab(QWidget):
     def get_state(self) -> dict[str, Any]:
         return copy.deepcopy(self._state)
 
-    def _merge_with_defaults(self, state: Mapping[str, Any] | None) -> dict[str, Any]:
+    def _merge_with_defaults(
+        self, state: Mapping[str, Any] | None, *, prefer_engine_defaults: bool = False
+    ) -> dict[str, Any]:
         """Return a defensive copy of *state* with engine defaults applied."""
 
         merged: dict[str, Any] = {}
@@ -826,6 +830,7 @@ class LightingTab(QWidget):
             point_with_defaults[key] = self._coerce_attenuation_value(
                 point.get(key) if isinstance(point, Mapping) else None,
                 effective_default,
+                prefer_default=prefer_engine_defaults,
             )
 
         # Сборка итогового блока point
@@ -836,7 +841,9 @@ class LightingTab(QWidget):
 
         return merged
 
-    def _coerce_attenuation_value(self, raw_value: Any, default: float) -> float:
+    def _coerce_attenuation_value(
+        self, raw_value: Any, default: float, *, prefer_default: bool = False
+    ) -> float:
         """Coerce UI-bound attenuation values to sane numeric defaults."""
 
         numeric = default
@@ -846,8 +853,12 @@ class LightingTab(QWidget):
             except (TypeError, ValueError):
                 numeric = default
 
-        if numeric <= 0.0:
+        if not math.isfinite(numeric):
+            numeric = default
+        elif numeric <= 0.0:
             numeric = default if default > 0.0 else _POINT_ATTENUATION_MIN
+        elif prefer_default and numeric < default:
+            numeric = default
 
         return _quantize_attenuation(numeric)
 
@@ -887,8 +898,12 @@ class LightingTab(QWidget):
 
         return None
 
-    def set_state(self, state: Mapping[str, Any] | None) -> None:
-        merged_state = self._merge_with_defaults(state)
+    def set_state(
+        self, state: Mapping[str, Any] | None, *, prefer_engine_defaults: bool = False
+    ) -> None:
+        merged_state = self._merge_with_defaults(
+            state, prefer_engine_defaults=prefer_engine_defaults
+        )
         self._updating_ui = True
         try:
             self._state = copy.deepcopy(merged_state)
