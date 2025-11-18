@@ -19,6 +19,8 @@ import time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+LOGS_DIR = Path("logs")
+
 # --- Constants
 QPA_CHOICES: list[str] = ["(auto)", "windows", "offscreen", "minimal"]
 RHI_CHOICES: list[str] = ["(auto)", "d3d11", "opengl", "vulkan"]
@@ -224,10 +226,58 @@ def configure_runtime_env(
     return env
 
 
+def run_log_analysis(env: dict[str, str]) -> str:
+    """Запустить анализ логов с понятными сообщениями об ошибках."""
+
+    root = project_root()
+    analyzer = root / "tools" / "analyze_logs.py"
+    if not analyzer.exists():
+        return (
+            "Не найден анализатор логов: tools/analyze_logs.py. "
+            "Убедитесь, что скрипт присутствует в репозитории."
+        )
+
+    graphics_logs = root / LOGS_DIR / "graphics"
+    if not graphics_logs.exists():
+        return "Логи графики отсутствуют (ожидалось: logs/graphics)."
+
+    python_exe = detect_venv_python(prefer_console=True)
+    try:
+        completed = subprocess.run(
+            [str(python_exe), "-m", "tools.analyze_logs"],
+            cwd=str(root),
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except FileNotFoundError as exc:
+        return f"Python интерпретатор недоступен: {exc}"
+    except Exception as exc:  # pragma: no cover - непредвиденные ошибки запуска
+        return f"Ошибка запуска анализатора логов: {exc}"
+
+    stdout = (completed.stdout or "").strip()
+    stderr = (completed.stderr or "").strip()
+    combo = stdout
+    if stderr:
+        combo = f"{combo}\n[stderr]\n{stderr}" if combo else f"[stderr]\n{stderr}"
+    return combo or "(analyze_logs: пустой вывод)"
+
+
 def launch_app(
     *, args: Iterable[str], env: dict[str, str], mode: CreateFlag, force_console: bool, capture_buffer: list[str] | None = None
 ) -> subprocess.Popen[bytes]:
     root = project_root()
+    app_path = root / "app.py"
+    if not app_path.exists():
+        raise FileNotFoundError(
+            f"Application entrypoint not found: {app_path}. Проверьте путь к проекту."
+        )
+    if not root.exists():
+        raise FileNotFoundError(
+            f"Project root is unavailable: {root}. Убедитесь, что каталог существует."
+        )
     prefer_console = force_console or any(
         a in ("--env-check", "--env-report", "--test-mode", "--verbose", "--diag") for a in args
     ) or (env.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
@@ -513,27 +563,7 @@ class LauncherUI(tk.Tk):
 
     # --- Log analysis
     def _run_log_analysis(self, env: dict[str, str]) -> str:
-        root = project_root()
-        python_exe = detect_venv_python(prefer_console=True)
-        cmd = [str(python_exe), "-m", "tools.analyze_logs"]
-        try:
-            completed = subprocess.run(
-                cmd,
-                cwd=str(root),
-                env=env,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
-        except Exception as e:
-            return f"Ошибка запуска анализатора логов: {e}"
-        stdout = (completed.stdout or "").strip()
-        stderr = (completed.stderr or "").strip()
-        combo = stdout
-        if stderr:
-            combo = f"{combo}\n[stderr]\n{stderr}" if combo else f"[stderr]\n{stderr}"
-        return combo or "(analyze_logs: пустой вывод)"
+        return run_log_analysis(env)
 
     def _show_analysis_window(self, text: str, app_exit_code: int, mode: CreateFlag) -> None:
         self._set_status("Завершено. Отчёт открыт.")
