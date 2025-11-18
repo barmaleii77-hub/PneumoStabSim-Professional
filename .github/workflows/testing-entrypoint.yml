@@ -1,0 +1,59 @@
+name: Testing Entrypoint Matrix
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/*'
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.13"
+  QT_VERSION: "6.10.0"
+
+jobs:
+  testing-entrypoint:
+    name: testing-entrypoint (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
+
+      - name: Install GNU Make (Windows)
+        if: runner.os == 'Windows'
+        run: choco install make --no-progress -y
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf
+
+      - name: Run testing entrypoint (Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          QSG_RHI_BACKEND: opengl
+          PSS_HEADLESS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python scripts/testing_entrypoint.py
+
+      - name: Run testing entrypoint (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: rhi
+          QSG_RHI_BACKEND: d3d11
+          PSS_HEADLESS: "1"
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+        run: python scripts/testing_entrypoint.py
