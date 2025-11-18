@@ -6,6 +6,9 @@ on:
       - 'feature/hdr-assets-migration' # ensure HDR assets migration branch can package releases
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - 'feature/hdr-assets-migration' # ensure HDR assets migration branch can validate release packaging on PRs
   workflow_dispatch:
 
 permissions:
