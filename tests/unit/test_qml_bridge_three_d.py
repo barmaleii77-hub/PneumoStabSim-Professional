@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import json
+from pathlib import Path
+
 import pytest
 
 from src.ui.main_window import qml_bridge
@@ -31,11 +34,17 @@ def baseline_payload():
 
 
 def test_initial_payload_exposes_phase3_defaults(baseline_payload):
+    camera = baseline_payload["camera"]
     primitives = baseline_payload["primitives"]
     lighting = baseline_payload["lighting"]
     interaction = baseline_payload["interaction"]
     environment = baseline_payload["environment"]
     helpers = baseline_payload["helpers"]
+
+    assert camera["minDistance"] == pytest.approx(2.0)
+    assert camera["maxDistance"] == pytest.approx(60.0)
+    assert camera["fieldOfView"] == pytest.approx(55.0)
+    assert camera["clipFar"] == pytest.approx(2000.0)
 
     assert primitives["box"]["roughness"] == pytest.approx(0.35)
     assert primitives["sphere"]["metalness"] == pytest.approx(0.35)
@@ -44,6 +53,8 @@ def test_initial_payload_exposes_phase3_defaults(baseline_payload):
     assert lighting["keyIntensity"] == pytest.approx(600.0)
     assert lighting["keyColor"].lower() == "#fff5e6"
     assert lighting["rimPosition"] == {"x": 3, "y": 2.5, "z": -4}
+    assert lighting["keyShadows"] is True
+    assert lighting["shadowBias"] == pytest.approx(0.002)
 
     assert interaction["enabled"] is True
     assert interaction["panSpeed"] == pytest.approx(0.015)
@@ -108,3 +119,19 @@ def test_render_scenario_aligns_with_defaults(baseline_payload):
 
     for key, value in scenario["lighting"].items():
         assert baseline_payload["lighting"][key] == value
+
+
+def test_interaction_scenario_overrides_camera_limits():
+    scenario_path = Path("tests/scenarios/render/three_d_scene_interaction.json")
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+
+    payload = qml_bridge.initial_three_d_payload(overrides=scenario)
+
+    camera = payload["camera"]
+    lighting = payload["lighting"]
+
+    assert camera["minDistance"] == pytest.approx(3.0)
+    assert camera["maxDistance"] == pytest.approx(45.0)
+    assert camera["fieldOfView"] == pytest.approx(60.0)
+    assert camera["clipNear"] == pytest.approx(0.2)
+    assert lighting["shadowBias"] == pytest.approx(0.0015)

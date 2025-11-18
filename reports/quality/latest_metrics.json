@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-11-18T16:17:55.027310+00:00",
+  "timestamp": "2025-11-18T17:55:20.298189+00:00",
   "tests": {
-    "total_duration_seconds": "199.520",
-    "total_cases": "723",
-    "integration_duration_seconds": "4.379",
+    "total_duration_seconds": "194.824",
+    "total_cases": "736",
+    "integration_duration_seconds": "4.290",
     "integration_cases": "46",
-    "ui_duration_seconds": "181.020",
-    "ui_cases": "221",
-    "unit_duration_seconds": "14.121",
-    "unit_cases": "456"
+    "ui_duration_seconds": "181.095",
+    "ui_cases": "224",
+    "unit_duration_seconds": "9.439",
+    "unit_cases": "466"
   }
 }
