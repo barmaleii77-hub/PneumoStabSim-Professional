@@ -1,0 +1,11 @@
+Filename	Coverage%	Lines
+physics/__init__.py	100.00	5
+physics/__init_new.py	100.00	0
+physics/forces.py	92.49	173
+physics/integrator.py	82.89	298
+physics/odes.py	80.00	330
+physics/pneumo_system.py	87.26	157
+tools/reporting/physics.py	25.00	76
+ui/main_window_pkg/_hdr_paths.py	75.86	87
+ui/panels/graphics/hdr_discovery.py	86.84	38
+ui/panels/modes/physics_tab.py	7.30	178
