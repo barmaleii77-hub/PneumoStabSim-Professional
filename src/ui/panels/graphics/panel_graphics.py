@@ -405,6 +405,16 @@ class GraphicsPanel(QWidget):
         reset_btn.clicked.connect(self.reset_to_defaults)
         row.addWidget(reset_btn)
 
+        save_btn = QPushButton("💾 Сохранить", self)
+        save_btn.setToolTip(
+            self.preset_manager.get_tooltip(
+                "save_current_button",
+                "Сохранить текущие настройки в current graphics", 
+            )
+        )
+        save_btn.clicked.connect(self.save_current)
+        row.addWidget(save_btn)
+
         save_default_btn = QPushButton("💾 Сохранить как дефолт", self)
         save_default_btn.setToolTip(
             self.preset_manager.get_tooltip(
@@ -553,6 +563,17 @@ class GraphicsPanel(QWidget):
             self.logger.error(f"❌ Save graphics as defaults failed: {exc}")
         except Exception as exc:  # pragma: no cover - defensive
             self.logger.error(f"❌ Save graphics as defaults failed: {exc}")
+
+    @Slot()
+    def save_current(self) -> None:
+        try:
+            state = self.collect_state()
+            self.settings_service.save_current(state)
+            self.logger.info("✅ Graphics current settings saved")
+        except GraphicsSettingsError as exc:
+            self.logger.error(f"❌ Save graphics current failed: {exc}")
+        except Exception as exc:  # pragma: no cover - defensive
+            self.logger.error(f"❌ Save graphics current failed: {exc}")
 
     # ------------------------------------------------------------------
     # Централизованный сбор состояния — для MainWindow.closeEvent()
