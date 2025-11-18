@@ -492,3 +492,8 @@ class RoadPanel(QWidget):
             "has_profile": bool(self.current_csv_path or self.current_preset),
             "available_presets": list(self.available_presets),
         }
+
+    def collect_state(self) -> dict:
+        """Return a detached copy of the UI state for persistence."""
+
+        return dict(self.get_parameters())

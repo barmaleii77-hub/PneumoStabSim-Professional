@@ -57,3 +57,16 @@ def test_get_parameters_tracks_active_preset(qtbot: pytestqt.qtbot.QtBot) -> Non
     updated["effects"]["tonemap_mode"] = "custom_marker"
     refreshed = panel.get_parameters()
     assert refreshed["effects"].get("tonemap_mode") != "custom_marker"
+
+
+@pytest.mark.gui
+def test_collect_state_returns_detached_snapshot(qtbot: pytestqt.qtbot.QtBot) -> None:
+    panel = TonemappingPanel()
+    qtbot.addWidget(panel)
+
+    snapshot = panel.collect_state()
+    assert snapshot == panel.get_parameters()
+
+    snapshot["active_preset"] = "patched"
+    refreshed = panel.collect_state()
+    assert refreshed["active_preset"] != "patched"

@@ -46,7 +46,7 @@ def _load_geometry_defaults() -> dict[str, Any]:
     geometry_defaults = defaults_snapshot.get("geometry")
     if not isinstance(geometry_defaults, dict) or not geometry_defaults:
         logger.error(
-            "defaults_snapshot.geometry section is missing or empty in %%s",
+            "defaults_snapshot.geometry section is missing or empty in %s",
             _SETTINGS_FILE,
         )
         return _LEGACY_DEFAULT_GEOMETRY.copy()

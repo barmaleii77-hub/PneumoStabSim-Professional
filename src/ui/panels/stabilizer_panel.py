@@ -75,6 +75,11 @@ class StabilizerPanel(QWidget):
 
         return {"diagonal_coupling_dia": float(self._spinbox.value())}
 
+    def collect_state(self) -> dict[str, float]:
+        """Alias for compatibility with other panels' state collectors."""
+
+        return dict(self.get_parameters())
+
     @Slot(float)
     def _on_spin_changed(self, value: float) -> None:
         numeric = max(0.0, float(value))

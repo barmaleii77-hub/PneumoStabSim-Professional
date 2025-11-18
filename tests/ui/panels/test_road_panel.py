@@ -35,3 +35,20 @@ def test_get_parameters_reflects_current_profile(qtbot: pytestqt.qtbot.QtBot) ->
     snapshot["preset"] = "invalid"
     refreshed = panel.get_parameters()
     assert refreshed["preset"] == "City Streets"
+
+
+@pytest.mark.gui
+def test_collect_state_returns_fresh_copy(qtbot: pytestqt.qtbot.QtBot) -> None:
+    panel = RoadPanel()
+    qtbot.addWidget(panel)
+
+    panel.current_csv_path = "/tmp/example.csv"
+    panel.current_preset = "City Streets"
+
+    snapshot = panel.collect_state()
+    assert snapshot["csv_path"].endswith("example.csv")
+    assert snapshot["has_profile"] is True
+
+    snapshot["csv_path"] = "patched"
+    refreshed = panel.collect_state()
+    assert refreshed["csv_path"] != "patched"
