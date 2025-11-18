@@ -13,10 +13,12 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import platform
 import re
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Callable
 from collections.abc import Iterable, Sequence
@@ -27,6 +29,72 @@ MINIMUM_QT_VERSION = (6, 10, 0)
 DEFAULT_MODULES = ("qtquick3d", "qtshadertools", "qtimageformats")
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "Qt"
 DEFAULT_ARCHIVES_DIR = REPO_ROOT / ".qt" / "archives"
+
+
+@dataclass(frozen=True)
+class QtEnvironmentPaths:
+    plugins: Path
+    qml_imports: Path
+
+
+def _detect_qml_import_path(qt_core_module) -> str:
+    """Return the QML import path for the active Qt installation."""
+
+    library_path = getattr(
+        qt_core_module.QLibraryInfo.LibraryPath, "QmlImportsPath", None
+    )
+    if library_path is None:
+        library_path = qt_core_module.QLibraryInfo.LibraryPath.Qml2ImportsPath
+    return qt_core_module.QLibraryInfo.path(library_path)
+
+
+def _detect_qt_environment_paths() -> QtEnvironmentPaths:
+    from PySide6 import QtCore  # type: ignore
+
+    plugins = Path(
+        QtCore.QLibraryInfo.path(QtCore.QLibraryInfo.LibraryPath.PluginsPath)
+    ).resolve()
+    qml_imports = Path(_detect_qml_import_path(QtCore)).resolve()
+    return QtEnvironmentPaths(plugins=plugins, qml_imports=qml_imports)
+
+
+def _merge_path(value: Path, existing: str | None) -> str:
+    path_tokens: list[str] = [str(value)]
+    if existing:
+        for token in existing.split(os.pathsep):
+            if token and token not in path_tokens:
+                path_tokens.append(token)
+    return os.pathsep.join(path_tokens)
+
+
+def _apply_qt_environment(style: str = "Basic") -> None:
+    """Export Qt-related environment variables in a cross-platform manner."""
+
+    system = platform.system()
+    print(f"[setup_qt] Applying Qt environment for {system}")
+    paths = _detect_qt_environment_paths()
+    missing: list[str] = []
+    for path in (paths.plugins, paths.qml_imports):
+        if not path.exists():
+            missing.append(str(path))
+    if missing:
+        formatted = "\n  - ".join(missing)
+        raise SystemExit(
+            "Unable to configure Qt environment because the following paths are missing:\n"
+            f"  - {formatted}"
+        )
+
+    os.environ["QT_PLUGIN_PATH"] = _merge_path(
+        paths.plugins, os.environ.get("QT_PLUGIN_PATH")
+    )
+    os.environ["QML2_IMPORT_PATH"] = _merge_path(
+        paths.qml_imports, os.environ.get("QML2_IMPORT_PATH")
+    )
+    os.environ["QT_QUICK_CONTROLS_STYLE"] = style
+
+    print(f"[setup_qt] QT_PLUGIN_PATH={os.environ['QT_PLUGIN_PATH']}")
+    print(f"[setup_qt] QML2_IMPORT_PATH={os.environ['QML2_IMPORT_PATH']}")
+    print(f"[setup_qt] QT_QUICK_CONTROLS_STYLE={os.environ['QT_QUICK_CONTROLS_STYLE']}")
 
 
 def _ensure_aqt() -> Callable[[Sequence[str]], int | None]:
@@ -240,12 +308,13 @@ def _check_installation(
 
     print(f"Verifying Qt installation at {install_dir}")
     success = True
+    install_dir_missing = False
 
     if not install_dir.exists():
         print(
             f"[!] Qt {qt_version} toolchain not found. Expected directory: {install_dir}"
         )
-        success = False
+        install_dir_missing = True
     else:
         required = ("bin", "lib", "qml", "plugins")
         missing = [part for part in required if not (install_dir / part).exists()]
@@ -274,7 +343,7 @@ def _check_installation(
             )
             success = False
 
-    if checksum_manifest:
+    if checksum_manifest and not install_dir_missing:
         try:
             _verify_archives(archives_dir, checksum_manifest)
         except SystemExit as exc:
@@ -282,6 +351,11 @@ def _check_installation(
             success = False
         else:
             print(f"[✓] Archive checksums verified using {checksum_manifest}")
+
+    if install_dir_missing and success:
+        print(
+            "[i] Qt installation directory missing; using wheel-provided runtime artifacts only."
+        )
 
     return 0 if success else 1
 
@@ -394,8 +468,24 @@ def main() -> None:
         action="store_true",
         help="Verify that the Qt toolchain and PySide6 runtime are available.",
     )
+    parser.add_argument(
+        "--configure-env",
+        action="store_true",
+        help=(
+            "Export QT_PLUGIN_PATH, QML2_IMPORT_PATH, and QT_QUICK_CONTROLS_STYLE using the "
+            "active PySide6 installation."
+        ),
+    )
+    parser.add_argument(
+        "--qt-quick-controls-style",
+        default="Basic",
+        help="Value to use when exporting QT_QUICK_CONTROLS_STYLE (default: Basic).",
+    )
 
     args = parser.parse_args()
+
+    system = platform.system()
+    print(f"[setup_qt] Host platform detected: {system}")
 
     _ensure_minimum_version(args.qt_version)
 
@@ -418,6 +508,8 @@ def main() -> None:
             archives_dir=archives_dir,
             checksum_manifest=args.checksum_manifest,
         )
+        if args.configure_env:
+            _apply_qt_environment(style=args.qt_quick_controls_style)
         raise SystemExit(status)
     if install_dir.exists() and not args.force:
         print(
@@ -427,6 +519,8 @@ def main() -> None:
             _verify_archives(archives_dir, args.checksum_manifest)
         if args.refresh_requirements:
             _export_requirements_with_uv(REPO_ROOT)
+        if args.configure_env:
+            _apply_qt_environment(style=args.qt_quick_controls_style)
         return
     if args.force and install_dir.exists():
         if not install_dir.is_relative_to(output_dir):  # type: ignore[attr-defined]
@@ -453,6 +547,8 @@ def main() -> None:
     if args.dry_run:
         if args.refresh_requirements:
             print("Skipping requirements export because --dry-run was requested.")
+        if args.configure_env:
+            _apply_qt_environment(style=args.qt_quick_controls_style)
         return
 
     aqt_main = _ensure_aqt()
@@ -465,6 +561,8 @@ def main() -> None:
     if args.refresh_requirements:
         _export_requirements_with_uv(REPO_ROOT)
     print(f"Qt {args.qt_version} installation completed at {install_dir}")
+    if args.configure_env:
+        _apply_qt_environment(style=args.qt_quick_controls_style)
 
 
 if __name__ == "__main__":

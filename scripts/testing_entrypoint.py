@@ -80,18 +80,35 @@ def _sync_environment(uv_path: str) -> None:
     _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"])
 
 
+def _configure_qt_environment(uv_path: str) -> None:
+    _log("[entrypoint] Exporting Qt environment variables via tools/setup_qt.py")
+    _stream_command(
+        [
+            uv_path,
+            "run",
+            "--locked",
+            "--",
+            "python",
+            "tools/setup_qt.py",
+            "--configure-env",
+            "--check",
+        ]
+    )
+
+
 def _preinstall_dependencies(system: str, uv_path: str) -> bool:
     """Perform platform-specific dependency preparation."""
 
     if system == "Linux":
         make_path = shutil.which("make")
         if make_path:
-            _log("[entrypoint] Preinstalling dependencies via `make uv-sync`")
-            _stream_command([make_path, "uv-sync"])
+            _log("[entrypoint] Preinstalling dependencies via `make uv-sync-qt`")
+            _stream_command([make_path, "uv-sync-qt"])
             return True
 
         _log("[entrypoint] GNU Make not available; using uv sync fallback")
         _sync_environment(uv_path)
+        _configure_qt_environment(uv_path)
         return True
 
     if system == "Windows":
@@ -99,10 +116,12 @@ def _preinstall_dependencies(system: str, uv_path: str) -> bool:
         if setup_script.exists():
             _log("[entrypoint] Preinstalling dependencies via scripts/setup_dev.py")
             _stream_command([sys.executable, str(setup_script)])
+            _configure_qt_environment(uv_path)
             return True
 
         _log("[entrypoint] setup_dev.py missing; falling back to uv sync")
         _sync_environment(uv_path)
+        _configure_qt_environment(uv_path)
         return True
 
     return False
@@ -177,6 +196,7 @@ def main(argv: list[str]) -> int:
         preinstall_performed = _preinstall_dependencies(system, uv_path)
         if not preinstall_performed:
             _sync_environment(uv_path)
+            _configure_qt_environment(uv_path)
         env = os.environ.copy()
         env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
