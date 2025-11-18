@@ -1,7 +1,8 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick 6.10
-import QtQuick.Controls 6.10
 import QtQuick3D 6.10
-import PneumoStabSim 1.0
+import PneumoStabSim 1.0 as PSS
 import "./"
 import "./effects"          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
 import "./Panels" as Panels
@@ -24,18 +25,32 @@ Item {
     signal cylinderSettingsChanged(var payload)
     signal shaderStatusDumpRequested(var payload)
 
+    // qmllint disable unqualified
+    readonly property var hostWindow: (typeof globalThis !== "undefined" && globalThis.window !== undefined) ? globalThis.window : null
+    property var contextSceneBridge: (typeof globalThis !== "undefined" && globalThis.pythonSceneBridge !== undefined) ? globalThis.pythonSceneBridge : null
+    property var contextTelemetryBridge: (typeof globalThis !== "undefined" && globalThis.pythonTelemetryBridge !== undefined) ? globalThis.pythonTelemetryBridge : null
+    property var contextTrainingBridge: (typeof globalThis !== "undefined" && globalThis.trainingBridge !== undefined) ? globalThis.trainingBridge : null
+    property var contextModesMetadata: (typeof globalThis !== "undefined" && globalThis.modesMetadata !== undefined) ? globalThis.modesMetadata : ({})
+    property var contextInitialModesSettings: (typeof globalThis !== "undefined" && globalThis.initialModesSettings !== undefined) ? globalThis.initialModesSettings : undefined
+    property var contextInitialAnimationSettings: (typeof globalThis !== "undefined" && globalThis.initialAnimationSettings !== undefined) ? globalThis.initialAnimationSettings : undefined
+    property var contextInitialPneumaticSettings: (typeof globalThis !== "undefined" && globalThis.initialPneumaticSettings !== undefined) ? globalThis.initialPneumaticSettings : undefined
+    property var contextInitialSimulationSettings: (typeof globalThis !== "undefined" && globalThis.initialSimulationSettings !== undefined) ? globalThis.initialSimulationSettings : undefined
+    property var contextInitialCylinderSettings: (typeof globalThis !== "undefined" && globalThis.initialCylinderSettings !== undefined) ? globalThis.initialCylinderSettings : undefined
+    // qmllint enable unqualified
+
     property var pendingPythonUpdates: ({})
     property var _queuedBatchedUpdates: []
     property var _pendingSimulationPanelCalls: []
     property bool showTrainingPresets: true
     property bool telemetryPanelVisible: true
 
-    readonly property bool hasSceneBridge: typeof pythonSceneBridge !== "undefined" && pythonSceneBridge !== null
+    readonly property bool hasSceneBridge: contextSceneBridge !== null
     readonly property bool fogApiAvailable: environmentDefaults && environmentDefaults.fogHelpersSupported
-    readonly property var sceneSharedMaterials: simulationLoader.item ? simulationLoader.item.sceneSharedMaterials : null
-    readonly property var sceneDirectionalLights: simulationLoader.item ? simulationLoader.item.sceneDirectionalLights : null
-    readonly property var scenePointLights: simulationLoader.item ? simulationLoader.item.scenePointLights : null
-    readonly property var sceneSuspensionAssembly: simulationLoader.item ? simulationLoader.item.sceneSuspensionAssembly : null
+    readonly property var simulationRootItem: simulationLoader.item
+    readonly property var sceneSharedMaterials: simulationRootItem ? simulationRootItem.sceneSharedMaterials : null
+    readonly property var sceneDirectionalLights: simulationRootItem ? simulationRootItem.sceneDirectionalLights : null
+    readonly property var scenePointLights: simulationRootItem ? simulationRootItem.scenePointLights : null
+    readonly property var sceneSuspensionAssembly: simulationRootItem ? simulationRootItem.sceneSuspensionAssembly : null
     readonly property var sceneFrameNode: sceneSuspensionAssembly ? sceneSuspensionAssembly.frameNode : null
     property bool simpleFallbackActive: false
     property string simpleFallbackReason: ""
@@ -205,10 +220,10 @@ Item {
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
          fog: Fog {
-             enabled: fogHelpersSupported && root.fogEnabled
+             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled
              color: root.fogColor
              density: root.fogDensity
-             depthEnabled: fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
+             depthEnabled: environmentDefaults.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
              depthCurve: root.fogDepthCurve
              depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
              depthFar: environmentDefaults.toSceneLength(root.fogDepthFar)
@@ -340,9 +355,9 @@ Item {
             }
         }
 
-        if (typeof window !== "undefined" && window && typeof window.registerShaderWarning === "function") {
+        if (root.hostWindow && typeof root.hostWindow.registerShaderWarning === "function") {
             try {
-                window.registerShaderWarning(effectId, message)
+                root.hostWindow.registerShaderWarning(effectId, message)
             } catch (error) {
                 console.debug("[main.qml] window.registerShaderWarning failed", error)
             }
@@ -360,9 +375,9 @@ Item {
             }
         }
 
-        if (typeof window !== "undefined" && window && typeof window.clearShaderWarning === "function") {
+        if (root.hostWindow && typeof root.hostWindow.clearShaderWarning === "function") {
             try {
-                window.clearShaderWarning(effectId)
+                root.hostWindow.clearShaderWarning(effectId)
             } catch (error) {
                 console.debug("[main.qml] window.clearShaderWarning failed", error)
             }
@@ -501,13 +516,13 @@ Item {
 
         // Подхватываем начальные графические обновления из Python (env → SceneBridge)
         try {
-            if (root.hasSceneBridge && typeof pythonSceneBridge !== "undefined") {
-                var initBatch = pythonSceneBridge.initialGraphicsUpdates
-                if (initBatch && typeof initBatch === "object" && Object.keys(initBatch).length) {
-                    if (!_deliverBatchedUpdates(initBatch)) {
-                        _enqueueBatchedPayload(initBatch)
-                    }
-                }
+          if (root.hasSceneBridge && root.contextSceneBridge) {
+              var initBatch = root.contextSceneBridge.initialGraphicsUpdates
+              if (initBatch && typeof initBatch === "object" && Object.keys(initBatch).length) {
+                  if (!_deliverBatchedUpdates(initBatch)) {
+                      _enqueueBatchedPayload(initBatch)
+                  }
+              }
             }
         } catch (e) {
             console.debug("[main.qml] Initial graphics updates apply failed", e)
@@ -516,41 +531,43 @@ Item {
 
     Loader {
         id: simulationLoader
-        objectName: "simulationLoader"
-        anchors.fill: parent
-        active: true
-        sourceComponent: SimulationRoot {
-            id: simulationRoot
-            sceneBridge: root.hasSceneBridge ? pythonSceneBridge : null
-            fogDepthCurve: root.fogDepthCurve
-        }
-        onStatusChanged: function(newStatus) {
-            if (newStatus === Loader.Error) {
-                var loadError = errorString()
-                console.error("Failed to load SimulationRoot:", loadError)
-                var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
-                simpleFallbackReason = normalizedReason
-                if (!simpleFallbackActive)
-                    console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
-                simpleFallbackActive = true
-            }
-            if (newStatus === Loader.Ready) {
-                if (item)
-                    item.visible = !simpleFallbackActive
-                _flushQueuedBatches()
-            }
-        }
-        onLoaded: {
-            if (item && item.batchUpdatesApplied) {
-                item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
-            }
-            if (item && item.animationToggled) {
-                item.animationToggled.connect(root.animationToggled)
-            }
-            if (item)
-                item.visible = !root.simpleFallbackActive
-        }
-    }
+          objectName: "simulationLoader"
+          anchors.fill: parent
+          active: true
+          sourceComponent: PSS.SimulationRoot {
+              id: simulationRoot
+              sceneBridge: root.contextSceneBridge
+              fogDepthCurve: root.fogDepthCurve
+          }
+          onStatusChanged: {
+              if (status === Loader.Error) {
+                  var loadError = simulationLoader.sourceComponent ? simulationLoader.sourceComponent.errorString() : ""
+                  console.error("Failed to load SimulationRoot:", loadError)
+                  var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
+                  root.simpleFallbackReason = normalizedReason
+                  if (!root.simpleFallbackActive)
+                      console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
+                  root.simpleFallbackActive = true
+              }
+              if (status === Loader.Ready) {
+                  if (item)
+                      item.visible = !root.simpleFallbackActive
+                  root._flushQueuedBatches()
+              }
+          }
+          // qmllint disable missing-property
+          onLoaded: {
+              if (item && item.batchUpdatesApplied) {
+                  item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
+              }
+              if (item && item.animationToggled) {
+                  item.animationToggled.connect(root.animationToggled)
+              }
+              if (item)
+                  item.visible = !root.simpleFallbackActive
+          }
+          // qmllint enable missing-property
+      }
 
     Connections {
         target: simulationLoader.item
@@ -584,28 +601,30 @@ Item {
         }
     }
 
-    Loader {
-        id: fallbackLoader
-        objectName: "fallbackLoader"
-        anchors.fill: parent
-        active: !root.hasSceneBridge || root.simpleFallbackActive
-        sourceComponent: SimulationFallbackRoot {}
-        onStatusChanged: function(newStatus) {
-            if (newStatus === Loader.Ready) {
-                _flushQueuedBatches()
-            }
-        }
-        onLoaded: {
-            if (item && item.batchUpdatesApplied) {
-                item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
-            }
-            if (item && item.animationToggled) {
-                item.animationToggled.connect(root.animationToggled)
-            }
-        }
-    }
+      Loader {
+          id: fallbackLoader
+          objectName: "fallbackLoader"
+          anchors.fill: parent
+          active: !root.hasSceneBridge || root.simpleFallbackActive
+          sourceComponent: SimulationFallbackRoot {}
+          onStatusChanged: {
+              if (status === Loader.Ready) {
+                  root._flushQueuedBatches()
+              }
+          }
+          // qmllint disable missing-property
+          onLoaded: {
+              if (item && item.batchUpdatesApplied) {
+                  item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
+              }
+              if (item && item.animationToggled) {
+                  item.animationToggled.connect(root.animationToggled)
+              }
+          }
+          // qmllint enable missing-property
+      }
 
-    Panels.SimulationPanel {
+      Panels.SimulationPanel {
         id: simulationPanel
         objectName: "simulationPanel"
         controller: root
@@ -627,14 +646,14 @@ Item {
         property var _initialCylinderValue: ({})
         initialCylinder: _initialCylinderValue
 
-        Component.onCompleted: {
-            if (typeof modesMetadata !== "undefined") _modesMetadataValue = modesMetadata
-            if (typeof initialModesSettings !== "undefined") _initialModesValue = initialModesSettings
-            if (typeof initialAnimationSettings !== "undefined") _initialAnimationValue = initialAnimationSettings
-            if (typeof initialPneumaticSettings !== "undefined") _initialPneumaticValue = initialPneumaticSettings
-            if (typeof initialSimulationSettings !== "undefined") _initialSimulationValue = initialSimulationSettings
-            if (typeof initialCylinderSettings !== "undefined") _initialCylinderValue = initialCylinderSettings
-        }
+          Component.onCompleted: {
+              if (root.contextModesMetadata !== undefined) _modesMetadataValue = root.contextModesMetadata
+              if (root.contextInitialModesSettings !== undefined) _initialModesValue = root.contextInitialModesSettings
+              if (root.contextInitialAnimationSettings !== undefined) _initialAnimationValue = root.contextInitialAnimationSettings
+              if (root.contextInitialPneumaticSettings !== undefined) _initialPneumaticValue = root.contextInitialPneumaticSettings
+              if (root.contextInitialSimulationSettings !== undefined) _initialSimulationValue = root.contextInitialSimulationSettings
+              if (root.contextInitialCylinderSettings !== undefined) _initialCylinderValue = root.contextInitialCylinderSettings
+          }
 
         onSimulationControlRequested: function(command) { root.simulationControlRequested(command) }
         onModesPresetSelected: function(presetId) { root.modesPresetSelected(presetId) }
@@ -646,26 +665,25 @@ Item {
         onCylinderSettingsChanged: function(payload) { root.cylinderSettingsChanged(payload) }
     }
 
-    Training.TrainingPanel {
-        id: trainingPanel
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: 16
-        visible: root.showTrainingPresets && typeof trainingBridge !== "undefined" && trainingBridge !== null
-        z: 9000
-        opacity: 0.96
-        onPresetActivated: function(presetId) {
-            console.log("Training preset selected", presetId)
-        }
-    }
+      Training.TrainingPanel {
+          id: trainingPanel
+          anchors.top: parent.top
+          anchors.right: parent.right
+          anchors.margins: 16
+          visible: root.showTrainingPresets && root.contextTrainingBridge !== null
+          z: 9000
+          opacity: 0.96
+          onPresetActivated: function(presetId) {
+              console.log("Training preset selected", presetId)
+          }
+      }
 
-    Components.TelemetryChartPanel {
-        id: telemetryPanel
-        anchors.left: parent.left
-        anchors.bottom: parent.bottom
-        anchors.margins: 16
-        telemetryBridge: typeof pythonTelemetryBridge !== "undefined" ? pythonTelemetryBridge : null
-        visible: root.telemetryPanelVisible
-            && telemetryBridge !== null
-    }
-}
+      Components.TelemetryChartPanel {
+          id: telemetryPanel
+          anchors.left: root.parent ? root.parent.left : undefined
+          anchors.bottom: root.parent ? root.parent.bottom : undefined
+          anchors.margins: 16
+          telemetryBridge: root.contextTelemetryBridge
+          visible: root.telemetryPanelVisible && telemetryBridge !== null
+      }
+  }
