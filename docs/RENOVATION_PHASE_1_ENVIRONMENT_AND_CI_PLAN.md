@@ -18,6 +18,7 @@
 2. **Qt Toolchain Automation**
    - Implement `tools/setup_qt.py` with checksum verification and caching strategy.
    - Update `activate_environment.*` scripts to set `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and telemetry toggles.
+   - Add `make uv-sync-qt` to chain `uv sync` with `python tools/setup_qt.py --configure-env`, logging `platform.system()` and exporting `QT_PLUGIN_PATH`, `QML2_IMPORT_PATH`, and `QT_QUICK_CONTROLS_STYLE=Basic` for Linux and Windows shells.
    - Ship a smoke-check helper `tools/environment/verify_qt_setup.py` that validates PySide6 6.10 availability, Qt plugin paths,
      and Quick 3D bindings for CI agents and developer workstations.
    - Produce quickstart guide `docs/setup/qt610_environment.md` summarizing usage.

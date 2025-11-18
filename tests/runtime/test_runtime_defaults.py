@@ -28,6 +28,6 @@ def test_runtime_defaults_loaded_from_config():
     assert defaults["pneumatic"]["receiver_volume_limits"]["max_m3"] == pytest.approx(
         1.0
     )
-    assert defaults["constants"]["pneumo"]["valves"]["relief_min_orifice_diameter_m"] == pytest.approx(
-        0.001
-    )
+    assert defaults["constants"]["pneumo"]["valves"][
+        "relief_min_orifice_diameter_m"
+    ] == pytest.approx(0.001)

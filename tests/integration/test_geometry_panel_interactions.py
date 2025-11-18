@@ -93,4 +93,6 @@ def test_interference_toggle_runs_validation(monkeypatch) -> None:
     assert ("interference_check", True) in option_updates
     assert any(kind == "message_info" for kind, *_ in calls)
     assert any(kind == "message_warning" for kind, *_ in calls)
-    assert validation_calls == ["validate"], "Validation should run when enabling interference checks"
+    assert validation_calls == ["validate"], (
+        "Validation should run when enabling interference checks"
+    )
