@@ -37,6 +37,7 @@ Item {
     property var contextModes: typeof initialModesSettings !== "undefined" ? initialModesSettings : ({})
     property var contextAnimation: typeof initialAnimationSettings !== "undefined" ? initialAnimationSettings : ({})
     property var modesMetadata: ({})
+    property var geometryParameters: ({})
 
     /**
      * Центральная шина обновлений настроек. Экспортируется python UISetup через SettingsEventBus.
@@ -151,6 +152,7 @@ Item {
     signal pneumaticSettingsChanged(var payload)
     signal simulationSettingsChanged(var payload)
     signal cylinderSettingsChanged(var payload)
+    signal geometrySettingsChanged(var payload)
 
     ListModel { id: presetModel }
     ListModel { id: flowModel }
@@ -638,6 +640,11 @@ Item {
         model.append(entry)
     }
 
+    function _normalizeGeometryPayload(payload) {
+        var candidate = _cloneObject(payload || ({}))
+        return _isPlainObject(candidate) ? candidate : ({})
+    }
+
     function _normalizeFlowPayload(payload) {
         var source = _cloneObject(payload || ({}))
         if (_isPlainObject(source.flowNetwork))
@@ -839,6 +846,11 @@ Item {
             _telemetryEffectiveMaximum = NaN
             _updatePressureBindings()
         }
+    }
+
+    function applyGeometryParameters(payload) {
+        geometryParameters = _normalizeGeometryPayload(payload)
+        geometrySettingsChanged(geometryParameters)
     }
 
     function applyFlowTelemetry(payload) {
