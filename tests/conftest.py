@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+import importlib.util
 from pathlib import Path
 from collections.abc import Callable
 import pytest
@@ -96,17 +97,58 @@ def headless_qt_modules():
     behaviours such as event pumping and timing helpers.
     """
 
+    from tests._qt_headless import headless_requested
+
     added: list[str] = []
+    force_stub = headless_requested(os.environ)
 
     def _install(name: str, module: object) -> None:
         if name not in sys.modules:
             sys.modules[name] = module
             added.append(name)
 
+    def _spec(name: str):
+        return importlib.util.spec_from_loader(name, loader=None)
+
     try:
+        if force_stub:
+            raise ImportError("force stubbed Qt modules for headless mode")
         import PySide6  # type: ignore  # noqa: F401
     except Exception:
-        qt_package = types.SimpleNamespace()
+        qt_package = types.SimpleNamespace(__spec__=_spec("PySide6"), __path__=[])
+
+        class _StubSignal:
+            def __init__(self, *args, **kwargs):  # noqa: D401
+                self._handlers: list[Callable[..., None]] = []
+
+            def connect(self, handler: Callable[..., None]) -> None:
+                self._handlers.append(handler)
+
+            def disconnect(self, handler: Callable[..., None]) -> None:
+                try:
+                    self._handlers.remove(handler)
+                except ValueError:
+                    return None
+
+            def emit(self, *args, **kwargs) -> None:  # noqa: ANN002, ANN003
+                for handler in list(self._handlers):
+                    handler(*args, **kwargs)
+
+        class _StubProperty:  # pragma: no cover - descriptor semantics
+            def __init__(self, _type: str, fget=None, fset=None, notify=None):
+                self.fget = fget
+                self.fset = fset
+
+            def __get__(self, instance, owner=None):  # noqa: ANN001
+                if instance is None:
+                    return self
+                if self.fget is None:
+                    return None
+                return self.fget(instance)
+
+            def __set__(self, instance, value):  # noqa: ANN001, ANN204
+                if self.fset is not None:
+                    self.fset(instance, value)
 
         class _StubQCoreApplication:
             @staticmethod
@@ -124,6 +166,10 @@ def headless_qt_modules():
                 MouseButtonPress = "mouse_press"
                 MouseButtonRelease = "mouse_release"
 
+        class _StubQObject:
+            def __init__(self, *args, **kwargs):  # noqa: ANN001, D401
+                super().__init__()
+
         class _StubQApplication:
             _instance = None
 
@@ -140,9 +186,6 @@ def headless_qt_modules():
 
             def quit(self) -> None:
                 type(self)._instance = None
-
-        class _StubQObject:
-            pass
 
         class _StubQMouseEvent:
             def __init__(self, *args, **kwargs):  # noqa: ANN001, D401
@@ -182,18 +225,27 @@ def headless_qt_modules():
             Qt=_StubQt,
             QEvent=_StubQEvent,
             QObject=_StubQObject,
+            Signal=_StubSignal,
+            Property=_StubProperty,
+            __spec__=_spec("PySide6.QtCore"),
         )
-        qt_widgets = types.SimpleNamespace(QApplication=_StubQApplication)
-        qt_test = types.SimpleNamespace(QTest=_StubQTest)
+        qt_widgets = types.SimpleNamespace(
+            QApplication=_StubQApplication, __spec__=_spec("PySide6.QtWidgets")
+        )
+        qt_test = types.SimpleNamespace(QTest=_StubQTest, __spec__=_spec("PySide6.QtTest"))
         qt_gui = types.SimpleNamespace(
-            QMouseEvent=_StubQMouseEvent, QKeyEvent=_StubQKeyEvent
+            QMouseEvent=_StubQMouseEvent,
+            QKeyEvent=_StubQKeyEvent,
+            __spec__=_spec("PySide6.QtGui"),
         )
+        qt_qml = types.SimpleNamespace(QJSValue=None, __spec__=_spec("PySide6.QtQml"))
 
         _install("PySide6", qt_package)
         _install("PySide6.QtCore", qt_core)
         _install("PySide6.QtWidgets", qt_widgets)
         _install("PySide6.QtTest", qt_test)
         _install("PySide6.QtGui", qt_gui)
+        _install("PySide6.QtQml", qt_qml)
 
     try:
         import pytestqt  # type: ignore  # noqa: F401
@@ -205,6 +257,27 @@ def headless_qt_modules():
     finally:
         for name in added:
             sys.modules.pop(name, None)
+
+
+@pytest.fixture
+def headless_qtbot(request):
+    """Provide a QtBot substitute when pytest-qt is unavailable."""
+
+    try:
+        return request.getfixturevalue("qtbot")
+    except pytest.FixtureLookupError:
+        pass
+
+    class _StubQtBot:
+        def waitUntil(self, condition: Callable[[], bool], timeout: int = 1000) -> None:
+            deadline = time.time() + timeout / 1000.0
+            while time.time() < deadline:
+                if condition():
+                    return None
+                time.sleep(0.01)
+            raise AssertionError("waitUntil timed out")
+
+    return _StubQtBot()
 
 
 @pytest.fixture(scope="session")

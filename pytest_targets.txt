@@ -1,3 +1,5 @@
 # Paths collected by the main pytest suite.
 tests/integration/test_backup_restore.py
 tests/test_feedback_service.py
+tests/unit/test_training_preset_service_headless.py
+tests/integration/test_simulation_contracts_headless.py
