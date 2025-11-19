@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from src.ui.geometry_schema import GeometryValidationError, validate_geometry_settings
@@ -33,6 +35,16 @@ def test_geometry_validation_success():
     result = validate_geometry_settings(VALID_PAYLOAD)
     assert result.values["wheelbase"] == pytest.approx(2.5)
     assert result.to_config_dict()["lever_length"] == pytest.approx(0.75)
+
+
+def test_geometry_validation_accepts_decimal_payload():
+    payload = {
+        key: (Decimal(str(value)) if isinstance(value, float) else value)
+        for key, value in VALID_PAYLOAD.items()
+    }
+
+    result = validate_geometry_settings(payload)
+    assert result.values["wheelbase"] == pytest.approx(float(VALID_PAYLOAD["wheelbase"]))
 
 
 def test_geometry_validation_failure():
