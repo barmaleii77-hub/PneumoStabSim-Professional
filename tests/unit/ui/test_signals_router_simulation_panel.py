@@ -125,6 +125,30 @@ def test_handle_pneumatic_settings_changed_updates_settings_and_bus(
     )
 
 
+def test_handle_pneumatic_settings_changed_supports_gas_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Nested gas updates should be persisted without being dropped."""
+
+    window = _DummyWindow()
+    dispatched: list[str] = []
+
+    monkeypatch.setattr(
+        SignalsRouter,
+        "_push_pneumatic_state",
+        lambda w: dispatched.append("pneumatic") if w is window else None,
+    )
+
+    payload = {"gas": {"tank_temperature_initial_k": "305.5"}}
+
+    SignalsRouter.handle_pneumatic_settings_changed(window, payload)
+
+    assert dispatched == ["pneumatic"]
+    category, updates = window.settings_updates[-1]
+    assert category == "pneumatic"
+    assert updates["gas"]["tank_temperature_initial_k"] == pytest.approx(305.5)
+
+
 def test_handle_simulation_settings_changed_updates_settings_and_bus(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -192,6 +216,26 @@ def test_handle_cylinder_settings_changed_updates_constants(
             }
         }
     }
+
+
+def test_handle_geometry_settings_changed_normalizes_values() -> None:
+    """Geometry payloads from QML must be coerced before persistence."""
+
+    window = _DummyWindow()
+
+    payload = {
+        "wheelbase": "3.25",
+        "interference_check": "1",
+        "custom_note": "keep-text",
+    }
+
+    SignalsRouter.handle_geometry_settings_changed(window, payload)
+
+    category, updates = window.settings_updates[-1]
+    assert category == "geometry"
+    assert updates["wheelbase"] == pytest.approx(3.25)
+    assert updates["interference_check"] is True
+    assert updates["custom_note"] == "keep-text"
 
 
 def test_handle_modes_physics_changed_normalises_numeric_options(
