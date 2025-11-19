@@ -6,6 +6,16 @@ Item {
     width: 640
     height: 360
 
+    QtObject {
+        id: simulationRootStub
+        objectName: "simulationRoot"
+
+        property bool postProcessingBypassed: false
+        property string postProcessingBypassReason: ""
+    }
+
+    readonly property var simulationRootItem: simulationRootStub
+
     signal batchUpdatesApplied(var summary)
     signal animationToggled(bool running)
 
@@ -36,6 +46,7 @@ Item {
         }
         if (payload.effects) {
             categories.push("effects")
+            applyEffectsUpdates(payload.effects)
         }
         if (categories.length)
             batchUpdatesApplied({ categories: categories })
@@ -50,9 +61,20 @@ Item {
         simulationPanel.applySimulationSettings(payload)
     }
 
+    function applyEffectsUpdates(payload) {
+        if (!payload || typeof payload !== "object")
+            return
+        if (payload.effects_bypass !== undefined)
+            simulationRootStub.postProcessingBypassed = !!payload.effects_bypass
+        if (payload.effects_bypass_reason !== undefined) {
+            var reason = payload.effects_bypass_reason
+            simulationRootStub.postProcessingBypassReason = reason ? String(reason) : ""
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
-        color: "#141821"
+        color: simulationRootStub.postProcessingBypassed ? "#1b263a" : "#141821"
     }
 
     Panels.SimulationPanel {

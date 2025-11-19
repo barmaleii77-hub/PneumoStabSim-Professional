@@ -20,6 +20,7 @@ import "../diagnostics/LogBridge.js" as Diagnostics
  */
 Item {
     id: root
+    objectName: "simulationRoot"
     anchors.fill: parent
 
     // Bridge
@@ -381,6 +382,11 @@ Item {
         effectsBypassRequested = target
         effectsBypassReason = normalizedReason
 
+        // Always surface the bypass state to diagnostics, even if the low-level
+        // post-processing chain is unavailable in headless tests.
+        postProcessingBypassed = target
+        postProcessingBypassReason = normalizedReason
+
         if (postEffects && typeof postEffects.setEffectPersistentFailure === "function") {
             var manualReason = normalizedReason.length ? normalizedReason : qsTr("Manual post-processing bypass")
             try {
@@ -584,7 +590,7 @@ Item {
         // Проксирование предупреждений шейдеров из PostEffects в sceneBridge
     Connections {
         target: root.postEffects
-        enabled: !!target && !!root.sceneBridge
+        enabled: !!target
         ignoreUnknownSignals: true
 
         function onEffectsBypassChanged(active, reasonText) {

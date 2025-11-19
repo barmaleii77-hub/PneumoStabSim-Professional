@@ -128,6 +128,8 @@ def test_post_effects_bypass_triggers_view_effects_reset(qapp) -> None:  # type:
         assert post_effects.property("effectsBypassReason") == "bloom: forced failure"
         assert len(status_spy) >= 1
         latest_snapshot = status_spy[-1][0]
+        if hasattr(latest_snapshot, "toVariant"):
+            latest_snapshot = latest_snapshot.toVariant()
         assert isinstance(latest_snapshot, dict)
         assert latest_snapshot["effectsBypass"] is True
         assert latest_snapshot["effectsBypassReason"] == "bloom: forced failure"
