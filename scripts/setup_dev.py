@@ -45,7 +45,10 @@ print(QtCore.QLibraryInfo.path(library_path))
 
     try:
         result = subprocess.run(
-            [str(python_executable), "-c", script], capture_output=True, text=True, check=True
+            [str(python_executable), "-c", script],
+            capture_output=True,
+            text=True,
+            check=True,
         )
     except subprocess.CalledProcessError:
         return None, None
@@ -61,7 +64,9 @@ def update_env_paths(env_path: Path, updates: Dict[str, str], separator: str) ->
     """Update or append environment variables in .env without dropping comments."""
 
     env_path.parent.mkdir(parents=True, exist_ok=True)
-    original_lines = env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    original_lines = (
+        env_path.read_text(encoding="utf-8").splitlines() if env_path.exists() else []
+    )
     processed_keys = set()
     output_lines = []
 
@@ -233,8 +238,10 @@ def configure_qt_environment():
 
     env_path = Path(".env")
     separator = os.pathsep
-    venv_python = Path(".venv") / ("Scripts" if platform.system() == "Windows" else "bin") / (
-        "python.exe" if platform.system() == "Windows" else "python"
+    venv_python = (
+        Path(".venv")
+        / ("Scripts" if platform.system() == "Windows" else "bin")
+        / ("python.exe" if platform.system() == "Windows" else "python")
     )
 
     interpreter = venv_python if venv_python.exists() else Path(sys.executable)

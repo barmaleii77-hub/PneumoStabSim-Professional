@@ -179,7 +179,9 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
-def _primary_commands(uv_path: str, scope: Literal["main", "integration", "all"]) -> Iterable[Sequence[str]]:
+def _primary_commands(
+    uv_path: str, scope: Literal["main", "integration", "all"]
+) -> Iterable[Sequence[str]]:
     """Yield the matrix of quality gates to execute for the platform."""
 
     if scope in {"main", "integration", "all"}:
@@ -265,7 +267,9 @@ def main(argv: list[str]) -> int:
                 _stream_command(command, env=env)
             except CommandFailure as exc:
                 failures.append(str(exc))
-                _log(f"[entrypoint] Captured failure, continuing to next command: {exc}")
+                _log(
+                    f"[entrypoint] Captured failure, continuing to next command: {exc}"
+                )
 
         if failures:
             for failure in failures:

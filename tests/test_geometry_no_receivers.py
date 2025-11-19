@@ -143,22 +143,37 @@ class DummySignal:
         self.emitted_payload = payload
 
 
-def test_emit_skipped_and_logged_when_no_subscribers(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture):
+def test_emit_skipped_and_logged_when_no_subscribers(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+):
     panel_geometry = _load_panel_geometry(monkeypatch)
-    panel = type("Panel", (), {"logger": logging.getLogger("dummy.panel"), "_is_signal_connected": lambda self, *_: False})()
+    panel = type(
+        "Panel",
+        (),
+        {
+            "logger": logging.getLogger("dummy.panel"),
+            "_is_signal_connected": lambda self, *_: False,
+        },
+    )()
     signal = DummySignal()
 
     with caplog.at_level(logging.INFO):
-        panel_geometry.GeometryPanel._emit_if_connected(panel, signal, {"hello": "world"}, "initial geometry")
+        panel_geometry.GeometryPanel._emit_if_connected(
+            panel, signal, {"hello": "world"}, "initial geometry"
+        )
 
     assert signal.emitted_payload is None
-    record = next(rec for rec in caplog.records if rec.message == "geometry_emit_skipped")
+    record = next(
+        rec for rec in caplog.records if rec.message == "geometry_emit_skipped"
+    )
     assert record.reason == "no_subscribers"
     assert record.description == "initial geometry"
     assert record.signal_signature is None
 
 
-def test_emit_probe_failures_are_soft(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture):
+def test_emit_probe_failures_are_soft(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+):
     panel_geometry = _load_panel_geometry(monkeypatch)
 
     class FailingPanel:
@@ -171,9 +186,12 @@ def test_emit_probe_failures_are_soft(monkeypatch: pytest.MonkeyPatch, caplog: p
     signal = DummySignal()
 
     with caplog.at_level(logging.DEBUG):
-        panel_geometry.GeometryPanel._emit_if_connected(FailingPanel(), signal, {"hello": "world"}, "initial geometry")
+        panel_geometry.GeometryPanel._emit_if_connected(
+            FailingPanel(), signal, {"hello": "world"}, "initial geometry"
+        )
 
     assert any(
-        rec.message == "geometry_emit_connection_probe_failed" and rec.description == "initial geometry"
+        rec.message == "geometry_emit_connection_probe_failed"
+        and rec.description == "initial geometry"
         for rec in caplog.records
     )

@@ -5,6 +5,7 @@ Windows Interactive Launcher for PneumoStabSim-Professional
 Дополнено: расширенный сбор stdout/stderr, принудительный выбор console-интерпретатора
 для verbose/diag и опции консоли, углублённый анализ логов (поиск QML ошибок).
 """
+
 from __future__ import annotations
 
 import json
@@ -62,13 +63,13 @@ def run_command_logged(
         encoding="utf-8",
         errors="replace",
     )
-    _log(
-        "Finished: %s (exit=%s)" % (_format_command(cmd), completed.returncode)
-    )
+    _log("Finished: %s (exit=%s)" % (_format_command(cmd), completed.returncode))
     return completed
 
 
-def summarize_log_tail(log_path: Path, max_lines: int) -> tuple[deque[str], dict[str, int], list[str]]:
+def summarize_log_tail(
+    log_path: Path, max_lines: int
+) -> tuple[deque[str], dict[str, int], list[str]]:
     """Return tail, severity counts and highlight lines for a log file."""
 
     tail: deque[str] = deque(maxlen=max_lines)
@@ -81,7 +82,9 @@ def summarize_log_tail(log_path: Path, max_lines: int) -> tuple[deque[str], dict
     return tail, counts, highlights
 
 
-def format_completed_process(cmd: Sequence[str], completed: subprocess.CompletedProcess[str]) -> str:
+def format_completed_process(
+    cmd: Sequence[str], completed: subprocess.CompletedProcess[str]
+) -> str:
     stdout = (completed.stdout or "").strip()
     stderr = (completed.stderr or "").strip()
     lines: list[str] = [f"$ {_format_command(cmd)}", f"exit={completed.returncode}"]
@@ -121,23 +124,37 @@ def _detect_failure_hint(lines: Sequence[str]) -> str:
     counts = _count_severities(lines)
     hints: list[str] = []
     if counts["error"]:
-        hints.append(f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже.")
+        hints.append(
+            f"Найдено ошибок: {counts['error']}. Проверьте ключевые строки ниже."
+        )
     if counts["warning"]:
         hints.append(f"Предупреждений: {counts['warning']}.")
 
     text_blob = "\n".join(lines).lower()
     if "module not found" in text_blob or "no module named" in text_blob:
-        hints.append("Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите.")
+        hints.append(
+            "Похоже, отсутствуют зависимости. Запустите 'make uv-sync' и повторите."
+        )
     if "qt.qpa" in text_blob or "xcb" in text_blob:
-        hints.append("Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless.")
+        hints.append(
+            "Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless."
+        )
     if "permission" in text_blob:
-        hints.append("Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути.")
+        hints.append(
+            "Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути."
+        )
     if "failed" in text_blob and "pytest" in text_blob:
-        hints.append("Похоже, упали тесты. Проверьте блок FAILURES и перезапустите с --diag.")
+        hints.append(
+            "Похоже, упали тесты. Проверьте блок FAILURES и перезапустите с --diag."
+        )
     if "ruff" in text_blob and "error" in text_blob:
-        hints.append("Линтер обнаружил ошибки. Запустите 'python -m ruff .' для деталей.")
+        hints.append(
+            "Линтер обнаружил ошибки. Запустите 'python -m ruff .' для деталей."
+        )
     if not hints and (counts["error"] or counts["warning"]):
-        hints.append("Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер.")
+        hints.append(
+            "Запустите с --diag/--verbose и просмотрите свежие логи через лаунчер."
+        )
     elif not hints:
         return ""
 
@@ -221,7 +238,11 @@ def detect_venv_python(*, prefer_console: bool) -> Path:
         con = base / "python"
     # Всегда используем console при запросе prefer_console
     preferred = con if prefer_console else gui
-    return preferred if preferred.exists() else (con if con.exists() else Path(sys.executable))
+    return (
+        preferred
+        if preferred.exists()
+        else (con if con.exists() else Path(sys.executable))
+    )
 
 
 def _append_env_path(env: dict[str, str], name: str, path: Path) -> None:
@@ -242,11 +263,17 @@ def ensure_qt_environment(env: dict[str, str]) -> None:
         site_packages_candidates.append(venv_root / "Lib" / "site-packages")
     else:
         site_packages_candidates.extend(
-            path for path in (venv_root / "lib").glob("python*/site-packages") if path.exists()
+            path
+            for path in (venv_root / "lib").glob("python*/site-packages")
+            if path.exists()
         )
 
     pyside_dir = next(
-        (candidate / "PySide6" for candidate in site_packages_candidates if (candidate / "PySide6").exists()),
+        (
+            candidate / "PySide6"
+            for candidate in site_packages_candidates
+            if (candidate / "PySide6").exists()
+        ),
         None,
     )
     if pyside_dir:
@@ -351,7 +378,9 @@ def build_test_environment() -> dict[str, str]:
     return env
 
 
-def build_testing_entrypoint_command(python_exe: Path, scope: Literal["main", "integration"]) -> list[str]:
+def build_testing_entrypoint_command(
+    python_exe: Path, scope: Literal["main", "integration"]
+) -> list[str]:
     entrypoint = project_root() / "scripts" / "testing_entrypoint.py"
     cmd = [str(python_exe), str(entrypoint)]
     cmd.extend(["--scope", "integration" if scope == "integration" else "main"])
@@ -399,7 +428,9 @@ def run_log_analysis(env: dict[str, str]) -> str:
     stdout = (completed.stdout or "").strip()
     stderr = (completed.stderr or "").strip()
     if completed.returncode != 0:
-        detail = format_completed_process([str(python_exe), "-m", "tools.analyze_logs"], completed)
+        detail = format_completed_process(
+            [str(python_exe), "-m", "tools.analyze_logs"], completed
+        )
         return f"Анализ логов завершился с ошибкой (exit={completed.returncode}).\n{detail}"
     combo = stdout
     if stderr:
@@ -408,7 +439,12 @@ def run_log_analysis(env: dict[str, str]) -> str:
 
 
 def launch_app(
-    *, args: Iterable[str], env: dict[str, str], mode: CreateFlag, force_console: bool, capture_buffer: list[str] | None = None
+    *,
+    args: Iterable[str],
+    env: dict[str, str],
+    mode: CreateFlag,
+    force_console: bool,
+    capture_buffer: list[str] | None = None,
 ) -> subprocess.Popen[bytes]:
     root = project_root()
     app_path = root / "app.py"
@@ -420,9 +456,14 @@ def launch_app(
         raise FileNotFoundError(
             f"Project root is unavailable: {root}. Убедитесь, что каталог существует."
         )
-    prefer_console = force_console or any(
-        a in ("--env-check", "--env-report", "--test-mode", "--verbose", "--diag") for a in args
-    ) or (env.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
+    prefer_console = (
+        force_console
+        or any(
+            a in ("--env-check", "--env-report", "--test-mode", "--verbose", "--diag")
+            for a in args
+        )
+        or (env.get("PSS_HEADLESS") or "").strip().lower() in {"1", "true", "yes", "on"}
+    )
     python_exe = detect_venv_python(prefer_console=prefer_console)
     if not python_exe.exists():
         raise FileNotFoundError(
@@ -458,7 +499,9 @@ def launch_app(
             f"Не удалось запустить приложение: исполняемый файл недоступен ({cmd[0]})."
         ) from exc
     except OSError as exc:
-        raise RuntimeError(f"Не удалось запустить приложение: {exc.strerror or exc}") from exc
+        raise RuntimeError(
+            f"Не удалось запустить приложение: {exc.strerror or exc}"
+        ) from exc
 
     if mode == "capture" and proc.stdout is not None and capture_buffer is not None:
 
@@ -496,7 +539,7 @@ class LauncherUI(tk.Tk):
         self.var_env_report = tk.StringVar(value="")
 
         self.var_console = tk.BooleanVar(value=False)  # new console window
-        self.var_capture = tk.BooleanVar(value=True)   # собирать вывод
+        self.var_capture = tk.BooleanVar(value=True)  # собирать вывод
 
         self.var_log_dir = tk.StringVar(value=str(self._autodetect_log_dir()))
         self.var_log_lines = tk.IntVar(value=DEFAULT_LOG_LINES)
@@ -517,74 +560,150 @@ class LauncherUI(tk.Tk):
         menubar = tk.Menu(self)
         actions_menu = tk.Menu(menubar, tearoff=0)
         actions_menu.add_command(label="Запустить приложение", command=self._on_run)
-        actions_menu.add_command(label="Показать свежие логи", command=self._open_logs_viewer)
-        actions_menu.add_command(label="Выбор конфигурации...", command=self._open_configuration_dialog)
-        actions_menu.add_command(label="Быстрый статус (git+линтер)", command=self._run_repo_status)
+        actions_menu.add_command(
+            label="Показать свежие логи", command=self._open_logs_viewer
+        )
+        actions_menu.add_command(
+            label="Выбор конфигурации...", command=self._open_configuration_dialog
+        )
+        actions_menu.add_command(
+            label="Быстрый статус (git+линтер)", command=self._run_repo_status
+        )
         menubar.add_cascade(label="Действия", menu=actions_menu)
 
         tests_menu = tk.Menu(menubar, tearoff=0)
         tests_menu.add_command(
-            label="Базовые тесты (entrypoint)", command=lambda: self._run_tests(scope="main")
+            label="Базовые тесты (entrypoint)",
+            command=lambda: self._run_tests(scope="main"),
         )
         tests_menu.add_command(
-            label="Интеграционные тесты", command=lambda: self._run_tests(scope="integration")
+            label="Интеграционные тесты",
+            command=lambda: self._run_tests(scope="integration"),
         )
         menubar.add_cascade(label="Тесты", menu=tests_menu)
         self.config(menu=menubar)
 
         frm_launch = ttk.Labelframe(self, text="Параметры запуска (CLI)")
         frm_launch.pack(fill="x", **pad)
-        self._widgets["chk_verbose"] = ttk.Checkbutton(frm_launch, text="Verbose (--verbose)", variable=self.var_verbose)
+        self._widgets["chk_verbose"] = ttk.Checkbutton(
+            frm_launch, text="Verbose (--verbose)", variable=self.var_verbose
+        )
         self._widgets["chk_verbose"].grid(row=0, column=0, sticky="w", **pad)
-        self._widgets["chk_diag"] = ttk.Checkbutton(frm_launch, text="Diagnostics (--diag)", variable=self.var_diag)
+        self._widgets["chk_diag"] = ttk.Checkbutton(
+            frm_launch, text="Diagnostics (--diag)", variable=self.var_diag
+        )
         self._widgets["chk_diag"].grid(row=0, column=1, sticky="w", **pad)
-        self._widgets["chk_test"] = ttk.Checkbutton(frm_launch, text="Test mode (--test-mode)", variable=self.var_test)
+        self._widgets["chk_test"] = ttk.Checkbutton(
+            frm_launch, text="Test mode (--test-mode)", variable=self.var_test
+        )
         self._widgets["chk_test"].grid(row=1, column=0, sticky="w", **pad)
-        self._widgets["chk_safe_mode"] = ttk.Checkbutton(frm_launch, text="Safe mode (--safe-mode)", variable=self.var_safe_mode)
+        self._widgets["chk_safe_mode"] = ttk.Checkbutton(
+            frm_launch, text="Safe mode (--safe-mode)", variable=self.var_safe_mode
+        )
         self._widgets["chk_safe_mode"].grid(row=1, column=1, sticky="w", **pad)
-        self._widgets["chk_legacy"] = ttk.Checkbutton(frm_launch, text="Legacy UI (--legacy)", variable=self.var_legacy)
+        self._widgets["chk_legacy"] = ttk.Checkbutton(
+            frm_launch, text="Legacy UI (--legacy)", variable=self.var_legacy
+        )
         self._widgets["chk_legacy"].grid(row=2, column=0, sticky="w", **pad)
-        self._widgets["chk_no_qml"] = ttk.Checkbutton(frm_launch, text="No QML (--no-qml)", variable=self.var_no_qml)
+        self._widgets["chk_no_qml"] = ttk.Checkbutton(
+            frm_launch, text="No QML (--no-qml)", variable=self.var_no_qml
+        )
         self._widgets["chk_no_qml"].grid(row=2, column=1, sticky="w", **pad)
 
         frm_env = ttk.Labelframe(self, text="Окружение Qt/QtQuick")
         frm_env.pack(fill="x", **pad)
-        self._widgets["chk_headless"] = ttk.Checkbutton(frm_env, text="Headless (PSS_HEADLESS)", variable=self.var_headless)
+        self._widgets["chk_headless"] = ttk.Checkbutton(
+            frm_env, text="Headless (PSS_HEADLESS)", variable=self.var_headless
+        )
         self._widgets["chk_headless"].grid(row=0, column=0, sticky="w", **pad)
-        ttk.Label(frm_env, text="QT_QPA_PLATFORM:").grid(row=1, column=0, sticky="e", **pad)
-        self._widgets["cmb_qpa"] = ttk.Combobox(frm_env, textvariable=self.var_qpa, values=QPA_CHOICES, state="readonly", width=20)
+        ttk.Label(frm_env, text="QT_QPA_PLATFORM:").grid(
+            row=1, column=0, sticky="e", **pad
+        )
+        self._widgets["cmb_qpa"] = ttk.Combobox(
+            frm_env,
+            textvariable=self.var_qpa,
+            values=QPA_CHOICES,
+            state="readonly",
+            width=20,
+        )
         self._widgets["cmb_qpa"].grid(row=1, column=1, sticky="w", **pad)
-        ttk.Label(frm_env, text="QSG_RHI_BACKEND:").grid(row=2, column=0, sticky="e", **pad)
-        self._widgets["cmb_rhi"] = ttk.Combobox(frm_env, textvariable=self.var_rhi, values=RHI_CHOICES, state="readonly", width=20)
+        ttk.Label(frm_env, text="QSG_RHI_BACKEND:").grid(
+            row=2, column=0, sticky="e", **pad
+        )
+        self._widgets["cmb_rhi"] = ttk.Combobox(
+            frm_env,
+            textvariable=self.var_rhi,
+            values=RHI_CHOICES,
+            state="readonly",
+            width=20,
+        )
         self._widgets["cmb_rhi"].grid(row=2, column=1, sticky="w", **pad)
-        ttk.Label(frm_env, text="QT_QUICK_BACKEND:").grid(row=3, column=0, sticky="e", **pad)
-        self._widgets["ent_quick_backend"] = ttk.Entry(frm_env, textvariable=self.var_quick_backend, width=24)
+        ttk.Label(frm_env, text="QT_QUICK_BACKEND:").grid(
+            row=3, column=0, sticky="e", **pad
+        )
+        self._widgets["ent_quick_backend"] = ttk.Entry(
+            frm_env, textvariable=self.var_quick_backend, width=24
+        )
         self._widgets["ent_quick_backend"].grid(row=3, column=1, sticky="w", **pad)
-        ttk.Label(frm_env, text="QT_QUICK_CONTROLS_STYLE:").grid(row=4, column=0, sticky="e", **pad)
-        self._widgets["cmb_style"] = ttk.Combobox(frm_env, textvariable=self.var_style, values=STYLE_CHOICES, state="readonly", width=20)
+        ttk.Label(frm_env, text="QT_QUICK_CONTROLS_STYLE:").grid(
+            row=4, column=0, sticky="e", **pad
+        )
+        self._widgets["cmb_style"] = ttk.Combobox(
+            frm_env,
+            textvariable=self.var_style,
+            values=STYLE_CHOICES,
+            state="readonly",
+            width=20,
+        )
         self._widgets["cmb_style"].grid(row=4, column=1, sticky="w", **pad)
-        ttk.Label(frm_env, text="PSS_QML_SCENE:").grid(row=5, column=0, sticky="e", **pad)
-        self._widgets["cmb_scene"] = ttk.Combobox(frm_env, textvariable=self.var_scene, values=SCENE_CHOICES, state="readonly", width=20)
+        ttk.Label(frm_env, text="PSS_QML_SCENE:").grid(
+            row=5, column=0, sticky="e", **pad
+        )
+        self._widgets["cmb_scene"] = ttk.Combobox(
+            frm_env,
+            textvariable=self.var_scene,
+            values=SCENE_CHOICES,
+            state="readonly",
+            width=20,
+        )
         self._widgets["cmb_scene"].grid(row=5, column=1, sticky="w", **pad)
 
         frm_diag = ttk.Labelframe(self, text="Диагностика окружения")
         frm_diag.pack(fill="x", **pad)
-        self._widgets["chk_env_check"] = ttk.Checkbutton(frm_diag, text="--env-check (только диагностика)", variable=self.var_env_check)
+        self._widgets["chk_env_check"] = ttk.Checkbutton(
+            frm_diag,
+            text="--env-check (только диагностика)",
+            variable=self.var_env_check,
+        )
         self._widgets["chk_env_check"].grid(row=0, column=0, sticky="w", **pad)
-        ttk.Label(frm_diag, text="--env-report PATH:").grid(row=1, column=0, sticky="e", **pad)
-        self._widgets["ent_env_report"] = ttk.Entry(frm_diag, textvariable=self.var_env_report, width=40)
+        ttk.Label(frm_diag, text="--env-report PATH:").grid(
+            row=1, column=0, sticky="e", **pad
+        )
+        self._widgets["ent_env_report"] = ttk.Entry(
+            frm_diag, textvariable=self.var_env_report, width=40
+        )
         self._widgets["ent_env_report"].grid(row=1, column=1, sticky="w", **pad)
-        self._widgets["btn_browse_env"] = ttk.Button(frm_diag, text="Обзор...", command=self._browse_env_report)
+        self._widgets["btn_browse_env"] = ttk.Button(
+            frm_diag, text="Обзор...", command=self._browse_env_report
+        )
         self._widgets["btn_browse_env"].grid(row=1, column=2, sticky="w", **pad)
 
         frm_logs = ttk.Labelframe(self, text="Логи и ошибки")
         frm_logs.pack(fill="x", **pad)
-        ttk.Label(frm_logs, text="Директория логов:").grid(row=0, column=0, sticky="e", **pad)
-        self._widgets["ent_log_dir"] = ttk.Entry(frm_logs, textvariable=self.var_log_dir, width=50)
+        ttk.Label(frm_logs, text="Директория логов:").grid(
+            row=0, column=0, sticky="e", **pad
+        )
+        self._widgets["ent_log_dir"] = ttk.Entry(
+            frm_logs, textvariable=self.var_log_dir, width=50
+        )
         self._widgets["ent_log_dir"].grid(row=0, column=1, sticky="w", **pad)
-        self._widgets["btn_browse_logs"] = ttk.Button(frm_logs, text="Выбрать...", command=self._browse_log_dir)
+        self._widgets["btn_browse_logs"] = ttk.Button(
+            frm_logs, text="Выбрать...", command=self._browse_log_dir
+        )
         self._widgets["btn_browse_logs"].grid(row=0, column=2, sticky="w", **pad)
-        ttk.Label(frm_logs, text="Последние N строк:").grid(row=1, column=0, sticky="e", **pad)
+        ttk.Label(frm_logs, text="Последние N строк:").grid(
+            row=1, column=0, sticky="e", **pad
+        )
         self._widgets["spn_log_lines"] = ttk.Spinbox(
             frm_logs,
             from_=50,
@@ -594,7 +713,9 @@ class LauncherUI(tk.Tk):
             width=10,
         )
         self._widgets["spn_log_lines"].grid(row=1, column=1, sticky="w", **pad)
-        self._widgets["btn_show_logs"] = ttk.Button(frm_logs, text="Показать свежие логи", command=self._open_logs_viewer)
+        self._widgets["btn_show_logs"] = ttk.Button(
+            frm_logs, text="Показать свежие логи", command=self._open_logs_viewer
+        )
         self._widgets["btn_show_logs"].grid(row=1, column=2, sticky="w", **pad)
 
         frm_repo = ttk.Labelframe(self, text="Состояние репозитория/кода")
@@ -608,17 +729,31 @@ class LauncherUI(tk.Tk):
 
         frm_actions = ttk.Frame(self)
         frm_actions.pack(fill="x", **pad)
-        self._widgets["chk_console"] = ttk.Checkbutton(frm_actions, text="Новое окно консоли", variable=self.var_console)
+        self._widgets["chk_console"] = ttk.Checkbutton(
+            frm_actions, text="Новое окно консоли", variable=self.var_console
+        )
         self._widgets["chk_console"].pack(side="left", padx=6)
-        self._widgets["chk_capture"] = ttk.Checkbutton(frm_actions, text="Собирать stdout/stderr внутри лаунчера", variable=self.var_capture)
+        self._widgets["chk_capture"] = ttk.Checkbutton(
+            frm_actions,
+            text="Собирать stdout/stderr внутри лаунчера",
+            variable=self.var_capture,
+        )
         self._widgets["chk_capture"].pack(side="left", padx=6)
-        self._widgets["btn_run"] = ttk.Button(frm_actions, text="Запустить", command=self._on_run)
+        self._widgets["btn_run"] = ttk.Button(
+            frm_actions, text="Запустить", command=self._on_run
+        )
         self._widgets["btn_run"].pack(side="right", padx=6)
-        self._widgets["btn_envcheck"] = ttk.Button(frm_actions, text="Env Check", command=self._on_env_check)
+        self._widgets["btn_envcheck"] = ttk.Button(
+            frm_actions, text="Env Check", command=self._on_env_check
+        )
         self._widgets["btn_envcheck"].pack(side="right", padx=6)
-        self._widgets["btn_help"] = ttk.Button(frm_actions, text="Справка", command=self._open_help)
+        self._widgets["btn_help"] = ttk.Button(
+            frm_actions, text="Справка", command=self._open_help
+        )
         self._widgets["btn_help"].pack(side="right", padx=6)
-        self._widgets["btn_exit"] = ttk.Button(frm_actions, text="Выход", command=self.destroy)
+        self._widgets["btn_exit"] = ttk.Button(
+            frm_actions, text="Выход", command=self.destroy
+        )
         self._widgets["btn_exit"].pack(side="right", padx=6)
 
         status_text = (
@@ -670,54 +805,81 @@ class LauncherUI(tk.Tk):
 
         frm_flags = ttk.Labelframe(win, text="Флаги запуска")
         frm_flags.pack(fill="x", padx=10, pady=8)
-        ttk.Checkbutton(frm_flags, text="Verbose (--verbose)", variable=self.var_verbose).grid(
-            row=0, column=0, sticky="w", padx=6, pady=4
-        )
-        ttk.Checkbutton(frm_flags, text="Diagnostics (--diag)", variable=self.var_diag).grid(
-            row=0, column=1, sticky="w", padx=6, pady=4
-        )
-        ttk.Checkbutton(frm_flags, text="Test mode (--test-mode)", variable=self.var_test).grid(
-            row=1, column=0, sticky="w", padx=6, pady=4
-        )
-        ttk.Checkbutton(frm_flags, text="Safe mode (--safe-mode)", variable=self.var_safe_mode).grid(
-            row=1, column=1, sticky="w", padx=6, pady=4
-        )
-        ttk.Checkbutton(frm_flags, text="Legacy UI (--legacy)", variable=self.var_legacy).grid(
-            row=2, column=0, sticky="w", padx=6, pady=4
-        )
-        ttk.Checkbutton(frm_flags, text="No QML (--no-qml)", variable=self.var_no_qml).grid(
-            row=2, column=1, sticky="w", padx=6, pady=4
-        )
+        ttk.Checkbutton(
+            frm_flags, text="Verbose (--verbose)", variable=self.var_verbose
+        ).grid(row=0, column=0, sticky="w", padx=6, pady=4)
+        ttk.Checkbutton(
+            frm_flags, text="Diagnostics (--diag)", variable=self.var_diag
+        ).grid(row=0, column=1, sticky="w", padx=6, pady=4)
+        ttk.Checkbutton(
+            frm_flags, text="Test mode (--test-mode)", variable=self.var_test
+        ).grid(row=1, column=0, sticky="w", padx=6, pady=4)
+        ttk.Checkbutton(
+            frm_flags, text="Safe mode (--safe-mode)", variable=self.var_safe_mode
+        ).grid(row=1, column=1, sticky="w", padx=6, pady=4)
+        ttk.Checkbutton(
+            frm_flags, text="Legacy UI (--legacy)", variable=self.var_legacy
+        ).grid(row=2, column=0, sticky="w", padx=6, pady=4)
+        ttk.Checkbutton(
+            frm_flags, text="No QML (--no-qml)", variable=self.var_no_qml
+        ).grid(row=2, column=1, sticky="w", padx=6, pady=4)
 
         frm_env = ttk.Labelframe(win, text="Параметры среды")
         frm_env.pack(fill="x", padx=10, pady=8)
-        ttk.Checkbutton(frm_env, text="Headless (PSS_HEADLESS)", variable=self.var_headless).grid(
-            row=0, column=0, sticky="w", padx=6, pady=4
+        ttk.Checkbutton(
+            frm_env, text="Headless (PSS_HEADLESS)", variable=self.var_headless
+        ).grid(row=0, column=0, sticky="w", padx=6, pady=4)
+        ttk.Label(frm_env, text="QT_QPA_PLATFORM:").grid(
+            row=1, column=0, sticky="e", padx=6, pady=4
         )
-        ttk.Label(frm_env, text="QT_QPA_PLATFORM:").grid(row=1, column=0, sticky="e", padx=6, pady=4)
-        ttk.Combobox(frm_env, textvariable=self.var_qpa, values=QPA_CHOICES, state="readonly", width=20).grid(
-            row=1, column=1, sticky="w", padx=6, pady=4
+        ttk.Combobox(
+            frm_env,
+            textvariable=self.var_qpa,
+            values=QPA_CHOICES,
+            state="readonly",
+            width=20,
+        ).grid(row=1, column=1, sticky="w", padx=6, pady=4)
+        ttk.Label(frm_env, text="QSG_RHI_BACKEND:").grid(
+            row=2, column=0, sticky="e", padx=6, pady=4
         )
-        ttk.Label(frm_env, text="QSG_RHI_BACKEND:").grid(row=2, column=0, sticky="e", padx=6, pady=4)
-        ttk.Combobox(frm_env, textvariable=self.var_rhi, values=RHI_CHOICES, state="readonly", width=20).grid(
-            row=2, column=1, sticky="w", padx=6, pady=4
+        ttk.Combobox(
+            frm_env,
+            textvariable=self.var_rhi,
+            values=RHI_CHOICES,
+            state="readonly",
+            width=20,
+        ).grid(row=2, column=1, sticky="w", padx=6, pady=4)
+        ttk.Label(frm_env, text="QT_QUICK_CONTROLS_STYLE:").grid(
+            row=3, column=0, sticky="e", padx=6, pady=4
         )
-        ttk.Label(frm_env, text="QT_QUICK_CONTROLS_STYLE:").grid(row=3, column=0, sticky="e", padx=6, pady=4)
-        ttk.Combobox(frm_env, textvariable=self.var_style, values=STYLE_CHOICES, state="readonly", width=20).grid(
-            row=3, column=1, sticky="w", padx=6, pady=4
+        ttk.Combobox(
+            frm_env,
+            textvariable=self.var_style,
+            values=STYLE_CHOICES,
+            state="readonly",
+            width=20,
+        ).grid(row=3, column=1, sticky="w", padx=6, pady=4)
+        ttk.Label(frm_env, text="PSS_QML_SCENE:").grid(
+            row=4, column=0, sticky="e", padx=6, pady=4
         )
-        ttk.Label(frm_env, text="PSS_QML_SCENE:").grid(row=4, column=0, sticky="e", padx=6, pady=4)
-        ttk.Combobox(frm_env, textvariable=self.var_scene, values=SCENE_CHOICES, state="readonly", width=20).grid(
-            row=4, column=1, sticky="w", padx=6, pady=4
+        ttk.Combobox(
+            frm_env,
+            textvariable=self.var_scene,
+            values=SCENE_CHOICES,
+            state="readonly",
+            width=20,
+        ).grid(row=4, column=1, sticky="w", padx=6, pady=4)
+        ttk.Label(frm_env, text="QT_QUICK_BACKEND:").grid(
+            row=5, column=0, sticky="e", padx=6, pady=4
         )
-        ttk.Label(frm_env, text="QT_QUICK_BACKEND:").grid(row=5, column=0, sticky="e", padx=6, pady=4)
         ttk.Entry(frm_env, textvariable=self.var_quick_backend, width=24).grid(
             row=5, column=1, sticky="w", padx=6, pady=4
         )
 
-        ttk.Label(win, text="Настройки обновляются мгновенно, отдельного подтверждения не требуется.").pack(
-            fill="x", padx=10, pady=8
-        )
+        ttk.Label(
+            win,
+            text="Настройки обновляются мгновенно, отдельного подтверждения не требуется.",
+        ).pack(fill="x", padx=10, pady=8)
         ttk.Button(win, text="Закрыть", command=win.destroy).pack(pady=6)
 
     # --- Helpers: logs and repo status
@@ -753,7 +915,11 @@ class LauncherUI(tk.Tk):
                         k_lower = key.lower()
                         if "log" in k_lower and ("dir" in k_lower or "path" in k_lower):
                             candidate = Path(val)
-                            found.append(candidate if candidate.is_absolute() else project_root() / candidate)
+                            found.append(
+                                candidate
+                                if candidate.is_absolute()
+                                else project_root() / candidate
+                            )
                     _walk(val)
             elif isinstance(value, list):
                 for item in value:
@@ -781,11 +947,18 @@ class LauncherUI(tk.Tk):
             max_lines = DEFAULT_LOG_LINES
             self.var_log_lines.set(DEFAULT_LOG_LINES)
         log_dir = Path(self.var_log_dir.get().strip() or project_root() / "logs")
-        threading.Thread(target=self._collect_logs, args=(log_dir, max_lines), daemon=True).start()
+        threading.Thread(
+            target=self._collect_logs, args=(log_dir, max_lines), daemon=True
+        ).start()
 
     def _collect_logs(self, log_dir: Path, max_lines: int) -> None:
         if not log_dir.exists():
-            self.after(0, lambda: messagebox.showwarning("Логи", f"Директория {log_dir} не найдена."))
+            self.after(
+                0,
+                lambda: messagebox.showwarning(
+                    "Логи", f"Директория {log_dir} не найдена."
+                ),
+            )
             return
         summary = self._read_recent_logs(log_dir, max_lines)
         self.after(
@@ -833,7 +1006,9 @@ class LauncherUI(tk.Tk):
         header = "\n".join(header_parts)
         return f"{header}\n\n--- Хвост логов ---\n" + "\n".join(tail)
 
-    def _show_text_window(self, *, title: str, text: str, geometry: str = "980x720") -> None:
+    def _show_text_window(
+        self, *, title: str, text: str, geometry: str = "980x720"
+    ) -> None:
         win = tk.Toplevel(self)
         win.title(title)
         win.geometry(geometry)
@@ -866,7 +1041,9 @@ class LauncherUI(tk.Tk):
         else:
             env = build_test_environment()
             command = build_testing_entrypoint_command(python_exe, scope)
-            text = self._run_command(command, f"testing_entrypoint ({scope})", cwd=root, env=env)
+            text = self._run_command(
+                command, f"testing_entrypoint ({scope})", cwd=root, env=env
+            )
 
         self.after(
             0,
@@ -883,7 +1060,9 @@ class LauncherUI(tk.Tk):
     def _collect_repo_status(self) -> None:
         root = project_root()
         sections: list[str] = []
-        sections.append(self._run_command(["git", "status", "-sb"], "git status", cwd=root))
+        sections.append(
+            self._run_command(["git", "status", "-sb"], "git status", cwd=root)
+        )
         python_exe = detect_venv_python(prefer_console=True)
         sections.append(
             self._run_command(
@@ -911,7 +1090,12 @@ class LauncherUI(tk.Tk):
         self.after(0, lambda: self._set_status("Статус репозитория обновлён."))
 
     def _run_command(
-        self, cmd: list[str], title: str, *, cwd: Path | None = None, env: dict[str, str] | None = None
+        self,
+        cmd: list[str],
+        title: str,
+        *,
+        cwd: Path | None = None,
+        env: dict[str, str] | None = None,
     ) -> str:
         try:
             completed, summary = run_command_with_summary(cmd, cwd=cwd, env=env)
@@ -1019,16 +1203,24 @@ class LauncherUI(tk.Tk):
                 args=args,
                 env=env,
                 mode=mode,
-                force_console=self.var_console.get() or self.var_verbose.get() or self.var_diag.get(),
+                force_console=self.var_console.get()
+                or self.var_verbose.get()
+                or self.var_diag.get(),
                 capture_buffer=capture_buffer,
             )
         except Exception as e:
-            messagebox.showerror("Ошибка запуска", f"Не удалось запустить приложение: {e}")
+            messagebox.showerror(
+                "Ошибка запуска", f"Не удалось запустить приложение: {e}"
+            )
             return
         self._set_status(f"PID={proc.pid} запущено. Ожидание завершения...")
-        threading.Thread(target=self._monitor_process, args=(proc, env, mode), daemon=True).start()
+        threading.Thread(
+            target=self._monitor_process, args=(proc, env, mode), daemon=True
+        ).start()
 
-    def _monitor_process(self, proc: subprocess.Popen[bytes], env: dict[str, str], mode: CreateFlag) -> None:
+    def _monitor_process(
+        self, proc: subprocess.Popen[bytes], env: dict[str, str], mode: CreateFlag
+    ) -> None:
         exit_code = -1
         try:
             exit_code = proc.wait()
@@ -1038,9 +1230,17 @@ class LauncherUI(tk.Tk):
         analysis_text = self._run_log_analysis(env)
         extra = self._summarize_captured_output() if mode == "capture" else ""
         if extra:
-            analysis_text = f"{analysis_text}\n\n=== CAPTURED STDOUT/STDERR (tail) ===\n{extra}" if analysis_text else extra
+            analysis_text = (
+                f"{analysis_text}\n\n=== CAPTURED STDOUT/STDERR (tail) ===\n{extra}"
+                if analysis_text
+                else extra
+            )
         try:
-            command_repr = _format_command(proc.args) if isinstance(proc.args, Sequence) else str(proc.args)
+            command_repr = (
+                _format_command(proc.args)
+                if isinstance(proc.args, Sequence)
+                else str(proc.args)
+            )
         except Exception:
             command_repr = str(proc.args)
         _log(f"Application process exited with code {exit_code}: {command_repr}")
@@ -1054,10 +1254,13 @@ class LauncherUI(tk.Tk):
             self.after(
                 0,
                 lambda: messagebox.showerror(
-                    "Ошибка запуска", f"Процесс завершился с кодом {exit_code}.\n\n{hint}"
+                    "Ошибка запуска",
+                    f"Процесс завершился с кодом {exit_code}.\n\n{hint}",
                 ),
             )
-        self.after(0, lambda: self._show_analysis_window(analysis_text, exit_code, mode))
+        self.after(
+            0, lambda: self._show_analysis_window(analysis_text, exit_code, mode)
+        )
 
     def _summarize_captured_output(self, max_lines: int = 200) -> str:
         if not self._captured_output:
@@ -1082,14 +1285,18 @@ class LauncherUI(tk.Tk):
     def _run_log_analysis(self, env: dict[str, str]) -> str:
         return run_log_analysis(env)
 
-    def _show_analysis_window(self, text: str, app_exit_code: int, mode: CreateFlag) -> None:
+    def _show_analysis_window(
+        self, text: str, app_exit_code: int, mode: CreateFlag
+    ) -> None:
         self._set_status("Завершено. Отчёт открыт.")
         win = tk.Toplevel(self)
         win.title("Анализ после завершения приложения")
         win.geometry("980x720")
         frm = ttk.Frame(win)
         frm.pack(fill="both", expand=True)
-        header = ttk.Label(frm, text=f"Exit={app_exit_code} | launch_mode={mode}", anchor="w")
+        header = ttk.Label(
+            frm, text=f"Exit={app_exit_code} | launch_mode={mode}", anchor="w"
+        )
         header.pack(fill="x", padx=8, pady=6)
         txt = tk.Text(frm, wrap="none")
         vs = ttk.Scrollbar(frm, orient="vertical", command=txt.yview)
@@ -1137,7 +1344,11 @@ class LauncherUI(tk.Tk):
                 defaultextension=".md",
                 initialdir=str(default.parent),
                 initialfile=str(default.name),
-                filetypes=[("Markdown", "*.md"), ("Text", "*.txt"), ("All files", "*.*")],
+                filetypes=[
+                    ("Markdown", "*.md"),
+                    ("Text", "*.txt"),
+                    ("All files", "*.*"),
+                ],
             )
             if path:
                 self.var_env_report.set(path)
