@@ -64,11 +64,13 @@ def test_register_qml_signals_wires_accordion(fake_window: Any) -> None:
     accordion_field = _RecordingSignal()
     accordion_preset = _RecordingSignal()
     accordion_validation = _RecordingSignal()
+    geometry_updated = _RecordingSignal()
 
     qml_root = SimpleNamespace(
         accordionFieldCommitted=accordion_field,
         accordionPresetActivated=accordion_preset,
         accordionValidationChanged=accordion_validation,
+        geometrySettingsChanged=geometry_updated,
         batchUpdatesApplied=_RecordingSignal(),
     )
 
@@ -76,6 +78,7 @@ def test_register_qml_signals_wires_accordion(fake_window: Any) -> None:
     fake_window._on_accordion_field_committed = lambda *_args, **_kwargs: None
     fake_window._on_accordion_preset_activated = lambda *_args, **_kwargs: None
     fake_window._on_accordion_validation_changed = lambda *_args, **_kwargs: None
+    fake_window._on_geometry_settings_changed = lambda *_args, **_kwargs: None
 
     connected = register_qml_signals(fake_window, qml_root)
 
@@ -83,6 +86,8 @@ def test_register_qml_signals_wires_accordion(fake_window: Any) -> None:
     assert "accordionFieldCommitted" in names
     assert "accordionPresetActivated" in names
     assert "accordionValidationChanged" in names
+    assert "geometrySettingsChanged" in names
     assert accordion_field.calls
     assert accordion_preset.calls
     assert accordion_validation.calls
+    assert geometry_updated.calls

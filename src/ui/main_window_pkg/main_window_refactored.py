@@ -1016,6 +1016,12 @@ class MainWindow(QMainWindow):
         """Cylinder constants changed in QML → SignalsRouter"""
         SignalsRouter.handle_cylinder_settings_changed(self, payload)
 
+    @Slot(dict)
+    def _on_geometry_settings_changed(self, payload: dict[str, Any]) -> None:
+        """Geometry settings changed in QML → SignalsRouter"""
+
+        SignalsRouter.handle_geometry_settings_changed(self, payload)
+
     @Slot(str, str)
     def _on_accordion_preset_activated(self, panel_id: str, preset_id: str) -> None:
         """Accordion preset selected → SignalsRouter"""

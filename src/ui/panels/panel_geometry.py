@@ -216,18 +216,47 @@ class GeometryPanel(QWidget):
                     return bool(signal_connected())
                 except TypeError:
                     if meta_method is not None:
-                        return bool(signal_connected(meta_method))
+                        try:
+                            return bool(signal_connected(meta_method))
+                        except TypeError:
+                            self.logger.debug(
+                                "GeometryPanel: isSignalConnected signature mismatch",
+                                exc_info=True,
+                            )
 
             is_connected = getattr(self, "isSignalConnected", None)
-            if callable(is_connected):
+            if callable(is_connected) and meta_method is not None:
                 try:
                     return bool(is_connected(meta_method))
                 except TypeError:
                     self.logger.debug(
-                        "GeometryPanel: isSignalConnected signature mismatch; trying receivers",
+                        "GeometryPanel: QWidget.isSignalConnected signature mismatch",
                         exc_info=True,
                     )
 
+            receivers_fn = getattr(QObject, "receivers", None)
+            if callable(receivers_fn) and meta_method is not None:
+                signature = meta_method.methodSignature()
+                try:
+                    count = receivers_fn(self, signature)
+                except TypeError:
+                    try:
+                        count = receivers_fn(self, bytes(signature))
+                    except Exception:
+                        count = None
+                if count is not None:
+                    return bool(count)
+
+            instance_receivers = getattr(self, "receivers", None)
+            if callable(instance_receivers) and meta_method is not None:
+                try:
+                    count = instance_receivers(meta_method.methodSignature())
+                except Exception:  # pragma: no cover - defensive Qt fallback
+                    self.logger.debug(
+                        "GeometryPanel: receivers() probe failed", exc_info=True
+                    )
+                else:
+                    return bool(count)
         except Exception:  # pragma: no cover - defensive Qt fallback
             self.logger.debug(
                 "GeometryPanel: subscriber verification failed; proceeding without check",
@@ -256,14 +285,40 @@ class GeometryPanel(QWidget):
             self.logger.warning("%s skipped: signal is not available", description)
             return
 
-        meta_method = meta_method or self._get_meta_method(signal_obj)
-        connected = self._is_signal_connected(signal_obj, meta_method)
+        try:
+            connected = self._is_signal_connected(signal_obj, meta_method)
+        except Exception:  # pragma: no cover - defensive Qt fallback
+            self.logger.debug(
+                "geometry_emit_connection_probe_failed",
+                extra={"description": description},
+                exc_info=True,
+            )
+            connected = None
+
         if connected is False:
-            _log_no_subscribers(
-                self.logger,
-                description,
-                panel="GeometryPanel",
-                signal_name=_resolve_signal_name(meta_method, signal_obj),
+            signature = None
+            if meta_method is not None:
+                try:
+                    raw_signature = meta_method.methodSignature()
+                    signature = (
+                        raw_signature.decode(errors="ignore")
+                        if isinstance(raw_signature, (bytes, bytearray))
+                        else str(raw_signature)
+                    )
+                except Exception:  # pragma: no cover - defensive Qt fallback
+                    self.logger.debug(
+                        "geometry_emit_signature_resolution_failed",
+                        description=description,
+                        exc_info=True,
+                    )
+
+            self.logger.info(
+                "geometry_emit_skipped",
+                extra={
+                    "description": description,
+                    "reason": "no_subscribers",
+                    "signal_signature": signature,
+                },
             )
             return
 
