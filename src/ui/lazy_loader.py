@@ -35,11 +35,7 @@ def get_tank_overlay_hud() -> type:
 
 def get_camera_hud_telemetry() -> type:
     """Return the :class:`CameraHudTelemetry` helper lazily."""
-
-    try:
-        from .hud.widgets import CameraHudTelemetry
-    except Exception:
-        return _CameraHudTelemetryStub
+    from .hud.telemetry import CameraHudTelemetry
 
     return CameraHudTelemetry
 

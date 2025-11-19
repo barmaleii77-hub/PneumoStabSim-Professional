@@ -30,5 +30,7 @@ make uv-sync
 Если при запуске тестов появляются сообщения об отсутствующих Qt/GL библиотеках (например, `libEGL.so.1` или `libxkbcommon.so.0`),
 используйте скрипт `tools/install_qt_runtime.sh` или полный установщик `scripts/setup_linux.sh` (без флага `--skip-system`).
 Начиная с текущей ревизии `make check` на Linux автоматически вызывает `tools/install_qt_runtime.sh`, поэтому большинство окружений
-получают требуемые системные пакеты (libgl1, libegl1, libgles2, libxkbcommon0) до запуска тестов. Скрипт пропускает уже установленные пакеты,
+получают расширенный набор системных пакетов: помимо базовых `libgl1/libegl1/libgles2` устанавливаются `libgbm1`, `libdrm2`,
+`libxcb-xkb1`, `libxkbcommon-x11-0`, `mesa-vulkan-drivers`, `libosmesa6`, `qt6-shader-tools` и сопутствующие зависимости.
+Это устраняет ранние ошибки сегментации/ImportError в `tests/ui/test_main_qml_screenshots.py` и других GUI-сьютах: скрипт пропускает уже установленные пакеты,
 а при необходимости их догружает, после чего Python-зависимости (включая PyYAML 6.0.3) синхронизируются и окружение готово к запуску `pytest`.

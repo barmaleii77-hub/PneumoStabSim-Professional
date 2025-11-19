@@ -15,13 +15,59 @@ if ! command -v apt-get >/dev/null 2>&1; then
     exit 1
 fi
 
+# Keep the list intentionally verbose so PySide6 / Qt Quick tests have every
+# runtime dependency that Qt typically expects in headless CI containers. The
+# `apt-cache show` probe below filters out entries that are not available on
+# the current distribution.
 packages=(
+    # Core OpenGL / EGL stacks
     libgl1
+    libgl1-mesa-dri
+    libglx0
+    libglu1-mesa
+    libegl1
+    libegl-mesa0
+    libgles2
+    libgles2-mesa-dev
+    libosmesa6
+    libgbm1
+    libdrm2
+    libvulkan1
+    mesa-vulkan-drivers
+    vulkan-tools
+
+    # XCB / X11 glue that QtQuick depends on even in offscreen mode
+    libxcb-glx0
+    libxcb-xfixes0
+    libxcb-shape0
+    libxcb-randr0
+    libxcb-sync1
+    libxcb-present0
+    libxcb-xinerama0
+    libxcb-cursor0
+    libxcb-icccm4
+    libxcb-image0
+    libxcb-keysyms1
+    libxcb-render-util0
+    libxcb-xkb1
+    libx11-xcb1
+    libxrender1
+    libxcomposite1
+    libxi6
+    libxrandr2
+    libxcursor1
+    libxtst6
+    libxdamage1
+
+    # Keyboard and locale helpers pulled in by QtGui
     libxkbcommon0
     libxkbcommon-x11-0
-    libegl1
-    libgles2
+    libglib2.0-0
+
+    # Qt developer tools required for shader compilation fallbacks
     qt6-shader-tools
+    qt6-shadertools-dev
+    qt6-shader-baker
 )
 
 if [ "${1-}" = "--dry-run" ]; then
