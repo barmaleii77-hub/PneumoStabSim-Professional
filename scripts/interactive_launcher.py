@@ -1528,12 +1528,57 @@ class LauncherUI(tk.Tk):
         vs.pack(side="right", fill="y")
         hs.pack(side="bottom", fill="x")
         txt.pack(side="left", fill="both", expand=True)
+        self._configure_analysis_tags(txt)
+        self._insert_coloured_analysis(txt, text)
+        txt.configure(state="disabled")
+
+        actions = ttk.Frame(win)
+        actions.pack(pady=6)
+        ttk.Button(
+            actions,
+            text="Копировать отчёт",
+            command=lambda: self._copy_to_clipboard(text),
+        ).pack(side="left", padx=4)
+        ttk.Button(actions, text="Закрыть", command=win.destroy).pack(side="left", padx=4)
+
+    def _insert_coloured_analysis(self, widget: tk.Text, raw_text: str) -> None:
+        content = raw_text if raw_text.strip() else "(анализатор не вернул данных)"
         try:
-            txt.insert("1.0", text)
-            txt.configure(state="disabled")
+            for line in content.splitlines():
+                severity, emoji = self._classify_line_for_display(line)
+                widget.insert("end", f"{emoji}{line}\n", severity)
+        except Exception:
+            try:
+                widget.insert("1.0", content)
+            except Exception:
+                pass
+
+    def _configure_analysis_tags(self, widget: tk.Text) -> None:
+        try:
+            widget.tag_configure("error", foreground="#ff4d6d", font=("Segoe UI", 10, "bold"))
+            widget.tag_configure("warning", foreground="#f4a261", font=("Segoe UI", 10, "bold"))
+            widget.tag_configure("success", foreground="#2a9d8f", font=("Segoe UI", 10, "bold"))
+            widget.tag_configure("info", foreground="#1d3557")
         except Exception:
             pass
-        ttk.Button(win, text="Закрыть", command=win.destroy).pack(pady=4)
+
+    def _classify_line_for_display(self, line: str) -> tuple[str, str]:
+        low = line.lower()
+        if any(token in low for token in ("error", "traceback", "exception", "failed")):
+            return "error", "❌ "
+        if "warn" in low:
+            return "warning", "⚠️ "
+        if any(token in low for token in ("exit=0", "успешно", "completed successfully")):
+            return "success", "✅ "
+        return "info", "ℹ️ "
+
+    def _copy_to_clipboard(self, text: str) -> None:
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            self._set_status("Отчёт скопирован в буфер обмена.")
+        except Exception as exc:
+            messagebox.showerror("Копирование не удалось", f"Не удалось скопировать текст: {exc}")
 
     # --- Handlers
     def _on_run(self) -> None:
