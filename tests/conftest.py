@@ -11,6 +11,7 @@ import pytest
 import types
 
 from tools.quality.skip_policy import EXPECTED_SKIP_TOKEN
+from tests._qt_runtime import QT_SKIP_REASON
 
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -46,11 +47,60 @@ _MARKERS = [
     "ui: Legacy UI tests",
 ]
 
+_PYTESTQT_LOAD_ERROR: str | None = None
+
+
+def _ensure_pytestqt_loaded(config: pytest.Config) -> None:
+    """Load the pytest-qt plugin when plugin autoload is disabled.
+
+    CI runs set ``PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`` to avoid picking up
+    globally-installed plugins. In this mode ``pytest-qt`` is not loaded
+    automatically even though it is present in the environment, which would
+    leave the ``qtbot`` fixture unresolved. Import the plugin explicitly when
+    available and remember any failure so we can skip qtbot-driven tests with
+    a descriptive reason instead of raising fixture errors.
+    """
+
+    global _PYTESTQT_LOAD_ERROR
+
+    if QT_SKIP_REASON is not None:
+        return
+
+    plugin_manager = config.pluginmanager
+    if plugin_manager.get_plugin("pytestqt") or plugin_manager.get_plugin(
+        "pytestqt.plugin"
+    ):
+        return
+
+    try:
+        plugin_manager.import_plugin("pytestqt.plugin")
+    except Exception as exc:  # pragma: no cover - environment specific
+        _PYTESTQT_LOAD_ERROR = str(exc)
+
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config: pytest.Config) -> None:
     for marker in _MARKERS:
         config.addinivalue_line("markers", marker)
+
+    _ensure_pytestqt_loaded(config)
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    if QT_SKIP_REASON is None and _PYTESTQT_LOAD_ERROR is None:
+        return
+
+    skip_reason = QT_SKIP_REASON or _PYTESTQT_LOAD_ERROR or "pytest-qt unavailable"
+    skip_marker = pytest.mark.skip(  # pytest-skip-ok: skip when Qt runtime is missing
+        reason=skip_reason
+    )
+
+    for item in items:
+        if "qtbot" in getattr(item, "fixturenames", ()):  # pragma: no branch
+            item.add_marker(skip_marker)
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
