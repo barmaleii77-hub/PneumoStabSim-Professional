@@ -154,7 +154,9 @@ def test_advanced_panel_propagates_to_settings(qtbot, settings_snapshot):
 def test_advanced_panel_validation_snapshot(qtbot, settings_snapshot):
     settings, _ = settings_snapshot
     settings.set("current.graphics.quality.render_scale", -2.0, auto_save=False)
-    settings.set("current.physics.suspension.damper_coefficient", 999999.0, auto_save=False)
+    settings.set(
+        "current.physics.suspension.damper_coefficient", 999999.0, auto_save=False
+    )
 
     panel = AdvancedPanelAccordion()
     qtbot.addWidget(panel)

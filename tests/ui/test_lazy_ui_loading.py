@@ -80,7 +80,9 @@ def test_ui_dunder_getattr_delegates_lazy_loader(monkeypatch) -> None:
     stub_loader.get_main_window = lambda: marker  # type: ignore[attr-defined]
     sys.modules["src.ui.lazy_loader"] = stub_loader
 
-    for module_name in [name for name in list(sys.modules) if name.startswith("src.ui")]:
+    for module_name in [
+        name for name in list(sys.modules) if name.startswith("src.ui")
+    ]:
         if module_name != "src.ui.lazy_loader":
             sys.modules.pop(module_name)
 

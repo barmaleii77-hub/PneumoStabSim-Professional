@@ -22,7 +22,9 @@ def settings_payload() -> dict:
 @pytest.fixture()
 def settings_file(tmp_path: Path, settings_payload: dict) -> Path:
     target = tmp_path / "app_settings.json"
-    target.write_text(json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    target.write_text(
+        json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
     return target
 
 
@@ -46,7 +48,9 @@ def test_accordion_metadata_round_trip(metadata_key: str, settings_file: Path) -
     entries = metadata.get(metadata_key)
 
     assert isinstance(entries, list) and entries, metadata_key
-    assert all({"key", "label", "unit", "settings_path"} <= set(entry) for entry in entries)
+    assert all(
+        {"key", "label", "unit", "settings_path"} <= set(entry) for entry in entries
+    )
 
 
 @pytest.mark.parametrize(
@@ -56,7 +60,9 @@ def test_accordion_metadata_round_trip(metadata_key: str, settings_file: Path) -
         "simulation_panel_fields",
     ],
 )
-def test_accordion_metadata_requires_settings_path(metadata_key: str, settings_payload: dict, tmp_path: Path) -> None:
+def test_accordion_metadata_requires_settings_path(
+    metadata_key: str, settings_payload: dict, tmp_path: Path
+) -> None:
     metadata = settings_payload.setdefault("metadata", {})
     entries = metadata.get(metadata_key)
     assert entries, f"Missing baseline for {metadata_key}"
@@ -65,7 +71,9 @@ def test_accordion_metadata_requires_settings_path(metadata_key: str, settings_p
     metadata[metadata_key] = broken
 
     target = tmp_path / "app_settings.json"
-    target.write_text(json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    target.write_text(
+        json.dumps(settings_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     service = SettingsService(settings_path=target, schema_path=SCHEMA_PATH)
 
