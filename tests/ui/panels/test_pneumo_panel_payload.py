@@ -13,6 +13,8 @@ pytest.importorskip(
 from src.ui.panels.pneumo import PneumoPanel
 from src.ui.qml_bridge import QMLBridge
 
+from ._bridge_window_stub import BridgeWindowStub
+
 
 @pytest.mark.gui
 def test_pneumo_panel_emits_simulation_payload(
@@ -30,8 +32,9 @@ def test_pneumo_panel_emits_simulation_payload(
     panel = PneumoPanel()
     qtbot.addWidget(panel)
 
+    window = BridgeWindowStub()
     panel.pneumatic_updated.connect(
-        lambda payload: QMLBridge.queue_update(object(), "simulation", payload)
+        lambda payload: QMLBridge.queue_update(window, "simulation", payload)
     )
 
     qtbot.wait(300)
