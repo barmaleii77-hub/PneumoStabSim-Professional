@@ -152,11 +152,13 @@ def _detect_failure_hint(lines: Sequence[str]) -> str:
         )
     if "qt.qpa" in text_blob or "xcb" in text_blob:
         hints.append(
-            "Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить Headless."
+            "Проблема с Qt платформой. Попробуйте выбрать другой QPA или включить "
+            "Headless."
         )
     if "permission" in text_blob:
         hints.append(
-            "Есть ошибки прав доступа. Попробуйте запустить от имени администратора или проверить пути."
+            "Есть ошибки прав доступа. Попробуйте запустить от имени администратора "
+            "или проверить пути."
         )
     if "failed" in text_blob and "pytest" in text_blob:
         hints.append(
@@ -405,7 +407,8 @@ def ensure_qt_environment(env: dict[str, str]) -> None:
         print(f"ℹ️ PySide6 detected at: {pyside_dir}")
     else:
         print(
-            "⚠️ PySide6 site-packages not found; ensure the virtual environment is synced before launching."
+            "⚠️ PySide6 site-packages not found; ensure the virtual environment is "
+            "synced before launching."
         )
     plugins_dir = pyside_dir / "plugins" if pyside_dir else None
     qml_dir = pyside_dir / "qml" if pyside_dir else None
@@ -572,7 +575,10 @@ def run_log_analysis(env: dict[str, str]) -> str:
         detail = format_completed_process(
             [str(python_exe), "-m", "tools.analyze_logs"], completed
         )
-        return f"Анализ логов завершился с ошибкой (exit={completed.returncode}).\n{detail}"
+        return (
+            f"Анализ логов завершился с ошибкой (exit={completed.returncode}).\n"
+            f"{detail}"
+        )
     combo = stdout
     if stderr:
         combo = f"{combo}\n[stderr]\n{stderr}" if combo else f"[stderr]\n{stderr}"
@@ -608,7 +614,8 @@ def launch_app(
     python_exe = detect_venv_python(prefer_console=prefer_console)
     if not python_exe.exists():
         raise FileNotFoundError(
-            f"Python interpreter not found at {python_exe}. Выполните make uv-sync для настройки окружения."
+            f"Python interpreter not found at {python_exe}. Выполните make uv-sync "
+            "для настройки окружения."
         )
 
     cmd = [str(python_exe), str(root / "app.py"), *list(args)]
@@ -978,7 +985,10 @@ class LauncherUI(tk.Tk):
             "chk_headless": "Headless: без окна (PSS_HEADLESS=1).",
             "cmb_qpa": "QT_QPA_PLATFORM: платформа (windows/offscreen/minimal).",
             "cmb_rhi": "QSG_RHI_BACKEND: движок рендеринга (d3d11/opengl/vulkan).",
-            "ent_quick_backend": "QT_QUICK_BACKEND: 'software' для софтверного рендера или пусто для авто.",
+            "ent_quick_backend": (
+                "QT_QUICK_BACKEND: 'software' для софтверного рендера или "
+                "пусто для авто."
+            ),
             "cmb_style": "Стиль контролов Qt Quick (Basic/Fusion).",
             "cmb_scene": "QML сцена (обычно realism).",
             "chk_env_check": "--env-check: быстрая диагностика окружения и выход.",
@@ -989,14 +999,25 @@ class LauncherUI(tk.Tk):
             "btn_run": "Запустить приложение.",
             "btn_envcheck": "Диагностика окружения.",
             "btn_help": "Открыть справку.",
-            "btn_show_logs": "Показать последние строки свежих логов и сводку ошибок/варнингов.",
-            "btn_repo_status": "Собрать git status и краткий отчёт рут-файлов от линтера.",
-            "rad_entrypoint": "Использовать scripts/testing_entrypoint.py для стандартной матрицы.",
-            "rad_pytest": "Запуск pytest напрямую по выбранным таргетам.",
-            "cmb_scope": "Scope unified entrypoint (main/integration/all).",
-            "ent_targets": "Pytest таргеты (путь к тесту, директория или маркеры через -m).",
-            "ent_test_args": "Дополнительные аргументы pytest, например -k smoke или -q.",
-            "chk_test_canvas": "Открыть канву с анимированной схемой тестового пайплайна.",
+            "btn_show_logs": (
+                "Показать последние строки свежих логов и сводку "
+                "ошибок/варнингов."
+            ),
+            "btn_repo_status": (
+                "Собрать git status и краткий отчёт рут-файлов от линтера."
+            ),
+            "rad_entrypoint": (
+                "Использовать scripts/testing_entrypoint.py для стандартной матрицы."
+            ),
+            "ent_targets": (
+                "Pytest таргеты (путь к тесту, директория или маркеры через -m)."
+            ),
+            "ent_test_args": (
+                "Дополнительные аргументы pytest, например -k smoke или -q."
+            ),
+            "chk_test_canvas": (
+                "Открыть канву с анимированной схемой тестового пайплайна."
+            ),
             "btn_test_run": "Запустить тесты с текущими настройками и визуализацией.",
         }
         for key, text in tips.items():
@@ -1087,7 +1108,10 @@ class LauncherUI(tk.Tk):
 
         ttk.Label(
             win,
-            text="Настройки обновляются мгновенно, отдельного подтверждения не требуется.",
+            text=(
+                "Настройки обновляются мгновенно, отдельного подтверждения "
+                "не требуется."
+            ),
         ).pack(fill="x", padx=10, pady=8)
         ttk.Button(win, text="Закрыть", command=win.destroy).pack(pady=6)
 
@@ -1199,7 +1223,10 @@ class LauncherUI(tk.Tk):
             except Exception:
                 continue
             overview.append(
-                f"- {candidate.name}: ошибок={c_counts['error']}, предупреждений={c_counts['warning']}"
+                (
+                    f"- {candidate.name}:_ERRORS={c_counts['error']},_WARNING="
+                    f"{c_counts['warning']}"
+                )
             )
         header_parts = [
             f"Файл: {latest}",
@@ -1425,13 +1452,25 @@ class LauncherUI(tk.Tk):
         vs.pack(side="right", fill="y")
         txt.pack(side="left", fill="both", expand=True)
         text_help = (
-            "Лаунчер: выбор параметров запуска, сбор stdout/stderr, анализ QML ошибок.\n\n"
-            "Используйте чекбокс 'Собирать stdout/stderr', если консоль не нужна, но требуется видеть ошибки QML.\n"
-            "При 'Новое окно консоли' вывод идёт в отдельное окно и не захватывается. Снимите 'Новое окно консоли' чтобы активировать захват.\n"
-            "Секция 'Логи и ошибки' поможет быстро посмотреть последние строки из каталогов logs/ или пути из config/app_settings.json и увидеть подсчёт ошибок/варнингов.\n"
-            "Кнопка 'Быстрый статус (git + линтер)' собирает короткий отчёт по git status и ruff (E/F/W).\n"
-            "Кнопки 'Запуск тестов' выполняют unified entrypoint (python scripts/testing_entrypoint.py) с теми же переменными окружения, что и в CI: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PSS_HEADLESS=1, QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software, LIBGL_ALWAYS_SOFTWARE=1.\n"
-            "Результаты тестов сохраняются в reports/tests/test_entrypoint.log и показываются в окне результатов; там же видно хвост логов и метки FAILED/ERROR.\n"
+            "Лаунчер: выбор параметров запуска, сбор stdout/stderr, анализ QML "
+            "ошибок.\n\n"
+            "Используйте чекбокс 'Собирать stdout/stderr', если консоль не нужна, "
+            "но требуется видеть ошибки QML.\n"
+            "При 'Новое окно консоли' вывод идёт в отдельное окно и не захватывается. "
+            "Снимите 'Новое окно консоли' чтобы активировать захват.\n"
+            "Секция 'Логи и ошибки' поможет быстро посмотреть последние строки из "
+            "каталогов logs/ или пути из config/app_settings.json и увидеть подсчёт "
+            "ошибок/варнингов.\n"
+            "Кнопка 'Быстрый статус (git + линтер)' собирает короткий отчёт по git "
+            "status и ruff (E/F/W).\n"
+            "Кнопки 'Запуск тестов' выполняют unified entrypoint (python "
+            "scripts/testing_entrypoint.py) с теми же переменными окружения, что и в "
+            "CI: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1, PSS_HEADLESS=1, "
+            "QT_QPA_PLATFORM=offscreen, QT_QUICK_BACKEND=software, "
+            "LIBGL_ALWAYS_SOFTWARE=1.\n"
+            "Результаты тестов сохраняются в reports/tests/test_entrypoint.log и "
+            "показываются в окне результатов; там же видно хвост логов и метки "
+            "FAILED/ERROR.\n"
         )
         try:
             txt.insert("1.0", text_help)
@@ -1686,13 +1725,3 @@ class LauncherUI(tk.Tk):
                 self.var_env_report.set(path)
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось выбрать файл отчёта: {e}")
-
-
-def main() -> int:
-    ui = LauncherUI()
-    ui.mainloop()
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
