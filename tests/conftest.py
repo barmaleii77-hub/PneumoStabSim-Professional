@@ -593,12 +593,22 @@ def simulation_harness():
 # Enhanced qtbot fallback implementing required methods used by tests
 @pytest.fixture
 def qtbot(qapp):
-    try:
-        from PySide6.QtTest import QTest  # type: ignore
-        from PySide6.QtCore import Qt, QEvent, QObject
-        from PySide6.QtGui import QMouseEvent, QKeyEvent
-        from PySide6.QtWidgets import QApplication
-    except Exception:
+    from tests._qt_headless import headless_requested
+
+    force_stub = headless_requested(os.environ)
+
+    if not force_stub:
+        try:
+            from PySide6.QtTest import QTest  # type: ignore
+            from PySide6.QtCore import Qt, QEvent, QObject
+            from PySide6.QtGui import QMouseEvent, QKeyEvent
+            from PySide6.QtWidgets import QApplication
+        except Exception:
+            QTest = None  # type: ignore
+            Qt = None  # type: ignore
+            QApplication = None  # type: ignore
+            QObject = object  # type: ignore
+    else:
         QTest = None  # type: ignore
         Qt = None  # type: ignore
         QApplication = None  # type: ignore
