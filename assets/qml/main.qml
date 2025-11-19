@@ -95,6 +95,9 @@ Item {
         postProcessingBypassed = false
         postProcessingBypassReason = ""
         _syncPostProcessingState()
+        _installProxyMethodStubs()
+        _flushSimulationPanelCalls()
+        _applyInitialGraphicsUpdatesFromBridge()
     }
 
     property bool environmentTonemapEnabled: false
@@ -467,6 +470,37 @@ Item {
         "applyRenderSettings"
     ]
 
+    function _installProxyMethodStubs() {
+        for (var i = 0; i < _proxyMethodNames.length; ++i) {
+            var methodName = _proxyMethodNames[i]
+            try {
+                if (root.hasOwnProperty(methodName))
+                    continue
+            } catch (error) {
+                if (typeof root[methodName] !== "undefined")
+                    continue
+            }
+            root[methodName] = _createProxyMethod(methodName)
+        }
+    }
+
+    function _applyInitialGraphicsUpdatesFromBridge() {
+        if (!root.hasSceneBridge || !root.contextSceneBridge)
+            return
+
+        try {
+            var initBatch = root.contextSceneBridge.initialGraphicsUpdates
+            if (!initBatch || typeof initBatch !== "object")
+                return
+            if (Object.keys(initBatch).length === 0)
+                return
+            if (!_deliverBatchedUpdates(initBatch))
+                _enqueueBatchedPayload(initBatch)
+        } catch (error) {
+            console.debug("[main.qml] Initial graphics updates apply failed", error)
+        }
+    }
+
     function _createProxyMethod(methodName) {
         return function(params) {
             return _invokeOnActiveRoot(methodName, params)
@@ -537,39 +571,6 @@ Item {
 
     function updateGeometry(payload) {
         return _invokeSimulationPanel("updateGeometry", payload)
-    }
-
-    Component.onCompleted: {
-        for (var i = 0; i < _proxyMethodNames.length; ++i) {
-            var methodName = _proxyMethodNames[i]
-            // Skip if method already defined explicitly (like applyAnimationSettings)
-            try {
-                if (root.hasOwnProperty(methodName)) {
-                    continue
-                }
-            } catch (error) {
-                // Fallback for environments without hasOwnProperty
-                if (typeof root[methodName] !== "undefined") {
-                    continue
-                }
-            }
-            root[methodName] = _createProxyMethod(methodName)
-        }
-        _flushSimulationPanelCalls()
-
-        // Подхватываем начальные графические обновления из Python (env → SceneBridge)
-        try {
-          if (root.hasSceneBridge && root.contextSceneBridge) {
-              var initBatch = root.contextSceneBridge.initialGraphicsUpdates
-              if (initBatch && typeof initBatch === "object" && Object.keys(initBatch).length) {
-                  if (!_deliverBatchedUpdates(initBatch)) {
-                      _enqueueBatchedPayload(initBatch)
-                  }
-              }
-            }
-        } catch (e) {
-            console.debug("[main.qml] Initial graphics updates apply failed", e)
-        }
     }
 
     Loader {

@@ -70,7 +70,9 @@ def _as_dict(value: Any) -> dict[str, Any]:
     return {}
 
 
-def _resolve_fog_density(scene_environment: QObject, *, expected_enabled: bool) -> float:
+def _resolve_fog_density(
+    scene_environment: QObject, *, expected_enabled: bool
+) -> float:
     """Return fog density, falling back to a bridge snapshot when helpers unavailable."""
 
     bridge_state = _as_dict(scene_environment.property("fogBridgeState"))
@@ -78,7 +80,9 @@ def _resolve_fog_density(scene_environment: QObject, *, expected_enabled: bool) 
         fog_object = scene_environment.property("fog")
     except RuntimeError as exc:  # pragma: no cover - depends on Qt build
         if _FOG_CONVERTER_TOKEN in str(exc):
-            assert bridge_state, "sceneEnvironment.fogBridgeState missing in headless fallback"
+            assert bridge_state, (
+                "sceneEnvironment.fogBridgeState missing in headless fallback"
+            )
             assert bool(bridge_state.get("enabled", False)) == bool(expected_enabled)
             density = bridge_state.get("density")
             assert density is not None, "fogBridgeState missing density payload"

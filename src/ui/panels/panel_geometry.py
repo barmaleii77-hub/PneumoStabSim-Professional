@@ -278,9 +278,14 @@ class GeometryPanel(QWidget):
                 if signature is not None:
                     try:
                         return bool(receivers_fn(signature))
-                    except TypeError:
+                    except (TypeError, AttributeError):
                         self.logger.debug(
-                            "GeometryPanel: QObject.receivers signature mismatch",
+                            "GeometryPanel: QObject.receivers invocation failed",
+                            exc_info=True,
+                        )
+                    except Exception:  # pragma: no cover - defensive Qt fallback
+                        self.logger.debug(
+                            "GeometryPanel: QObject.receivers unexpected error",
                             exc_info=True,
                         )
                 else:
