@@ -5,34 +5,41 @@ HUD components for pressure visualization and camera diagnostics.
 from __future__ import annotations
 
 import math
+import os
 from datetime import datetime, timezone
 from typing import Any
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 import numpy as np
 
-try:  # pragma: no cover - fallback for headless test environments
-    from PySide6.QtWidgets import QWidget
-    from PySide6.QtCore import Qt, QPointF, Signal, Slot
-    from PySide6.QtGui import (
-        QPainter,
-        QLinearGradient,
-        QColor,
-        QPen,
-        QBrush,
-        QFont,
-    )
-except Exception:  # pragma: no cover - PySide6 missing or fails to initialise
+_HEADLESS_TRUTHY = {"1", "true", "yes", "on"}
 
+
+def _headless_requested() -> bool:
+    value = os.environ.get("PSS_HEADLESS")
+    return value is not None and value.strip().lower() in _HEADLESS_TRUTHY
+
+
+def _install_qt_fallbacks() -> None:  # pragma: no cover - PySide6 missing/headless
     class _QtFallback:
         AlignLeft = 0
 
     class _SignalFallback:
         def __init__(self, *args: object, **kwargs: object) -> None:
-            self._args = args
+            self._handlers: list[Callable[..., None]] = []
+
+        def connect(self, handler: Callable[..., None]) -> None:
+            self._handlers.append(handler)
+
+        def disconnect(self, handler: Callable[..., None]) -> None:
+            try:
+                self._handlers.remove(handler)
+            except ValueError:
+                return None
 
         def emit(self, *args: object, **kwargs: object) -> None:
-            return None
+            for callback in list(self._handlers):
+                callback(*args, **kwargs)
 
     def _slot_fallback(*_args: object, **_kwargs: object):  # type: ignore[override]
         def decorator(func):
@@ -40,14 +47,46 @@ except Exception:  # pragma: no cover - PySide6 missing or fails to initialise
 
         return decorator
 
-    class QWidget:  # type: ignore[override]
+    class _QWidgetFallback:  # noqa: D401 - simple shim
         pass
 
+    global \
+        QWidget, \
+        Qt, \
+        QPointF, \
+        Signal, \
+        Slot, \
+        QPainter, \
+        QLinearGradient, \
+        QColor, \
+        QPen, \
+        QBrush, \
+        QFont
+
+    QWidget = _QWidgetFallback  # type: ignore[assignment]
     Qt = _QtFallback()  # type: ignore[assignment]
     QPointF = object  # type: ignore[assignment]
     Signal = _SignalFallback  # type: ignore[assignment]
     Slot = _slot_fallback  # type: ignore[assignment]
     QPainter = QLinearGradient = QColor = QPen = QBrush = QFont = object  # type: ignore[assignment]
+
+
+if not _headless_requested():
+    try:  # pragma: no cover - fallback for headless test environments
+        from PySide6.QtWidgets import QWidget
+        from PySide6.QtCore import Qt, QPointF, Signal, Slot
+        from PySide6.QtGui import (
+            QPainter,
+            QLinearGradient,
+            QColor,
+            QPen,
+            QBrush,
+            QFont,
+        )
+    except Exception:  # pragma: no cover - PySide6 missing or fails to initialise
+        _install_qt_fallbacks()
+else:  # pragma: no cover - headless mode
+    _install_qt_fallbacks()
 
 
 def _current_timestamp() -> str:

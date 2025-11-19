@@ -6,7 +6,17 @@ configuration and smoke tests can import :mod:`src.ui` without pulling in Qt.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
+
+
+class _CameraHudTelemetryStub:
+    """Lightweight substitute used when PySide widgets are unavailable."""
+
+    def build(self, payload: Mapping[str, Any] | None) -> dict[str, Any]:
+        if not isinstance(payload, Mapping):
+            return {}
+        return dict(payload)
 
 
 def get_pressure_scale_widget() -> type:
@@ -25,7 +35,11 @@ def get_tank_overlay_hud() -> type:
 
 def get_camera_hud_telemetry() -> type:
     """Return the :class:`CameraHudTelemetry` helper lazily."""
-    from .hud.widgets import CameraHudTelemetry
+
+    try:
+        from .hud.widgets import CameraHudTelemetry
+    except Exception:
+        return _CameraHudTelemetryStub
 
     return CameraHudTelemetry
 
