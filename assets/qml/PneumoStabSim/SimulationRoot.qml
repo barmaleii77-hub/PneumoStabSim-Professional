@@ -381,6 +381,12 @@ Item {
         effectsBypassRequested = target
         effectsBypassReason = normalizedReason
 
+        // Keep the public flags in sync regardless of which implementation path is taken
+        postProcessingBypassed = target
+        postProcessingBypassReason = normalizedReason
+        if (!target)
+            postProcessingEffectBackup = []
+
         if (postEffects && typeof postEffects.setEffectPersistentFailure === "function") {
             var manualReason = normalizedReason.length ? normalizedReason : qsTr("Manual post-processing bypass")
             try {
