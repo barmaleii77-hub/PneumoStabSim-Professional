@@ -178,7 +178,14 @@ hdr-verify:
 validate-hdr-orientation:
 	$(PYTHON) tools/render_checks/validate_hdr_orientation.py
 
-check: uv-sync-qt
+UNAME_S := $(shell uname -s 2>/dev/null || echo Unknown)
+ifeq ($(UNAME_S),Linux)
+QT_RUNTIME_PREREQ := install-qt-runtime
+else
+QT_RUNTIME_PREREQ :=
+endif
+
+check: $(QT_RUNTIME_PREREQ) uv-sync-qt
 	# Strict preflight: fail fast when core modules are missing
 	$(PYTHON) scripts/check_environment.py --compact --auto-repair --output $(LOG_DIR)/env_check.json
 	$(PYTHON) -m json.tool config/app_settings.json >/dev/null
