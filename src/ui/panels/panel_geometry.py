@@ -234,38 +234,58 @@ class GeometryPanel(QWidget):
         if meta_method is None or not meta_method.isValid():
             return None
 
-        try:
-            signal_connected = getattr(signal_obj, "isSignalConnected", None)
-            if callable(signal_connected):
-                try:
-                    return bool(signal_connected())
-                except TypeError:
-                    if meta_method is not None:
-                        try:
-                            return bool(signal_connected(meta_method))
-                        except TypeError:
-                            self.logger.debug(
-                                "GeometryPanel: isSignalConnected signature mismatch",
-                                exc_info=True,
-                            )
+        def _signature_bytes(method: QMetaMethod) -> bytes | None:
+            try:
+                raw_signature = method.methodSignature()
+            except Exception:  # pragma: no cover - Qt internals
+                self.logger.debug(
+                    "GeometryPanel: methodSignature resolution failed",
+                    exc_info=True,
+                )
+                return None
 
-            is_connected = getattr(self, "isSignalConnected", None)
-            if callable(is_connected) and meta_method is not None:
+            if isinstance(raw_signature, (bytes, bytearray)):
+                return bytes(raw_signature)
+            if raw_signature:
                 try:
-                    return bool(is_connected(meta_method))
-                except TypeError:
+                    return str(raw_signature).encode("utf-8", "ignore")
+                except Exception:  # pragma: no cover - defensive fallback
                     self.logger.debug(
-                        "GeometryPanel: QWidget.isSignalConnected signature mismatch",
+                        "GeometryPanel: signature encoding failed",
+                        extra={"signature": raw_signature},
                         exc_info=True,
                     )
+            return None
 
-            if meta_method is not None and hasattr(self, "isSignalConnected"):
+        try:
+            widget_is_connected = getattr(self, "isSignalConnected", None)
+            if callable(widget_is_connected):
                 try:
-                    return bool(self.isSignalConnected(meta_method))
-                except Exception:  # pragma: no cover - Qt internals are fickle
+                    return bool(widget_is_connected(meta_method))
+                except TypeError:
+                    try:
+                        return bool(widget_is_connected())
+                    except TypeError:
+                        self.logger.debug(
+                            "GeometryPanel: QWidget.isSignalConnected signature mismatch",
+                            exc_info=True,
+                        )
+
+            receivers_fn = getattr(self, "receivers", None)
+            if callable(receivers_fn):
+                signature = _signature_bytes(meta_method)
+                if signature is not None:
+                    try:
+                        return bool(receivers_fn(signature))
+                    except TypeError:
+                        self.logger.debug(
+                            "GeometryPanel: QObject.receivers signature mismatch",
+                            exc_info=True,
+                        )
+                else:
                     self.logger.debug(
-                        "GeometryPanel: QWidget.isSignalConnected probe failed",
-                        exc_info=True,
+                        "GeometryPanel: receiver signature unavailable; skipping check",
+                        extra={"signal": _resolve_signal_name(meta_method, signal_obj)},
                     )
         except Exception:  # pragma: no cover - defensive Qt fallback
             self.logger.debug(
