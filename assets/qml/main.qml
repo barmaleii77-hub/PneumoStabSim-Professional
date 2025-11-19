@@ -192,6 +192,7 @@ Item {
         tonemapExposureValue: root.environmentTonemapExposure
         tonemapWhitePointValue: root.environmentTonemapWhitePoint
 
+        ssaoEnabled: root.ssaoEnabled
         aoEnabled: root.ssaoEnabled
         ssaoRadius: root.ssaoRadius
         ssaoIntensity: root.ssaoIntensity
@@ -223,39 +224,19 @@ Item {
         depthOfFieldFocusRange: root.depthOfFieldFocusRangeValue
         depthOfFieldBlurAmount: root.depthOfFieldBlurAmountValue
 
-         fog: Fog {
-             id: environmentFog
-
-             readonly property bool supportsDensity: environmentFog && ("density" in environmentFog)
-
-             enabled: environmentDefaults.fogHelpersSupported && root.fogEnabled && supportsDensity
-             color: root.fogColor
-
-             Binding {
-                 target: environmentFog
-                 when: environmentFog.supportsDensity
-                 property: "density"
-                 value: root.fogDensity
-             }
-
-             Component.onCompleted: {
-                 if (!supportsDensity) {
-                     console.warn("[main.qml] Fog component is missing density; disabling fog")
-                     environmentFog.enabled = false
-                 }
-             }
-
-             depthEnabled: environmentDefaults.fogHelpersSupported && root.fogDepthEnabled && root.fogEnabled
-             depthCurve: root.fogDepthCurve
-             depthNear: environmentDefaults.toSceneLength(root.fogDepthNear)
-             depthFar: environmentDefaults.toSceneLength(root.fogDepthFar)
-             heightEnabled: root.fogHeightEnabled
-             leastIntenseY: environmentDefaults.toSceneLength(root.fogLeastIntenseY)
-             mostIntenseY: environmentDefaults.toSceneLength(root.fogMostIntenseY)
-             heightCurve: root.fogHeightCurve
-             transmitEnabled: root.fogTransmitEnabled
-             transmitCurve: root.fogTransmitCurve
-         }
+        fogEnabled: root.fogEnabled
+        fogColor: root.fogColor
+        fogDensity: root.fogDensity
+        fogDepthEnabled: root.fogDepthEnabled
+        fogDepthCurve: root.fogDepthCurve
+        fogDepthNear: root.fogDepthNear
+        fogDepthFar: root.fogDepthFar
+        fogHeightEnabled: root.fogHeightEnabled
+        fogLeastIntenseY: root.fogLeastIntenseY
+        fogMostIntenseY: root.fogMostIntenseY
+        fogHeightCurve: root.fogHeightCurve
+        fogTransmitEnabled: root.fogTransmitEnabled
+        fogTransmitCurve: root.fogTransmitCurve
 
         vignetteEnabled: root.vignetteActive
         vignetteStrength: root.vignetteStrengthValue
@@ -318,15 +299,6 @@ Item {
 
         _queuedBatchedUpdates = remaining
     }
-
-    function _applyFogDensityBinding() {
-        if (typeof environmentFog === "undefined" || !environmentFog)
-            return
-        if ("density" in environmentFog)
-            environmentFog.density = root.fogDensity
-    }
-
-    onFogDensityChanged: _applyFogDensityBinding()
 
     function _deliverBatchedUpdates(payload) {
         return _invokeOnActiveRoot("applyBatchedUpdates", payload)
