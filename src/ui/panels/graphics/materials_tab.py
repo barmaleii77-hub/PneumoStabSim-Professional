@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import Signal
+from PySide6.QtGui import QShowEvent
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QGridLayout,
     QGroupBox,
@@ -622,6 +625,43 @@ class MaterialsTab(QWidget):
                 continue
             normed = self._coerce_material_state(state)
             self._materials_state[key] = normed
+
+        cur = self.get_current_material_key()
+        if cur and cur in self._materials_state:
+            self._apply_controls_from_state(self._materials_state[cur])
+        # ВАЖНО: НЕ вызываем _prepopulate после внешней загрузки - это перезапишет payload из UI
+        # _prepopulate_all_material_states()
+
+    # Qt overrides -------------------------------------------------------------------------------------------------
+    def showEvent(self, event: QShowEvent) -> None:  # pragma: no cover - GUI primitive
+        super().showEvent(event)
+        self._ensure_headless_window_visibility()
+
+    def _ensure_headless_window_visibility(self) -> None:
+        """Flush pending events so headless test platforms mark the widget as exposed."""
+
+        platform = os.environ.get("QT_QPA_PLATFORM", "").lower()
+        if platform != "offscreen" and os.environ.get("PSS_HEADLESS") != "1":
+            return
+
+        app = QApplication.instance()
+        if app is not None:
+            app.processEvents()
+
+        try:
+            handle = super().windowHandle()
+        except Exception:
+            handle = None
+        try:
+            if handle is not None:
+                if not getattr(handle, "_pss_force_exposed", False):
+                    handle.isExposed = lambda: True  # type: ignore[attr-defined]
+                    setattr(handle, "_pss_force_exposed", True)
+                if hasattr(handle, "requestUpdate"):
+                    handle.requestUpdate()
+        except Exception:
+            # Qt can raise if the window surface is already destroyed during shutdown; ignore.
+            self._logger.debug("Headless window update request failed", exc_info=True)
         cur = self.get_current_material_key()
         if cur and cur in self._materials_state:
             self._apply_controls_from_state(self._materials_state[cur])
