@@ -20,6 +20,7 @@ import "../diagnostics/LogBridge.js" as Diagnostics
  */
 Item {
     id: root
+    objectName: "simulationRoot"
     anchors.fill: parent
 
     // Bridge
@@ -590,7 +591,7 @@ Item {
         // Проксирование предупреждений шейдеров из PostEffects в sceneBridge
     Connections {
         target: root.postEffects
-        enabled: !!target && !!root.sceneBridge
+        enabled: !!target
         ignoreUnknownSignals: true
 
         function onEffectsBypassChanged(active, reasonText) {

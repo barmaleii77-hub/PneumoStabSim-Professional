@@ -12,7 +12,7 @@ import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from PIL import Image, ImageChops, ImageDraw, ImageStat
 
@@ -114,6 +114,7 @@ def _initialise_view(
     width: int = 800,
     height: int = 450,
     scene_bridge: SceneBridge | None = None,
+    selectors: Sequence[str] | None = None,
 ) -> QMLScene:
     _ensure_qt_environment()
     view = QQuickView()
@@ -122,7 +123,7 @@ def _initialise_view(
     engine = view.engine()
     engine.addImportPath(str(_ASSETS_IMPORT))
     selector = QQmlFileSelector(engine)
-    selector.setExtraSelectors(["screenshots"])
+    selector.setExtraSelectors(list(selectors) if selectors else [])
 
     bridge = scene_bridge or SceneBridge()
 
@@ -157,6 +158,7 @@ def load_main_scene(
     height: int = 450,
     qml_file: Path | str = Path("assets/qml/main.qml"),
     baseline_path: Path | None = None,
+    use_screenshot_overrides: bool = True,
 ) -> QMLScene:
     """Load the main QML entry point into an offscreen ``QQuickView``."""
 
@@ -167,8 +169,16 @@ def load_main_scene(
     baseline_size = _read_baseline_size(baseline_path) if baseline_path else None
     target_width, target_height = baseline_size if baseline_size else (width, height)
 
+    selectors: Sequence[str] | None = (
+        ("screenshots",) if use_screenshot_overrides else None
+    )
+
     return _initialise_view(
-        qapp, qml_path=qml_path, width=target_width, height=target_height
+        qapp,
+        qml_path=qml_path,
+        width=target_width,
+        height=target_height,
+        selectors=selectors,
     )
 
 

@@ -10,6 +10,9 @@ pytest.importorskip(
     "PySide6.QtQuick", reason="PySide6 is required to capture QtQuick screenshots"
 )
 
+from PySide6.QtCore import QObject
+from PySide6.QtQml import QJSValue
+
 from tests.ui.utils import (
     capture_window_image,
     compare_with_baseline,
@@ -118,7 +121,8 @@ def test_post_effects_bypass_toggle_restores_baseline(
                 }
             },
         )
-        wait_for_property(scene.root, "postProcessingBypassed", bool, qapp)
+        sim_root = _resolve_simulation_root(scene.root)
+        wait_for_property(sim_root, "postProcessingBypassed", bool, qapp)
 
         bypassed = capture_window_image(scene.view, qapp)
         bypass_png = output_dir / "main_bypass.png"
@@ -133,7 +137,7 @@ def test_post_effects_bypass_toggle_restores_baseline(
             {"effects": {"effects_bypass": False, "effects_bypass_reason": ""}},
         )
         wait_for_property(
-            scene.root, "postProcessingBypassed", lambda v: v is False, qapp
+            sim_root, "postProcessingBypassed", lambda v: v is False, qapp
         )
 
         recovered = capture_window_image(scene.view, qapp)
@@ -145,3 +149,35 @@ def test_post_effects_bypass_toggle_restores_baseline(
             tolerance=4.2,
             diff_output=recovered_png.with_suffix(".diff.png"),
         )
+
+
+def _resolve_simulation_root(scene_root: QObject) -> QObject:
+    def _as_qobject(candidate: object | None) -> QObject | None:
+        if isinstance(candidate, QObject):
+            return candidate
+        if isinstance(candidate, QJSValue):
+            try:
+                coerced = candidate.toVariant()
+            except Exception:
+                return None
+            return coerced if isinstance(coerced, QObject) else None
+        return None
+
+    candidate = _as_qobject(scene_root.property("simulationRootItem"))
+    if candidate is not None:
+        return candidate
+
+    loader = scene_root.findChild(QObject, "simulationLoader")
+    if loader is not None:
+        try:
+            item = _as_qobject(loader.property("item"))
+        except Exception:
+            item = None
+        if item is not None:
+            return item
+
+    candidate = scene_root.findChild(QObject, "simulationRoot")
+    if isinstance(candidate, QObject):
+        return candidate
+
+    raise AssertionError("SimulationRoot instance unavailable")
