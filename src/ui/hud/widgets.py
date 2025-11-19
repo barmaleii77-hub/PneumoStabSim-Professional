@@ -13,19 +13,6 @@ from .telemetry import CameraHudTelemetry as _CameraHudTelemetry, _coerce_float
 
 CameraHudTelemetry = _CameraHudTelemetry
 
-try:  # pragma: no cover - fallback for headless test environments
-    from PySide6.QtWidgets import QWidget
-    from PySide6.QtCore import Qt, QPointF, Signal, Slot
-    from PySide6.QtGui import (
-        QPainter,
-        QLinearGradient,
-        QColor,
-        QPen,
-        QBrush,
-        QFont,
-    )
-except Exception:  # pragma: no cover - PySide6 missing or fails to initialise
-
 
 def _install_qt_fallbacks() -> None:  # pragma: no cover - PySide6 missing/headless
     class _QtFallback:
@@ -76,6 +63,21 @@ def _install_qt_fallbacks() -> None:  # pragma: no cover - PySide6 missing/headl
     Signal = _SignalFallback  # type: ignore[assignment]
     Slot = _slot_fallback  # type: ignore[assignment]
     QPainter = QLinearGradient = QColor = QPen = QBrush = QFont = object  # type: ignore[assignment]
+
+
+try:  # pragma: no cover - fallback for headless test environments
+    from PySide6.QtWidgets import QWidget
+    from PySide6.QtCore import Qt, QPointF, Signal, Slot
+    from PySide6.QtGui import (
+        QPainter,
+        QLinearGradient,
+        QColor,
+        QPen,
+        QBrush,
+        QFont,
+    )
+except Exception:  # pragma: no cover - PySide6 missing or fails to initialise
+    _install_qt_fallbacks()
 
 
 # ИСПРАВЛЕНО: Изменен относительный импорт на абсолютный

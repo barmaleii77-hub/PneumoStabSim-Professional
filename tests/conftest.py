@@ -597,22 +597,25 @@ def qtbot(qapp):
 
     force_stub = headless_requested(os.environ)
 
+    try:
+        from PySide6.QtCore import Qt, QEvent, QObject  # type: ignore
+        from PySide6.QtGui import QMouseEvent, QKeyEvent  # type: ignore
+        from PySide6.QtWidgets import QApplication  # type: ignore
+    except Exception:
+        Qt = None  # type: ignore
+        QEvent = None  # type: ignore
+        QObject = object  # type: ignore
+        QMouseEvent = None  # type: ignore
+        QKeyEvent = None  # type: ignore
+        QApplication = None  # type: ignore
+
     if not force_stub:
         try:
             from PySide6.QtTest import QTest  # type: ignore
-            from PySide6.QtCore import Qt, QEvent, QObject
-            from PySide6.QtGui import QMouseEvent, QKeyEvent
-            from PySide6.QtWidgets import QApplication
         except Exception:
             QTest = None  # type: ignore
-            Qt = None  # type: ignore
-            QApplication = None  # type: ignore
-            QObject = object  # type: ignore
     else:
         QTest = None  # type: ignore
-        Qt = None  # type: ignore
-        QApplication = None  # type: ignore
-        QObject = object  # type: ignore
 
     class _Bot:
         def __init__(self) -> None:
@@ -702,7 +705,12 @@ def qtbot(qapp):
                 except Exception:
                     pass
             try:
-                if Qt is None:
+                if (
+                    Qt is None
+                    or QEvent is None
+                    or QKeyEvent is None
+                    or QApplication is None
+                ):
                     return
                 if not widget.hasFocus():
                     widget.setFocus()
@@ -741,6 +749,13 @@ def qtbot(qapp):
                 except Exception:
                     pass
             try:
+                if (
+                    Qt is None
+                    or QEvent is None
+                    or QMouseEvent is None
+                    or QApplication is None
+                ):
+                    return
                 if button is None and Qt is not None:
                     button = Qt.LeftButton
                 ev = QMouseEvent(
