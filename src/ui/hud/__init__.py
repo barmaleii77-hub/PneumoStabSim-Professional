@@ -53,7 +53,7 @@ def build_tank_overlay_hud(*args: Any, **kwargs: Any) -> Any:
 
 def get_camera_hud_telemetry() -> type:
     """Return the :class:`CameraHudTelemetry` helper lazily."""
-    from .widgets import CameraHudTelemetry
+    from .telemetry import CameraHudTelemetry
 
     return _cached("CameraHudTelemetry", lambda: CameraHudTelemetry)
 
