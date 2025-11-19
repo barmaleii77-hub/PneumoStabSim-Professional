@@ -193,7 +193,11 @@ def _deep_copy(data: Any, *, _memo: dict[int, Any] | None = None) -> Any:
         clone: dict[Any, Any] = {}
         _memo[obj_id] = clone
         for key, value in data.items():
-            key_copy = key if isinstance(key, _IMMUTABLE_TYPES) else _deep_copy(key, _memo=_memo)
+            key_copy = (
+                key
+                if isinstance(key, _IMMUTABLE_TYPES)
+                else _deep_copy(key, _memo=_memo)
+            )
             clone[key_copy] = _deep_copy(value, _memo=_memo)
         return clone
 

@@ -5,7 +5,7 @@ import QtQuick3D 6.10
 import QtQml 6.10
 import PneumoStabSim 1.0 as PSS
 import "./"
-import "./effects"          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
+import "./effects" as Effects          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
 import "./Panels" as Panels
 import "training" as Training
 import components 1.0 as Components
@@ -164,7 +164,7 @@ Item {
     property real adjustmentContrast: 0.0
     property real adjustmentSaturation: 0.0
 
-    SceneEnvironmentController {
+    Effects.SceneEnvironmentController {
         id: environmentDefaults
         objectName: "environmentDefaults"
 

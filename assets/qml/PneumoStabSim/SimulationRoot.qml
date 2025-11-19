@@ -8,7 +8,7 @@ import QtQuick3D 6.10
 import QtQuick3D.Helpers 6.10
 import "../camera"
 import "../components"
-import "../effects"
+import "../effects" as Effects
 import "../geometry"
 import "../lighting"
 import scene 1.0 as Scene
@@ -753,7 +753,7 @@ Item {
 
     // Environment & Reflection infrastructure (для тестов)
     // (переименовано чтобы избежать alias self-reference)
-    SceneEnvironmentController {
+    Effects.SceneEnvironmentController {
         id: envController
         objectName: "sceneEnvironment"
         fogEnabled: false
