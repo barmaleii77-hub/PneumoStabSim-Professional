@@ -82,6 +82,27 @@ def test_build_custom_pytest_command_includes_args(tmp_path: Path) -> None:
     assert cmd[-2:] == ["-k", "smoke"]
 
 
+def test_build_test_environment_sets_headless_defaults(monkeypatch) -> None:
+    """Headless defaults are always prepared for Windows launcher test runs."""
+
+    for key in (
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD",
+        "PSS_HEADLESS",
+        "QT_QPA_PLATFORM",
+        "QT_QUICK_BACKEND",
+        "LIBGL_ALWAYS_SOFTWARE",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    env = launcher.build_test_environment()
+
+    assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1"
+    assert env["PSS_HEADLESS"] == "1"
+    assert env["QT_QPA_PLATFORM"] == "offscreen"
+    assert env["QT_QUICK_BACKEND"] == "software"
+    assert env["LIBGL_ALWAYS_SOFTWARE"] == "1"
+
+
 def test_build_testing_entrypoint_command_all_scope(tmp_path: Path) -> None:
     """Unified entrypoint commands support the 'all' scope."""
 
