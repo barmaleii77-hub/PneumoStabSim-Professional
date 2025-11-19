@@ -153,29 +153,54 @@ class GeometryPanel(QWidget):
 
     def _emit_initial(self):
         meta_method = self._get_geometry_meta_method()
-        self._verify_geometry_subscribers(meta_method)
+        geometry_connected = self._verify_geometry_subscribers(meta_method)
 
         payload = self._get_fast_geometry_update("init", 0.0)
-        self._emit_if_connected(
-            self.geometry_changed,
-            payload,
-            "GeometryPanel: initial geometry_changed",
-            meta_method,
-        )
-        self._emit_if_connected(
-            self.geometry_updated,
-            self.parameters.copy(),
-            "GeometryPanel: initial geometry_updated",
-        )
+        if geometry_connected is not False:
+            self._emit_if_connected(
+                self.geometry_changed,
+                payload,
+                "GeometryPanel: initial geometry_changed",
+                meta_method,
+            )
+
+        updated_meta = self._get_meta_method(getattr(self, "geometry_updated", None))
+        if self._is_signal_connected(self.geometry_updated, updated_meta) is not False:
+            self._emit_if_connected(
+                self.geometry_updated,
+                self.parameters.copy(),
+                "GeometryPanel: initial geometry_updated",
+                updated_meta,
+            )
 
     def _get_meta_method(self, signal_obj: Any) -> QMetaMethod | None:
         try:
             meta_method = QMetaMethod.fromSignal(signal_obj)
         except (TypeError, AttributeError):  # pragma: no cover - Qt internals
-            return None
+            meta_method = None
 
-        if meta_method.isValid():
+        if meta_method is not None and meta_method.isValid():
             return meta_method
+
+        # PySide6 exposes ``SignalInstance.signal`` for string-based signatures;
+        # use it to resolve a meta method without touching private attributes
+        # like ``SignalInstance.receivers`` that are not available on all
+        # versions.
+        signature = getattr(signal_obj, "signal", None)
+        if signature:
+            meta_object = self.metaObject()
+            try:
+                index = meta_object.indexOfSignal(signature)
+            except TypeError:
+                try:
+                    index = meta_object.indexOfSignal(bytes(signature))
+                except Exception:  # pragma: no cover - defensive fallback
+                    index = -1
+            if index >= 0:
+                candidate = meta_object.method(index)
+                if candidate.isValid():
+                    return candidate
+
         return None
 
     def _get_geometry_meta_method(self) -> QMetaMethod | None:
@@ -234,29 +259,14 @@ class GeometryPanel(QWidget):
                         exc_info=True,
                     )
 
-            receivers_fn = getattr(QObject, "receivers", None)
-            if callable(receivers_fn) and meta_method is not None:
-                signature = meta_method.methodSignature()
+            if meta_method is not None and hasattr(self, "isSignalConnected"):
                 try:
-                    count = receivers_fn(self, signature)
-                except TypeError:
-                    try:
-                        count = receivers_fn(self, bytes(signature))
-                    except Exception:
-                        count = None
-                if count is not None:
-                    return bool(count)
-
-            instance_receivers = getattr(self, "receivers", None)
-            if callable(instance_receivers) and meta_method is not None:
-                try:
-                    count = instance_receivers(meta_method.methodSignature())
-                except Exception:  # pragma: no cover - defensive Qt fallback
+                    return bool(self.isSignalConnected(meta_method))
+                except Exception:  # pragma: no cover - Qt internals are fickle
                     self.logger.debug(
-                        "GeometryPanel: receivers() probe failed", exc_info=True
+                        "GeometryPanel: QWidget.isSignalConnected probe failed",
+                        exc_info=True,
                     )
-                else:
-                    return bool(count)
         except Exception:  # pragma: no cover - defensive Qt fallback
             self.logger.debug(
                 "GeometryPanel: subscriber verification failed; proceeding without check",
