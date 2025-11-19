@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from collections.abc import Mapping
+import logging
 from typing import Any
 
 try:  # pragma: no cover - optional structured logging
@@ -322,6 +323,43 @@ class GeometryPanel(QWidget):
                         exc_info=True,
                     )
 
+            self._log_geometry_emit_skipped(description, signature)
+            return
+
+        try:
+            signal_obj.emit(payload)
+        except RuntimeError as exc:
+            self.logger.warning("%s failed: %s", description, exc)
+
+    def _logger_has_live_handlers(self) -> bool:
+        logger = getattr(self, "logger", None)
+        if not isinstance(logger, logging.Logger):
+            return False
+
+        visited: set[int] = set()
+        current: logging.Logger | None = logger
+        found_handler = False
+        while isinstance(current, logging.Logger) and id(current) not in visited:
+            visited.add(id(current))
+            for handler in current.handlers:
+                found_handler = True
+                stream = getattr(handler, "stream", None)
+                if stream is not None and getattr(stream, "closed", False):
+                    return False
+            if not current.propagate:
+                break
+            parent = getattr(current, "parent", None)
+            current = parent if isinstance(parent, logging.Logger) else None
+
+        return found_handler
+
+    def _log_geometry_emit_skipped(
+        self, description: str, signature: str | None
+    ) -> None:
+        if not self._logger_has_live_handlers():
+            return
+
+        try:
             self.logger.info(
                 "geometry_emit_skipped",
                 extra={
@@ -330,12 +368,10 @@ class GeometryPanel(QWidget):
                     "signal_signature": signature,
                 },
             )
+        except ValueError:
+            # Logging streams can be closed during pytest teardown; avoid
+            # surfacing spurious errors when emitting diagnostic messages.
             return
-
-        try:
-            signal_obj.emit(payload)
-        except RuntimeError as exc:
-            self.logger.warning("%s failed: %s", description, exc)
 
     # Чтение только из JSON
     def _load_from_settings(self) -> None:
