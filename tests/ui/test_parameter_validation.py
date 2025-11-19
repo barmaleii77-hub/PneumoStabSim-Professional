@@ -44,7 +44,9 @@ def test_geometry_validation_accepts_decimal_payload():
     }
 
     result = validate_geometry_settings(payload)
-    assert result.values["wheelbase"] == pytest.approx(float(VALID_PAYLOAD["wheelbase"]))
+    assert result.values["wheelbase"] == pytest.approx(
+        float(VALID_PAYLOAD["wheelbase"])
+    )
 
 
 def test_geometry_validation_failure():
