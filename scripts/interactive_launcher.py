@@ -82,7 +82,9 @@ def run_command_with_summary(
     return completed, format_completed_process(cmd, completed)
 
 
-def summarize_log_tail(log_path: Path, max_lines: int) -> tuple[deque[str], dict[str, int], list[str]]:
+def summarize_log_tail(
+    log_path: Path, max_lines: int
+) -> tuple[deque[str], dict[str, int], list[str]]:
     """Return tail, severity counts and highlight lines for a log file."""
 
     tail: deque[str] = deque(maxlen=max_lines)
@@ -254,7 +256,9 @@ class TestAnimationCanvas:
         self.window = tk.Toplevel(parent)
         self.window.title("Схема прогонки тестов")
         self.window.geometry("760x420")
-        self.canvas = tk.Canvas(self.window, width=740, height=360, background="#0d1b2a")
+        self.canvas = tk.Canvas(
+            self.window, width=740, height=360, background="#0d1b2a"
+        )
         self.canvas.pack(fill="both", expand=True, padx=10, pady=10)
         self._running = False
         self._step = 0
@@ -278,13 +282,33 @@ class TestAnimationCanvas:
 
     def _build_scene(self) -> None:
         for idx, (x, y, label) in enumerate(self._nodes):
-            self.canvas.create_oval(x - 34, y - 34, x + 34, y + 34, fill="#1b263b", outline="#4cc9f0", width=2)
-            self.canvas.create_text(x, y, text=label, fill="#f5f7fb", font=("Segoe UI", 11, "bold"))
+            self.canvas.create_oval(
+                x - 34,
+                y - 34,
+                x + 34,
+                y + 34,
+                fill="#1b263b",
+                outline="#4cc9f0",
+                width=2,
+            )
+            self.canvas.create_text(
+                x, y, text=label, fill="#f5f7fb", font=("Segoe UI", 11, "bold")
+            )
             if idx > 0:
                 prev_x, prev_y, _ = self._nodes[idx - 1]
-                self.canvas.create_line(prev_x + 34, prev_y, x - 34, y, fill="#4cc9f0", width=3, arrow=tk.LAST)
+                self.canvas.create_line(
+                    prev_x + 34,
+                    prev_y,
+                    x - 34,
+                    y,
+                    fill="#4cc9f0",
+                    width=3,
+                    arrow=tk.LAST,
+                )
 
-        self._indicator = self.canvas.create_oval(0, 0, 0, 0, fill="#fca311", outline="", width=0)
+        self._indicator = self.canvas.create_oval(
+            0, 0, 0, 0, fill="#fca311", outline="", width=0
+        )
         self._update_indicator()
 
     def _update_indicator(self) -> None:
@@ -292,7 +316,9 @@ class TestAnimationCanvas:
             return
         x, y = self._path[self._step % len(self._path)]
         radius = 12
-        self.canvas.coords(self._indicator, x - radius, y - radius, x + radius, y + radius)
+        self.canvas.coords(
+            self._indicator, x - radius, y - radius, x + radius, y + radius
+        )
 
     def start(self) -> None:
         self._running = True
@@ -867,7 +893,9 @@ class LauncherUI(tk.Tk):
         )
         self._widgets["rad_pytest"].grid(row=0, column=2, sticky="w", **pad)
 
-        ttk.Label(frm_tests, text="Scope/таргеты:").grid(row=1, column=0, sticky="e", **pad)
+        ttk.Label(frm_tests, text="Scope/таргеты:").grid(
+            row=1, column=0, sticky="e", **pad
+        )
         self._widgets["cmb_scope"] = ttk.Combobox(
             frm_tests,
             textvariable=self.var_test_scope,
@@ -876,12 +904,20 @@ class LauncherUI(tk.Tk):
             width=12,
         )
         self._widgets["cmb_scope"].grid(row=1, column=1, sticky="w", **pad)
-        self._widgets["ent_targets"] = ttk.Entry(frm_tests, textvariable=self.var_test_targets, width=40)
+        self._widgets["ent_targets"] = ttk.Entry(
+            frm_tests, textvariable=self.var_test_targets, width=40
+        )
         self._widgets["ent_targets"].grid(row=1, column=2, sticky="w", **pad)
 
-        ttk.Label(frm_tests, text="Доп. аргументы:").grid(row=2, column=0, sticky="e", **pad)
-        self._widgets["ent_test_args"] = ttk.Entry(frm_tests, textvariable=self.var_test_args, width=60)
-        self._widgets["ent_test_args"].grid(row=2, column=1, columnspan=2, sticky="we", **pad)
+        ttk.Label(frm_tests, text="Доп. аргументы:").grid(
+            row=2, column=0, sticky="e", **pad
+        )
+        self._widgets["ent_test_args"] = ttk.Entry(
+            frm_tests, textvariable=self.var_test_args, width=60
+        )
+        self._widgets["ent_test_args"].grid(
+            row=2, column=1, columnspan=2, sticky="we", **pad
+        )
         self._widgets["chk_test_canvas"] = ttk.Checkbutton(
             frm_tests, text="Показать канву со схемой", variable=self.var_test_canvas
         )
@@ -1208,8 +1244,16 @@ class LauncherUI(tk.Tk):
     def _collect_test_config(self) -> TestRunConfig:
         raw_targets = self.var_test_targets.get().strip()
         targets = shlex.split(raw_targets) if raw_targets else ["tests"]
-        extra = shlex.split(self.var_test_args.get().strip()) if self.var_test_args.get().strip() else []
-        scope_value = self.var_test_scope.get() if self.var_test_scope.get() in TEST_SCOPE_CHOICES else TEST_SCOPE_CHOICES[0]
+        extra = (
+            shlex.split(self.var_test_args.get().strip())
+            if self.var_test_args.get().strip()
+            else []
+        )
+        scope_value = (
+            self.var_test_scope.get()
+            if self.var_test_scope.get() in TEST_SCOPE_CHOICES
+            else TEST_SCOPE_CHOICES[0]
+        )
         runner: Literal["entrypoint", "pytest"] = (
             "pytest" if self.var_test_runner.get() == "pytest" else "entrypoint"
         )
@@ -1234,7 +1278,9 @@ class LauncherUI(tk.Tk):
 
     def _run_tests_with_config(self) -> None:
         config = self._collect_test_config()
-        label = "pytest" if config.runner == "pytest" else f"entrypoint ({config.scope})"
+        label = (
+            "pytest" if config.runner == "pytest" else f"entrypoint ({config.scope})"
+        )
         self._set_status(f"Запуск тестов через {label}...")
         canvas = self._ensure_test_canvas(config.show_canvas)
         threading.Thread(
@@ -1255,12 +1301,16 @@ class LauncherUI(tk.Tk):
             else:
                 env = build_test_environment()
                 command = build_testing_entrypoint_command(python_exe, config.scope)
-                text = self._run_command(command, f"testing_entrypoint ({config.scope})", cwd=root, env=env)
+                text = self._run_command(
+                    command, f"testing_entrypoint ({config.scope})", cwd=root, env=env
+                )
                 success = "exit=0" in text or "Ошибок: 0" in text
         else:
             env = build_test_environment()
             command = build_custom_pytest_command(
-                python_exe, targets=config.targets or ["tests"], extra_args=config.extra_args
+                python_exe,
+                targets=config.targets or ["tests"],
+                extra_args=config.extra_args,
             )
             text = self._run_command(command, "pytest (custom)", cwd=root, env=env)
             success = "exit=0" in text or "Ошибок: 0" in text
@@ -1271,7 +1321,9 @@ class LauncherUI(tk.Tk):
         self.after(
             0,
             lambda: self._show_text_window(
-                title="Результаты тестов", text=text or "(нет вывода)", geometry="1100x820"
+                title="Результаты тестов",
+                text=text or "(нет вывода)",
+                geometry="1100x820",
             ),
         )
         self.after(0, lambda: self._set_status("Тестовый прогон завершён."))
@@ -1539,7 +1591,9 @@ class LauncherUI(tk.Tk):
             text="Копировать отчёт",
             command=lambda: self._copy_to_clipboard(text),
         ).pack(side="left", padx=4)
-        ttk.Button(actions, text="Закрыть", command=win.destroy).pack(side="left", padx=4)
+        ttk.Button(actions, text="Закрыть", command=win.destroy).pack(
+            side="left", padx=4
+        )
 
     def _insert_coloured_analysis(self, widget: tk.Text, raw_text: str) -> None:
         content = raw_text if raw_text.strip() else "(анализатор не вернул данных)"
@@ -1555,9 +1609,15 @@ class LauncherUI(tk.Tk):
 
     def _configure_analysis_tags(self, widget: tk.Text) -> None:
         try:
-            widget.tag_configure("error", foreground="#ff4d6d", font=("Segoe UI", 10, "bold"))
-            widget.tag_configure("warning", foreground="#f4a261", font=("Segoe UI", 10, "bold"))
-            widget.tag_configure("success", foreground="#2a9d8f", font=("Segoe UI", 10, "bold"))
+            widget.tag_configure(
+                "error", foreground="#ff4d6d", font=("Segoe UI", 10, "bold")
+            )
+            widget.tag_configure(
+                "warning", foreground="#f4a261", font=("Segoe UI", 10, "bold")
+            )
+            widget.tag_configure(
+                "success", foreground="#2a9d8f", font=("Segoe UI", 10, "bold")
+            )
             widget.tag_configure("info", foreground="#1d3557")
         except Exception:
             pass
@@ -1568,7 +1628,9 @@ class LauncherUI(tk.Tk):
             return "error", "❌ "
         if "warn" in low:
             return "warning", "⚠️ "
-        if any(token in low for token in ("exit=0", "успешно", "completed successfully")):
+        if any(
+            token in low for token in ("exit=0", "успешно", "completed successfully")
+        ):
             return "success", "✅ "
         return "info", "ℹ️ "
 
@@ -1578,7 +1640,9 @@ class LauncherUI(tk.Tk):
             self.clipboard_append(text)
             self._set_status("Отчёт скопирован в буфер обмена.")
         except Exception as exc:
-            messagebox.showerror("Копирование не удалось", f"Не удалось скопировать текст: {exc}")
+            messagebox.showerror(
+                "Копирование не удалось", f"Не удалось скопировать текст: {exc}"
+            )
 
     # --- Handlers
     def _on_run(self) -> None:

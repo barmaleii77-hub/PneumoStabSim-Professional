@@ -78,7 +78,10 @@ def _log(message: str) -> None:
 
 
 def _stream_command(
-    command: Sequence[str], *, env: dict[str, str] | None = None, timeout: int | None = None
+    command: Sequence[str],
+    *,
+    env: dict[str, str] | None = None,
+    timeout: int | None = None,
 ) -> None:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with REPORT_PATH.open("a", encoding="utf-8") as log:
@@ -140,10 +143,14 @@ def _require_uv() -> str:
 
 def _sync_environment(uv_path: str, *, env: dict[str, str], timeout: int) -> None:
     _log("[entrypoint] Syncing dependencies with uv --frozen --extra dev")
-    _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"], env=env, timeout=timeout)
+    _stream_command(
+        [uv_path, "sync", "--frozen", "--extra", "dev"], env=env, timeout=timeout
+    )
 
 
-def _configure_qt_environment(uv_path: str, *, env: dict[str, str], timeout: int) -> None:
+def _configure_qt_environment(
+    uv_path: str, *, env: dict[str, str], timeout: int
+) -> None:
     _log("[entrypoint] Exporting Qt environment variables via tools/setup_qt.py")
     _stream_command(
         [
@@ -217,9 +224,7 @@ def _prepare_system(system: str, *, env: dict[str, str], timeout: int) -> None:
             return
 
         _log("[entrypoint] Running scripts/setup_dev.py to refresh Windows toolchain")
-        _stream_command(
-            [sys.executable, str(setup_script)], env=env, timeout=timeout
-        )
+        _stream_command([sys.executable, str(setup_script)], env=env, timeout=timeout)
         return
 
     _log(f"[entrypoint] No system prep defined for platform '{system}'")
