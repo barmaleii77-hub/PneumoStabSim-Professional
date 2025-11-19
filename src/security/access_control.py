@@ -58,6 +58,15 @@ class RolePolicy:
         return False
 
 
+def _stable_stringify(value: Any) -> str:
+    """Return a JSON-based sort key for complex values."""
+
+    try:
+        return json.dumps(value, sort_keys=True, ensure_ascii=False)
+    except TypeError:
+        return repr(value)
+
+
 def _serialise_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
     if metadata is None:
         return {}
@@ -77,9 +86,12 @@ def _serialise_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
         if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
             stack.add(obj_id)
             try:
-                return [_convert(item, stack) for item in value]
+                converted = [_convert(item, stack) for item in value]
             finally:
                 stack.discard(obj_id)
+            if isinstance(value, (set, frozenset)):
+                converted.sort(key=_stable_stringify)
+            return converted
         return repr(value)
 
     return {str(key): _convert(val, set()) for key, val in metadata.items()}
@@ -133,7 +145,10 @@ class SecurityAuditLogger:
             if isinstance(value, Mapping):
                 return _serialise_metadata(value)
             if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
-                return [_default(item) for item in value]
+                converted = [_default(item) for item in value]
+                if isinstance(value, (set, frozenset)):
+                    converted.sort(key=_stable_stringify)
+                return converted
             return repr(value)
 
         try:
