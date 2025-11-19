@@ -526,6 +526,32 @@ class GeometryPanel(QWidget):
 
         return self._collect_state_snapshot()
 
+    def _get_meta_method(self, signal_obj: Any) -> QMetaMethod | None:
+        try:
+            meta_method = QMetaMethod.fromSignal(signal_obj)
+        except (TypeError, AttributeError):  # pragma: no cover - Qt internals
+            meta_method = None
+
+        if meta_method is not None and meta_method.isValid():
+            return meta_method
+
+        signature = getattr(signal_obj, "signal", None)
+        if signature:
+            meta_object = self.metaObject()
+            try:
+                index = meta_object.indexOfSignal(signature)
+            except TypeError:
+                try:
+                    index = meta_object.indexOfSignal(bytes(signature))
+                except Exception:  # pragma: no cover - defensive fallback
+                    index = -1
+            if index >= 0:
+                candidate = meta_object.method(index)
+                if candidate.isValid():
+                    return candidate
+
+        return None
+
     def _is_signal_connected(
         self, signal_obj: QObject | Any, meta_method: QMetaMethod | None = None
     ) -> bool | None:
@@ -534,12 +560,8 @@ class GeometryPanel(QWidget):
             return None
 
         try:
-            if meta_method is None:
-                try:
-                    meta_method = QMetaMethod.fromSignal(signal_obj)
-                except (TypeError, AttributeError):  # pragma: no cover - Qt internals
-                    meta_method = None
-
+            if meta_method is None or not meta_method.isValid():
+                meta_method = self._get_meta_method(signal_obj)
             if meta_method is None or not meta_method.isValid():
                 return None
 
@@ -664,17 +686,39 @@ class GeometryPanel(QWidget):
         """Send initial geometry to QML"""
         self.logger.info("Sending initial geometry to QML...")
 
-        self._verify_geometry_subscribers()
+        meta_geometry_changed = self._get_meta_method(self.geometry_changed)
+        if (
+            self._is_signal_connected(self.geometry_changed, meta_geometry_changed)
+            is False
+        ):
+            self.logger.info(
+                "geometry_emit_skipped",
+                extra={
+                    "description": "Geometry 3D update signal",
+                    "reason": "no_subscribers",
+                },
+            )
+            return
 
         geometry_3d = self.state_manager.get_3d_geometry_update()
         self._emit_if_connected(
-            self.geometry_changed, geometry_3d, "Geometry 3D update signal"
+            self.geometry_changed,
+            geometry_3d,
+            "Geometry 3D update signal",
+            meta_geometry_changed,
         )
-        self._emit_if_connected(
-            self.geometry_updated,
-            self.state_manager.get_all_parameters(),
-            "Geometry updated signal",
-        )
+
+        meta_geometry_updated = self._get_meta_method(self.geometry_updated)
+        if (
+            self._is_signal_connected(self.geometry_updated, meta_geometry_updated)
+            is not False
+        ):
+            self._emit_if_connected(
+                self.geometry_updated,
+                self.state_manager.get_all_parameters(),
+                "Geometry updated signal",
+                meta_geometry_updated,
+            )
 
         self.logger.info("Initial geometry sent successfully")
 
