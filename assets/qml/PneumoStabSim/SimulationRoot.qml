@@ -241,6 +241,29 @@ Item {
     }
     function _normaliseState(value) { if (!value || typeof value !== "object") return ({}); var copy={}; for (var key in value) if (Object.prototype.hasOwnProperty.call(value,key)) copy[key]=value[key]; return copy }
     function _isEmptyMap(value) { if (!value || typeof value !== "object") return true; for (var key in value) if (Object.prototype.hasOwnProperty.call(value,key)) return false; return true }
+    function _normaliseMissingKeysList(value) {
+        if (value === null || value === undefined)
+            return []
+        var rawList = []
+        if (Array.isArray(value)) {
+            rawList = value.slice()
+        } else if (typeof value === "object" && typeof value.length === "number") {
+            for (var idx = 0; idx < value.length; ++idx)
+                rawList.push(value[idx])
+        } else {
+            rawList = [value]
+        }
+        var result = []
+        for (var i = 0; i < rawList.length; ++i) {
+            var entry = rawList[i]
+            if (entry === undefined || entry === null)
+                continue
+            var normalized = String(entry).toLowerCase()
+            if (result.indexOf(normalized) === -1)
+                result.push(normalized)
+        }
+        return result
+    }
 
     function _storeLastUpdate(category, payload) {
         var snapshot = _cloneObject(lastUpdateByCategory)
@@ -676,13 +699,12 @@ Item {
         console.log("[SimulationRoot] Component completed; sceneBridge:", sceneBridge ? "available" : "missing")
         if (typeof initialReflectionProbeSettings !== "undefined" && initialReflectionProbeSettings) {
             var keys = ["enabled","padding_m","quality","refresh_mode","time_slicing"]
-            var missingFromContext = Array.isArray(initialReflectionProbeSettings.missing_keys)
-                    ? initialReflectionProbeSettings.missing_keys.slice()
-                    : []
+            var missingFromContext = _normaliseMissingKeysList(initialReflectionProbeSettings.missing_keys)
             var missingTmp = []
             for (var idx=0; idx<missingFromContext.length; ++idx) {
-                if (keys.indexOf(missingFromContext[idx]) !== -1 && missingTmp.indexOf(missingFromContext[idx]) === -1)
-                    missingTmp.push(missingFromContext[idx])
+                var candidate = missingFromContext[idx]
+                if (keys.indexOf(candidate) !== -1 && missingTmp.indexOf(candidate) === -1)
+                    missingTmp.push(candidate)
             }
             for (var i=0;i<keys.length;++i){ if(initialReflectionProbeSettings[keys[i]] === undefined && missingTmp.indexOf(keys[i]) === -1) missingTmp.push(keys[i]) }
             reflectionProbeMissingKeys = missingTmp  // Прямое присваивание типизированному списку

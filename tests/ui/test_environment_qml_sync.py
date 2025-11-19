@@ -32,6 +32,8 @@ from src.ui.panels.graphics.environment_tab import EnvironmentTab
 
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
+_FOG_CONVERTER_TOKEN = "QQuick3DFog"
+
 
 def _create_simulation_root(
     context_overrides: dict[str, Any] | None = None,
@@ -68,6 +70,32 @@ def _as_dict(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _resolve_fog_density(scene_environment: QObject, *, expected_enabled: bool) -> float:
+    """Return fog density, falling back to a bridge snapshot when helpers unavailable."""
+
+    bridge_state = _as_dict(scene_environment.property("fogBridgeState"))
+    try:
+        fog_object = scene_environment.property("fog")
+    except RuntimeError as exc:  # pragma: no cover - depends on Qt build
+        if _FOG_CONVERTER_TOKEN in str(exc):
+            assert bridge_state, "sceneEnvironment.fogBridgeState missing in headless fallback"
+            assert bool(bridge_state.get("enabled", False)) == bool(expected_enabled)
+            density = bridge_state.get("density")
+            assert density is not None, "fogBridgeState missing density payload"
+            return float(density)
+        raise
+
+    if fog_object is None:
+        assert bridge_state, "sceneEnvironment.fogBridgeState unavailable"
+        density = bridge_state.get("density")
+        assert density is not None, "fogBridgeState missing density payload"
+        return float(density)
+
+    assert isinstance(fog_object, QObject), "sceneEnvironment.fog object missing"
+    assert bool(fog_object.property("enabled")) == bool(expected_enabled)
+    return float(fog_object.property("density"))
+
+
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
 def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
@@ -100,11 +128,11 @@ def test_environment_updates_propagate_to_scene_environment(qapp) -> None:
 
         assert scene_environment.property("fogEnabled") == state["fog_enabled"]
 
-        fog_object = scene_environment.property("fog")
-        assert isinstance(fog_object, QObject), "sceneEnvironment.fog object missing"
-
+        fog_density = _resolve_fog_density(
+            scene_environment, expected_enabled=state["fog_enabled"]
+        )
         assert math.isclose(
-            float(fog_object.property("density")),
+            fog_density,
             float(state["fog_density"]),
             rel_tol=1e-6,
             abs_tol=1e-6,

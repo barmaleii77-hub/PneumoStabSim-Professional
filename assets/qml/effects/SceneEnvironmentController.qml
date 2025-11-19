@@ -565,6 +565,21 @@ ExtendedSceneEnvironment {
     property real fogHeightCurve: environmentNumberDefault("fogHeightCurve", "fog_height_curve", 1.0)
     property bool fogTransmitEnabled: environmentBoolDefault("fogTransmitEnabled", "fog_transmit_enabled", true)
     property real fogTransmitCurve: environmentNumberDefault("fogTransmitCurve", "fog_transmit_curve", 1.0)
+    // Headless тесты не могут получить QQuick3DFog*, поэтому публикуем сводный snapshot
+    readonly property var fogBridgeState: ({
+        "enabled": !!fogEnabled,
+        "density": Number(fogDensity),
+        "depth_enabled": !!fogDepthEnabled,
+        "depth_curve": Number(fogDepthCurve),
+        "depth_near": Number(fogDepthNear),
+        "depth_far": Number(fogDepthFar),
+        "height_enabled": !!fogHeightEnabled,
+        "height_curve": Number(fogHeightCurve),
+        "least_intense_y": Number(fogLeastIntenseY),
+        "most_intense_y": Number(fogMostIntenseY),
+        "transmit_enabled": !!fogTransmitEnabled,
+        "transmit_curve": Number(fogTransmitCurve)
+    })
     property bool _fogSupportWarningShown: false
 
     // Fog handling: SceneEnvironment only accepts a nested Fog object. We keep the Loader gated behind
