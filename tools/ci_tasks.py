@@ -139,6 +139,19 @@ def _split_env_list(value: str | None) -> list[str]:
     return [item for item in shlex.split(value) if item]
 
 
+def _ensure_plugin_flag(flags: list[str], plugin_name: str) -> None:
+    """Ensure a pytest ``-p`` flag is present for the requested plugin."""
+
+    for index, flag in enumerate(flags):
+        if flag == "-p" and index + 1 < len(flags):
+            if flags[index + 1] == plugin_name:
+                return
+        elif flag.startswith("-p") and flag[2:] == plugin_name:
+            return
+
+    flags.extend(["-p", plugin_name])
+
+
 def _env_flag(name: str, *, default: bool) -> bool:
     """Interpret an environment variable as a boolean flag."""
 
@@ -436,6 +449,7 @@ def _run_pytest_suites(
         return
 
     common_flags = _split_env_list(os.environ.get("PYTEST_FLAGS"))
+    _ensure_plugin_flag(common_flags, "pytestqt.plugin")
     os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
     PYTEST_REPORT_ROOT.mkdir(parents=True, exist_ok=True)
     manual_targets = _split_env_list(os.environ.get("PYTEST_TARGETS"))
