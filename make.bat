@@ -30,6 +30,7 @@ IF /I "%~1"=="trace-launch" GOTO :trace
 IF /I "%~1"=="analyze-logs" GOTO :analyze_logs
 IF /I "%~1"=="sanitize" GOTO :sanitize
 IF /I "%~1"=="cipilot-env" GOTO :cipilot
+IF /I "%~1"=="launcher" GOTO :launcher
 
 GOTO :help
 
@@ -158,6 +159,16 @@ SHIFT
 PowerShell -ExecutionPolicy Bypass -File scripts\load_cipilot_env.ps1 %*
 GOTO :eof
 
+:launcher
+REM Запуск интерактивного лаунчера (pythonw, если доступен)
+SET "LAUNCHER=scripts\interactive_launcher.py"
+IF EXIST .venv\Scripts\pythonw.exe (
+  .venv\Scripts\pythonw.exe "%LAUNCHER%"
+) ELSE (
+  python "%LAUNCHER%"
+)
+GOTO :eof
+
 :help
 ECHO Usage: make ^<target^> [extra args]
 ECHO.
@@ -171,5 +182,5 @@ ECHO.
 ECHO Utilities:
 ECHO   sanitize ^| trace-launch ^| analyze-logs
 ECHO   uv-sync ^| uv-run CMD ^| run [app args]
-ECHO   cipilot-env
+ECHO   cipilot-env ^| launcher
 EXIT /B 0
