@@ -12,6 +12,15 @@ on:
 env:
   PYTHON_VERSION: "3.13"
   QT_VERSION: "6.10.0"
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
+  QSG_RHI_BACKEND: opengl
+  LIBGL_ALWAYS_SOFTWARE: "1"
+  PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+  PSS_HEADLESS: "1"
+  PSS_ENV_PRESET: trace
+  QT_PLUGIN_PATH: ''
+  QML2_IMPORT_PATH: ''
 
 jobs:
   testing-entrypoint:
@@ -37,23 +46,29 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@8d55fbecc275b1c35dbe060458839f8d30439ccf
 
+      - name: Sync Python environment with uv
+        run: uv sync --frozen --extra dev
+
       - name: Run testing entrypoint (Linux)
         if: runner.os == 'Linux'
         env:
-          QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: software
           QSG_RHI_BACKEND: opengl
-          PSS_HEADLESS: "1"
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-        run: python scripts/testing_entrypoint.py
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: xvfb-run -a uv run python scripts/testing_entrypoint.py --scope all
 
       - name: Run testing entrypoint (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
-          QT_QPA_PLATFORM: offscreen
           QT_QUICK_BACKEND: rhi
           QSG_RHI_BACKEND: d3d11
-          PSS_HEADLESS: "1"
-          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
-        run: python scripts/testing_entrypoint.py
+        run: uv run python scripts/testing_entrypoint.py --scope all
+
+      - name: Upload testing entrypoint log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: testing-entrypoint-${{ matrix.os }}
+          path: reports/tests/test_entrypoint.log
+          if-no-files-found: warn

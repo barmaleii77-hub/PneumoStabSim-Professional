@@ -11,9 +11,11 @@ from __future__ import annotations
 import json
 import os
 import platform
+import shlex
 import subprocess
 import sys
 from collections import deque
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Literal, Sequence
 import threading
@@ -31,6 +33,7 @@ RHI_CHOICES: list[str] = ["(auto)", "d3d11", "opengl", "vulkan"]
 STYLE_CHOICES: list[str] = ["(auto)", "Basic", "Fusion"]
 SCENE_CHOICES: list[str] = ["(auto)", "realism"]
 DEFAULT_LOG_LINES = 200
+TEST_SCOPE_CHOICES: list[str] = ["main", "integration", "all"]
 
 CreateFlag = Literal["new_console", "detached", "capture"]
 
@@ -67,9 +70,19 @@ def run_command_logged(
     return completed
 
 
-def summarize_log_tail(
-    log_path: Path, max_lines: int
-) -> tuple[deque[str], dict[str, int], list[str]]:
+def run_command_with_summary(
+    cmd: Sequence[str],
+    *,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+) -> tuple[subprocess.CompletedProcess[str], str]:
+    """Execute a command and return the completed process with a readable summary."""
+
+    completed = run_command_logged(cmd, cwd=cwd, env=env)
+    return completed, format_completed_process(cmd, completed)
+
+
+def summarize_log_tail(log_path: Path, max_lines: int) -> tuple[deque[str], dict[str, int], list[str]]:
     """Return tail, severity counts and highlight lines for a log file."""
 
     tail: deque[str] = deque(maxlen=max_lines)
@@ -165,6 +178,17 @@ def _detect_failure_hint(lines: Sequence[str]) -> str:
     return "\n".join(hints)
 
 
+@dataclass
+class TestRunConfig:
+    """Parameters describing a test run triggered from the launcher."""
+
+    runner: Literal["entrypoint", "pytest"]
+    scope: Literal["main", "integration", "all"]
+    targets: list[str]
+    extra_args: list[str]
+    show_canvas: bool
+
+
 # --- Tooltip helper
 class Tooltip:
     def __init__(self, widget: tk.Widget, text: str, *, delay_ms: int = 350) -> None:
@@ -221,6 +245,81 @@ class Tooltip:
             except Exception:
                 pass
             self._tip = None
+
+
+class TestAnimationCanvas:
+    """Small animated canvas illustrating the test pipeline while tests run."""
+
+    def __init__(self, parent: tk.Misc) -> None:
+        self.window = tk.Toplevel(parent)
+        self.window.title("Схема прогонки тестов")
+        self.window.geometry("760x420")
+        self.canvas = tk.Canvas(self.window, width=740, height=360, background="#0d1b2a")
+        self.canvas.pack(fill="both", expand=True, padx=10, pady=10)
+        self._running = False
+        self._step = 0
+        self._status_text = self.canvas.create_text(
+            370,
+            330,
+            text="⏳ Подготовка окружения...",
+            fill="#e0e7ff",
+            font=("Segoe UI", 12),
+        )
+
+        self._nodes = [
+            (120, 120, "Deps"),
+            (290, 120, "Lint"),
+            (460, 120, "Types"),
+            (630, 120, "Tests"),
+        ]
+        self._path = [node[:2] for node in self._nodes]
+        self._indicator = None
+        self._build_scene()
+
+    def _build_scene(self) -> None:
+        for idx, (x, y, label) in enumerate(self._nodes):
+            self.canvas.create_oval(x - 34, y - 34, x + 34, y + 34, fill="#1b263b", outline="#4cc9f0", width=2)
+            self.canvas.create_text(x, y, text=label, fill="#f5f7fb", font=("Segoe UI", 11, "bold"))
+            if idx > 0:
+                prev_x, prev_y, _ = self._nodes[idx - 1]
+                self.canvas.create_line(prev_x + 34, prev_y, x - 34, y, fill="#4cc9f0", width=3, arrow=tk.LAST)
+
+        self._indicator = self.canvas.create_oval(0, 0, 0, 0, fill="#fca311", outline="", width=0)
+        self._update_indicator()
+
+    def _update_indicator(self) -> None:
+        if not self._indicator:
+            return
+        x, y = self._path[self._step % len(self._path)]
+        radius = 12
+        self.canvas.coords(self._indicator, x - radius, y - radius, x + radius, y + radius)
+
+    def start(self) -> None:
+        self._running = True
+        self._schedule_tick()
+
+    def _schedule_tick(self) -> None:
+        if not self._running:
+            return
+        self._step = (self._step + 1) % len(self._path)
+        self._update_indicator()
+        self.canvas.after(420, self._schedule_tick)
+
+    def mark_complete(self, success: bool, message: str) -> None:
+        self._running = False
+        colour = "#38b000" if success else "#ff595e"
+        try:
+            self.canvas.itemconfigure(self._status_text, text=message, fill=colour)
+            if self._indicator:
+                self.canvas.itemconfigure(self._indicator, fill=colour)
+        except Exception:
+            pass
+
+    def destroy(self) -> None:
+        try:
+            self.window.destroy()
+        except Exception:
+            pass
 
 
 def project_root() -> Path:
@@ -379,11 +478,27 @@ def build_test_environment() -> dict[str, str]:
 
 
 def build_testing_entrypoint_command(
-    python_exe: Path, scope: Literal["main", "integration"]
+    python_exe: Path, scope: Literal["main", "integration", "all"]
 ) -> list[str]:
     entrypoint = project_root() / "scripts" / "testing_entrypoint.py"
     cmd = [str(python_exe), str(entrypoint)]
-    cmd.extend(["--scope", "integration" if scope == "integration" else "main"])
+    if scope not in {"main", "integration", "all"}:
+        scope = "main"
+    cmd.extend(["--scope", scope])
+    return cmd
+
+
+def build_custom_pytest_command(
+    python_exe: Path,
+    *,
+    targets: Sequence[str],
+    extra_args: Sequence[str] | None = None,
+) -> list[str]:
+    """Build a direct pytest invocation for configurable runs."""
+
+    cmd = [str(python_exe), "-m", "pytest", *targets]
+    if extra_args:
+        cmd.extend(extra_args)
     return cmd
 
 
@@ -544,11 +659,18 @@ class LauncherUI(tk.Tk):
         self.var_log_dir = tk.StringVar(value=str(self._autodetect_log_dir()))
         self.var_log_lines = tk.IntVar(value=DEFAULT_LOG_LINES)
 
+        self.var_test_runner = tk.StringVar(value="entrypoint")
+        self.var_test_scope = tk.StringVar(value=TEST_SCOPE_CHOICES[0])
+        self.var_test_targets = tk.StringVar(value="tests")
+        self.var_test_args = tk.StringVar(value="")
+        self.var_test_canvas = tk.BooleanVar(value=True)
+
         self.lbl_status: ttk.Label | None = None
         self._widgets: dict[str, tk.Widget] = {}
 
         # Буфер вывода
         self._captured_output: list[str] = []
+        self._test_canvas: TestAnimationCanvas | None = None
 
         self._build_ui()
         self._attach_tooltips()
@@ -727,6 +849,50 @@ class LauncherUI(tk.Tk):
         )
         self._widgets["btn_repo_status"].grid(row=0, column=0, sticky="w", **pad)
 
+        frm_tests = ttk.Labelframe(self, text="Настройки тестирования")
+        frm_tests.pack(fill="x", **pad)
+        ttk.Label(frm_tests, text="Раннер:").grid(row=0, column=0, sticky="e", **pad)
+        self._widgets["rad_entrypoint"] = ttk.Radiobutton(
+            frm_tests,
+            text="Unified entrypoint",
+            variable=self.var_test_runner,
+            value="entrypoint",
+        )
+        self._widgets["rad_entrypoint"].grid(row=0, column=1, sticky="w", **pad)
+        self._widgets["rad_pytest"] = ttk.Radiobutton(
+            frm_tests,
+            text="Pytest напрямую",
+            variable=self.var_test_runner,
+            value="pytest",
+        )
+        self._widgets["rad_pytest"].grid(row=0, column=2, sticky="w", **pad)
+
+        ttk.Label(frm_tests, text="Scope/таргеты:").grid(row=1, column=0, sticky="e", **pad)
+        self._widgets["cmb_scope"] = ttk.Combobox(
+            frm_tests,
+            textvariable=self.var_test_scope,
+            values=TEST_SCOPE_CHOICES,
+            state="readonly",
+            width=12,
+        )
+        self._widgets["cmb_scope"].grid(row=1, column=1, sticky="w", **pad)
+        self._widgets["ent_targets"] = ttk.Entry(frm_tests, textvariable=self.var_test_targets, width=40)
+        self._widgets["ent_targets"].grid(row=1, column=2, sticky="w", **pad)
+
+        ttk.Label(frm_tests, text="Доп. аргументы:").grid(row=2, column=0, sticky="e", **pad)
+        self._widgets["ent_test_args"] = ttk.Entry(frm_tests, textvariable=self.var_test_args, width=60)
+        self._widgets["ent_test_args"].grid(row=2, column=1, columnspan=2, sticky="we", **pad)
+        self._widgets["chk_test_canvas"] = ttk.Checkbutton(
+            frm_tests, text="Показать канву со схемой", variable=self.var_test_canvas
+        )
+        self._widgets["chk_test_canvas"].grid(row=3, column=1, sticky="w", **pad)
+        self._widgets["btn_test_run"] = ttk.Button(
+            frm_tests,
+            text="Запустить тесты (с настройками)",
+            command=self._run_tests_with_config,
+        )
+        self._widgets["btn_test_run"].grid(row=3, column=2, sticky="e", **pad)
+
         frm_actions = ttk.Frame(self)
         frm_actions.pack(fill="x", **pad)
         self._widgets["chk_console"] = ttk.Checkbutton(
@@ -789,6 +955,13 @@ class LauncherUI(tk.Tk):
             "btn_help": "Открыть справку.",
             "btn_show_logs": "Показать последние строки свежих логов и сводку ошибок/варнингов.",
             "btn_repo_status": "Собрать git status и краткий отчёт рут-файлов от линтера.",
+            "rad_entrypoint": "Использовать scripts/testing_entrypoint.py для стандартной матрицы.",
+            "rad_pytest": "Запуск pytest напрямую по выбранным таргетам.",
+            "cmb_scope": "Scope unified entrypoint (main/integration/all).",
+            "ent_targets": "Pytest таргеты (путь к тесту, директория или маркеры через -m).",
+            "ent_test_args": "Дополнительные аргументы pytest, например -k smoke или -q.",
+            "chk_test_canvas": "Открыть канву с анимированной схемой тестового пайплайна.",
+            "btn_test_run": "Запустить тесты с текущими настройками и визуализацией.",
         }
         for key, text in tips.items():
             w = self._widgets.get(key)
@@ -1028,27 +1201,77 @@ class LauncherUI(tk.Tk):
             pass
 
     def _run_tests(self, scope: Literal["main", "integration"]) -> None:
-        label = "интеграционные" if scope == "integration" else "базовые"
-        self._set_status(f"Запуск {label} тестов через unified entrypoint...")
-        threading.Thread(target=self._execute_tests, args=(scope,), daemon=True).start()
+        self.var_test_runner.set("entrypoint")
+        self.var_test_scope.set(scope)
+        self._run_tests_with_config()
 
-    def _execute_tests(self, scope: Literal["main", "integration"]) -> None:
+    def _collect_test_config(self) -> TestRunConfig:
+        raw_targets = self.var_test_targets.get().strip()
+        targets = shlex.split(raw_targets) if raw_targets else ["tests"]
+        extra = shlex.split(self.var_test_args.get().strip()) if self.var_test_args.get().strip() else []
+        scope_value = self.var_test_scope.get() if self.var_test_scope.get() in TEST_SCOPE_CHOICES else TEST_SCOPE_CHOICES[0]
+        runner: Literal["entrypoint", "pytest"] = (
+            "pytest" if self.var_test_runner.get() == "pytest" else "entrypoint"
+        )
+        return TestRunConfig(
+            runner=runner,
+            scope=scope_value,  # type: ignore[arg-type]
+            targets=list(targets),
+            extra_args=list(extra),
+            show_canvas=self.var_test_canvas.get(),
+        )
+
+    def _ensure_test_canvas(self, enabled: bool) -> TestAnimationCanvas | None:
+        if not enabled:
+            if self._test_canvas:
+                self._test_canvas.destroy()
+            self._test_canvas = None
+            return None
+        if self._test_canvas is None:
+            self._test_canvas = TestAnimationCanvas(self)
+        self._test_canvas.start()
+        return self._test_canvas
+
+    def _run_tests_with_config(self) -> None:
+        config = self._collect_test_config()
+        label = "pytest" if config.runner == "pytest" else f"entrypoint ({config.scope})"
+        self._set_status(f"Запуск тестов через {label}...")
+        canvas = self._ensure_test_canvas(config.show_canvas)
+        threading.Thread(
+            target=self._execute_tests_with_config, args=(config, canvas), daemon=True
+        ).start()
+
+    def _execute_tests_with_config(
+        self, config: TestRunConfig, canvas: TestAnimationCanvas | None
+    ) -> None:
         root = project_root()
         python_exe = detect_venv_python(prefer_console=True)
-        entrypoint = root / "scripts" / "testing_entrypoint.py"
-        if not entrypoint.exists():
-            text = f"Entrypoint not found: {entrypoint}"
+        text = ""
+        success = False
+        if config.runner == "entrypoint":
+            entrypoint = root / "scripts" / "testing_entrypoint.py"
+            if not entrypoint.exists():
+                text = f"Entrypoint not found: {entrypoint}"
+            else:
+                env = build_test_environment()
+                command = build_testing_entrypoint_command(python_exe, config.scope)
+                text = self._run_command(command, f"testing_entrypoint ({config.scope})", cwd=root, env=env)
+                success = "exit=0" in text or "Ошибок: 0" in text
         else:
             env = build_test_environment()
-            command = build_testing_entrypoint_command(python_exe, scope)
-            text = self._run_command(
-                command, f"testing_entrypoint ({scope})", cwd=root, env=env
+            command = build_custom_pytest_command(
+                python_exe, targets=config.targets or ["tests"], extra_args=config.extra_args
             )
+            text = self._run_command(command, "pytest (custom)", cwd=root, env=env)
+            success = "exit=0" in text or "Ошибок: 0" in text
 
+        message = "✅ Тесты завершены" if success else "⚠️ Найдены ошибки"
+        if canvas:
+            self.after(0, lambda: canvas.mark_complete(success, message))
         self.after(
             0,
             lambda: self._show_text_window(
-                title="Результаты тестов", text=text, geometry="1100x820"
+                title="Результаты тестов", text=text or "(нет вывода)", geometry="1100x820"
             ),
         )
         self.after(0, lambda: self._set_status("Тестовый прогон завершён."))
