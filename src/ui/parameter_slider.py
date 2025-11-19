@@ -3,6 +3,8 @@ Parameter Slider Widget - Slider with range controls
 Combines slider, spinbox, and min/max range inputs
 """
 
+import math
+
 from PySide6.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -339,6 +341,14 @@ class ParameterSlider(QWidget):
 
     def set_value(self, value: float):
         """Set value"""
+        if self._updating:
+            return
+
+        current_value = self.spinbox.value()
+        tolerance = max(self.spinbox.singleStep() / 10.0, 1e-9)
+        if math.isclose(current_value, value, rel_tol=0.0, abs_tol=tolerance):
+            return
+
         self._updating = True
         self.spinbox.setValue(value)
         slider_pos = self._value_to_slider(value)

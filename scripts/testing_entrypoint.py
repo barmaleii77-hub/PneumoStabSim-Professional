@@ -14,6 +14,8 @@ import platform
 import shutil
 import subprocess
 import sys
+import threading
+from datetime import timedelta
 from pathlib import Path
 from typing import Iterable, Literal, Sequence
 
@@ -23,6 +25,29 @@ PERFORMANCE_REPORTS = [
     PROJECT_ROOT / "reports" / "tests" / "render_sync_performance.json",
     PROJECT_ROOT / "reports" / "tests" / "panel_rendering_performance.json",
 ]
+DEFAULT_ENV_VARS: dict[str, str] = {
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+    "PSS_HEADLESS": "1",
+    "QT_QPA_PLATFORM": "offscreen",
+    "QT_QUICK_BACKEND": "software",
+    "LIBGL_ALWAYS_SOFTWARE": "1",
+}
+DEFAULT_TIMEOUT = int(timedelta(minutes=45).total_seconds())
+
+
+def _coerce_timeout(raw_value: str | None) -> tuple[int, str | None]:
+    if raw_value is None:
+        return DEFAULT_TIMEOUT, None
+
+    try:
+        parsed = int(raw_value)
+    except ValueError:
+        return DEFAULT_TIMEOUT, raw_value
+
+    if parsed <= 0:
+        return DEFAULT_TIMEOUT, raw_value
+
+    return parsed, None
 
 
 class CommandFailure(RuntimeError):
@@ -53,12 +78,13 @@ def _log(message: str) -> None:
 
 
 def _stream_command(
-    command: Sequence[str], *, env: dict[str, str] | None = None
+    command: Sequence[str], *, env: dict[str, str] | None = None, timeout: int | None = None
 ) -> None:
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with REPORT_PATH.open("a", encoding="utf-8") as log:
         log.write(f"$ {' '.join(command)}\n")
         log.flush()
+
         process = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
@@ -68,10 +94,34 @@ def _stream_command(
             cwd=PROJECT_ROOT,
         )
         assert process.stdout is not None
-        for line in process.stdout:
-            print(line, end="")
-            log.write(line)
-        process.wait()
+
+        def _drain_output() -> None:
+            for line in process.stdout:
+                print(line, end="")
+                log.write(line)
+
+        stream_thread = threading.Thread(target=_drain_output, daemon=True)
+        stream_thread.start()
+
+        try:
+            process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timeout_message = (
+                f"[entrypoint] Command timed out after {timeout}s: {' '.join(command)}"
+            )
+            print(timeout_message)
+            log.write(timeout_message + "\n")
+            process.kill()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.terminate()
+        finally:
+            stream_thread.join()
+
+        if process.poll() is None:
+            process.wait()
+
         log.flush()
         if process.returncode:
             raise CommandFailure(
@@ -88,12 +138,12 @@ def _require_uv() -> str:
     )
 
 
-def _sync_environment(uv_path: str) -> None:
+def _sync_environment(uv_path: str, *, env: dict[str, str], timeout: int) -> None:
     _log("[entrypoint] Syncing dependencies with uv --frozen --extra dev")
-    _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"])
+    _stream_command([uv_path, "sync", "--frozen", "--extra", "dev"], env=env, timeout=timeout)
 
 
-def _configure_qt_environment(uv_path: str) -> None:
+def _configure_qt_environment(uv_path: str, *, env: dict[str, str], timeout: int) -> None:
     _log("[entrypoint] Exporting Qt environment variables via tools/setup_qt.py")
     _stream_command(
         [
@@ -105,11 +155,15 @@ def _configure_qt_environment(uv_path: str) -> None:
             "tools/setup_qt.py",
             "--configure-env",
             "--check",
-        ]
+        ],
+        env=env,
+        timeout=timeout,
     )
 
 
-def _preinstall_dependencies(system: str, uv_path: str) -> bool:
+def _preinstall_dependencies(
+    system: str, uv_path: str, *, env: dict[str, str], timeout: int
+) -> bool:
     """Perform platform-specific dependency preparation."""
 
     _log(f"[entrypoint] Platform detected by platform.system(): {system}")
@@ -118,28 +172,30 @@ def _preinstall_dependencies(system: str, uv_path: str) -> bool:
         make_path = shutil.which("make")
         if make_path:
             _log("[entrypoint] Preinstalling dependencies via `make uv-sync`")
-            _stream_command([make_path, "uv-sync"])
+            _stream_command([make_path, "uv-sync"], env=env, timeout=timeout)
         else:
             _log("[entrypoint] GNU Make not available; using uv sync fallback")
-            _sync_environment(uv_path)
-        _configure_qt_environment(uv_path)
+            _sync_environment(uv_path, env=env, timeout=timeout)
+        _configure_qt_environment(uv_path, env=env, timeout=timeout)
         return True
 
     if system == "Windows":
         setup_script = PROJECT_ROOT / "scripts" / "setup_dev.py"
         if setup_script.exists():
             _log("[entrypoint] Preinstalling dependencies via scripts/setup_dev.py")
-            _stream_command([sys.executable, str(setup_script)])
+            _stream_command(
+                [sys.executable, str(setup_script)], env=env, timeout=timeout
+            )
         else:
             _log("[entrypoint] setup_dev.py missing; falling back to uv sync")
-            _sync_environment(uv_path)
-        _configure_qt_environment(uv_path)
+            _sync_environment(uv_path, env=env, timeout=timeout)
+        _configure_qt_environment(uv_path, env=env, timeout=timeout)
         return True
 
     return False
 
 
-def _prepare_system(system: str) -> None:
+def _prepare_system(system: str, *, env: dict[str, str], timeout: int) -> None:
     if system == "Linux":
         setup_script = PROJECT_ROOT / "scripts" / "setup_linux.sh"
         if not setup_script.exists():
@@ -149,7 +205,9 @@ def _prepare_system(system: str) -> None:
         _log(
             "[entrypoint] Ensuring Linux system dependencies via scripts/setup_linux.sh --skip-python --skip-qt"
         )
-        _stream_command([str(setup_script), "--skip-python", "--skip-qt"])
+        _stream_command(
+            [str(setup_script), "--skip-python", "--skip-qt"], env=env, timeout=timeout
+        )
         return
 
     if system == "Windows":
@@ -159,7 +217,9 @@ def _prepare_system(system: str) -> None:
             return
 
         _log("[entrypoint] Running scripts/setup_dev.py to refresh Windows toolchain")
-        _stream_command([sys.executable, str(setup_script)])
+        _stream_command(
+            [sys.executable, str(setup_script)], env=env, timeout=timeout
+        )
         return
 
     _log(f"[entrypoint] No system prep defined for platform '{system}'")
@@ -176,7 +236,30 @@ def _parse_args(argv: Sequence[str]) -> argparse.Namespace:
             "`integration` adds integration/performance suites, `all` executes both"
         ),
     )
+    parser.add_argument(
+        "--platform",
+        choices=["auto", "linux", "windows"],
+        default="auto",
+        help="Override detected platform (auto detects via platform.system())",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help=(
+            "Per-command timeout in seconds. Defaults to PSS_ENTRYPOINT_TIMEOUT_SECONDS "
+            f"or {DEFAULT_TIMEOUT} seconds."
+        ),
+    )
     return parser.parse_args(list(argv))
+
+
+def _resolve_platform(requested: str) -> str:
+    if requested.lower() == "auto":
+        return platform.system()
+
+    mapping = {"linux": "Linux", "windows": "Windows"}
+    return mapping.get(requested.lower(), platform.system())
 
 
 def _primary_commands(
@@ -244,27 +327,42 @@ def _primary_commands(
 
 def main(argv: list[str]) -> int:
     args = _parse_args(argv)
-    system = platform.system()
+    system = _resolve_platform(args.platform)
+    env = os.environ.copy()
+    for key, value in DEFAULT_ENV_VARS.items():
+        env.setdefault(key, value)
+    timeout_value, timeout_override = _coerce_timeout(
+        os.environ.get("PSS_ENTRYPOINT_TIMEOUT_SECONDS")
+    )
+    if args.timeout is not None:
+        timeout_value = args.timeout
     _reset_log()
-    _log(f"[entrypoint] Detected platform: {system} (scope={args.scope})")
+    _log(
+        "[entrypoint] Detected platform: "
+        f"{system} (scope={args.scope}, timeout={timeout_value}s)"
+    )
+    if timeout_override is not None and args.timeout is None:
+        _log(
+            "[entrypoint] Invalid PSS_ENTRYPOINT_TIMEOUT_SECONDS value "
+            f"'{timeout_override}', defaulting to {timeout_value}s"
+        )
     _announce_reports()
 
     try:
         uv_path = _require_uv()
-        _prepare_system(system)
-        preinstall_performed = _preinstall_dependencies(system, uv_path)
+        _prepare_system(system, env=env, timeout=timeout_value)
+        preinstall_performed = _preinstall_dependencies(
+            system, uv_path, env=env, timeout=timeout_value
+        )
         if not preinstall_performed:
-            _sync_environment(uv_path)
-            _configure_qt_environment(uv_path)
-        env = os.environ.copy()
-        env.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
-        env.setdefault("PSS_HEADLESS", "1")
+            _sync_environment(uv_path, env=env, timeout=timeout_value)
+            _configure_qt_environment(uv_path, env=env, timeout=timeout_value)
 
         failures: list[str] = []
 
         for command in _primary_commands(uv_path, args.scope):
             try:
-                _stream_command(command, env=env)
+                _stream_command(command, env=env, timeout=timeout_value)
             except CommandFailure as exc:
                 failures.append(str(exc))
                 _log(
