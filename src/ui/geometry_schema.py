@@ -11,6 +11,8 @@ compatible with the expectations of :mod:`tests.unit.test_geometry_schema`.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
+from numbers import Real
 from typing import Any
 from collections.abc import Mapping
 
@@ -55,7 +57,9 @@ class GeometrySettings:
 
 
 def _as_float(value: Any, field: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
+    """Convert ``value`` to ``float`` while rejecting bools and non-reals."""
+
+    if isinstance(value, bool) or not isinstance(value, (Real, Decimal)):
         raise GeometryValidationError(f"Field '{field}' must be a number")
     return float(value)
 
