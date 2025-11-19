@@ -127,3 +127,9 @@ qml_signals:
       Validation state for accordion-driven fields. Carries the panel id,
       field key, validation state, and message so Python can surface
       warnings or errors in logs and status bars.
+  - signal: geometrySettingsChanged
+    handler: _on_geometry_settings_changed
+    connection: queued
+    description: >-
+      QML geometry payload applied inside SimulationPanel; keep SettingsManager
+      and downstream geometry consumers in sync with the latest values.

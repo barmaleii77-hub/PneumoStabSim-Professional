@@ -1566,6 +1566,12 @@ class SignalsRouter:
             "diagonal_coupling_dia",
             "atmo_temp",
         }
+        gas_numeric_keys = {
+            "tank_temperature_initial_k",
+            "tank_volume_initial_m3",
+            "tank_pressure_initial_pa",
+        }
+        gas_text_keys = {"tank_volume_mode", "thermo_mode"}
         pneumatic_updates: dict[str, Any] = {}
         for key in numeric_keys:
             if key not in payload:
@@ -1576,6 +1582,27 @@ class SignalsRouter:
                 SignalsRouter.logger.debug(
                     "Skipping non-numeric pneumatic value %s=%r", key, payload[key]
                 )
+
+        gas_payload = payload.get("gas")
+        gas_updates: dict[str, Any] = {}
+        if isinstance(gas_payload, Mapping):
+            for key in gas_numeric_keys:
+                if key not in gas_payload:
+                    continue
+                try:
+                    gas_updates[key] = float(gas_payload[key])
+                except (TypeError, ValueError):
+                    SignalsRouter.logger.debug(
+                        "Skipping non-numeric gas value %s=%r", key, gas_payload[key]
+                    )
+            for key in gas_text_keys:
+                if key not in gas_payload:
+                    continue
+                text_value = str(gas_payload.get(key, "")).strip()
+                if text_value:
+                    gas_updates[key] = text_value
+            if gas_updates:
+                pneumatic_updates["gas"] = gas_updates
 
         if "master_isolation_open" in payload:
             pneumatic_updates["master_isolation_open"] = bool(
@@ -1666,6 +1693,12 @@ class SignalsRouter:
             if sanitized:
                 adjusted_updates = sanitized
 
+        if gas_updates:
+            adjusted_updates = {
+                **adjusted_updates,
+                "gas": {**gas_updates, **adjusted_updates.get("gas", {})},
+            }
+
         window._apply_settings_update("pneumatic", adjusted_updates)
         panel = getattr(window, "pneumo_panel", None)
         if panel is not None and hasattr(panel, "set_parameters"):
@@ -1730,6 +1763,54 @@ class SignalsRouter:
                 SignalsRouter.logger.warning("Pneumatic adjustments: %s", message)
                 if status is not None:
                     status.showMessage(message, 4000)
+
+    @staticmethod
+    def handle_geometry_settings_changed(
+        window: "MainWindow", payload: Mapping[str, Any]
+    ) -> None:
+        """Handle geometry payloads emitted from the QML simulation panel."""
+
+        if not isinstance(payload, Mapping):
+            return
+
+        numeric_keys = {
+            "wheelbase",
+            "track",
+            "frame_to_pivot",
+            "lever_length",
+            "rod_position",
+            "cylinder_length",
+            "stroke_m",
+            "dead_gap_m",
+            "cyl_diam_m",
+            "rod_diameter_m",
+            "rod_diameter_rear_m",
+            "piston_rod_length_m",
+            "piston_thickness_m",
+            "frame_height_m",
+            "frame_beam_size_m",
+            "frame_length_m",
+            "cylinder_body_length_m",
+            "tail_rod_length_m",
+        }
+        boolean_keys = {"interference_check", "link_rod_diameters"}
+
+        normalized: dict[str, Any] = {}
+        for key, value in payload.items():
+            if key in numeric_keys:
+                try:
+                    normalized[key] = float(value)
+                except (TypeError, ValueError):
+                    continue
+            elif key in boolean_keys:
+                normalized[key] = bool(value)
+            else:
+                normalized[key] = value
+
+        if not normalized:
+            return
+
+        window._apply_settings_update("geometry", normalized)
 
     @staticmethod
     def handle_simulation_settings_changed(
