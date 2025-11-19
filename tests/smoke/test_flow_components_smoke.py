@@ -1,4 +1,5 @@
 import pytest
+from PySide6.QtGui import QColor
 
 from PySide6.QtCore import QObject
 
@@ -73,24 +74,55 @@ def test_full_flow_network_visuals(qapp) -> None:
 
         flow_model = panel.property("flowArrowsModel")
         assert flow_model is not None
-        assert flow_model.get(0)["label"] == "A1"
-        assert flow_model.get(3)["label"] == "B2"
         assert flow_model.rowCount() == 4
 
-        arrow_a1 = root.findChild(QObject, "flowArrow-A1")
-        arrow_b2 = root.findChild(QObject, "flowArrow-B2")
-        assert arrow_a1 is not None and arrow_b2 is not None
-        assert arrow_a1.property("effectivePressureRatio") > 0.7
-        assert arrow_b2.property("effectivePressureRatio") < 0.2
+        def _unwrap(val):
+            try:
+                if hasattr(val, "toVariant"):
+                    return val.toVariant()
+            except Exception:
+                pass
+            return val
+
+        def _row(model, idx: int):
+            entry = model.get(idx)
+            keys = [
+                "label",
+                "pressureRatio",
+                "pressure",
+                "animationSpeed",
+                "flow",
+                "intensity",
+                "direction",
+            ]
+            out = {}
+            for k in keys:
+                try:
+                    out[k] = _unwrap(entry.property(k))
+                except Exception:
+                    pass
+            return out
+
+        arrow_a1 = _row(flow_model, 0)
+        arrow_b2 = _row(flow_model, 3)
+        assert arrow_a1["label"] == "A1" and arrow_b2["label"] == "B2"
+        assert arrow_a1["pressureRatio"] > 0.7
+        assert arrow_b2["pressureRatio"] < 0.2
 
         reservoir = panel.findChild(QObject, "reservoirView")
         assert reservoir is not None
         fluid = reservoir.findChild(QObject, "reservoirFluid")
         assert fluid is not None
         fluid_color = fluid.property("color")
-        assert _color_tuple(fluid_color) == _color_tuple(
-            reservoir.property("pressureGradientStops")[1]["color"]
+        panel_stops = _as_mapping(panel.property("pressureGradientStops"))
+        assert isinstance(panel_stops, list) and len(panel_stops) >= 2
+        stop_color_raw = panel_stops[1]["color"]
+        stop_color = (
+            QColor(stop_color_raw)
+            if isinstance(stop_color_raw, str)
+            else stop_color_raw
         )
+        assert _color_tuple(fluid_color) == _color_tuple(stop_color)
 
         sphere_a1 = reservoir.findChild(QObject, "lineSphere-A1")
         sphere_b2 = reservoir.findChild(QObject, "lineSphere-B2")

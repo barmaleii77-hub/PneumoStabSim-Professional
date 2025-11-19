@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-18T17:03:13.544Z",
+    "last_modified": "2025-11-19T11:44:51.413Z",
     "defaults_seed": "config/baseline/app_settings.json",
     "units_version": "si_v2",
     "migrations": [
@@ -621,7 +621,7 @@
   },
   "current": {
     "geometry": {
-      "wheelbase": 3.41,
+      "wheelbase": 3.411,
       "track": 2.34,
       "frame_to_pivot": 0.42,
       "lever_length": 0.75,
@@ -641,7 +641,8 @@
       "frame_length_m": 3.4,
       "cylinder_body_length_m": 0.46,
       "tail_rod_length_m": 0.18,
-      "active_preset": "custom"
+      "active_preset": "custom",
+      "lever_length_m": 0.75
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -657,7 +658,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0018,
+      "diagonal_coupling_dia": 0.0026,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -686,30 +687,42 @@
       "relief_pressure_pa": 500000.0
     },
     "modes": {
-      "sim_type": "KINEMATICS",
+      "sim_type": "DYNAMICS",
+      "thermo_mode": "ADIABATIC",
       "mode_preset": "standard",
-      "amplitude": 0.05,
-      "frequency": 1.0,
-      "phase": 0.0,
+      "road_profile": "smooth_highway",
+      "custom_profile_path": "",
+      "check_interference": false,
+      "ambient_temperature_c": 20.0,
+      "amplitude": 0.35,
+      "frequency": 14.0,
+      "phase": -5.0,
       "lf_phase": 0.0,
       "rf_phase": 0.0,
       "lr_phase": 0.0,
       "rr_phase": 0.0,
+      "smoothing_enabled": true,
+      "smoothing_duration_ms": 1200.0,
+      "smoothing_angle_snap_deg": 65.0,
+      "smoothing_piston_snap_m": 0.05,
+      "smoothing_easing": "OutCubic",
+      "profile_avg_speed": 60.0,
+      "dead_zone": 0.0,
+      "stabilizer_dead_zone": 0.0,
+      "road_mode": "profile",
       "physics": {
         "include_springs": true,
         "include_dampers": true,
-        "include_pneumatics": true,
+        "include_pneumatics": false,
+        "include_springs_kinematics": true,
+        "include_dampers_kinematics": true,
         "spring_constant": 50000.0,
         "damper_coefficient": 2000.0,
         "lever_inertia_multiplier": 1.0,
         "damper_force_threshold_n": 50.0,
         "spring_rest_position_m": 0.0,
         "integrator_method": "rk4"
-      },
-      "profile_avg_speed": 60.0,
-      "dead_zone": 0.0,
-      "stabilizer_dead_zone": 0.0,
-      "road_mode": "profile"
+      }
     },
     "graphics": {
       "lighting": {
@@ -1892,7 +1905,8 @@
       "frame_length_m": 3.4,
       "cylinder_body_length_m": 0.46,
       "tail_rod_length_m": 0.18,
-      "active_preset": "custom"
+      "active_preset": "custom",
+      "lever_length_m": 0.75
     },
     "pneumatic": {
       "volume_mode": "MANUAL",
@@ -1908,7 +1922,7 @@
       "relief_safety_pressure": 5000000.0,
       "throttle_min_dia": 0.001,
       "throttle_stiff_dia": 0.0015,
-      "diagonal_coupling_dia": 0.0018,
+      "diagonal_coupling_dia": 0.0026,
       "atmo_temp": 20.0,
       "thermo_mode": "ISOTHERMAL",
       "polytropic_heat_transfer_coeff": 45.0,
@@ -1955,12 +1969,24 @@
         "lever_inertia_multiplier": 1.0,
         "damper_force_threshold_n": 50.0,
         "spring_rest_position_m": 0.0,
-        "integrator_method": "rk4"
+        "integrator_method": "rk4",
+        "include_springs_kinematics": true,
+        "include_dampers_kinematics": true
       },
       "profile_avg_speed": 60.0,
       "dead_zone": 0.0,
       "stabilizer_dead_zone": 0.0,
-      "road_mode": "manual"
+      "road_mode": "manual",
+      "thermo_mode": "ADIABATIC",
+      "road_profile": "smooth_highway",
+      "custom_profile_path": "",
+      "check_interference": false,
+      "ambient_temperature_c": 20.0,
+      "smoothing_enabled": true,
+      "smoothing_duration_ms": 1200.0,
+      "smoothing_angle_snap_deg": 65.0,
+      "smoothing_piston_snap_m": 0.05,
+      "smoothing_easing": "OutCubic"
     },
     "graphics": {
       "lighting": {

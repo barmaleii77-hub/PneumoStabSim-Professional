@@ -1,0 +1,254 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.8, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\CADuser\source\repos\barmaleii77-hub\PneumoStabSim-Professional\.venv\Scripts\python.exe
+PySide6 6.10.0 -- Qt runtime 6.10.0 -- Qt compiled 6.10.0
+rootdir: C:\Users\CADuser\source\repos\barmaleii77-hub\PneumoStabSim-Professional
+configfile: pytest.ini
+testpaths: tests
+plugins: qt-4.5.0
+collecting ... collected 982 items
+
+tests/bootstrap/test_environment_logging.py::test_startup_environment_message_contains_required_keys[offscreen-opengl-/tmp/plugins] PASSED [  0%]
+tests/bootstrap/test_environment_logging.py::test_startup_environment_message_contains_required_keys[xcb-vulkan-] PASSED [  0%]
+tests/bootstrap/test_environment_logging.py::test_format_startup_environment_message_has_all_required_keys PASSED [  0%]
+tests/graphics/test_visual_regression.py::test_shader_log_analysis PASSED [  0%]
+tests/graphics/test_visual_regression.py::test_baseline_image_comparison PASSED [  0%]
+tests/integration/test_backup_restore.py::test_discover_user_data_sources_matches_expectations PASSED [  0%]
+tests/integration/test_backup_restore.py::test_backup_round_trip PASSED  [  0%]
+tests/integration/test_backup_restore.py::test_restore_respects_overwrite_flag PASSED [  0%]
+tests/integration/test_backup_restore.py::test_backup_reports_missing_sources PASSED [  0%]
+tests/integration/test_backup_restore.py::test_restore_rejects_corrupted_archive PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_records_audit_payload_for_corrupted_archive PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_rejects_manifest_mismatch PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_logs_manifest_mismatch_details PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_rejects_unsafe_members PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_logs_path_escape_attempts PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_rejects_invalid_manifest_structure PASSED [  1%]
+tests/integration/test_backup_restore.py::test_restore_rejects_directory_traversal_entry PASSED [  1%]
+tests/integration/test_geometry_panel_interactions.py::test_options_tab_validation_displays_dialogs PASSED [  1%]
+tests/integration/test_geometry_panel_interactions.py::test_interference_toggle_runs_validation PASSED [  1%]
+tests/integration/test_geometry_scene_defaults.py::test_geometry_defaults_populated_from_settings PASSED [  2%]
+tests/integration/test_graphics_signal_routing.py::test_signal_router_dispatches_direct_updates PASSED [  2%]
+tests/integration/test_modes.py::test_safe_mode_does_not_force_backend PASSED [  2%]
+tests/integration/test_modes.py::test_standard_mode_sets_backend PASSED  [  2%]
+tests/integration/test_modes.py::test_surface_format_skipped_when_safe_mode PASSED [  2%]
+tests/integration/test_modes.py::test_legacy_mode_uses_widgets PASSED    [  2%]
+tests/integration/test_modes.py::test_run_disables_qml_when_force_flag PASSED [  2%]
+tests/integration/test_modes_panel_interactions.py::test_modes_panel_emits_control_and_mode_signals PASSED [  2%]
+tests/integration/test_modes_panel_interactions.py::test_modes_panel_validation_reports_out_of_range_state PASSED [  2%]
+tests/integration/test_no_qml_app_runner.py::test_application_runner_disables_qml_when_flag_passed PASSED [  2%]
+tests/integration/test_no_qml_app_runner.py::test_application_runner_legacy_overrides_qml PASSED [  3%]
+tests/integration/test_pneumo_panel_interactions.py::test_pneumo_panel_validate_button_prioritizes_errors PASSED [  3%]
+tests/integration/test_pneumo_panel_interactions.py::test_pneumo_panel_validation_handles_out_of_range_limits PASSED [  3%]
+tests/integration/test_scene_environment_controller.py::test_scene_environment_controller_applies_initial_defaults PASSED [  3%]
+tests/integration/test_scene_environment_controller.py::test_scene_environment_controller_applies_environment_payload PASSED [  3%]
+tests/integration/test_simulation_contracts.py::test_training_preset_service_contract PASSED [  3%]
+tests/integration/test_simulation_contracts.py::test_ecu_gateway_delivers_latest_snapshot PASSED [  3%]
+tests/integration/test_simulation_contracts.py::test_scene_bridge_dispatches_enriched_updates PASSED [  3%]
+tests/integration/test_simulation_contracts.py::test_state_bus_signals_logged PASSED [  3%]
+tests/integration/test_simulation_contracts_headless.py::test_training_preset_service_contract_headless PASSED [  3%]
+tests/integration/test_simulation_contracts_headless.py::test_scene_bridge_dispatches_enriched_updates_headless PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_body_roll_generates_balanced_pressure_delta PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_isothermal_cycle_preserves_mass PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_thermo_mode_switch_changes_pressure_response PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_training_service_tracks_mode_switches PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_road_profiles_match_baseline[highway_100kmh] PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_road_profiles_match_baseline[offroad_moderate] PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_road_profiles_match_baseline[test_sine] PASSED [  4%]
+tests/integration/test_simulation_scenarios.py::test_road_profiles_match_baseline[urban_50kmh] PASSED [  4%]
+tests/integration/test_stabilizer_sync.py::test_stabilizer_ack_flow_completes_with_full_success PASSED [  4%]
+tests/integration/test_ui_flow_and_graphics.py::test_qml_bridge_snapshot_includes_flow_network_metadata PASSED [  5%]
+tests/integration/test_ui_flow_and_graphics.py::test_telemetry_bridge_streams_flow_metrics PASSED [  5%]
+tests/integration/test_ui_flow_and_graphics.py::test_visualization_service_enriches_graphics_payload PASSED [  5%]
+tests/integration/test_ui_flow_and_graphics.py::test_visualization_service_hudtelemetry_pivot_normalization PASSED [  5%]
+tests/logging/test_diagnostics_queue_overflow.py::test_queue_listener_handles_overflow_without_blocking PASSED [  5%]
+tests/logging/test_non_blocking_logging.py::test_queue_handler_drops_when_full PASSED [  5%]
+tests/logging/test_non_blocking_logging.py::test_listener_stop_returns_promptly PASSED [  5%]
+tests/meta/test_version_consistency.py::test_release_version_is_in_sync_with_documentation <- tests\unit\test_version_consistency.py PASSED [  5%]
+tests/optimization/test_resource_cache.py::test_lazy_load_works PASSED   [  5%]
+tests/optimization/test_resource_cache.py::test_cache_works PASSED       [  6%]
+tests/optimization/test_resource_cache.py::test_data_consistent PASSED   [  6%]
+tests/performance/test_panel_render_sync_performance.py::test_graphics_panel_collect_state_within_budget PASSED [  6%]
+tests/performance/test_panel_render_sync_performance.py::test_modes_panel_collect_and_validate_within_budget PASSED [  6%]
+tests/performance/test_qml_bridge_batching_performance.py::test_qml_bridge_flushes_batches_quickly PASSED [  6%]
+tests/performance/test_render_sync_performance.py::test_snapshot_payload_under_latency_budget PASSED [  6%]
+tests/performance/test_render_sync_performance.py::test_visualization_service_dispatch_is_lightweight PASSED [  6%]
+tests/physics/test_runtime_pneumo_system.py::test_update_returns_expected_forces PASSED [  6%]
+tests/physics/test_runtime_pneumo_system.py::test_dead_zone_enforcement PASSED [  6%]
+tests/physics/test_runtime_pneumo_system.py::test_master_isolation_equalises_pressures PASSED [  6%]
+tests/physics/test_runtime_pneumo_system.py::test_lookup_line_returns_expected_connections PASSED [  7%]
+tests/physics/test_runtime_pneumo_system.py::test_line_pressure_falls_back_to_tank_when_state_missing PASSED [  7%]
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance] PASSED [  7%]
+tests/physics/test_suspension_cases.py::test_suspension_cases[limit-pressure-envelope] PASSED [  7%]
+tests/physics/test_suspension_cases.py::test_suspension_cases[full-droop-asymmetric] PASSED [  7%]
+tests/pneumo/test_gas_network.py::test_polytropic_without_coupling_matches_adiabatic PASSED [  7%]
+tests/pneumo/test_gas_network.py::test_apply_valves_reports_leak_flow PASSED [  7%]
+tests/pneumo/test_valves_and_system.py::test_check_valve_hysteresis_cycle PASSED [  7%]
+tests/pneumo/test_valves_and_system.py::test_relief_valve_modes[kwargs0-1280000.0-1150000.0-expectation0] PASSED [  7%]
+tests/pneumo/test_valves_and_system.py::test_relief_valve_modes[kwargs1-1280000.0-1150000.0-expectation1] PASSED [  7%]
+tests/pneumo/test_valves_and_system.py::test_relief_valve_modes[kwargs2-92000.0-110000.0-expectation2] PASSED [  8%]
+tests/pneumo/test_valves_and_system.py::test_pneumatic_system_invariants PASSED [  8%]
+tests/pneumo/test_valves_and_system.py::test_mechanical_stop_causes_pressure_jump PASSED [  8%]
+tests/qml/test_simulation_panel_bindings.py::test_simulation_panel_flow_mappings PASSED [  8%]
+tests/qml/test_simulation_panel_bindings.py::test_reservoir_visuals_follow_pressures PASSED [  8%]
+tests/qml/test_simulation_panel_bindings.py::test_temperature_inputs_are_clamped PASSED [  8%]
+tests/qml/test_simulation_root_rollback_signals.py::test_simulation_root_emits_rollback_hooks PASSED [  8%]
+tests/qml/test_three_d_scene_contract.py::test_scene_contains_phase3_primitives_and_lights PASSED [  8%]
+tests/qml/test_three_d_scene_contract.py::test_scene_exposes_interaction_handlers_and_materials PASSED [  8%]
+tests/qml/test_three_d_scene_contract.py::test_scene_has_phase3_camera_properties PASSED [  8%]
+tests/qml/test_three_d_scene_contract.py::test_scene_environment_tokens[helpersVisible] PASSED [  9%]
+tests/qml/test_three_d_scene_contract.py::test_scene_environment_tokens[gridSpacing] PASSED [  9%]
+tests/qml/test_three_d_scene_contract.py::test_scene_environment_tokens[environmentAaMode] PASSED [  9%]
+tests/qml/test_three_d_scene_contract.py::test_scene_environment_tokens[environmentAaQuality] PASSED [  9%]
+tests/qml/test_three_d_scene_contract.py::test_scene_environment_tokens[keyLightShadowBias] PASSED [  9%]
+tests/qml/test_three_d_scene_rollback_flags.py::test_three_d_scene_emits_rollback_signals PASSED [  9%]
+tests/quality/test_sample_vector.py::test_average_component PASSED       [  9%]
+tests/quality/test_sample_vector.py::test_average_component_empty PASSED [  9%]
+tests/runtime/test_runtime_defaults.py::test_runtime_package_import_is_lazy PASSED [  9%]
+tests/runtime/test_runtime_defaults.py::test_runtime_defaults_loaded_from_config PASSED [  9%]
+tests/runtime/test_runtime_defaults.py::test_runtime_defaults_include_gas_thresholds_and_rendering PASSED [ 10%]
+tests/scenarios/test_diagonal_coupling.py::test_diagonal_coupling_alters_roll_response PASSED [ 10%]
+tests/scenarios/test_diagonal_coupling.py::test_diagonal_coupling_strength_scales_response PASSED [ 10%]
+tests/scenarios/test_road_presets_cache.py::test_get_all_presets_is_cached_singleton PASSED [ 10%]
+tests/scenarios/test_road_presets_cache.py::test_preset_catalogue_is_read_only PASSED [ 10%]
+tests/scenarios/test_road_presets_cache.py::test_get_preset_by_name_uses_cached_catalogue PASSED [ 10%]
+tests/scenarios/test_training_presets.py::test_default_presets_align_with_scenarios PASSED [ 10%]
+tests/scenarios/test_training_presets.py::test_apply_preset_updates_settings PASSED [ 10%]
+tests/scenarios/test_training_presets.py::test_matches_settings_detects_drift PASSED [ 10%]
+tests/scenarios/test_training_presets.py::test_resolve_active_id_round_trip PASSED [ 10%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[geometry_accordion_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[pneumatic_volume_accordion_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[pneumatic_pressure_accordion_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[pneumatic_valve_accordion_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[simulation_panel_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[road_panel_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_round_trip[advanced_panel_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_requires_settings_path[pneumatic_pressure_accordion_fields] PASSED [ 11%]
+tests/settings/test_accordion_metadata_schema.py::test_accordion_metadata_requires_settings_path[simulation_panel_fields] PASSED [ 11%]
+tests/settings/test_environment_schema_ranges.py::test_environment_range_keys_match_schema_definition PASSED [ 12%]
+tests/settings/test_environment_schema_ranges.py::test_environment_slider_range_shapes_match_schema_contract PASSED [ 12%]
+tests/settings/test_environment_serialization.py::test_environment_settings_round_trip_includes_all_fields PASSED [ 12%]
+tests/settings/test_environment_serialization.py::test_environment_slider_ranges_round_trip_preserves_depth_controls PASSED [ 12%]
+tests/settings/test_environment_slider_migration.py::test_settings_service_rehydrates_environment_ranges_from_metadata PASSED [ 12%]
+tests/settings/test_persistence.py::test_load_missing_file_raises_settings_error PASSED [ 12%]
+tests/settings/test_persistence.py::test_load_invalid_json_raises_settings_error PASSED [ 12%]
+tests/settings/test_persistence.py::test_invalid_schema_json_is_reported PASSED [ 12%]
+tests/settings/test_persistence.py::test_load_uses_cache_until_explicit_reload PASSED [ 12%]
+tests/settings/test_persistence.py::test_schema_reload_is_triggered_on_change PASSED [ 12%]
+tests/settings/test_persistence.py::test_load_does_not_modify_file PASSED [ 13%]
+tests/settings/test_persistence.py::test_save_persists_changes_and_emits_event PASSED [ 13%]
+tests/settings/test_persistence.py::test_load_raises_for_invalid_payload PASSED [ 13%]
+tests/settings/test_persistence.py::test_set_unknown_path_records_audit PASSED [ 13%]
+tests/settings/test_persistence.py::test_set_unknown_path_fails_schema_validation PASSED [ 13%]
+tests/settings/test_persistence.py::test_update_unknown_key_records_audit PASSED [ 13%]
+tests/settings/test_persistence.py::test_update_unknown_key_validation_failure_does_not_record PASSED [ 13%]
+tests/settings/test_persistence.py::test_defaults_snapshot_materials_include_ids PASSED [ 13%]
+tests/settings/test_persistence.py::test_save_normalises_fog_aliases_and_hdr_path PASSED [ 13%]
+tests/settings/test_persistence.py::test_validate_detects_material_key_mismatch PASSED [ 13%]
+tests/settings/test_persistence.py::test_validate_rejects_legacy_tail_alias PASSED [ 14%]
+tests/settings/test_persistence.py::test_validate_rejects_material_id_mismatch PASSED [ 14%]
+tests/settings/test_persistence.py::test_validate_rejects_geometry_mesh_fields PASSED [ 14%]
+tests/settings/test_settings_metadata_backfill.py::test_settings_service_restores_metadata_for_legacy_payload PASSED [ 14%]
+tests/settings/test_settings_migration_legacy.py::test_settings_manager_migrates_environment_section PASSED [ 14%]
+tests/settings/test_settings_migration_legacy.py::test_settings_manager_persists_migrated_payload PASSED [ 14%]
+tests/settings/test_settings_service_legacy_integration.py::test_settings_service_migrates_real_legacy_payload PASSED [ 14%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_emits_signals_on_apply PASSED [ 14%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_detects_settings_drift PASSED [ 14%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_updates_settings_service PASSED [ 14%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_plays_nicely_with_simulation PASSED [ 15%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_reports_stable_metrics_during_long_run PASSED [ 15%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_extended_runtime_performance PASSED [ 15%]
+tests/simulation/test_training_preset_bridge.py::test_training_bridge_prolonged_runtime_resilience PASSED [ 15%]
+tests/smoke/test_flow_components_smoke.py::test_full_flow_network_visuals FAILED [ 15%]
+
+================================== FAILURES ===================================
+_______________________ test_full_flow_network_visuals ________________________
+tests\smoke\test_flow_components_smoke.py:82: in test_full_flow_network_visuals
+    assert arrow_a1 is not None and arrow_b2 is not None
+E   assert (None is not None)
+        arrow_a1   = None
+        arrow_b2   = None
+        component  = <PySide6.QtQml.QQmlComponent(0x290eb750980) at 0x00000290E7A0C8C0>
+        engine     = <PySide6.QtQml.QQmlEngine(0x290eb64a7a0) at 0x00000290E8AE4740>
+        flow_model = <PySide6.QtCore.QObject(0x290eb6d5f80) at 0x00000290E7A0D880>
+        panel      = <PySide6.QtQuick.QQuickItem(0x290eb7b9b50, id="simulationPanel", name="simulationPanel", parent=0x290eb7b6dd0, geometry=24,24 912x592) at 0x00000290E7A0D800>
+        payload    = {'flowNetwork': {'lines': {'a1': {'animationSpeed': 0.75,
+                                  'direction': 'intake',
+                                  'flowIntensity': 0.8,
+                                  'netFlow': 0.32,
+                                  'valves': {'atmosphereOpen': False,
+                                             'tankOpen': True}},
+                           'a2': {'animationSpeed': 0.35,
+                                  'direction': 'intake',
+                                  'flowIntensity': 0.25,
+                                  'netFlow': 0.08,
+                                  'valves': {'atmosphereOpen': True,
+                                             'tankOpen': False}},
+                           'b1': {'animationSpeed': 0.55,
+                                  'direction': 'exhaust',
+                                  'flowIntensity': 0.5,
+                                  'netFlow': -0.12,
+                                  'valves': {'atmosphereOpen': False,
+                                             'tankOpen': True}},
+                           'b2': {'animationSpeed': 0.2,
+                                  'direction': 'exhaust',
+                                  'flowIntensity': 0.1,
+                                  'netFlow': -0.04,
+                                  'valves': {'atmosphereOpen': False,
+                                             'tankOpen': False}}},
+                 'masterIsolationOpen': True,
+                 'maxLineIntensity': 1.0,
+                 'receiver': {'maxPressure': 140000.0,
+                              'minPressure': 90000.0,
+                              'pressures': {'a1': 130000.0,
+                                            'a2': 100000.0,
+                                            'b1': 118000.0,
+                                            'b2': 95000.0},
+                              'tankPressure': 115000.0,
+                              'thresholds': [{'color': '#2c7be5',
+                                              'label': 'Min',
+                                              'value': 90000.0},
+                                             {'color': '#55d37a',
+                                              'label': 'Tank',
+                                              'value': 115000.0},
+                                             {'color': '#e05752',
+                                              'label': 'High',
+                                              'value': 140000.0}]}}}
+        qapp       = <PySide6.QtWidgets.QApplication(0x290df1b7a10) at 0x00000290E2772880>
+        root       = <PySide6.QtQuick.QQuickItem(0x290eb7b7850, id="root", parent=0x0, geometry=0,0 960x640) at 0x00000290E7A0EB40>
+============================== warnings summary ===============================
+tests/integration/test_no_qml_app_runner.py::test_application_runner_disables_qml_when_flag_passed
+  C:\Users\CADuser\source\repos\barmaleii77-hub\PneumoStabSim-Professional\src\app_runner.py:568: DeprecationWarning: There is no current event loop
+    return asyncio.get_event_loop_policy().get_event_loop()
+
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance]
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance]
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance]
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance]
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance]
+tests/physics/test_suspension_cases.py::test_suspension_cases[standard-suspension-balance]
+  C:\Users\CADuser\source\repos\barmaleii77-hub\PneumoStabSim-Professional\tests\physics\cases\loader.py:95: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.
+    resolver = jsonschema.validators.RefResolver.from_schema(schema)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================= slowest 5 durations =============================
+0.46s call     tests/integration/test_no_qml_app_runner.py::test_application_runner_disables_qml_when_flag_passed
+0.44s call     tests/integration/test_no_qml_app_runner.py::test_application_runner_legacy_overrides_qml
+0.39s call     tests/logging/test_non_blocking_logging.py::test_queue_handler_drops_when_full
+0.16s call     tests/scenarios/test_diagonal_coupling.py::test_diagonal_coupling_strength_scales_response
+0.16s call     tests/scenarios/test_diagonal_coupling.py::test_diagonal_coupling_alters_roll_response
+=========================== short test summary info ===========================
+FAILED tests/smoke/test_flow_components_smoke.py::test_full_flow_network_visuals - assert (None is not None)
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+================== 1 failed, 151 passed, 7 warnings in 6.07s ==================
+
+Exception ignored in atexit callback <function cleanup_numbered_dir at 0x000002909C6DE020>:
+Traceback (most recent call last):
+  File "C:\Users\CADuser\source\repos\barmaleii77-hub\PneumoStabSim-Professional\.venv\Lib\site-packages\_pytest\pathlib.py", line 374, in cleanup_numbered_dir
+    cleanup_dead_symlinks(root)
+  File "C:\Users\CADuser\source\repos\barmaleii77-hub\PneumoStabSim-Professional\.venv\Lib\site-packages\_pytest\pathlib.py", line 359, in cleanup_dead_symlinks
+    if not left_dir.resolve().exists():
+  File "C:\Users\CADuser\AppData\Local\Programs\Python\Python313\Lib\pathlib\_abc.py", line 450, in exists
+    self.stat(follow_symlinks=follow_symlinks)
+  File "C:\Users\CADuser\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 515, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+PermissionError: [WinError 5] Отказано в доступе: 'C:\\Users\\CADuser\\AppData\\Local\\Temp\\pytest-of-CADuser\\pytest-current'

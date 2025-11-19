@@ -15,8 +15,8 @@ Qt = QtCore.Qt
 qInstallMessageHandler = QtCore.qInstallMessageHandler
 QApplication = QtWidgets.QApplication
 
-from src.app_runner import ApplicationRunner
-from src.cli.arguments import parse_arguments
+from src.app_runner import ApplicationRunner  # noqa: E402
+from src.cli.arguments import parse_arguments  # noqa: E402
 
 
 def test_parse_safe_alias_sets_test_mode() -> None:

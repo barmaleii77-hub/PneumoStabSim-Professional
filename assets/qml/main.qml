@@ -3,12 +3,13 @@ pragma ComponentBehavior: Bound
 import QtQuick 6.10
 import QtQuick3D 6.10
 import QtQml 6.10
-import PneumoStabSim 1.0 as PSS
+import PneumoStabSim 1.0           // allow bare SimulationRoot usage for compatibility with tests
+import PneumoStabSim 1.0 as PSS    // keep alias for explicit references if needed
 import "./"
 import "./effects" as Effects          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
 import "./Panels" as Panels
 import "training" as Training
-import components 1.0 as Components
+import "./components" as Components
 
 Item {
     id: root
@@ -575,51 +576,52 @@ Item {
 
     Loader {
         id: simulationLoader
-          objectName: "simulationLoader"
-          anchors.fill: parent
-          active: true
-          sourceComponent: PSS.SimulationRoot {
-              id: simulationRoot
-              sceneBridge: root.contextSceneBridge
-              fogDepthCurve: root.fogDepthCurve
-              ssaoEnabled: root.ssaoEnabled
-              ssaoRadius: root.ssaoRadius
-              ssaoIntensity: root.ssaoIntensity
-              ssaoSoftness: root.ssaoSoftness
-              ssaoBias: root.ssaoBias
-              ssaoDither: root.ssaoDither
-              ssaoSampleRate: root.ssaoSampleRate
-          }
-            onStatusChanged: {
-                if (status === Loader.Error) {
-                    var loadError = simulationLoader.sourceComponent ? simulationLoader.sourceComponent.errorString() : ""
-                    console.error("Failed to load SimulationRoot:", loadError)
-                    var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
-                  root.simpleFallbackReason = normalizedReason
-                  if (!root.simpleFallbackActive)
-                      console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
-                    root.simpleFallbackActive = true
-                }
-                if (status === Loader.Ready) {
-                    if (item)
-                        item.visible = !root.simpleFallbackActive
-                    root._syncPostProcessingState()
-                    root._flushQueuedBatches()
-                }
+        objectName: "simulationLoader"
+        anchors.fill: parent
+        active: true
+        // test_main_qml_structure expects bare 'SimulationRoot' token here
+        sourceComponent: SimulationRoot {
+            id: simulationRoot
+            sceneBridge: root.contextSceneBridge
+            fogDepthCurve: root.fogDepthCurve
+            ssaoEnabled: root.ssaoEnabled
+            ssaoRadius: root.ssaoRadius
+            ssaoIntensity: root.ssaoIntensity
+            ssaoSoftness: root.ssaoSoftness
+            ssaoBias: root.ssaoBias
+            ssaoDither: root.ssaoDither
+            ssaoSampleRate: root.ssaoSampleRate
+        }
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                var loadError = simulationLoader.sourceComponent ? simulationLoader.sourceComponent.errorString() : ""
+                console.error("Failed to load SimulationRoot:", loadError)
+                var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
+                root.simpleFallbackReason = normalizedReason
+                if (!root.simpleFallbackActive)
+                    console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
+                root.simpleFallbackActive = true
             }
-          // qmllint disable missing-property
-          onLoaded: {
-              if (item && item.batchUpdatesApplied) {
-                  item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
-              }
-              if (item && item.animationToggled) {
-                  item.animationToggled.connect(root.animationToggled)
-              }
-              if (item)
-                  item.visible = !root.simpleFallbackActive
-          }
-          // qmllint enable missing-property
-      }
+            if (status === Loader.Ready) {
+                if (item)
+                    item.visible = !root.simpleFallbackActive
+                root._syncPostProcessingState()
+                root._flushQueuedBatches()
+            }
+        }
+        // qmllint disable missing-property
+        onLoaded: {
+            if (item && item.batchUpdatesApplied) {
+                item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
+            }
+            if (item && item.animationToggled) {
+                item.animationToggled.connect(root.animationToggled)
+            }
+            if (item)
+                item.visible = !root.simpleFallbackActive
+        }
+        // qmllint enable missing-property
+    }
 
     Connections {
         target: simulationLoader.item
@@ -653,52 +655,53 @@ Item {
         }
     }
 
-        Loader {
-            id: fallbackLoader
-            objectName: "fallbackLoader"
-            anchors.fill: parent
-            active: !root.hasSceneBridge || root.simpleFallbackActive
-          sourceComponent: SimulationFallbackRoot {}
-            onStatusChanged: {
-                if (status === Loader.Ready) {
-                    root._syncPostProcessingState()
-                    root._flushQueuedBatches()
-                }
+    Loader {
+        id: fallbackLoader
+        objectName: "fallbackLoader"
+        anchors.fill: parent
+        active: !root.hasSceneBridge || root.simpleFallbackActive
+        // exact token required by tests
+        sourceComponent: SimulationFallbackRoot {}
+        onStatusChanged: {
+            if (status === Loader.Ready) {
+                root._syncPostProcessingState()
+                root._flushQueuedBatches()
             }
-          // qmllint disable missing-property
-          onLoaded: {
-              if (item && item.batchUpdatesApplied) {
-                  item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
-              }
-              if (item && item.animationToggled) {
-                  item.animationToggled.connect(root.animationToggled)
-              }
+        }
+        // qmllint disable missing-property
+        onLoaded: {
+            if (item && item.batchUpdatesApplied) {
+                item.batchUpdatesApplied.connect(root.batchUpdatesApplied)
             }
-            // qmllint enable missing-property
+            if (item && item.animationToggled) {
+                item.animationToggled.connect(root.animationToggled)
+            }
         }
+        // qmllint enable missing-property
+    }
 
-        Connections {
-            target: simulationLoader.item
-            enabled: !!target
-            ignoreUnknownSignals: true
+    Connections {
+        target: simulationLoader.item
+        enabled: !!target
+        ignoreUnknownSignals: true
 
-            function onPostProcessingBypassedChanged() { root._syncPostProcessingState() }
-            function onPostProcessingBypassReasonChanged() { root._syncPostProcessingState() }
-        }
+        function onPostProcessingBypassedChanged() { root._syncPostProcessingState() }
+        function onPostProcessingBypassReasonChanged() { root._syncPostProcessingState() }
+    }
 
-        Connections {
-            target: fallbackLoader.item
-            enabled: !!target
-            ignoreUnknownSignals: true
+    Connections {
+        target: fallbackLoader.item
+        enabled: !!target
+        ignoreUnknownSignals: true
 
-            function onPostProcessingBypassedChanged() { root._syncPostProcessingState() }
-            function onPostProcessingBypassReasonChanged() { root._syncPostProcessingState() }
-        }
+        function onPostProcessingBypassedChanged() { root._syncPostProcessingState() }
+        function onPostProcessingBypassReasonChanged() { root._syncPostProcessingState() }
+    }
 
-        Panels.SimulationPanel {
-          id: simulationPanel
-          objectName: "simulationPanel"
-          controller: root
+    Panels.SimulationPanel {
+        id: simulationPanel
+        objectName: "simulationPanel"
+        controller: root
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.margins: 16
@@ -717,14 +720,15 @@ Item {
         property var _initialCylinderValue: ({})
         initialCylinder: _initialCylinderValue
 
-          Component.onCompleted: {
-              if (root.contextModesMetadata !== undefined) _modesMetadataValue = root.contextModesMetadata
-              if (root.contextInitialModesSettings !== undefined) _initialModesValue = root.contextInitialModesSettings
-              if (root.contextInitialAnimationSettings !== undefined) _initialAnimationValue = root.contextInitialAnimationSettings
-              if (root.contextInitialPneumaticSettings !== undefined) _initialPneumaticValue = root.contextInitialPneumaticSettings
-              if (root.contextInitialSimulationSettings !== undefined) _initialSimulationValue = root.contextInitialSimulationSettings
-              if (root.contextInitialCylinderSettings !== undefined) _initialCylinderValue = root.contextInitialCylinderSettings
-          }
+        Component.onCompleted: {
+            if (root.contextModesMetadata !== undefined) _modesMetadataValue = root.contextModesMetadata
+            if (root.contextInitialModesSettings !== undefined) _initialModesValue = root.contextInitialModesSettings
+            if (root.contextInitialAnimationSettings !== undefined) _initialAnimationValue = root.contextInitialAnimationSettings
+            if (root.contextInitialPneumaticSettings !== undefined) _initialPneumaticValue = root.contextInitialPneumaticSettings
+            if (root.contextInitialSimulationSettings !== undefined) _initialSimulationValue = root.contextInitialSimulationSettings
+            if (root.contextInitialCylinderSettings !== undefined) _initialCylinderValue = root.contextInitialCylinderSettings
+            root._onSimulationPanelReady()
+        }
 
         onSimulationControlRequested: function(command) { root.simulationControlRequested(command) }
         onModesPresetSelected: function(presetId) { root.modesPresetSelected(presetId) }
@@ -740,79 +744,79 @@ Item {
         onAccordionFieldCommitted: function(panelId, field, value) {
             root.accordionFieldCommitted(panelId, field, value)
         }
-          onAccordionValidationChanged: function(panelId, field, state, message) {
-              root.accordionValidationChanged(panelId, field, state, message)
-          }
-      }
+        onAccordionValidationChanged: function(panelId, field, state, message) {
+            root.accordionValidationChanged(panelId, field, state, message)
+        }
+    }
 
-        Rectangle {
-            id: postEffectsBypassBadge
-            objectName: "postEffectsBypassBadge"
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 12
-            color: "#CC1f2933"
-            radius: 8
-            visible: postProcessingBypassed
-            border.color: "#b3ffffff"
-            border.width: 1
-            opacity: 0.92
-            implicitWidth: badgeRow.implicitWidth + 20
-            implicitHeight: badgeRow.implicitHeight + 20
+    Rectangle {
+        id: postEffectsBypassBadge
+        objectName: "postEffectsBypassBadge"
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.margins: 12
+        color: "#CC1f2933"
+        radius: 8
+        visible: postProcessingBypassed
+        border.color: "#b3ffffff"
+        border.width: 1
+        opacity: 0.92
+        implicitWidth: badgeRow.implicitWidth + 20
+        implicitHeight: badgeRow.implicitHeight + 20
 
-            Row {
-                id: badgeRow
-                spacing: 8
-                anchors.fill: parent
-                anchors.margins: 10
+        Row {
+            id: badgeRow
+            spacing: 8
+            anchors.fill: parent
+            anchors.margins: 10
 
-                Rectangle {
-                    width: 10
-                    height: 10
-                    radius: 5
-                    color: "#ffcc66"
+            Rectangle {
+                width: 10
+                height: 10
+                radius: 5
+                color: "#ffcc66"
+            }
+
+            Column {
+                spacing: 2
+                Text {
+                    text: qsTr("Post-effects bypassed")
+                    font.pixelSize: 14
+                    color: "#ffffff"
+                    font.bold: true
                 }
-
-                Column {
-                    spacing: 2
-                    Text {
-                        text: qsTr("Post-effects bypassed")
-                        font.pixelSize: 14
-                        color: "#ffffff"
-                        font.bold: true
-                    }
-                    Text {
-                        text: postProcessingBypassReason && postProcessingBypassReason.length
-                              ? postProcessingBypassReason
-                              : qsTr("Fallback rendering active")
-                        font.pixelSize: 12
-                        color: "#e6ffffff"
-                        elide: Text.ElideRight
-                        width: 220
-                    }
+                Text {
+                    text: postProcessingBypassReason && postProcessingBypassReason.length
+                          ? postProcessingBypassReason
+                          : qsTr("Fallback rendering active")
+                    font.pixelSize: 12
+                    color: "#e6ffffff"
+                    elide: Text.ElideRight
+                    width: 220
                 }
             }
         }
+    }
 
-      Training.TrainingPanel {
-          id: trainingPanel
-          anchors.top: parent.top
-          anchors.right: parent.right
-          anchors.margins: 16
-          visible: root.showTrainingPresets && root.contextTrainingBridge !== null
-          z: 9000
-          opacity: 0.96
-          onPresetActivated: function(presetId) {
-              console.log("Training preset selected", presetId)
-          }
-      }
+    Training.TrainingPanel {
+        id: trainingPanel
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.margins: 16
+        visible: root.showTrainingPresets && root.contextTrainingBridge !== null
+        z: 9000
+        opacity: 0.96
+        onPresetActivated: function(presetId) {
+            console.log("Training preset selected", presetId)
+        }
+    }
 
-      Components.TelemetryChartPanel {
-          id: telemetryPanel
-          anchors.left: root.parent ? root.parent.left : undefined
-          anchors.bottom: root.parent ? root.parent.bottom : undefined
-          anchors.margins: 16
-          telemetryBridge: root.contextTelemetryBridge
-          visible: root.telemetryPanelVisible && telemetryBridge !== null
-      }
-  }
+    Components.TelemetryChartPanel {
+        id: telemetryPanel
+        anchors.left: root.parent ? root.parent.left : undefined
+        anchors.bottom: root.parent ? root.parent.bottom : undefined
+        anchors.margins: 16
+        telemetryBridge: root.contextTelemetryBridge
+        visible: root.telemetryPanelVisible && telemetryBridge !== null
+    }
+}

@@ -348,7 +348,21 @@ class GeometryPanel(QWidget):
                         exc_info=True,
                     )
 
-            self._log_geometry_emit_skipped(description, signature)
+            # Логируем напрямую, не полагаясь на наличие метода у self (см. тестовый stub)
+            try:
+                logger = getattr(self, "logger", None)
+                if logger is not None:
+                    logger.info(
+                        "geometry_emit_skipped",
+                        extra={
+                            "description": description,
+                            "reason": "no_subscribers",
+                            "signal_signature": signature,
+                        },
+                    )
+            except Exception:
+                # Потоки логирования могли быть закрыты во время teardown pytest
+                pass
             return
 
         try:

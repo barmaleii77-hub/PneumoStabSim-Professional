@@ -17,13 +17,13 @@ require_qt_modules(
     "PySide6.QtQuick",
 )
 
-from PySide6.QtCore import QTimer, Qt, QUrl, qInstallMessageHandler
-from PySide6.QtGui import QSurfaceFormat
-from PySide6.QtQml import QQmlComponent, QQmlEngine, QJSValue
-from PySide6.QtQuick import QQuickWindow, QSGRendererInterface
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QTimer, Qt, QUrl, qInstallMessageHandler  # noqa: E402
+from PySide6.QtGui import QSurfaceFormat  # noqa: E402
+from PySide6.QtQml import QQmlComponent, QQmlEngine, QJSValue  # noqa: E402
+from PySide6.QtQuick import QQuickWindow, QSGRendererInterface  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from src.app_runner import ApplicationRunner
+from src.app_runner import ApplicationRunner  # noqa: E402
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -146,7 +146,7 @@ def _to_sequence(value: object) -> list[object]:
     raise TypeError(f"Unsupported sequence container: {type(value)!r}")
 
 
-def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None:  # type: ignore[missing-type-doc]
+def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None:  # type: ignore[missing-type-doc
     """If GLES variants are unavailable, PostEffects should switch to fallback shaders."""
 
     engine = _create_engine_with_manifest(
@@ -179,7 +179,7 @@ def test_post_effects_prefers_fallback_when_gles_variant_missing(qapp) -> None: 
 
 
 @pytest.mark.gui
-def test_post_effects_disables_pass_shaders_when_effects_off(qapp) -> None:  # type: ignore[missing-type-doc]
+def test_post_effects_disables_pass_shaders_when_effects_off(qapp) -> None:  # type: ignore[missing-type-doc
     """Disabling a post-effect should remove its shaders from the render passes."""
 
     engine = _create_engine_with_manifest({})
@@ -248,7 +248,7 @@ def test_post_effects_disables_pass_shaders_when_effects_off(qapp) -> None:  # t
 
 
 @pytest.mark.gui
-def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  # type: ignore[missing-type-doc]
+def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  # type: ignore[missing-type-doc
     """FogEffect should use fallback GLSL 330 shader when GLES resources are absent."""
 
     engine = _create_engine_with_manifest(
@@ -279,7 +279,7 @@ def test_fog_effect_prefers_fallback_when_gles_variant_missing(qapp) -> None:  #
 
 
 @pytest.mark.gui
-def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type: ignore[missing-type-doc]
+def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type: ignore[missing-type-doc
     """FogEffect should engage fallback shader when depth textures are unavailable."""
 
     engine = _create_engine_with_manifest({})
@@ -302,7 +302,7 @@ def test_fog_effect_activates_depth_fallback_when_forced(qapp) -> None:  # type:
 
 
 @pytest.mark.gui
-def test_fog_effect_desktop_backend_avoids_fallback(qapp) -> None:  # type: ignore[missing-type-doc]
+def test_fog_effect_desktop_backend_avoids_fallback(qapp) -> None:  # type: ignore[missing-type-doc
     """FogEffect should stay on the primary shader pipeline under the OpenGL RHI backend."""
 
     _configure_opengl_surface()
@@ -333,7 +333,7 @@ def test_fog_effect_desktop_backend_avoids_fallback(qapp) -> None:  # type: igno
 
 
 @pytest.mark.gui
-def test_depth_of_field_primary_pipeline_active(qapp) -> None:  # type: ignore[missing-type-doc]
+def test_depth_of_field_primary_pipeline_active(qapp) -> None:  # type: ignore[missing-type-doc
     """Depth of field effect should compile without engaging compatibility fallbacks."""
 
     _configure_opengl_surface()

@@ -1,13 +1,13 @@
 {
-  "timestamp": "2025-11-18T17:55:20.298189+00:00",
+  "timestamp": "2025-11-19T11:43:53.731112+00:00",
   "tests": {
-    "total_duration_seconds": "194.824",
-    "total_cases": "736",
-    "integration_duration_seconds": "4.290",
-    "integration_cases": "46",
+    "total_duration_seconds": "201.899",
+    "total_cases": "757",
+    "integration_duration_seconds": "5.510",
+    "integration_cases": "48",
     "ui_duration_seconds": "181.095",
     "ui_cases": "224",
-    "unit_duration_seconds": "9.439",
-    "unit_cases": "466"
+    "unit_duration_seconds": "15.294",
+    "unit_cases": "485"
   }
 }

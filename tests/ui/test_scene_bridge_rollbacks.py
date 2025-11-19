@@ -7,8 +7,8 @@ from tests.helpers import SignalListener, require_qt_modules
 
 require_qt_modules("PySide6.QtQml")
 
-from src.ui.scene_bridge import SceneBridge
-from src.ui.services.visualization_service import VisualizationService
+from src.ui.scene_bridge import SceneBridge  # noqa: E402
+from src.ui.services.visualization_service import VisualizationService  # noqa: E402
 
 
 class _DummySettingsManager:

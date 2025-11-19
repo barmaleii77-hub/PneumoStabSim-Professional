@@ -8,9 +8,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-import pytest
+import pytest  # noqa: E402
 
-from tools import validate_shaders
+from tools import validate_shaders  # noqa: E402
 
 
 def _make_qsb_stub(

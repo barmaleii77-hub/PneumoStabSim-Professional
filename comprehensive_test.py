@@ -18,7 +18,7 @@ src_path = _PROJECT_ROOT / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(1, str(src_path))
 
-from src.diagnostics.logger_factory import get_logger
+from src.diagnostics.logger_factory import get_logger  # noqa: E402  # импорт после модификации sys.path допустим
 
 
 logger = get_logger("tools.comprehensive_test")

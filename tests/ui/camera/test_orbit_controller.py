@@ -10,7 +10,7 @@ from tests.helpers.qt import require_qt_modules
 QtCore, *_ = require_qt_modules("PySide6.QtCore", "PySide6.QtGui", "PySide6.QtWidgets")
 Qt = QtCore.Qt
 
-from src.common.settings_manager import SettingsManager
+from src.common.settings_manager import SettingsManager  # noqa: E402
 
 try:  # pragma: no cover - exercised in Qt-enabled environments
     from src.ui.camera import CameraWidget, OrbitController

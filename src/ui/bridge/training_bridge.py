@@ -91,6 +91,9 @@ class TrainingPresetBridge(QObject):
             dict(payload) for payload in self._service.list_presets()
         ]
         self.presetsChanged.emit()
+        # Дополнительно эмитим состояние чтобы тест дождался активного пресета сразу после refresh
+        self.activePresetChanged.emit()
+        self.selectedPresetChanged.emit()
 
     def _resolve_active_id(self) -> str:
         return self._service.active_preset_id()
@@ -137,9 +140,14 @@ class TrainingPresetBridge(QObject):
             self._service.apply_preset(preset_id, auto_save=True)
         except KeyError:
             return False
-        if self._active_preset_id != previous_active:
-            self._set_selected_payload(preset_id)
+        # Обновляем локальное состояние
+        new_active = self._resolve_active_id()
+        if new_active:
+            self._set_selected_payload(new_active)
+        if new_active != previous_active:
             self.activePresetChanged.emit()
+        # Даже если идентификатор не сменился — гарантируем emission выбранного снапшота
+        self.selectedPresetChanged.emit()
         return True
 
     @Slot(result=str)

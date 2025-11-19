@@ -1,4 +1,4 @@
-pragma ComponentBehavior: Bound
+#pragma ComponentBehavior: Bound
 
 import QtQml 6.10
 import QtQuick 6.10
@@ -158,33 +158,11 @@ Item {
     ListModel { id: flowModel }
     ListModel { id: lineValveListModel }
     ListModel { id: reliefValveListModel }
-    QtObject {
-        id: flowModelProxy
-        property alias model: flowModel
-        property list<var> entriesForPython: []
-        function rowCount() { return flowModel.count }
-        function get(index) {
-            if (index >= 0 && index < entriesForPython.length)
-                return entriesForPython[index]
-            return ({})
-        }
-    }
+    ListModel { id: flowArrowsListModel; objectName: "flowArrowsModel" }
+    property var flowArrowsModel: flowArrowsListModel
     // Экспорт внутренних моделей как свойства для доступа из тестов
-    property alias flowArrowsModel: flowModelProxy
     property alias lineValveModel: lineValveListModel
     property alias reliefValveModel: reliefValveListModel
-
-    Instantiator {
-        model: flowModelProxy.entriesForPython
-        delegate: QtObject {
-            required property var modelData
-
-            objectName: "flowArrowProxy-" + (modelData.label || index)
-            property real effectivePressureRatio: Number(modelData.pressureRatio)
-            property real minPressure: root.minPressure
-            property real maxPressure: root.maxPressure
-        }
-    }
 
     Component.onCompleted: {
         _refreshContextSnapshots()
@@ -527,7 +505,7 @@ Item {
         if (kinematicSpringsSwitch)
             kinematicSpringsSwitch.checked = !!_modesValue(["physics", "include_springs_kinematics"], true)
         if (kinematicDampersSwitch)
-            kinematicDampersSwitch.checked = !!_modesValue(["physics", "include_dampers_kinematics"], true)
+            kinematicDampersSwitch.checked = !!_modesValue(["physics", "include_dampers_kinематics"], true)
     }
 
     function _updateAnimationBindings() {
@@ -621,7 +599,7 @@ Item {
             include_dampers: dampersSwitch ? !!dampersSwitch.checked : true,
             include_pneumatics: pneumaticsSwitch ? !!pneumaticsSwitch.checked : true,
             include_springs_kinematics: kinematicSpringsSwitch ? !!kinematicSpringsSwitch.checked : true,
-            include_dampers_kinematics: kinematicDampersSwitch ? !!kinematicDampersSwitch.checked : true
+            include_dampers_kinематics: kinematicDampersSwitch ? !!kinematicDampersSwitch.checked : true
         }
         _modesState = _mergeObjects(_modesState, { physics: _mergeObjects(_modesValue("physics", {}), payload) })
         root.modesPhysicsChanged(payload)
@@ -695,6 +673,7 @@ Item {
         _clearModel(flowModel)
         _clearModel(lineValveListModel)
         _clearModel(reliefValveListModel)
+        _clearModel(flowArrowsListModel)
         _hasTelemetryGradient = false
         _telemetryEffectiveMinimum = NaN
         _telemetryEffectiveMaximum = NaN
@@ -736,7 +715,7 @@ Item {
                 intensity = Math.abs(netNumeric)
             if (maxIntensity <= 0 && intensity > maxIntensity)
                 maxIntensity = intensity
-            var normalized = maxIntensity > 0 ? Math.max(0.0, Math.min(1.0, intensity / maxIntensity)) : 0.0
+            var normalizedIntensity = maxIntensity > 0 ? Math.max(0.0, Math.min(1.0, intensity / maxIntensity)) : 0.0
             var label = String(key || "line").toUpperCase()
             if (!direction.length)
                 direction = netNumeric >= 0 ? "intake" : "exhaust"
@@ -750,7 +729,7 @@ Item {
             var pressureRatio = hasValidRange ? Math.max(0.0, Math.min(1.0, _normalize(rawPressure))) : 0.0
             var animationSpeed = entry.animationSpeed !== undefined ? Number(entry.animationSpeed) : Number(entry.speedHint)
             if (!Number.isFinite(animationSpeed))
-                animationSpeed = normalized
+                animationSpeed = normalizedIntensity
             if (animationSpeed < 0.0)
                 animationSpeed = 0.0
             else if (animationSpeed > 1.0)
@@ -759,12 +738,13 @@ Item {
                 label: label,
                 direction: direction,
                 flow: netNumeric,
-                intensity: normalized,
+                intensity: normalizedIntensity,
                 animationSpeed: animationSpeed,
                 pressure: rawPressure,
                 pressureRatio: pressureRatio
             }
             flowModel.append(modelEntry)
+            flowArrowsListModel.append(modelEntry)
             pythonEntries.push(_cloneObject(modelEntry))
             var valves = entry.valves || {}
             var flowAtmo = Number(flows.fromAtmosphere || flows.from_atmosphere || 0.0)
@@ -774,7 +754,7 @@ Item {
             if (!Number.isFinite(flowTank))
                 flowTank = 0.0
             pressureMap[label] = rawPressure
-            intensityMap[label] = normalized
+            intensityMap[label] = normalizedIntensity
             valveStateMap[label] = {
                 atmosphereOpen: !!valves.atmosphereOpen,
                 tankOpen: !!valves.tankOpen
@@ -819,7 +799,6 @@ Item {
         linePressureMap = pressureMap
         lineIntensityMap = intensityMap
         lineValveStateMap = valveStateMap
-        flowModelProxy.entriesForPython = pythonEntries
     }
 
     function _applyFlowTelemetryState(payload) {
@@ -1301,16 +1280,16 @@ Item {
                             Layout.fillHeight: true
                             spacing: 4
 
-                            Repeater {
+                            Instantiator {
                                 model: flowModel
-                                  delegate: Components.FlowArrow {
-                                      required property var modelData
+                                delegate: Components.FlowArrow {
+                                    required property var modelData
 
-                                      Layout.fillWidth: true
-                                      Component.onCompleted: {
-                                          objectName = "flowArrow-" + (modelData.label || index)
-                                      }
-                                      label: modelData.label
+                                    Layout.fillWidth: true
+                                    Component.onCompleted: {
+                                        objectName = "flowArrow-" + (modelData.label || index)
+                                    }
+                                    label: modelData.label
                                     direction: modelData.direction
                                     flowValue: modelData.flow
                                     intensity: modelData.intensity

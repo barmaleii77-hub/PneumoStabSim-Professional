@@ -6,8 +6,8 @@ from tests.helpers import SignalListener, require_qt_modules
 
 require_qt_modules("PySide6.QtQml")
 
-from PySide6.QtCore import QUrl
-from PySide6.QtQml import QQmlComponent, QQmlEngine
+from PySide6.QtCore import QUrl  # noqa: E402
+from PySide6.QtQml import QQmlComponent, QQmlEngine  # noqa: E402
 
 
 @pytest.mark.gui

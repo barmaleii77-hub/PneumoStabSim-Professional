@@ -8,9 +8,9 @@ from tests.helpers.qt import require_qt_modules
 # Инициализируем обязательные Qt модули; при отсутствии произойдёт pytest.fail
 require_qt_modules("PySide6.QtQml", "PySide6.QtQuick")
 
-from PySide6.QtCore import QMetaObject, QObject, QUrl
-from PySide6.QtGui import QColor
-from PySide6.QtQml import QQmlComponent, QQmlEngine
+from PySide6.QtCore import QMetaObject, QObject, QUrl  # noqa: E402
+from PySide6.QtGui import QColor  # noqa: E402
+from PySide6.QtQml import QQmlComponent, QQmlEngine  # noqa: E402
 
 os.environ.setdefault("QML_XHR_ALLOW_FILE_READ", "1")
 
@@ -106,7 +106,34 @@ def test_simulation_panel_flow_mappings(qapp) -> None:
             count = flow_model_obj.property("count")
         assert count == 2
 
-        first_entry = flow_model_obj.get(0)
+        def _unwrap(value):
+            try:
+                if hasattr(value, "toVariant"):
+                    return value.toVariant()
+            except Exception:
+                pass
+            return value
+
+        def _row_dict(model, index: int):
+            entry = model.get(index)
+            keys = [
+                "label",
+                "pressure",
+                "pressureRatio",
+                "animationSpeed",
+                "flow",
+                "intensity",
+                "direction",
+            ]
+            result = {}
+            for k in keys:
+                try:
+                    result[k] = _unwrap(entry.property(k))
+                except Exception:
+                    pass
+            return result
+
+        first_entry = _row_dict(flow_model_obj, 0)
         assert first_entry["label"] == "A1"
         assert pytest.approx(first_entry["pressure"], rel=1e-6) == 110_000.0
         assert pytest.approx(first_entry["pressureRatio"], rel=1e-6) == pytest.approx(

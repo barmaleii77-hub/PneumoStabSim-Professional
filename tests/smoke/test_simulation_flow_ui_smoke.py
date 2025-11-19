@@ -48,8 +48,38 @@ def test_simulation_root_accepts_nested_flow_network(qapp) -> None:
 
         flow_model = panel.property("flowArrowsModel")
         assert flow_model is not None
-        assert flow_model.get(0)["label"] == "A1"
-        assert flow_model.get(1)["label"] == "B2"
+
+        def _unwrap(val):
+            try:
+                if hasattr(val, "toVariant"):
+                    return val.toVariant()
+            except Exception:
+                pass
+            return val
+
+        def _row(model, idx: int):
+            entry = model.get(idx)
+            keys = [
+                "label",
+                "pressureRatio",
+                "pressure",
+                "animationSpeed",
+                "flow",
+                "intensity",
+                "direction",
+            ]
+            out = {}
+            for k in keys:
+                try:
+                    out[k] = _unwrap(entry.property(k))
+                except Exception:
+                    pass
+            return out
+
+        first_row = _row(flow_model, 0)
+        second_row = _row(flow_model, 1)
+        assert first_row["label"] == "A1"
+        assert second_row["label"] == "B2"
 
         assert panel.property("masterIsolationValveOpen") is True
 

@@ -18,7 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from src.diagnostics.profiler import (
+from src.diagnostics.profiler import (  # noqa: E402
     export_profiler_report,
     load_profiler_overlay_state,
     record_profiler_overlay,

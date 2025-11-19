@@ -310,11 +310,14 @@ def _normalise_dict_keys(
 def _load_qt_core():
     try:
         spec = util.find_spec("PySide6.QtCore")
-    except (ModuleNotFoundError, ImportError):
+    except (ModuleNotFoundError, ImportError, ValueError):
         return None
     if spec is None:
         return None
-    return import_module("PySide6.QtCore")
+    try:
+        return import_module("PySide6.QtCore")
+    except Exception:
+        return None
 
 
 _qt_core = _load_qt_core()

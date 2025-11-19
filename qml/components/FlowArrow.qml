@@ -321,5 +321,9 @@ Item {
         function onVisibleChanged() { root._refreshAnimationRunning() }
     }
 
-    Component.onCompleted: _refreshAnimationRunning()
+    Component.onCompleted: {
+        if (!objectName && label.length) {
+            objectName = "flowArrow-" + label
+        }
+    }
 }

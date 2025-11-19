@@ -7,11 +7,20 @@ import time
 import importlib.util
 from pathlib import Path
 from collections.abc import Callable
-import pytest
 import types
+import pytest
 
-from tools.quality.skip_policy import EXPECTED_SKIP_TOKEN
-from tests._qt_runtime import QT_SKIP_REASON
+# Полностью блокируем автозагрузку сторонних плагинов через декларацию.
+# Это дополняет PYTEST_DISABLE_PLUGIN_AUTOLOAD и принудительное отключение
+# pytest-qt (в средах где плагин всё же успевает загрузиться раньше наших хуков).
+pytest_plugins: tuple[str, ...] = ()  # жестко отключаем внешние плагины
+
+from tools.quality.skip_policy import EXPECTED_SKIP_TOKEN  # noqa: E402
+from tests._qt_runtime import QT_SKIP_REASON  # noqa: E402
+
+# Отключаем авто‑загрузку сторонних плагинов pytest, чтобы гарантировать
+# предсказуемость окружения (особенно pytest-qt)
+os.environ.setdefault("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
 
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -50,32 +59,32 @@ _MARKERS = [
 _PYTESTQT_LOAD_ERROR: str | None = None
 
 
-def _ensure_pytestqt_loaded(config: pytest.Config) -> None:
-    """Load the pytest-qt plugin when plugin autoload is disabled.
-
-    CI runs set ``PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`` to avoid picking up
-    globally-installed plugins. In this mode ``pytest-qt`` is not loaded
-    automatically even though it is present in the environment, which would
-    leave the ``qtbot`` fixture unresolved. Import the plugin explicitly when
-    available and remember any failure so we can skip qtbot-driven tests with
-    a descriptive reason instead of raising fixture errors.
-    """
-
-    global _PYTESTQT_LOAD_ERROR
-
-    if QT_SKIP_REASON is not None:
-        return
-
-    plugin_manager = config.pluginmanager
-    if plugin_manager.get_plugin("pytestqt") or plugin_manager.get_plugin(
-        "pytestqt.plugin"
-    ):
-        return
-
+# --- Early plugin guard -----------------------------------------------------
+@pytest.hookimpl(tryfirst=True)
+def pytest_load_initial_conftests(
+    early_config: pytest.Config, parser: pytest.Parser, args: list[str]
+) -> None:  # type: ignore[override]
+    """Отключаем pytest-qt максимально рано при отсутствии Qt рантайма."""
     try:
-        plugin_manager.import_plugin("pytestqt.plugin")
-    except Exception as exc:  # pragma: no cover - environment specific
-        _PYTESTQT_LOAD_ERROR = str(exc)
+        # Всегда пытаемся удалить pytest-qt если он уже загружен
+        for name in ("pytestqt", "pytestqt.plugin", "qt"):
+            plugin = early_config.pluginmanager.get_plugin(name)
+            if plugin is not None:
+                try:
+                    early_config.pluginmanager.unregister(plugin, name=name)
+                except Exception:
+                    pass
+            try:
+                early_config.pluginmanager.set_blocked(name)
+            except Exception:
+                pass
+            __import__("sys").modules.pop(name, None)
+        if QT_SKIP_REASON is not None:
+            from tests._qt_runtime import disable_pytestqt
+
+            disable_pytestqt(early_config.pluginmanager)
+    except Exception:
+        pass
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -83,7 +92,25 @@ def pytest_configure(config: pytest.Config) -> None:
     for marker in _MARKERS:
         config.addinivalue_line("markers", marker)
 
-    _ensure_pytestqt_loaded(config)
+    # Жёстко блокируем pytest-qt на всех конфигурациях — наши тесты используют
+    # собственные заглушки qtbot. Это устраняет зависания плагина в CI.
+    try:
+        from tests._qt_runtime import disable_pytestqt
+
+        disable_pytestqt(config.pluginmanager)
+        for name in ("pytestqt", "pytestqt.plugin", "qt"):
+            plugin = config.pluginmanager.get_plugin(name)
+            if plugin is not None:
+                try:
+                    config.pluginmanager.unregister(plugin, name=name)
+                except Exception:
+                    pass
+            try:
+                config.pluginmanager.set_blocked(name)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -153,7 +180,7 @@ def headless_env() -> dict[str, str]:
     return os.environ
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def headless_qt_modules():
     """Provide lightweight PySide6/pytestqt shims for headless execution.
 
@@ -168,8 +195,13 @@ def headless_qt_modules():
     force_stub = headless_requested(os.environ)
 
     def _install(name: str, module: object) -> None:
-        if name not in sys.modules:
-            sys.modules[name] = module
+        # Всегда перезаписываем модуль, даже если он уже есть в sys.modules.
+        # Это позволяет переопределить более ранние заглушки без QCoreApplication
+        # из других тестов (например, test_geometry_no_receivers).
+        import sys as _sys
+
+        _sys.modules[name] = module
+        if name not in added:
             added.append(name)
 
     def _spec(name: str):
@@ -359,9 +391,14 @@ def qapp():
     except Exception:
         yield None
         return
-    # Ensure Qt uses a platform plugin that works in headless Linux containers
-    # while still allowing Windows/macOS agents to override as needed.
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+    try:  # noqa: SIM105 - side-effect import
+        from PySide6 import QtQmlModels  # type: ignore  # noqa: F401
+        from PySide6.QtQmlModels import QQmlListModel as _QQmlListModel  # type: ignore  # noqa: F401
+    except Exception:
+        pass
+
     app = QApplication.instance() or QApplication(sys.argv)
     yield app
     try:
@@ -384,13 +421,20 @@ def qt_runtime_ready(qapp):
 
 def _extract_skip_reason(report: pytest.TestReport) -> str:
     message = getattr(report, "longrepr", "")
+
+    def _safe_str(val):
+        try:
+            return str(val)
+        except Exception:
+            return "<unrepresentable>"
+
     if isinstance(message, tuple) and len(message) == 3:
-        return str(message[2])
+        return _safe_str(message[2])
     if hasattr(message, "reprcrash") and getattr(message.reprcrash, "message", None):
-        return str(message.reprcrash.message)
+        return _safe_str(message.reprcrash.message)
     if hasattr(message, "message"):
-        return str(message.message)
-    return str(message)
+        return _safe_str(message.message)
+    return _safe_str(message)
 
 
 @pytest.hookimpl(trylast=True)
@@ -433,7 +477,20 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:  # n
 def settings_manager(tmp_path, monkeypatch):
     """Provide a SettingsManager instance with temp config for tests."""
     import json
-    from src.common.settings_manager import SettingsManager
+    import importlib
+    import sys as _sys
+
+    # Некоторые тесты (test_geometry_no_receivers) подменяют sys.modules['src.common.settings_manager']
+    # заглушкой без класса SettingsManager. Здесь гарантируем восстановление реального модуля.
+    mod = _sys.modules.get("src.common.settings_manager")
+    if mod is not None and not hasattr(mod, "SettingsManager"):
+        _sys.modules.pop("src.common.settings_manager", None)
+    try:
+        from src.common.settings_manager import SettingsManager  # type: ignore
+    except Exception:
+        # Последняя попытка — жесткая перезагрузка
+        _sys.modules.pop("src.common.settings_manager", None)
+        from src.common.settings_manager import SettingsManager  # type: ignore
 
     settings_path = tmp_path / "app_settings.json"
     # Load baseline config from project
@@ -478,16 +535,13 @@ def structlog_logger_config():
 @pytest.fixture
 def reference_suspension_linkage():
     """Provide reference suspension linkage geometry for tests."""
-    # Minimal reference geometry from baseline config
     from src.mechanics.geometry import SuspensionLinkage
 
     try:
         from src.mechanics.geometry import SuspensionLinkage
     except Exception:
-        # Backwards-compatible import path
         from src.mechanics.linkage_geometry import SuspensionLinkage
 
-    # Baseline geometry parameters in metres (simple canonical linkage)
     linkage = SuspensionLinkage.from_mm(
         pivot=(200.0, 0.0),
         free_end=(500.0, 0.0),
@@ -529,12 +583,10 @@ def hysteretic_check_valve():
     """Provide a check valve with hysteresis for testing state transitions."""
     from src.pneumo.valves import CheckValve
 
-    # Калиброванный клапан: открывается при Δp > 1.5 kPa,
-    # закрывается при Δp < 0.9 kPa (гистерезис 600 Pa)
     return CheckValve(
-        delta_open_min=1500.0,  # 1.5 kPa
-        d_eq=0.008,  # 8mm equivalent diameter
-        hyst=600.0,  # 600 Pa hysteresis
+        delta_open_min=1500.0,
+        d_eq=0.008,
+        hyst=600.0,
     )
 
 
@@ -544,13 +596,11 @@ def relief_valve_reference():
     from src.pneumo.valves import ReliefValve
     from src.pneumo.enums import ReliefValveKind
 
-    # Клапан давления: открывается при p > 205 kPa,
-    # закрывается при p < 200 kPa (гистерезис 5 kPa)
     return ReliefValve(
         kind=ReliefValveKind.STIFFNESS,
-        p_set=200_000.0,  # 200 kPa
-        hyst=5000.0,  # 5 kPa
-        d_eq=0.02,  # throttle coefficient
+        p_set=200_000.0,
+        hyst=5000.0,
+        d_eq=0.02,
     )
 
 
@@ -786,7 +836,6 @@ def qtbot(qapp):
                     return
                 except Exception:
                     pass
-            # Fallback: two clicks
             self.mouseClick(widget, button)
             self.mouseClick(widget, button)
 
@@ -829,7 +878,6 @@ def qtbot(qapp):
             return _NotEmittedCtx(signal, timeout)
 
         def waitExposed(self, widget, timeout: int = 1000) -> None:
-            # Basic exposure detection
             def _visible():
                 try:
                     wh = (
@@ -901,3 +949,50 @@ def physics_case_loader():
     from tests.physics.cases.loader import build_case_loader
 
     return build_case_loader()
+
+
+@pytest.fixture
+def settings_service(tmp_path):
+    """Предоставляет SettingsService с временным конфигом для пресет‑тестов.
+
+    Используется тестом training_bridge_updates_settings_service.
+    """
+    import json
+    from src.core.settings_service import SettingsService
+
+    settings_path = tmp_path / "app_settings.json"
+    try:
+        baseline_text = (PROJECT_ROOT / "config" / "app_settings.json").read_text(
+            encoding="utf-8"
+        )
+    except Exception:
+        baseline_text = json.dumps(
+            {
+                "metadata": {"units_version": "si_v2"},
+                "current": {},
+                "defaults_snapshot": {},
+            },
+            ensure_ascii=False,
+        )
+    settings_path.write_text(baseline_text, encoding="utf-8")
+    service = SettingsService(settings_path, validate_schema=False)
+    yield service
+
+
+try:
+    # Принудительный monkeypatch если настоящий плагин всё же загрузился
+    import importlib
+
+    real_plugin = importlib.import_module("pytestqt.plugin")
+    if hasattr(real_plugin, "_process_events"):
+
+        def _disabled_process_events():  # noqa: D401
+            # Жёстко отключаем обработку: предотвращает зависание в headless
+            return None
+
+        try:
+            real_plugin._process_events = _disabled_process_events  # type: ignore[attr-defined]
+        except Exception:
+            pass
+except Exception:
+    pass

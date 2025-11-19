@@ -1,21 +1,21 @@
 {
   "snapshot_to_payload": {
     "iterations": 250,
-    "total_seconds": 0.009873612999854231,
-    "average_ms": 0.039494451999416924,
+    "total_seconds": 0.005712500016670674,
+    "average_ms": 0.022850000066682696,
     "budget_ms": 5.0
   },
   "visualization_dispatch": {
     "iterations": 500,
-    "total_seconds": 0.40875984499962215,
-    "average_ms": 0.8175196899992443,
+    "total_seconds": 0.13566050000372343,
+    "average_ms": 0.27132100000744686,
     "budget_ms": 4.0
   },
   "qml_bridge_batching": {
     "iterations": 500,
-    "queue_total_seconds": 0.0014127170002211642,
-    "average_queue_ms": 0.0028254340004423284,
-    "average_total_ms": 0.015636290000657027,
+    "queue_total_seconds": 0.0005416000203695148,
+    "average_queue_ms": 0.0010832000407390296,
+    "average_total_ms": 0.007764600042719394,
     "budget_ms": 0.25
   }
 }
