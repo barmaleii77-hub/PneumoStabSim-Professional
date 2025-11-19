@@ -21,6 +21,7 @@ tests drive the requirements.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import math
@@ -172,8 +173,63 @@ def _resolve_settings_file(settings_file: Path | str | None) -> Path:
     return _expand_path(DEFAULT_SETTINGS_PATH)
 
 
-def _deep_copy(data: Any) -> Any:
-    return json.loads(json.dumps(data))
+_IMMUTABLE_TYPES = (str, int, float, bool, type(None))
+
+
+def _deep_copy(data: Any, *, _memo: dict[int, Any] | None = None) -> Any:
+    """Recursively copy ``data`` while tolerating self-referential inputs."""
+
+    if isinstance(data, _IMMUTABLE_TYPES):
+        return data
+
+    if _memo is None:
+        _memo = {}
+
+    obj_id = id(data)
+    if obj_id in _memo:
+        return _memo[obj_id]
+
+    if isinstance(data, dict):
+        clone: dict[Any, Any] = {}
+        _memo[obj_id] = clone
+        for key, value in data.items():
+            key_copy = key if isinstance(key, _IMMUTABLE_TYPES) else _deep_copy(key, _memo=_memo)
+            clone[key_copy] = _deep_copy(value, _memo=_memo)
+        return clone
+
+    if isinstance(data, list):
+        clone_list: list[Any] = []
+        _memo[obj_id] = clone_list
+        clone_list.extend(_deep_copy(item, _memo=_memo) for item in data)
+        return clone_list
+
+    if isinstance(data, tuple):
+        clone_tuple = tuple(_deep_copy(item, _memo=_memo) for item in data)
+        _memo[obj_id] = clone_tuple
+        return clone_tuple
+
+    if isinstance(data, set):
+        clone_set: set[Any] = set()
+        _memo[obj_id] = clone_set
+        for item in data:
+            clone_set.add(_deep_copy(item, _memo=_memo))
+        return clone_set
+
+    try:
+        cloned = copy.deepcopy(data)
+    except RecursionError:
+        # Replace recursive references with a descriptive token to prevent
+        # bubbling RecursionError back to the caller. The token also preserves
+        # referential integrity for repeated sightings of the same object.
+        cloned = "<recursion>"
+    except Exception:
+        try:
+            cloned = json.loads(json.dumps(data))
+        except Exception:
+            cloned = repr(data)
+
+    _memo[obj_id] = cloned
+    return cloned
 
 
 def _deep_update(target: dict[str, Any], source: dict[str, Any]) -> None:

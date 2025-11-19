@@ -382,10 +382,11 @@ Item {
         effectsBypassRequested = target
         effectsBypassReason = normalizedReason
 
-        // Always surface the bypass state to diagnostics, even if the low-level
-        // post-processing chain is unavailable in headless tests.
+        // Keep the public flags in sync regardless of which implementation path is taken
         postProcessingBypassed = target
         postProcessingBypassReason = normalizedReason
+        if (!target)
+            postProcessingEffectBackup = []
 
         if (postEffects && typeof postEffects.setEffectPersistentFailure === "function") {
             var manualReason = normalizedReason.length ? normalizedReason : qsTr("Manual post-processing bypass")

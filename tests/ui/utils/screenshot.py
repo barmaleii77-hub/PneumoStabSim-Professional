@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from collections.abc import Callable, Sequence
 
-from PIL import Image, ImageChops, ImageStat
+from PIL import Image, ImageChops, ImageDraw, ImageStat
 
 from PySide6.QtCore import QObject, Qt, QUrl
 from PySide6.QtGui import QColor, QImage
@@ -55,6 +55,7 @@ def _ensure_qt_environment() -> None:
     # Ensure stable HiDPI scaling so captured screenshots match recorded baselines
     os.environ.setdefault("QT_SCALE_FACTOR", "1.5")
     os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
+    os.environ.setdefault("QML_DISABLE_DISK_CACHE", "1")
 
 
 def _process_events(qapp, iterations: int = 10) -> None:
@@ -299,6 +300,72 @@ def _grab_by_item(window: QQuickWindow, qapp, timeout_ms: int = 1500) -> QImage 
     return None
 
 
+def _apply_bypass_overlay(image: Image.Image, window: QQuickWindow) -> Image.Image:
+    """Overlay a diagnostic badge when post-effects are bypassed."""
+
+    root_object = None
+    try:
+        if hasattr(window, "rootObject"):
+            root_object = window.rootObject()
+    except Exception:
+        root_object = None
+
+    if root_object is None:
+        try:
+            root_object = window.property("rootObject")
+        except Exception:
+            root_object = None
+
+    try:
+        bypassed = (
+            bool(root_object.property("postProcessingBypassed"))
+            if root_object
+            else False
+        )
+    except Exception:
+        bypassed = False
+
+    if not bypassed:
+        return image
+
+    try:
+        reason = (
+            root_object.property("postProcessingBypassReason") if root_object else ""
+        )
+    except Exception:
+        reason = ""
+
+    reason_text = ""
+    try:
+        if hasattr(reason, "toString"):
+            reason_text = str(reason.toString())
+        elif reason not in (None, False):
+            reason_text = str(reason)
+    except Exception:
+        reason_text = ""
+
+    badge = image.copy()
+    draw = ImageDraw.Draw(badge, "RGBA")
+    width, height = badge.size
+    box_width = min(260, max(180, width // 4))
+    box_height = 64
+    x1, y1 = width - box_width - 16, 12
+    x2, y2 = width - 16, y1 + box_height
+
+    draw.rectangle(
+        [x1, y1, x2, y2], fill=(31, 41, 51, 200), outline=(255, 255, 255, 180), width=2
+    )
+    draw.ellipse([x1 + 10, y1 + 22, x1 + 26, y1 + 38], fill=(255, 204, 102, 255))
+    draw.text((x1 + 34, y1 + 18), "Post-effects bypassed", fill=(255, 255, 255, 255))
+    draw.text(
+        (x1 + 34, y1 + 36),
+        reason_text or "Fallback rendering active",
+        fill=(230, 230, 230, 255),
+    )
+
+    return badge
+
+
 def capture_window_image(
     window: QQuickWindow, qapp, *, settle_iterations: int = 4
 ) -> Image.Image:
@@ -317,7 +384,7 @@ def capture_window_image(
     for _ in range(attempts):
         image = window.grabWindow()
         if not image.isNull():
-            return _qimage_to_pillow(image)
+            return _apply_bypass_overlay(_qimage_to_pillow(image), window)
         try:
             window.requestUpdate()
         except Exception:
@@ -328,13 +395,13 @@ def capture_window_image(
     # Резервный способ: захват через root/content item
     fallback = _grab_by_item(window, qapp, timeout_ms=2000)
     if isinstance(fallback, QImage) and not fallback.isNull():
-        return _qimage_to_pillow(fallback)
+        return _apply_bypass_overlay(_qimage_to_pillow(fallback), window)
 
     # Последняя попытка прямого grabWindow
     image = window.grabWindow()
     if image.isNull():
         raise RuntimeError("grabWindow() returned an empty image")
-    return _qimage_to_pillow(image)
+    return _apply_bypass_overlay(_qimage_to_pillow(image), window)
 
 
 def _normalise_payload(updates: dict[str, object]) -> dict[str, object]:
@@ -347,6 +414,15 @@ def push_updates(root: QObject, updates: dict[str, object]) -> None:
 
     if not updates:
         return
+
+    effects = updates.get("effects")
+    if isinstance(effects, dict):
+        if "effects_bypass" in effects:
+            root.setProperty("postProcessingBypassed", bool(effects["effects_bypass"]))
+        if "effects_bypass_reason" in effects:
+            root.setProperty(
+                "postProcessingBypassReason", str(effects["effects_bypass_reason"])
+            )
 
     payload = _normalise_payload(updates)
     root.setProperty("pendingPythonUpdates", payload)

@@ -62,16 +62,27 @@ def _serialise_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
     if metadata is None:
         return {}
 
-    def _convert(value: Any) -> Any:
+    def _convert(value: Any, stack: set[int]) -> Any:
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
+        obj_id = id(value)
+        if obj_id in stack:
+            return "<recursion>"
         if isinstance(value, Mapping):
-            return {str(key): _convert(val) for key, val in value.items()}
+            stack.add(obj_id)
+            try:
+                return {str(key): _convert(val, stack) for key, val in value.items()}
+            finally:
+                stack.discard(obj_id)
         if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
-            return [_convert(item) for item in value]
+            stack.add(obj_id)
+            try:
+                return [_convert(item, stack) for item in value]
+            finally:
+                stack.discard(obj_id)
         return repr(value)
 
-    return {str(key): _convert(val) for key, val in metadata.items()}
+    return {str(key): _convert(val, set()) for key, val in metadata.items()}
 
 
 def _resolve_log_path(path: Path | str | None) -> Path:
@@ -116,7 +127,25 @@ class SecurityAuditLogger:
         return str(payload.get("hash", ""))
 
     def _digest(self, previous_hash: str, payload: Mapping[str, Any]) -> str:
-        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False)
+        def _default(value: Any) -> Any:
+            if isinstance(value, (str, int, float, bool)) or value is None:
+                return value
+            if isinstance(value, Mapping):
+                return _serialise_metadata(value)
+            if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                return [_default(item) for item in value]
+            return repr(value)
+
+        try:
+            canonical = json.dumps(
+                payload, sort_keys=True, ensure_ascii=False, default=_default
+            )
+        except RecursionError:
+            canonical = json.dumps(
+                {key: _default(value) for key, value in payload.items()},
+                sort_keys=True,
+                ensure_ascii=False,
+            )
         data = f"{previous_hash}:{canonical}".encode()
         return sha256(data).hexdigest()
 
@@ -310,13 +339,18 @@ class AccessControlService:
             "role": profile.role.value,
             "intent": intent,
         }
-        self._logger.record(
-            f"settings.{intent}",
-            profile.actor,
-            scope=dotted_path,
-            allowed=allowed,
-            metadata=metadata,
-        )
+        try:
+            self._logger.record(
+                f"settings.{intent}",
+                profile.actor,
+                scope=dotted_path,
+                allowed=allowed,
+                metadata=metadata,
+            )
+        except RecursionError:
+            # Skip audit logging when the metadata graph becomes recursive to
+            # avoid cascading failures while still enforcing permissions.
+            pass
         if not allowed:
             raise AccessDeniedError(
                 f"Role '{profile.role.value}' is not permitted to modify '{dotted_path}'"

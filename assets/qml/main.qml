@@ -43,6 +43,9 @@ Item {
     // qmllint enable unqualified
 
     property var pendingPythonUpdates: ({})
+    // Surface post-processing bypass state from the active simulation root for diagnostic consumers
+    property bool postProcessingBypassed: false
+    property string postProcessingBypassReason: ""
     property var _queuedBatchedUpdates: []
     property var _pendingSimulationPanelCalls: []
     property bool showTrainingPresets: true
@@ -87,6 +90,12 @@ Item {
     property bool environmentFxaaEnabled: false
     property bool environmentSpecularAaEnabled: true
     property bool environmentDitheringEnabled: true
+
+    Component.onCompleted: {
+        postProcessingBypassed = false
+        postProcessingBypassReason = ""
+        _syncPostProcessingState()
+    }
 
     property bool environmentTonemapEnabled: false
     property string environmentTonemapMode: "filmic"
@@ -300,8 +309,39 @@ Item {
         _queuedBatchedUpdates = remaining
     }
 
+    function _syncPostProcessingState() {
+        var target = _activeSimulationRoot()
+        var bypass = false
+        var reason = ""
+
+        if (target) {
+            try {
+                bypass = Boolean(target.postProcessingBypassed)
+                if (target.postProcessingBypassReason !== undefined && target.postProcessingBypassReason !== null)
+                    reason = String(target.postProcessingBypassReason)
+            } catch (error) {
+                console.debug("[main.qml] Failed to read post-processing state", error)
+            }
+        }
+
+        if (postProcessingBypassed !== bypass)
+            postProcessingBypassed = bypass
+        if (postProcessingBypassReason !== reason)
+            postProcessingBypassReason = reason
+    }
+
     function _deliverBatchedUpdates(payload) {
-        return _invokeOnActiveRoot("applyBatchedUpdates", payload)
+        if (payload && typeof payload === "object" && payload.effects) {
+            var effectsPayload = payload.effects
+            if (effectsPayload.effects_bypass !== undefined)
+                postProcessingBypassed = !!effectsPayload.effects_bypass
+            if (effectsPayload.effects_bypass_reason !== undefined)
+                postProcessingBypassReason = String(effectsPayload.effects_bypass_reason || "")
+        }
+
+        var delivered = _invokeOnActiveRoot("applyBatchedUpdates", payload)
+        _syncPostProcessingState()
+        return delivered
     }
 
     function _invokeOnActiveRoot(methodName, payload) {
@@ -549,22 +589,23 @@ Item {
               ssaoDither: root.ssaoDither
               ssaoSampleRate: root.ssaoSampleRate
           }
-          onStatusChanged: {
-              if (status === Loader.Error) {
-                  var loadError = simulationLoader.sourceComponent ? simulationLoader.sourceComponent.errorString() : ""
-                  console.error("Failed to load SimulationRoot:", loadError)
-                  var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
+            onStatusChanged: {
+                if (status === Loader.Error) {
+                    var loadError = simulationLoader.sourceComponent ? simulationLoader.sourceComponent.errorString() : ""
+                    console.error("Failed to load SimulationRoot:", loadError)
+                    var normalizedReason = loadError && loadError.length ? loadError : "SimulationRoot load failure"
                   root.simpleFallbackReason = normalizedReason
                   if (!root.simpleFallbackActive)
                       console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure")
-                  root.simpleFallbackActive = true
-              }
-              if (status === Loader.Ready) {
-                  if (item)
-                      item.visible = !root.simpleFallbackActive
-                  root._flushQueuedBatches()
-              }
-          }
+                    root.simpleFallbackActive = true
+                }
+                if (status === Loader.Ready) {
+                    if (item)
+                        item.visible = !root.simpleFallbackActive
+                    root._syncPostProcessingState()
+                    root._flushQueuedBatches()
+                }
+            }
           // qmllint disable missing-property
           onLoaded: {
               if (item && item.batchUpdatesApplied) {
@@ -611,17 +652,18 @@ Item {
         }
     }
 
-      Loader {
-          id: fallbackLoader
-          objectName: "fallbackLoader"
-          anchors.fill: parent
-          active: !root.hasSceneBridge || root.simpleFallbackActive
+        Loader {
+            id: fallbackLoader
+            objectName: "fallbackLoader"
+            anchors.fill: parent
+            active: !root.hasSceneBridge || root.simpleFallbackActive
           sourceComponent: SimulationFallbackRoot {}
-          onStatusChanged: {
-              if (status === Loader.Ready) {
-                  root._flushQueuedBatches()
-              }
-          }
+            onStatusChanged: {
+                if (status === Loader.Ready) {
+                    root._syncPostProcessingState()
+                    root._flushQueuedBatches()
+                }
+            }
           // qmllint disable missing-property
           onLoaded: {
               if (item && item.batchUpdatesApplied) {
@@ -630,14 +672,32 @@ Item {
               if (item && item.animationToggled) {
                   item.animationToggled.connect(root.animationToggled)
               }
-          }
-          // qmllint enable missing-property
-      }
+            }
+            // qmllint enable missing-property
+        }
 
-      Panels.SimulationPanel {
-        id: simulationPanel
-        objectName: "simulationPanel"
-        controller: root
+        Connections {
+            target: simulationLoader.item
+            enabled: !!target
+            ignoreUnknownSignals: true
+
+            function onPostProcessingBypassedChanged() { root._syncPostProcessingState() }
+            function onPostProcessingBypassReasonChanged() { root._syncPostProcessingState() }
+        }
+
+        Connections {
+            target: fallbackLoader.item
+            enabled: !!target
+            ignoreUnknownSignals: true
+
+            function onPostProcessingBypassedChanged() { root._syncPostProcessingState() }
+            function onPostProcessingBypassReasonChanged() { root._syncPostProcessingState() }
+        }
+
+        Panels.SimulationPanel {
+          id: simulationPanel
+          objectName: "simulationPanel"
+          controller: root
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.margins: 16
@@ -679,10 +739,59 @@ Item {
         onAccordionFieldCommitted: function(panelId, field, value) {
             root.accordionFieldCommitted(panelId, field, value)
         }
-        onAccordionValidationChanged: function(panelId, field, state, message) {
-            root.accordionValidationChanged(panelId, field, state, message)
+          onAccordionValidationChanged: function(panelId, field, state, message) {
+              root.accordionValidationChanged(panelId, field, state, message)
+          }
+      }
+
+        Rectangle {
+            id: postEffectsBypassBadge
+            objectName: "postEffectsBypassBadge"
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 12
+            color: "#CC1f2933"
+            radius: 8
+            visible: postProcessingBypassed
+            border.color: "#b3ffffff"
+            border.width: 1
+            opacity: 0.92
+            implicitWidth: badgeRow.implicitWidth + 20
+            implicitHeight: badgeRow.implicitHeight + 20
+
+            Row {
+                id: badgeRow
+                spacing: 8
+                anchors.fill: parent
+                anchors.margins: 10
+
+                Rectangle {
+                    width: 10
+                    height: 10
+                    radius: 5
+                    color: "#ffcc66"
+                }
+
+                Column {
+                    spacing: 2
+                    Text {
+                        text: qsTr("Post-effects bypassed")
+                        font.pixelSize: 14
+                        color: "#ffffff"
+                        font.bold: true
+                    }
+                    Text {
+                        text: postProcessingBypassReason && postProcessingBypassReason.length
+                              ? postProcessingBypassReason
+                              : qsTr("Fallback rendering active")
+                        font.pixelSize: 12
+                        color: "#e6ffffff"
+                        elide: Text.ElideRight
+                        width: 220
+                    }
+                }
+            }
         }
-    }
 
       Training.TrainingPanel {
           id: trainingPanel
