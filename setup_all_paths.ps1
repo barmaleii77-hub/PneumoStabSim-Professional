@@ -66,7 +66,6 @@ function Test-PathExists {
     } else {
         Write-Warning "$Description not found: $Path"
         return $false
-    }
 }
 
 function Get-PythonExecutable {
@@ -145,34 +144,44 @@ function Set-PythonPath {
 function Set-QtEnvironment {
     param($QtPaths)
 
- Write-Section "Qt Environment Setup"
+    Write-Section "Qt Environment Setup"
 
-    # Qt QML/Plugin paths
- if ($QtPaths) {
-        Write-Info "Setting Qt paths..."
-
+    if ($QtPaths) {
+        Write-Info "Setting Qt import and plugin paths..."
         $env:QML2_IMPORT_PATH = $QtPaths.qml
         $env:QML_IMPORT_PATH = $QtPaths.qml
-     $env:QT_PLUGIN_PATH = $QtPaths.plugins
-      $env:QT_QML_IMPORT_PATH = $QtPaths.qml
-
+        $env:QT_PLUGIN_PATH = $QtPaths.plugins
+        $env:QT_QML_IMPORT_PATH = $QtPaths.qml
         Write-Success "QML Import Path: $($QtPaths.qml)"
-   Write-Success "Plugin Path: $($QtPaths.plugins)"
-}
+        Write-Success "Plugin Path: $($QtPaths.plugins)"
+    } else {
+        Write-Warning "PySide6 was not detected — Qt paths will be skipped"
+    }
 
-    # Qt Graphics Backend
-$env:QSG_RHI_BACKEND = "opengl"
-    Write-Success "Graphics Backend: Direct3D 11"
+    $headless = $false
+    if ($env:PSS_HEADLESS) {
+        $headless = $env:PSS_HEADLESS -match '^(1|true|yes)$'
+    }
 
-    # Qt Logging
-    $env:QT_LOGGING_RULES = "js.debug=true;qt.qml.debug=true"
-    $env:QSG_INFO = "1"
-    Write-Success "Qt Logging enabled"
+    if ([string]::IsNullOrWhiteSpace($env:QT_QPA_PLATFORM)) {
+        $env:QT_QPA_PLATFORM = if ($headless) { 'offscreen' } else { 'windows' }
+    }
 
-    # Qt High DPI
-    $env:QT_ENABLE_HIGHDPI_SCALING = "1"
-    $env:QT_SCALE_FACTOR_ROUNDING_POLICY = "PassThrough"
-    Write-Success "High DPI scaling configured"
+    $env:QT_QUICK_BACKEND = 'rhi'
+    $env:QSG_RHI_BACKEND = 'd3d11'
+    $env:QT_QUICK_CONTROLS_STYLE = 'Basic'
+    $env:QT_AUTO_SCREEN_SCALE_FACTOR = '1'
+    $env:QT_ENABLE_HIGHDPI_SCALING = '1'
+    $env:QT_SCALE_FACTOR_ROUNDING_POLICY = 'PassThrough'
+    $env:QT_LOGGING_RULES = '*.debug=false;qt.scenegraph.general=false'
+    $env:QT_OPENGL = 'software'
+    $env:QSG_INFO = '0'
+
+    Write-Success "Qt platform: $($env:QT_QPA_PLATFORM)"
+    Write-Success "Graphics backend: $($env:QSG_RHI_BACKEND)"
+    Write-Success "Qt Quick backend: $($env:QT_QUICK_BACKEND)"
+    Write-Success "Controls style: $($env:QT_QUICK_CONTROLS_STYLE)"
+    Write-Success "Logging rules applied"
 }
 
 function Set-ProjectPaths {
@@ -261,11 +270,16 @@ PYTHONDONTWRITEBYTECODE=1
 # ============================================================================
 # QT CONFIGURATION
 # ============================================================================
-QSG_RHI_BACKEND=opengl
-QT_LOGGING_RULES=js.debug=true;qt.qml.debug=true
-QSG_INFO=1
-QT_ENABLE_HIGHDPI_SCALING=1
-QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+QT_QPA_PLATFORM=$($env:QT_QPA_PLATFORM)
+QSG_RHI_BACKEND=$($env:QSG_RHI_BACKEND)
+QT_QUICK_BACKEND=$($env:QT_QUICK_BACKEND)
+QT_QUICK_CONTROLS_STYLE=$($env:QT_QUICK_CONTROLS_STYLE)
+QT_AUTO_SCREEN_SCALE_FACTOR=$($env:QT_AUTO_SCREEN_SCALE_FACTOR)
+QT_ENABLE_HIGHDPI_SCALING=$($env:QT_ENABLE_HIGHDPI_SCALING)
+QT_SCALE_FACTOR_ROUNDING_POLICY=$($env:QT_SCALE_FACTOR_ROUNDING_POLICY)
+QT_LOGGING_RULES=$($env:QT_LOGGING_RULES)
+QT_OPENGL=$($env:QT_OPENGL)
+QSG_INFO=$($env:QSG_INFO)
 
 "@
 
@@ -279,7 +293,14 @@ QT_PLUGIN_PATH=$($Paths.QtPaths.plugins)
 QT_QML_IMPORT_PATH=$($Paths.QtPaths.qml)
 
 "@
-  }
+    } else {
+        $envContent += @"
+
+# Qt import paths were not detected automatically. Re-run setup_all_paths.ps1
+# after installing PySide6 to populate them.
+
+"@
+    }
 
     $envContent += @"
 
