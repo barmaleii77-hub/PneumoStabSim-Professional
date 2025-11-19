@@ -15,6 +15,7 @@ pytest.importorskip(
 from src.ui.panels.panel_geometry import GeometryPanel
 from src.ui.qml_bridge import QMLBridge
 
+from ._bridge_window_stub import BridgeWindowStub
 from ._slider_utils import get_slider_value, nudge_slider
 
 
@@ -39,8 +40,9 @@ def test_geometry_panel_queues_payload_matches_bridge_schema(
     panel = GeometryPanel()
     qtbot.addWidget(panel)
 
+    window = BridgeWindowStub()
     panel.geometry_changed.connect(
-        lambda payload: QMLBridge.queue_update(object(), "geometry", payload)
+        lambda payload: QMLBridge.queue_update(window, "geometry", payload)
     )
 
     # Allow the deferred initial emission to complete, then ignore it
