@@ -79,6 +79,8 @@ Item {
 
     Panels.SimulationPanel {
         id: simulationPanel
+        objectName: "simulationPanel"
         anchors.centerIn: root
+        visible: true
     }
 }

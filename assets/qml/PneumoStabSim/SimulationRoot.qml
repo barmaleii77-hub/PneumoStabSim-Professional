@@ -15,9 +15,7 @@ import scene 1.0 as Scene
 import "../animation"
 import "../diagnostics/LogBridge.js" as Diagnostics
 
-/*
- * PneumoStabSim - MAIN QML (restored functional version)
- */
+// Восстановленная функциональная версия SimulationRoot с расширенной логикой bypass + backup
 Item {
     id: root
     objectName: "simulationRoot"
@@ -29,18 +27,16 @@ Item {
     property var sceneDirectionalLights: null
     property var scenePointLights: null
     property var sceneFrameNode: null
-    // External references
     property var postEffects: null
     property var sceneView: null
 
-    // Manual overrides for post-processing toggles (from UI/settings)
+    // Post-processing bypass
     property bool effectsBypassRequested: false
     property string effectsBypassReason: ""
-
-    // Post-processing bypass
     property bool postProcessingBypassed: false
     property string postProcessingBypassReason: ""
     property var postProcessingEffectBackup: []
+    property bool _effectsBackupTaken: false
 
     // Simplified fallback
     property bool simpleFallbackActive: false
@@ -52,23 +48,7 @@ Item {
     signal shaderWarningRegistered(string effectId, string message)
     signal shaderWarningCleared(string effectId)
     signal shaderStatusDumpRequested(var payload)
-
-    /** Кэш предупреждений шейдеров (effectId -> message). */
     property var shaderWarningState: ({})
-
-    // Empty defaults helpers
-    readonly property var emptyDefaultsObject: Object.freeze({})
-    readonly property var emptyGeometryDefaults: emptyDefaultsObject
-    readonly property var emptyMaterialsDefaults: emptyDefaultsObject
-
-    readonly property var propertySuffixMap: ({
-        texture_path: "TexturePath",
-        normal_strength: "NormalStrength",
-        occlusion_amount: "OcclusionAmount",
-        thickness: "Thickness",
-        alpha_mode: "AlphaMode",
-        alpha_cutoff: "AlphaCutoff"
-    })
 
     // Core state mirrors
     property var geometryState: ({})
@@ -87,7 +67,7 @@ Item {
     readonly property bool geometryStateReady: !_isEmptyMap(geometryState)
     readonly property bool simulationStateReady: !_isEmptyMap(simulationState)
 
-    // SSAO controls mirrored from the embedding UI/root
+    // SSAO properties (mirrored)
     property bool ssaoEnabled: true
     property real ssaoRadius: 0.008
     property real ssaoIntensity: 1.0
@@ -103,39 +83,7 @@ Item {
     signal batchUpdatesApplied(var summary)
     signal animationToggled(bool running)
 
-    onPendingPythonUpdatesChanged: {
-        if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object")
-            return
-        try { applyBatchedUpdates(pendingPythonUpdates) } finally { pendingPythonUpdates = null }
-    }
-
-    // Indicators (declarative bindings)
-    QtObject {
-        id: geometryIndicator
-        property bool active: root.geometryStateReceived
-        property bool warning: !root.sceneBridgeAvailable || (!active && root.sceneBridgeAvailable)
-        property string detailText: active ? (Object.keys(root.geometryState).length + " параметров") : "Ожидание данных от SceneBridge"
-        property string secondaryText: active ? "" : (root.sceneBridgeAvailable ? "Сигналы ещё не получены" : "Bridge недоступен")
-        property bool pulse: root.sceneBridgeDispatchCount > 0 && active
-    }
-    QtObject {
-        id: simulationIndicator
-        property bool active: root.simulationStateReceived
-        property bool warning: !root.sceneBridgeAvailable || (!active && root.sceneBridgeAvailable)
-        property int _leverCount: active && root.simulationState && root.simulationState.levers ? Object.keys(root.simulationState.levers).length : 0
-        property int _pistonCount: active && root.simulationState && root.simulationState.pistons ? Object.keys(root.simulationState.pistons).length : 0
-        property string detailText: active ? ("Рычаги: " + _leverCount + " • Поршни: " + _pistonCount) : "Нет активного снапшота"
-        property string secondaryText: {
-            if (!active) return root.sceneBridgeAvailable ? "Ожидание шага" : "Bridge недоступен"
-            var ag = root.simulationState && root.simulationState.aggregates ? root.simulationState.aggregates : null
-            if (ag && ag.stepNumber !== undefined && ag.simulationTime !== undefined)
-                return "Шаг " + ag.stepNumber + " • Время " + ag.simulationTime + " с"
-            return ""
-        }
-        property bool pulse: root.sceneBridgeDispatchCount > 0 && active
-    }
-    property alias geometryIndicatorItem: geometryIndicator
-    property alias simulationIndicatorItem: simulationIndicator
+    onPendingPythonUpdatesChanged: { if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") return; try { applyBatchedUpdates(pendingPythonUpdates) } finally { pendingPythonUpdates = null } }
 
     // Render related state
     property real renderScale: 1.0
@@ -145,736 +93,121 @@ Item {
     property var qualityState: ({})
     property var sceneRenderDefaults: ({})
     property var sceneQualityDefaults: ({})
-    // Используем простой literal для корректной конверсии в Python dict
     property var environmentState: ({})
     property bool fogDepthEnabled: true
     property real fogDepthNear: 2.0
     property real fogDepthFar: 20.0
     property real fogDepthCurve: 1.0
-
     property var effectsState: ({})
     property var cameraStateSnapshot: ({})
 
-    // Reflection probe diagnostic flags (добавлено заново)
+    // Reflection probe state
     property bool reflectionProbeDefaultsWarningIssued: false
-    // Типизированный список строк для корректного экспорта в Python (list)
     property list<string> reflectionProbeMissingKeys: []
-
-    // Reflection probe
-    // Инициализация состояния учитывает initialReflectionProbeSettings ещё до Component.onCompleted
-    property bool reflectionProbeEnabledState: {
-        function _reflectionEnabledFromSettings() {
-            if (typeof initialReflectionProbeSettings !== "undefined"
-                    && initialReflectionProbeSettings
-                    && initialReflectionProbeSettings.enabled !== undefined) {
-                return !!initialReflectionProbeSettings.enabled
-            }
-
-            if (typeof initialSceneSettings !== "undefined" && initialSceneSettings) {
-                if (initialSceneSettings.graphics && initialSceneSettings.graphics.environment
-                        && initialSceneSettings.graphics.environment.reflection_enabled !== undefined) {
-                    return !!initialSceneSettings.graphics.environment.reflection_enabled
-                }
-
-                if (initialSceneSettings.graphics && initialSceneSettings.graphics.reflection_probe
-                        && initialSceneSettings.graphics.reflection_probe.enabled !== undefined) {
-                    return !!initialSceneSettings.graphics.reflection_probe.enabled
-                }
-            }
-
-            return true
-        }
-
-        return _reflectionEnabledFromSettings()
-    }
-    property bool reflectionProbeEnabled: reflectionProbeEnabledOverrideActive
-            ? reflectionProbeEnabledOverride
-            : reflectionProbeEnabledState
+    property bool reflectionProbeEnabledState: true
     property bool reflectionProbeEnabledOverrideActive: false
     property bool reflectionProbeEnabledOverride: true
+    property bool reflectionProbeEnabled: reflectionProbeEnabledOverrideActive ? reflectionProbeEnabledOverride : reflectionProbeEnabledState
     property real reflectionProbePaddingM: 0.0
     property string reflectionProbeQualitySetting: "medium"
     property string reflectionProbeRefreshModeSetting: "static"
     property string reflectionProbeTimeSlicingSetting: "allfaces"
 
-    // Suspension & scene defaults
+    // Scene defaults
     property real sceneScaleFactor: 1.0
     property real suspensionRodWarningThresholdM: 0.001
-
-    // Controllers
-    property var cameraController: null
-    property var rigAnimation: null
 
     // Animation flags
     property bool pythonAnimationActive: false
     property bool pythonFrameActive: false
     property bool pythonLeverAnglesActive: false
     property bool pythonPistonsActive: false
-
-    // Animation scalar state (required by tests expecting animationToggled)
     property bool isRunning: false
     property real animationTime: 0.0
-
-    // Debounce flash
     property real batchFlashOpacity: 0.0
 
     // Helpers --------------------------------------------------
-    function _logBatchEvent(eventType, name) {
-        try {
-            if (typeof window !== "undefined" && window && typeof window.logQmlEvent === "function")
-                window.logQmlEvent(eventType, name)
-        } catch (error) {
-            console.debug("[SimulationRoot] Failed to forward batch event", eventType, name, error)
-        }
-    }
-    function _isPlainObject(value) { return value && typeof value === "object" && !Array.isArray(value) }
-    function _cloneObject(value) {
-        if (!_isPlainObject(value)) return ({})
-        var clone = {}
-        for (var key in value) if (Object.prototype.hasOwnProperty.call(value, key)) clone[key] = _isPlainObject(value[key]) ? _cloneObject(value[key]) : value[key]
-        return clone
-    }
-    function _deepMerge(base, payload) {
-        var result = _cloneObject(base)
-        if (_isPlainObject(payload)) for (var key in payload) if (Object.prototype.hasOwnProperty.call(payload,key)) result[key] = _isPlainObject(payload[key]) ? _deepMerge(result[key], payload[key]) : payload[key]
-        return result
-    }
-    function _normaliseState(value) { if (!value || typeof value !== "object") return ({}); var copy={}; for (var key in value) if (Object.prototype.hasOwnProperty.call(value,key)) copy[key]=value[key]; return copy }
-    function _isEmptyMap(value) { if (!value || typeof value !== "object") return true; for (var key in value) if (Object.prototype.hasOwnProperty.call(value,key)) return false; return true }
-    function _normaliseMissingKeysList(value) {
-        if (value === null || value === undefined)
-            return []
-        var rawList = []
-        if (Array.isArray(value)) {
-            rawList = value.slice()
-        } else if (typeof value === "object" && typeof value.length === "number") {
-            for (var idx = 0; idx < value.length; ++idx)
-                rawList.push(value[idx])
-        } else {
-            rawList = [value]
-        }
-        var result = []
-        for (var i = 0; i < rawList.length; ++i) {
-            var entry = rawList[i]
-            if (entry === undefined || entry === null)
-                continue
-            var normalized = String(entry).toLowerCase()
-            if (result.indexOf(normalized) === -1)
-                result.push(normalized)
-        }
-        return result
-    }
-
-    function _storeLastUpdate(category, payload) {
-        var snapshot = _cloneObject(lastUpdateByCategory)
-        snapshot[category] = payload && typeof payload === "object" ? _normaliseState(payload) : payload
-        lastUpdateByCategory = snapshot
-    }
-    function _acknowledgeBatch(categories) {
-        if (categories && categories.length) batchFlashOpacity = 1.0
-        var summary = { timestamp: Date.now(), categories: categories ? categories.slice() : [], source: "python" }
-        batchUpdatesApplied(summary)
-    }
+    function _isPlainObject(v){ return v && typeof v === 'object' && !Array.isArray(v) }
+    function _cloneObject(v){ if(!_isPlainObject(v)) return ({}); var c={}; for(var k in v) if(Object.prototype.hasOwnProperty.call(v,k)) c[k]=_isPlainObject(v[k])?_cloneObject(v[k]):v[k]; return c }
+    function _deepMerge(base,payload){ var r=_cloneObject(base); if(_isPlainObject(payload)) for(var k in payload) if(Object.prototype.hasOwnProperty.call(payload,k)) r[k]=_isPlainObject(payload[k])?_deepMerge(r[k],payload[k]):payload[k]; return r }
+    function _normaliseState(v){ if(!v||typeof v!=="object") return ({}); var c={}; for(var k in v) if(Object.prototype.hasOwnProperty.call(v,k)) c[k]=v[k]; return c }
+    function _isEmptyMap(v){ if(!v||typeof v!== "object") return true; for(var k in v) if(Object.prototype.hasOwnProperty.call(v,k)) return false; return true }
+    function _storeLastUpdate(cat,payload){ var snap=_cloneObject(lastUpdateByCategory); snap[cat]= payload && typeof payload === 'object' ? _normaliseState(payload) : payload; lastUpdateByCategory = snap }
+    function _ack(categories){ if(categories&&categories.length) batchFlashOpacity=1.0; batchUpdatesApplied({ timestamp: Date.now(), categories: categories.slice(), source: "python" }) }
 
     // Batch dispatcher ------------------------------------------
-    function applyBatchedUpdates(updates) {
-        if (!updates || typeof updates !== "object") return
-        _logBatchEvent("signal_received","applyBatchedUpdates")
-        var categories = []
-        if (updates.geometry !== undefined) { categories.push("geometry"); applyGeometryUpdates(updates.geometry) }
-        if (updates.animation !== undefined) { categories.push("animation"); applyAnimationUpdates(updates.animation) }
-        if (updates.lighting !== undefined) { categories.push("lighting"); applyLightingUpdates(updates.lighting) }
-        if (updates.materials !== undefined) { categories.push("materials"); applyMaterialUpdates(updates.materials) }
-        if (updates.environment !== undefined) { categories.push("environment"); applyEnvironmentUpdates(updates.environment) }
-        if (updates.scene !== undefined) { categories.push("scene"); applySceneUpdates(updates.scene) }
-        if (updates.quality !== undefined) { categories.push("quality"); applyQualityUpdates(updates.quality) }
-        if (updates.camera !== undefined) { categories.push("camera"); applyCameraUpdates(updates.camera) }
-        if (updates.effects !== undefined) { categories.push("effects"); applyEffectsUpdates(updates.effects) }
-        if (updates.render !== undefined) { categories.push("render"); applyRenderSettings(updates.render) }
-        if (updates.simulation !== undefined) { categories.push("simulation"); applySimulationUpdates(updates.simulation) }
-        if (updates.threeD !== undefined) { categories.push("threeD"); applyThreeDUpdates(updates.threeD) }
-        _acknowledgeBatch(categories)
-    }
+    function applyBatchedUpdates(updates){ if(!updates||typeof updates!=='object') return; var cats=[]; if(updates.geometry!==undefined){ cats.push('geometry'); applyGeometryUpdates(updates.geometry) } if(updates.animation!==undefined){ cats.push('animation'); applyAnimationUpdates(updates.animation) } if(updates.lighting!==undefined){ cats.push('lighting'); applyLightingUpdates(updates.lighting) } if(updates.materials!==undefined){ cats.push('materials'); applyMaterialUpdates(updates.materials) } if(updates.environment!==undefined){ cats.push('environment'); applyEnvironmentUpdates(updates.environment) } if(updates.scene!==undefined){ cats.push('scene'); applySceneUpdates(updates.scene) } if(updates.quality!==undefined){ cats.push('quality'); applyQualityUpdates(updates.quality) } if(updates.camera!==undefined){ cats.push('camera'); applyCameraUpdates(updates.camera) } if(updates.effects!==undefined){ cats.push('effects'); applyEffectsUpdates(updates.effects) } if(updates.render!==undefined){ cats.push('render'); applyRenderSettings(updates.render) } if(updates.simulation!==undefined){ cats.push('simulation'); applySimulationUpdates(updates.simulation) } if(updates.threeD!==undefined){ cats.push('threeD'); applyThreeDUpdates(updates.threeD) } _ack(cats) }
 
     // Category handlers -----------------------------------------
-    function applyGeometryUpdates(params) {
-        _logBatchEvent("function_called","applyGeometryUpdates")
-        var normalized = _normaliseState(params)
-        if (!_isEmptyMap(normalized)) {
-            geometryState = _deepMerge(geometryState, normalized)
-            geometryStateReceived = true
-        }
-        _storeLastUpdate("geometry", normalized)
-        geometryUpdatesApplied(normalized)
-    }
-    function applySimulationUpdates(params) {
-        _logBatchEvent("function_called","applySimulationUpdates")
-        var normalized = _normaliseState(params)
-        if (!_isEmptyMap(normalized)) { simulationState = _deepMerge(simulationState, normalized); simulationStateReceived = true }
-        if (normalized.animation) applyAnimationUpdates(normalized.animation)
-        if (normalized.threeD) applyThreeDUpdates(normalized.threeD)
-        _storeLastUpdate("simulation", normalized)
-    }
-    function applyAnimationUpdates(params) {
-        _logBatchEvent("function_called","applyAnimationUpdates")
-        var payload = params || {}
-        var previousRunning = isRunning
-        function _num(v,f){ if(v===undefined||v===null) return f; var c=Number(v); return isNaN(c)?f:c }
-        function _bool(v,f){ if(v===undefined||v===null) return f; return Boolean(v) }
-        animationTime = _num(payload.animation_time, animationTime)
-        animationTime = _num(payload.animationTime, animationTime)
-        isRunning = _bool(payload.is_running, isRunning)
-        isRunning = _bool(payload.isRunning, isRunning)
-        pythonAnimationActive = _bool(payload.python_driven, pythonAnimationActive)
-        pythonAnimationActive = _bool(payload.pythonDriven, pythonAnimationActive)
-        if (isRunning !== previousRunning) animationToggled(isRunning)
-        _storeLastUpdate("animation", payload)
-    }
-    function applyLightingUpdates(params) { _logBatchEvent("function_called","applyLightingUpdates"); var normalized=_normaliseState(params); _storeLastUpdate("lighting",normalized) }
-    function applyMaterialUpdates(params) {
-        _logBatchEvent("function_called","applyMaterialUpdates")
-        var normalized = _normaliseState(params)
-        previousMaterialsState = _cloneObject(materialsState)
-        materialsState = _deepMerge(materialsState, normalized)
-        _storeLastUpdate("materials", normalized)
-        return materialsState
-    }
+    function applyGeometryUpdates(p){ var n=_normaliseState(p); if(!_isEmptyMap(n)){ geometryState=_deepMerge(geometryState,n); geometryStateReceived=true } _storeLastUpdate('geometry', n); geometryUpdatesApplied(n) }
+    function applySimulationUpdates(p){ var n=_normaliseState(p); if(!_isEmptyMap(n)){ simulationState=_deepMerge(simulationState,n); simulationStateReceived=true } if(n.animation) applyAnimationUpdates(n.animation); if(n.threeD) applyThreeDUpdates(n.threeD); _storeLastUpdate('simulation', n) }
+    function applyAnimationUpdates(p){ var d=p||{}; var prev=isRunning; function _num(v,f){ if(v===undefined||v===null) return f; var c=Number(v); return isNaN(c)?f:c } function _bool(v,f){ if(v===undefined||v===null) return f; return !!v } animationTime=_num(d.animation_time, animationTime); animationTime=_num(d.animationTime, animationTime); isRunning=_bool(d.is_running, isRunning); isRunning=_bool(d.isRunning, isRunning); pythonAnimationActive=_bool(d.python_driven, pythonAnimationActive); pythonAnimationActive=_bool(d.pythonDriven, pythonAnimationActive); if(isRunning!==prev) animationToggled(isRunning); _storeLastUpdate('animation', d) }
+    function applyLightingUpdates(p){ _storeLastUpdate('lighting', _normaliseState(p)) }
+    function applyMaterialUpdates(p){ var n=_normaliseState(p); previousMaterialsState=_cloneObject(materialsState); materialsState=_deepMerge(materialsState,n); _storeLastUpdate('materials', n); return materialsState }
+    function applyEnvironmentUpdates(p){ var n=_normaliseState(p); var base=environmentState&&typeof environmentState==='object'? environmentState : {}; var merged={}; for(var bk in base) if(Object.prototype.hasOwnProperty.call(base,bk)) merged[bk]=base[bk]; for(var nk in n) if(Object.prototype.hasOwnProperty.call(nk)) merged[nk]=n[nk]; environmentState = Object.keys(base).length===0 ? p : merged; if(n.reflection_enabled!==undefined) { envController.reflectionProbeEnabled=!!n.reflection_enabled; _applyReflectionProbeEnabledOverride(n.reflection_enabled) } _storeLastUpdate('environment', n); _refreshReflectionProbeObject() }
+    function applySceneUpdates(p){ _storeLastUpdate('scene', p||{}) }
+    function applyQualityUpdates(p){ var n=_normaliseState(p); qualityState=_deepMerge(qualityState,n); _syncRenderSettingsState(); _storeLastUpdate('quality', n) }
+    function applyCameraUpdates(p){ var n=_normaliseState(p); cameraStateSnapshot=_deepMerge(cameraStateSnapshot,n); _storeLastUpdate('camera', n) }
+    function applyEffectsUpdates(p){ var n=_normaliseState(p); effectsState=_deepMerge(effectsState,n); if(n.effects_bypass!==undefined) _applyEffectsBypassOverride(n.effects_bypass, n.effects_bypass_reason); else if(n.effects_bypass_reason!==undefined) _applyEffectsBypassOverride(effectsBypassRequested, n.effects_bypass_reason); _storeLastUpdate('effects', n) }
+    function rollbackMaterials(){ if(_isEmptyMap(previousMaterialsState)) return materialsState; materialsState=_cloneObject(previousMaterialsState); _storeLastUpdate('materials', materialsState); return materialsState }
+    function applyRenderSettings(p){ var d=p||{}; if(d.environment) applyEnvironmentUpdates(d.environment); if(d.quality) applyQualityUpdates(d.quality); if(d.effects) applyEffectsUpdates(d.effects); if(d.camera) applyCameraUpdates(d.camera); var direct=_normaliseState(d.render); if(!_isEmptyMap(direct)) renderState=_deepMerge(renderState,direct); _syncRenderSettingsState(); _storeLastUpdate('render', d) }
+    function applyThreeDUpdates(p){ var n=_normaliseState(p); threeDState=_deepMerge(threeDState,n); flowTelemetry=_normaliseState(n.flowNetwork||n.flownetwork); receiverTelemetry=_resolveReceiverTelemetry(n); var reflectionNode=n.reflectionProbe||n.reflection_probe||n.reflection; if(_isPlainObject(reflectionNode)){ if(reflectionNode.enabled!==undefined) _applyReflectionProbeEnabledOverride(reflectionNode.enabled); if(reflectionNode.padding!==undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding); if(reflectionNode.quality!==undefined) reflectionProbeQualitySetting=String(reflectionNode.quality).toLowerCase(); if(reflectionNode.refreshMode||reflectionNode.refresh_mode) reflectionProbeRefreshModeSetting=String(reflectionNode.refreshMode||reflectionNode.refresh_mode).toLowerCase(); if(reflectionNode.timeSlicing||reflectionNode.time_slicing) reflectionProbeTimeSlicingSetting=String(reflectionNode.timeSlicing||reflectionNode.time_slicing).toLowerCase() } _storeLastUpdate('threeD', n); _refreshReflectionProbeObject() }
+    function apply3DUpdates(p){ applyThreeDUpdates(p) }
 
-    function applyEnvironmentUpdates(params) {
-        _logBatchEvent("function_called","applyEnvironmentUpdates")
-        var normalized = _normaliseState(params)
-        // Прямое присваивание входного params (QVariantMap) даёт Python dict;
-        // затем дополняем ранее накопленным состоянием.
-        var base = environmentState && typeof environmentState === 'object' ? environmentState : {}
-        var merged = {}
-        // Сначала базовые ключи
-        for (var bk in base) if (Object.prototype.hasOwnProperty.call(base,bk)) merged[bk] = base[bk]
-        // Затем новые
-        for (var nk in normalized) if (Object.prototype.hasOwnProperty.call(normalized,nk)) merged[nk] = normalized[nk]
-        // Сохраняем как params если обновление происходит впервые, иначе merged
-        environmentState = (Object.keys(base).length === 0) ? params : merged
-        if(normalized.fog_enabled !== undefined) envController.fogEnabled = !!normalized.fog_enabled
-        if(normalized.fog_density !== undefined) envController.fogDensity = Number(normalized.fog_density) || 0.0
-        if(normalized.ibl_enabled !== undefined) envController.iblLightingEnabled = !!normalized.ibl_enabled
-        if(normalized.skybox_enabled !== undefined) envController.skyboxToggleFlag = !!normalized.skybox_enabled
-        if(normalized.ssao_enabled !== undefined) envController.ssaoEnabled = !!normalized.ssao_enabled
-        if(normalized.ssao_intensity !== undefined) envController.ssaoIntensity = Number(normalized.ssao_intensity) || envController.ssaoIntensity
-        if(normalized.ssao_radius !== undefined) envController.ssaoRadius = Number(normalized.ssao_radius) || envController.ssaoRadius
-        if(normalized.ssao_softness !== undefined) envController.ssaoSoftness = Number(normalized.ssao_softness) || envController.ssaoSoftness
-        if(normalized.ssao_bias !== undefined) envController.ssaoBias = Number(normalized.ssao_bias) || envController.ssaoBias
-        if(normalized.ssao_dither !== undefined) envController.ssaoDither = !!normalized.ssao_dither
-        if(normalized.ssao_sample_rate !== undefined) envController.ssaoSampleRate = Number(normalized.ssao_sample_rate) || envController.ssaoSampleRate
-        var reflectionToggle = normalized.reflection_enabled !== undefined ? normalized.reflection_enabled : normalized.reflectionEnabled
-        if (reflectionToggle !== undefined) {
-            envController.reflectionProbeEnabled = !!reflectionToggle
-            _applyReflectionProbeEnabledOverride(reflectionToggle)
-        }
-        _storeLastUpdate("environment", normalized)
-        _refreshReflectionProbeObject()
-    }
-    function applySceneUpdates(params) { _logBatchEvent("function_called","applySceneUpdates"); _storeLastUpdate("scene", params || {}) }
-    function applyQualityUpdates(params) {
-        _logBatchEvent("function_called","applyQualityUpdates")
-        var normalized = _normaliseState(params)
-        qualityState = _deepMerge(qualityState, normalized)
-        _syncRenderSettingsState()
-        _storeLastUpdate("quality", normalized)
-    }
-    function applyCameraUpdates(params) {
-        _logBatchEvent("function_called","applyCameraUpdates")
-        var normalized = _normaliseState(params)
-        cameraStateSnapshot = _deepMerge(cameraStateSnapshot, normalized)
-        _storeLastUpdate("camera", normalized)
-    }
-    function applyEffectsUpdates(params) {
-        _logBatchEvent("function_called","applyEffectsUpdates")
-        var normalized = _normaliseState(params)
-        effectsState = _deepMerge(effectsState, normalized)
-        if (normalized.effects_bypass !== undefined)
-            _applyEffectsBypassOverride(normalized.effects_bypass, normalized.effects_bypass_reason)
-        else if (normalized.effects_bypass_reason !== undefined)
-            _applyEffectsBypassOverride(effectsBypassRequested, normalized.effects_bypass_reason)
-        _storeLastUpdate("effects", normalized)
-    }
-
-    function _applyEffectsBypassOverride(active, reason) {
-        var target = !!active
-        var normalizedReason = reason !== undefined && reason !== null
-                ? String(reason)
-                : ""
-        effectsBypassRequested = target
-        effectsBypassReason = normalizedReason
-
-        // Keep the public flags in sync regardless of which implementation path is taken
-        postProcessingBypassed = target
-        postProcessingBypassReason = normalizedReason
-        if (!target)
-            postProcessingEffectBackup = []
-
-        if (postEffects && typeof postEffects.setEffectPersistentFailure === "function") {
-            var manualReason = normalizedReason.length ? normalizedReason : qsTr("Manual post-processing bypass")
-            try {
-                postEffects.setEffectPersistentFailure("manual_bypass", target, manualReason)
-                return
-            } catch (error) {
-                console.debug("[SimulationRoot] manual bypass routing failed", error)
-            }
-        }
-
-        // Fallback when PostEffects is unavailable
-        if (sceneView) {
-            try {
-                if (target) {
-                    postProcessingEffectBackup = sceneView.effects && typeof sceneView.effects.slice === "function"
-                        ? sceneView.effects.slice()
-                        : []
-                    sceneView.effects = []
-                    postProcessingBypassed = true
-                    postProcessingBypassReason = normalizedReason
-                } else {
-                    if (postProcessingEffectBackup && postProcessingEffectBackup.length > 0)
-                        sceneView.effects = postProcessingEffectBackup
-                    postProcessingEffectBackup = []
-                    postProcessingBypassed = false
-                    postProcessingBypassReason = normalizedReason
-                }
-            } catch (err) {
-                console.debug("[SimulationRoot] fallback bypass handling failed", err)
-            }
-        }
-    }
-
-    function rollbackMaterials() {
-        if (_isEmptyMap(previousMaterialsState)) return materialsState
-        materialsState = _cloneObject(previousMaterialsState)
-        _storeLastUpdate("materials", materialsState)
-        return materialsState
-    }
-    function applyRenderSettings(params) {
-        _logBatchEvent("function_called","applyRenderSettings")
-        var payload = params || {}
-        if (payload.environment) applyEnvironmentUpdates(payload.environment)
-        if (payload.quality) applyQualityUpdates(payload.quality)
-        if (payload.effects) applyEffectsUpdates(payload.effects)
-        if (payload.camera) applyCameraUpdates(payload.camera)
-        var direct = _normaliseState(payload.render)
-        if (!_isEmptyMap(direct)) renderState = _deepMerge(renderState, direct)
-        _syncRenderSettingsState(); _storeLastUpdate("render", payload)
-    }
-    function applyThreeDUpdates(params) {
-        _logBatchEvent("function_called","applyThreeDUpdates")
-        var normalized = _normaliseState(params)
-        threeDState = _deepMerge(threeDState, normalized)
-        flowTelemetry = _normaliseState(normalized.flowNetwork || normalized.flownetwork)
-        receiverTelemetry = _resolveReceiverTelemetry(normalized)
-        var reflectionNode = normalized.reflectionProbe || normalized.reflection_probe || normalized.reflection
-        if (_isPlainObject(reflectionNode)) {
-            if (reflectionNode.enabled !== undefined) _applyReflectionProbeEnabledOverride(reflectionNode.enabled)
-            if (reflectionNode.padding !== undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding)
-            if (reflectionNode.quality !== undefined) reflectionProbeQualitySetting = String(reflectionNode.quality).toLowerCase()
-            if (reflectionNode.refreshMode || reflectionNode.refresh_mode) reflectionProbeRefreshModeSetting = String(reflectionNode.refreshMode || reflectionNode.refresh_mode).toLowerCase()
-            if (reflectionNode.timeSlicing || reflectionNode.time_slicing) reflectionProbeTimeSlicingSetting = String(reflectionNode.timeSlicing || reflectionNode.time_slicing).toLowerCase()
-        }
-        _storeLastUpdate("threeD", normalized)
-        _refreshReflectionProbeObject()
-    }
-    function apply3DUpdates(params) { applyThreeDUpdates(params) }
-
-    // Update* legacy aliases (used by diagnostics / panels)
-    function updateGeometry(params) { applyGeometryUpdates(params) }
-    function updateAnimation(params) { applyAnimationUpdates(params) }
-    function updateLighting(params) { applyLightingUpdates(params) }
-    function updateMaterials(params) { applyMaterialUpdates(params) }
-    function updateEnvironment(params) { applyEnvironmentUpdates(params) }
-    function updateScene(params) { applySceneUpdates(params) }
-    function updateQuality(params) { applyQualityUpdates(params) }
-    function updateCamera(params) { applyCameraUpdates(params) }
-    function updateEffects(params) { applyEffectsUpdates(params) }
-    function updateRender(params) { applyRenderSettings(params) }
-    function updateThreeD(params) { applyThreeDUpdates(params) }
+    // Legacy aliases
+    function updateGeometry(p){ applyGeometryUpdates(p) }
+    function updateAnimation(p){ applyAnimationUpdates(p) }
+    function updateLighting(p){ applyLightingUpdates(p) }
+    function updateMaterials(p){ applyMaterialUpdates(p) }
+    function updateEnvironment(p){ applyEnvironmentUpdates(p) }
+    function updateScene(p){ applySceneUpdates(p) }
+    function updateQuality(p){ applyQualityUpdates(p) }
+    function updateCamera(p){ applyCameraUpdates(p) }
+    function updateEffects(p){ applyEffectsUpdates(p) }
+    function updateRender(p){ applyRenderSettings(p) }
+    function updateThreeD(p){ applyThreeDUpdates(p) }
 
     // Render sync ------------------------------------------------
-    function _renderSources() { return [renderState||({}), qualityState||({}), sceneRenderDefaults||({}), sceneQualityDefaults||({})] }
-    function _syncRenderSettingsState() {
-        var sources = _renderSources()
-        function _first(keys){ for (var i=0;i<sources.length;++i){ var s=sources[i]; if(!s||typeof s!=="object") continue; for (var k=0;k<keys.length;++k){ var n=keys[k]; if(s[n]!==undefined) return s[n] } } return undefined }
-        function _num(v,f){ var n=Number(v); return isFinite(n)?n:f }
-        function _policy(v){ if(v===undefined||v===null) return renderPolicyKey; var t=String(v).toLowerCase().trim(); if(t==="on_demand"||t==="on-demand") t="ondemand"; return ["always","ondemand","automatic","manual"].indexOf(t)!==-1 ? t : renderPolicyKey }
-        var scaleCandidate=_first(["renderScale","render_scale","sceneScaleFactor","scene_scale_factor"])
-        var frameCandidate=_first(["frameRateLimit","frame_rate_limit","frameLimit","frame_limit"])
-        var policyCandidate=_first(["renderPolicy","render_policy","renderMode","render_mode"])
-        if(scaleCandidate!==undefined){ var s=_num(scaleCandidate, renderScale); if(isFinite(s)&&s>0) renderScale=s }
-        if(frameCandidate!==undefined){ var f=_num(frameCandidate, frameRateLimit); if(isFinite(f)&&f>=0) frameRateLimit=f }
-        if(policyCandidate!==undefined){ renderPolicyKey=_policy(policyCandidate) }
-    }
-    function _applyReflectionProbeEnabledOverride(candidate) {
-        if (candidate === undefined || candidate === null) return
-        var coerced = !!candidate
-        var needsUpdate = !reflectionProbeEnabledOverrideActive || reflectionProbeEnabledOverride !== coerced
-        if (needsUpdate) reflectionProbeEnabledOverride = coerced
-        if (!reflectionProbeEnabledOverrideActive || needsUpdate) reflectionProbeEnabledOverrideActive = true
-    }
-    function sanitizeReflectionProbePadding(value) { var n=Number(value); return isFinite(n)&&n>=0? n : 0.0 }
-    function _resolveReceiverTelemetry(source) {
-        var state=_normaliseState(source); if(_isEmptyMap(state)) return ({})
-        if(state.receiver) { var direct=_normaliseState(state.receiver); if(!_isEmptyMap(direct)) return direct }
-        var network=state.flowNetwork || state.flownetwork
-        if(network && network.receiver) return _normaliseState(network.receiver)
-        return ({})
-    }
+    function _renderSources(){ return [renderState||({}), qualityState||({}), sceneRenderDefaults||({}), sceneQualityDefaults||({})] }
+    function _syncRenderSettingsState(){ var sources=_renderSources(); function _first(keys){ for(var i=0;i<sources.length;++i){ var s=sources[i]; if(!s||typeof s!=="object") continue; for(var k=0;k<keys.length;++k){ var n=keys[k]; if(s[n]!==undefined) return s[n] } } return undefined } function _num(v,f){ var n=Number(v); return isFinite(n)? n : f } function _policy(v){ if(v===undefined||v===null) return renderPolicyKey; var t=String(v).toLowerCase().trim(); if(t==="on_demand"||t==="on-demand") t="ondemand"; return ["always","ondemand","automatic","manual"].indexOf(t)!==-1? t : renderPolicyKey } var scaleCandidate=_first(["renderScale","render_scale","sceneScaleFactor","scene_scale_factor"]); var frameCandidate=_first(["frameRateLimit","frame_rate_limit","frameLimit","frame_limit"]); var policyCandidate=_first(["renderPolicy","render_policy","renderMode","render_mode"]); if(scaleCandidate!==undefined){ var sc=_num(scaleCandidate, renderScale); if(isFinite(sc)&&sc>0) renderScale=sc } if(frameCandidate!==undefined){ var fr=_num(frameCandidate, frameRateLimit); if(isFinite(fr)&&fr>=0) frameRateLimit=fr } if(policyCandidate!==undefined){ renderPolicyKey=_policy(policyCandidate) } }
+    function _applyReflectionProbeEnabledOverride(c){ if(c===undefined||c===null) return; var coerced=!!c; var needs=!reflectionProbeEnabledOverrideActive || reflectionProbeEnabledOverride!==coerced; if(needs) reflectionProbeEnabledOverride=coerced; if(!reflectionProbeEnabledOverrideActive || needs) reflectionProbeEnabledOverrideActive=true }
+    function sanitizeReflectionProbePadding(v){ var n=Number(v); return isFinite(n)&&n>=0? n : 0.0 }
+    function _resolveReceiverTelemetry(src){ var st=_normaliseState(src); if(_isEmptyMap(st)) return ({}); if(st.receiver){ var direct=_normaliseState(st.receiver); if(!_isEmptyMap(direct)) return direct } var net=st.flowNetwork||st.flownetwork; if(net&&net.receiver) return _normaliseState(net.receiver); return ({}) }
 
-    // Shader diagnostics (simplified forwarding) -----------------
-    function diagnosticsWindow() { return typeof window !== "undefined" && window ? window : null }
+    // Shader diagnostics
+    function registerShaderWarning(effectId,message){ var id=String(effectId||"unknown"); var msg=String(message||""); var prev=shaderWarningState; var next=_cloneObject(prev); if(next[id]!==msg) next[id]=msg; shaderWarningState=next; shaderWarningRegistered(id,msg); if(sceneBridge && typeof sceneBridge.registerShaderWarning==="function") { try{ sceneBridge.registerShaderWarning(effectId,message) }catch(e){} } }
+    function clearShaderWarning(effectId){ var id=String(effectId||"unknown"); var prev=shaderWarningState; var next=_cloneObject(prev); if(Object.prototype.hasOwnProperty.call(next,id)) delete next[id]; shaderWarningState=next; shaderWarningCleared(id); if(sceneBridge && typeof sceneBridge.clearShaderWarning==="function") { try{ sceneBridge.clearShaderWarning(effectId) }catch(e){} } }
 
-    function _normalizeEffectId(value) {
-        var normalized = "unknown"
-        if (value !== undefined && value !== null) {
-            normalized = String(value)
-            if (!normalized.length)
-                normalized = "unknown"
-        }
-        return normalized
-    }
+    Connections { target: sceneBridge; enabled: !!target; function onGeometryChanged(payload){ applyGeometryUpdates(payload) } function onSimulationChanged(payload){ applySimulationUpdates(payload) } function onUpdatesDispatched(payload){ if(payload && typeof payload === 'object'){ sceneBridgeDispatchCount += 1 } } }
 
-    function _normalizeWarningMessage(value) {
-        if (value === undefined || value === null)
-            return ""
-        return String(value)
-    }
-
-    function _cloneWarningState(source) {
-        if (!source || typeof source !== "object")
-            return ({})
-        var clone = {}
-        for (var key in source) {
-            if (Object.prototype.hasOwnProperty.call(source, key))
-                clone[key] = source[key]
-        }
-        return clone
-    }
-
-    function registerShaderWarning(effectId, message) {
-        var normalizedId = _normalizeEffectId(effectId)
-        var normalizedMessage = _normalizeWarningMessage(message)
-
-        var previousState = shaderWarningState
-        var nextState = _cloneWarningState(previousState)
-        if (nextState[normalizedId] !== normalizedMessage)
-            nextState[normalizedId] = normalizedMessage
-        shaderWarningState = nextState
-
-        shaderWarningRegistered(normalizedId, normalizedMessage)
-
-        if (sceneBridge && typeof sceneBridge.registerShaderWarning === "function") {
-            try { sceneBridge.registerShaderWarning(effectId, message) } catch (e) { console.debug('[SimulationRoot] sceneBridge.registerShaderWarning failed', e) }
-        }
-
-        var host = diagnosticsWindow()
-        if (host && typeof host.registerShaderWarning === "function") {
-            try { host.registerShaderWarning(normalizedId, normalizedMessage) } catch(e) { console.debug('[SimulationRoot] window.registerShaderWarning failed', e) }
-        }
-    }
-
-    function clearShaderWarning(effectId) {
-        var normalizedId = _normalizeEffectId(effectId)
-
-        var previousState = shaderWarningState
-        var nextState = _cloneWarningState(previousState)
-        if (Object.prototype.hasOwnProperty.call(nextState, normalizedId))
-            delete nextState[normalizedId]
-        shaderWarningState = nextState
-
-        shaderWarningCleared(normalizedId)
-
-        if (sceneBridge && typeof sceneBridge.clearShaderWarning === "function") {
-            try { sceneBridge.clearShaderWarning(effectId) } catch (e) { console.debug('[SimulationRoot] sceneBridge.clearShaderWarning failed', e) }
-        }
-
-        var host = diagnosticsWindow()
-        if (host && typeof host.clearShaderWarning === "function") {
-            try { host.clearShaderWarning(normalizedId) } catch(e) { console.debug('[SimulationRoot] window.clearShaderWarning failed', e) }
-        }
-    }
-
-    // Connections to sceneBridge --------------------------------
+    // Effects bypass / shader warnings from postEffects
     Connections {
-        target: root.sceneBridge
-        enabled: !!target
-        function onGeometryChanged(payload) { root.applyGeometryUpdates(payload) }
-        function onSimulationChanged(payload) { root.applySimulationUpdates(payload) }
-        function onUpdatesDispatched(payload) {
-            if (payload && typeof payload === "object") {
-                root.sceneBridgeDispatchCount += 1
-                geometryIndicator.pulse = true
-                simulationIndicator.pulse = true
-            }
-        }
-    }
-
-        // Проксирование предупреждений шейдеров из PostEffects в sceneBridge
-    Connections {
-        target: root.postEffects
+        target: postEffects
         enabled: !!target
         ignoreUnknownSignals: true
-
-        function onEffectsBypassChanged(active, reasonText) {
-            if (!root.postEffects)
-                return
-            try {
-                var bypass = active !== undefined ? !!active : !!root.postEffects.effectsBypass
-                var reason = reasonText !== undefined && reasonText !== null
-                    ? String(reasonText)
-                    : String(root.postEffects.effectsBypassReason || "")
-                if (root.postProcessingBypassed !== bypass)
-                    root.postProcessingBypassed = bypass
-                if (root.postProcessingBypassReason !== reason)
-                    root.postProcessingBypassReason = reason
-
-                if (bypass) {
-                    // Backup current effects and clear the chain on the view stub
-                    if (root.sceneView) {
-                        var current = root.sceneView.effects
-                        if (current && typeof current === "object" && typeof current.slice === "function")
-                            root.postProcessingEffectBackup = current.slice()
-                        else
-                            root.postProcessingEffectBackup = []
-                        try { root.sceneView.effects = [] } catch (e) {}
-                    }
-                    // Forward structured snapshot to Python for diagnostics
-                    try {
-                        var snapshot = root.postEffects.dumpShaderStatus(reason)
-                        root.shaderStatusDumpRequested(snapshot)
-                    } catch (e) {}
-                } else {
-                    // Restore effect list if we have a backup (and PostEffects still exposes effectList)
-                    if (root.sceneView && root.postProcessingEffectBackup && root.postProcessingEffectBackup.length > 0) {
-                        try { root.sceneView.effects = root.postProcessingEffectBackup } catch (e) {}
-                    } else if (root.sceneView && root.postEffects) {
-                        // Если бэкапа нет, но есть исходный список – восстановить его
-                        try {
-                            var effectList = root.postEffects.effectList
-                            if (effectList && typeof effectList === "object")
-                                root.sceneView.effects = effectList
-                        } catch (e) {}
-                    }
-                    root.postProcessingEffectBackup = []
-                    // Emit a status snapshot to confirm recovery
-                    try {
-                        var snapshot2 = root.postEffects.dumpShaderStatus("")
-                        root.shaderStatusDumpRequested(snapshot2)
-                    } catch (e) {}
-                }
-            } catch (err) {
-                console.error("[SimulationRoot] effectsBypassChanged handler failed:", err)
-            }
-        }
-
-        // Добавляем обработчики сигналов PostEffects для маршрутизации shader предупреждений
-        function onEffectCompilationError(effectId, fallbackActive, message) {
-            try {
-                root.registerShaderWarning(effectId, message)
-                var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
-                    ? root.postEffects.dumpShaderStatus(message)
-                    : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
-                root.shaderStatusDumpRequested(snapshot)
-            } catch (e) {
-                console.debug('[SimulationRoot] onEffectCompilationError routing failed', e)
-            }
-        }
-        function onEffectCompilationRecovered(effectId, wasFallbackActive) {
-            try {
-                root.clearShaderWarning(effectId)
-                var snapshot = root.postEffects && typeof root.postEffects.dumpShaderStatus === 'function'
-                    ? root.postEffects.dumpShaderStatus('recovered')
-                    : { effectsBypass: root.postProcessingBypassed, effectsBypassReason: root.postProcessingBypassReason }
-                root.shaderStatusDumpRequested(snapshot)
-            } catch (e) {
-                console.debug('[SimulationRoot] onEffectCompilationRecovered routing failed', e)
-            }
-        }
+        function onEffectsBypassChanged(active, reasonText){ if(!postEffects) return; try { var bypass = active !== undefined ? !!active : !!postEffects.effectsBypass; var reason = reasonText !== undefined && reasonText !== null ? String(reasonText) : String(postEffects.effectsBypassReason || ""); if(postProcessingBypassed !== bypass) postProcessingBypassed = bypass; if(postProcessingBypassReason !== reason) postProcessingBypassReason = reason; if(bypass){ if(sceneView){ try{ postProcessingEffectBackup = sceneView.effects && typeof sceneView.effects.slice === 'function' ? sceneView.effects.slice() : []; sceneView.effects = [] }catch(e){} } shaderStatusDumpRequested({ effectsBypass: true, effectsBypassReason: reason }) } else { var restore = postProcessingEffectBackup && postProcessingEffectBackup.length ? postProcessingEffectBackup : []; if(sceneView){ try{ sceneView.effects = restore }catch(e){} } shaderStatusDumpRequested({ effectsBypass: false, effectsBypassReason: "" }) } } catch(err){ console.error("[SimulationRoot] effectsBypassChanged failed", err) } }
+        function onEffectCompilationError(effectId, fallbackActive, message){ try { registerShaderWarning(effectId, message); shaderStatusDumpRequested({ effectsBypass: postProcessingBypassed, effectsBypassReason: String(message||"") }) } catch(e){ console.debug('[SimulationRoot] onEffectCompilationError failed', e) } }
+        function onEffectCompilationRecovered(effectId, wasFallbackActive){ try { clearShaderWarning(effectId); shaderStatusDumpRequested({ effectsBypass: postProcessingBypassed, effectsBypassReason: postProcessingBypassReason }) } catch(e){ console.debug('[SimulationRoot] onEffectCompilationRecovered failed', e) } }
     }
 
-    // Initial hydration -----------------------------------------
-    Component.onCompleted: {
-        console.log("[SimulationRoot] Component completed; sceneBridge:", sceneBridge ? "available" : "missing")
-        if (typeof initialReflectionProbeSettings !== "undefined" && initialReflectionProbeSettings) {
-            var keys = ["enabled","padding_m","quality","refresh_mode","time_slicing"]
-            var missingFromContext = _normaliseMissingKeysList(initialReflectionProbeSettings.missing_keys)
-            var missingTmp = []
-            for (var idx=0; idx<missingFromContext.length; ++idx) {
-                var candidate = missingFromContext[idx]
-                if (keys.indexOf(candidate) !== -1 && missingTmp.indexOf(candidate) === -1)
-                    missingTmp.push(candidate)
-            }
-            for (var i=0;i<keys.length;++i){ if(initialReflectionProbeSettings[keys[i]] === undefined && missingTmp.indexOf(keys[i]) === -1) missingTmp.push(keys[i]) }
-            reflectionProbeMissingKeys = missingTmp  // Прямое присваивание типизированному списку
-            reflectionProbeDefaultsWarningIssued = missingTmp.length > 0
-            if (initialReflectionProbeSettings.enabled !== undefined) {
-                _applyReflectionProbeEnabledOverride(initialReflectionProbeSettings.enabled)
-                reflectionProbeEnabledState = !!initialReflectionProbeSettings.enabled
-            }
-            if (initialReflectionProbeSettings.padding_m !== undefined) {
-                reflectionProbePaddingM = sanitizeReflectionProbePadding(initialReflectionProbeSettings.padding_m)
-            } else if (missingTmp.indexOf("padding_m") !== -1) {
-                reflectionProbePaddingM = 0.15
-            }
-            if (initialReflectionProbeSettings.quality !== undefined) reflectionProbeQualitySetting = String(initialReflectionProbeSettings.quality).toLowerCase()
-            if (initialReflectionProbeSettings.refresh_mode !== undefined) reflectionProbeRefreshModeSetting = String(initialReflectionProbeSettings.refresh_mode).toLowerCase()
-            if (initialReflectionProbeSettings.time_slicing !== undefined) reflectionProbeTimeSlicingSetting = String(initialReflectionProbeSettings.time_slicing).toLowerCase()
-            _refreshReflectionProbeObject()
-        }
-        if (typeof initialSceneSettings !== "undefined" && initialSceneSettings && initialSceneSettings.graphics && initialSceneSettings.graphics.environment) {
-            var env = initialSceneSettings.graphics.environment
-            if (env.reflection_enabled === false) {
-                _applyReflectionProbeEnabledOverride(false)
-                reflectionProbeEnabledState = false
-            }
-            if (env.reflection_enabled !== undefined) envController.reflectionProbeEnabled = !!env.reflection_enabled
-            if (env.reflection_padding_m !== undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(env.reflection_padding_m)
-            _refreshReflectionProbeObject()
-        }
+    function _ensureEffectsBackup(){ try { if(_effectsBackupTaken) return; if(!sceneView || !postEffects) return; var list= postEffects.effectList; if(list && typeof list === 'object'){ postProcessingEffectBackup = typeof list.slice==='function'? list.slice(): list; _effectsBackupTaken = true; if(sceneView){ try{ sceneView.effects = list }catch(e){} } } } catch(e){ console.debug('[SimulationRoot] _ensureEffectsBackup failed', e) } }
+    onSceneViewChanged: _ensureEffectsBackup()
+    onPostEffectsChanged: _ensureEffectsBackup()
 
-        var sceneDefaults = null
-        if (typeof initialSceneSettings !== "undefined" && initialSceneSettings) {
-            if (initialSceneSettings.scene && typeof initialSceneSettings.scene === "object") {
-                sceneDefaults = initialSceneSettings.scene
-            } else if (initialSceneSettings.graphics && initialSceneSettings.graphics.scene) {
-                sceneDefaults = initialSceneSettings.graphics.scene
-            }
-        }
-
-        if (sceneDefaults) {
-            if (sceneDefaults.scale_factor !== undefined) {
-                var coercedScale = Number(sceneDefaults.scale_factor)
-                if (isFinite(coercedScale) && coercedScale > 0) {
-                    sceneScaleFactor = coercedScale
-                }
-            }
-            var suspensionDefaults = sceneDefaults.suspension
-            if (suspensionDefaults && suspensionDefaults.rod_warning_threshold_m !== undefined) {
-                var rodThreshold = Number(suspensionDefaults.rod_warning_threshold_m)
-                if (isFinite(rodThreshold) && rodThreshold > 0) {
-                    suspensionRodWarningThresholdM = rodThreshold
-                }
-            }
-        }
-        _applyBridgeSnapshot(sceneBridge)
-    }
+    Component.onCompleted: { console.log('[SimulationRoot] Component completed; bridge:', sceneBridge? 'available':'missing'); _applyBridgeSnapshot(sceneBridge); _refreshReflectionProbeObject() }
     onSceneBridgeChanged: { _applyBridgeSnapshot(sceneBridge) }
 
-    function _applyBridgeSnapshot(target) {
-        if (!target) {
-            geometryState = ({}); simulationState = ({}); threeDState = ({}); renderState = ({}); flowTelemetry = ({}); receiverTelemetry = ({})
-            geometryStateReceived = false; simulationStateReceived = false
-            return
-        }
-        try { geometryState = _normaliseState(target.geometry) } catch(e) { geometryState = ({}) }
-        try { simulationState = _normaliseState(target.simulation) } catch(e) { simulationState = ({}) }
-        geometryStateReceived = !_isEmptyMap(geometryState)
-        simulationStateReceived = !_isEmptyMap(simulationState)
-    }
+    function _applyBridgeSnapshot(t){ if(!t){ geometryState=({}); simulationState=({}); threeDState=({}); renderState=({}); flowTelemetry=({}); receiverTelemetry=({}); geometryStateReceived=false; simulationStateReceived=false; return } try{ geometryState=_normaliseState(t.geometry) }catch(e){ geometryState=({}) } try{ simulationState=_normaliseState(t.simulation) }catch(e){ simulationState=({}) } geometryStateReceived=!_isEmptyMap(geometryState); simulationStateReceived=!_isEmptyMap(simulationState) }
 
-    // Environment & Reflection infrastructure (для тестов)
-    // (переименовано чтобы избежать alias self-reference)
-    Effects.SceneEnvironmentController {
-        id: envController
-        objectName: "sceneEnvironment"
-        fogEnabled: false
-        fogDensity: 0.0
-        iblLightingEnabled: false
-        skyboxToggleFlag: false
-        reflectionProbeEnabled: root.reflectionProbeEnabled
-        // SSAO defaults are kept in sync with Python/UI toggles
-        ssaoEnabled: root.ssaoEnabled
-        ssaoRadius: root.ssaoRadius
-        ssaoIntensity: root.ssaoIntensity
-        ssaoSoftness: root.ssaoSoftness
-        ssaoBias: root.ssaoBias
-        ssaoDither: root.ssaoDither
-        ssaoSampleRate: root.ssaoSampleRate
-    }
-    Connections {
-        target: envController
-        function onSsaoEnabledChanged() {
-            if (root.ssaoEnabled !== envController.ssaoEnabled)
-                root.ssaoEnabled = envController.ssaoEnabled
-        }
-        function onSsaoRadiusChanged() {
-            if (root.ssaoRadius !== envController.ssaoRadius)
-                root.ssaoRadius = envController.ssaoRadius
-        }
-        function onSsaoIntensityChanged() {
-            if (root.ssaoIntensity !== envController.ssaoIntensity)
-                root.ssaoIntensity = envController.ssaoIntensity
-        }
-        function onSsaoSoftnessChanged() {
-            if (root.ssaoSoftness !== envController.ssaoSoftness)
-                root.ssaoSoftness = envController.ssaoSoftness
-        }
-        function onSsaoBiasChanged() {
-            if (root.ssaoBias !== envController.ssaoBias)
-                root.ssaoBias = envController.ssaoBias
-        }
-        function onSsaoDitherChanged() {
-            if (root.ssaoDither !== envController.ssaoDither)
-                root.ssaoDither = envController.ssaoDither
-        }
-        function onSsaoSampleRateChanged() {
-            if (root.ssaoSampleRate !== envController.ssaoSampleRate)
-                root.ssaoSampleRate = envController.ssaoSampleRate
-        }
-    }
-    QtObject {
-        id: suspensionAssembly
-        objectName: "sceneSuspensionAssembly"
-        property bool reflectionProbeEnabled: root.reflectionProbeEnabled
-        property real reflectionProbePaddingM: root.reflectionProbePaddingM
-        property real sceneScaleFactor: root.sceneScaleFactor
-        property real rodWarningThreshold: root.suspensionRodWarningThresholdM
-        property int reflectionProbeQualityValue: reflectionProbe ? reflectionProbe.quality : 0
-        property int reflectionProbeRefreshModeValue: reflectionProbe ? reflectionProbe.refreshMode : 0
-        property int reflectionProbeTimeSlicingValue: reflectionProbe ? reflectionProbe.timeSlicing : 0
-        property QtObject reflectionProbe: QtObject {
-            property bool enabled: suspensionAssembly.reflectionProbeEnabled
-            property bool visible: enabled
-            property int quality: 0
-            property int refreshMode: 0
-            property int timeSlicing: 0
-        }
-    }
+    // Environment controller (reflection probe integration + SSAO sync)
+    Effects.SceneEnvironmentController { id: envController; objectName: "sceneEnvironment"; fogEnabled:false; fogDensity:0.0; iblLightingEnabled:false; skyboxToggleFlag:false; reflectionProbeEnabled: root.reflectionProbeEnabled; ssaoEnabled: root.ssaoEnabled; ssaoRadius: root.ssaoRadius; ssaoIntensity: root.ssaoIntensity; ssaoSoftness: root.ssaoSoftness; ssaoBias: root.ssaoBias; ssaoDither: root.ssaoDither; ssaoSampleRate: root.ssaoSampleRate }
+    Connections { target: envController; function onSsaoEnabledChanged(){ if(ssaoEnabled !== envController.ssaoEnabled) ssaoEnabled = envController.ssaoEnabled } function onSsaoRadiusChanged(){ if(ssaoRadius !== envController.ssaoRadius) ssaoRadius = envController.ssaoRadius } function onSsaoIntensityChanged(){ if(ssaoIntensity !== envController.ssaoIntensity) ssaoIntensity = envController.ssaoIntensity } function onSsaoSoftnessChanged(){ if(ssaoSoftness !== envController.ssaoSoftness) ssaoSoftness = envController.ssaoSoftness } function onSsaoBiasChanged(){ if(ssaoBias !== envController.ssaoBias) ssaoBias = envController.ssaoBias } function onSsaoDitherChanged(){ if(ssaoDither !== envController.ssaoDither) ssaoDither = envController.ssaoDither } function onSsaoSampleRateChanged(){ if(ssaoSampleRate !== envController.ssaoSampleRate) ssaoSampleRate = envController.ssaoSampleRate } }
+
+    QtObject { id: suspensionAssembly; objectName: "sceneSuspensionAssembly"; property bool reflectionProbeEnabled: root.reflectionProbeEnabled; property real reflectionProbePaddingM: root.reflectionProbePaddingM; property real sceneScaleFactor: root.sceneScaleFactor; property real rodWarningThreshold: root.suspensionRodWarningThresholdM; property QtObject reflectionProbe: QtObject { property bool enabled: suspensionAssembly.reflectionProbeEnabled; property bool visible: enabled; property int quality: 0; property int refreshMode: 0; property int timeSlicing: 0 } }
     property alias sceneEnvironment: envController
     property alias sceneSuspensionAssembly: suspensionAssembly
-    function _refreshReflectionProbeObject(){
-        suspensionAssembly.reflectionProbe.enabled = suspensionAssembly.reflectionProbeEnabled
-        suspensionAssembly.reflectionProbe.visible = suspensionAssembly.reflectionProbeEnabled
-        suspensionAssembly.reflectionProbe.quality = _qualityToInt(reflectionProbeQualitySetting)
-        suspensionAssembly.reflectionProbe.refreshMode = (function(m){switch(String(m).toLowerCase()){case "firstframe":return 1; case "everyframe":return 2; default:return 0}})(reflectionProbeRefreshModeSetting)
-        suspensionAssembly.reflectionProbe.timeSlicing = (function(m){switch(String(m).toLowerCase()){case "allfaces":return 1; case "allfacesatonce":return 2; case "individualfaces":return 3; default:return 0}})(reflectionProbeTimeSlicingSetting)
-        suspensionAssembly.reflectionProbePaddingM = reflectionProbePaddingM
-        _syncReflectionProbeEnvironmentState()
-    }
 
-    function _syncReflectionProbeEnvironmentState(){
-        var reflectionState = {
-            reflection_enabled: !!suspensionAssembly.reflectionProbeEnabled,
-            reflection_padding_m: reflectionProbePaddingM,
-            reflection_quality: reflectionProbeQualitySetting,
-            reflection_refresh_mode: reflectionProbeRefreshModeSetting,
-            reflection_time_slicing: reflectionProbeTimeSlicingSetting
-        }
-        var normalizedState = _normaliseState(environmentState)
-        var merged = _deepMerge(normalizedState, reflectionState)
-        try {
-            environmentState = JSON.parse(JSON.stringify(merged))
-        } catch (error) {
-            environmentState = merged
-        }
-    }
-
-    // Mapping качества проба (восстановлено)
-    function _qualityToInt(q){
-        switch(String(q||"").toLowerCase()){
-        case "low": return 1; case "medium": return 2; case "high": return 3; case "veryhigh": return 4; default: return 0 }
-    }
-
+    function _refreshReflectionProbeObject(){ suspensionAssembly.reflectionProbe.enabled = suspensionAssembly.reflectionProbeEnabled; suspensionAssembly.reflectionProbe.visible = suspensionAssembly.reflectionProbeEnabled; suspensionAssembly.reflectionProbe.quality = _qualityToInt(reflectionProbeQualitySetting); suspensionAssembly.reflectionProbe.refreshMode = (function(m){ switch(String(m).toLowerCase()){ case 'firstframe': return 1; case 'everyframe': return 2; default: return 0 } })(reflectionProbeRefreshModeSetting); suspensionAssembly.reflectionProbe.timeSlicing = (function(m){ switch(String(m).toLowerCase()){ case 'allfaces': return 1; case 'allfacesatonce': return 2; case 'individualfaces': return 3; default: return 0 } })(reflectionProbeTimeSlicingSetting); suspensionAssembly.reflectionProbePaddingM = reflectionProbePaddingM; _syncReflectionProbeEnvironmentState() }
+    function _syncReflectionProbeEnvironmentState(){ var reflectionState={ reflection_enabled: !!suspensionAssembly.reflectionProbeEnabled, reflection_padding_m: reflectionProbePaddingM, reflection_quality: reflectionProbeQualitySetting, reflection_refresh_mode: reflectionProbeRefreshModeSetting, reflection_time_slicing: reflectionProbeTimeSlicingSetting }; var normalized=_normaliseState(environmentState); var merged=_deepMerge(normalized, reflectionState); try{ environmentState = JSON.parse(JSON.stringify(merged)) } catch(e){ environmentState = merged } }
+    function _qualityToInt(q){ switch(String(q||"").toLowerCase()){ case 'low': return 1; case 'medium': return 2; case 'high': return 3; case 'veryhigh': return 4; default: return 0 } }
 }

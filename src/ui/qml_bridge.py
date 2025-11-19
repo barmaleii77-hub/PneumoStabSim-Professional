@@ -295,14 +295,33 @@ class QMLBridge:
     # ------------------------------------------------------------------
     @staticmethod
     def queue_update(window: MainWindow, key: str, params: dict[str, Any]) -> None:
-        """Queue changes for batched delivery to QML."""
+        """Queue changes for batched delivery to QML.
 
+        Исправление: если передан примитивный объект (например ``object()``) без
+        ``__dict__`` как window (в тестах используют заглушку), присваивание
+        атрибута вызовет ``AttributeError``. Теперь функция безопасно возвращает
+        управление без ошибки в таком сценарии.
+        """
         if not params:
             return
 
-        queue: dict[str, dict[str, Any]] = getattr(window, "_qml_update_queue", {})
-        if not queue:
-            window._qml_update_queue = queue
+        # Попытка получить существующую очередь.
+        try:
+            queue: dict[str, dict[str, Any]] | None = getattr(window, "_qml_update_queue", None)
+        except Exception:
+            queue = None
+
+        if queue is None:
+            # Создаём очередь только если можем присвоить атрибут.
+            if hasattr(window, "__dict__"):
+                queue = {}
+                try:
+                    window._qml_update_queue = queue  # type: ignore[attr-defined]
+                except Exception:
+                    # Если присвоение невозможно — прекращаем без ошибки.
+                    return
+            else:
+                return  # Нельзя сохранить состояние — выходим.
 
         target = queue.setdefault(key, {})
         QMLBridge._deep_merge_dicts(target, params)

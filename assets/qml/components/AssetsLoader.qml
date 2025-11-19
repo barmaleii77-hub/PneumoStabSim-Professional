@@ -85,7 +85,7 @@ Texture {
     }
 
     function _activateFallback(reason, dueToError) {
-        if (fallbackActive)
+        if (fallbackActive && fallbackReason === String(reason || ""))
             return
         fallbackReason = reason || ""
         fallbackDueToError = Boolean(dueToError)
@@ -99,15 +99,6 @@ Texture {
         _logWarn(
             `Fallback resource ${fallbackDescriptor} failed to load; texture will remain empty; fallback still active`
         )
-    }
-
-    onPrimarySourceChanged: {
-        fallbackReason = ""
-        fallbackDueToError = false
-        _lastStatus = -1
-        if (fallbackActive) {
-            fallbackActive = false
-        }
     }
 
     // qmllint disable missing-property
@@ -135,6 +126,21 @@ Texture {
         }
     }
     // qmllint enable missing-property
+
+    onPrimarySourceChanged: {
+        _lastStatus = -1
+        const hasSource = primarySource && String(primarySource).length > 0
+        if (!hasSource) {
+            _activateFallback("Primary source not provided", false)
+        } else {
+            // Reset only auxiliary flags; keep fallbackActive false unless
+            // status handler decides otherwise.
+            fallbackReason = ""
+            fallbackDueToError = false
+            if (fallbackActive)
+                fallbackActive = false
+        }
+    }
 
     Component.onCompleted: {
         if (!primarySource || String(primarySource).length === 0) {
