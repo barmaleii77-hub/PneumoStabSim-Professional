@@ -25,8 +25,9 @@ if ($pssHeadless) {
 $reportsDir = Join-Path -Path (Get-Location) -ChildPath 'reports/tests'
 New-Item -ItemType Directory -Force -Path $reportsDir | Out-Null
 
-# Разрешаем загрузку нужных pytest-плагинов (pytest-qt для qtbot)
-$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = ''
+# Pytest автозагрузка плагинов остаётся отключенной для детерминизма,
+# необходимые плагины подключаем через флаг ``-p``
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = '1'
 
 # Опционально: подготовить Qt окружение для Windows
 if (Test-Path -LiteralPath 'scripts/load_cipilot_env.ps1') {
