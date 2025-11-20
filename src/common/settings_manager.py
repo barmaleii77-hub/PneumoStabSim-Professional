@@ -460,40 +460,28 @@ class SettingsManager:
     # ----------------------------------------------------------------- migration
 
     def _convert_geometry_section(self, section: dict[str, Any]) -> bool:
-        # Сохраняем исходный набор ключей до нормализации для определения, какие были в мм
         original_keys = set(section.keys())
         changed = _normalise_dict_keys(section, _GEOMETRY_KEY_ALIASES)
-
-        # Определяем какие метрические ключи должны масштабироваться (только если исходный mm-ключ присутствовал)
+        # Используем units_version вместо порога >10.0: если legacy -> масштабируем, иначе пропускаем
+        legacy_mode = self._original_units_version != _DEFAULT_UNITS_VERSION
         mm_source_map: dict[str, bool] = {}
-        for src, dst in _GEOMETRY_KEY_ALIASES.items():
-            if src.endswith("_mm") and dst in _GEOMETRY_LINEAR_KEYS:
-                if src in original_keys:
+        if legacy_mode:
+            for src, dst in _GEOMETRY_KEY_ALIASES.items():
+                if src.endswith("_mm") and dst in _GEOMETRY_LINEAR_KEYS and src in original_keys:
                     mm_source_map[dst] = True
-        # Специальные визуальные алиасы с суффиксом _visual_mm
-        for src, dst in _GEOMETRY_KEY_ALIASES.items():
-            if src.endswith("_visual_mm") and dst in _GEOMETRY_LINEAR_KEYS:
-                if src in original_keys:
+            for src, dst in _GEOMETRY_KEY_ALIASES.items():
+                if src.endswith("_visual_mm") and dst in _GEOMETRY_LINEAR_KEYS and src in original_keys:
                     mm_source_map[dst] = True
-
         for key in _GEOMETRY_LINEAR_KEYS:
             if key not in section:
                 continue
-            # Масштабируем только если исходный ключ был mm-вариантом и значение выглядит как миллиметры (>=10.0)
             if not mm_source_map.get(key, False):
                 continue
             raw_value = section[key]
-            try:
-                numeric = float(raw_value)
-            except (TypeError, ValueError):
-                continue
-            if numeric < 10.0:  # Уже метры или малый коэффициент — не масштабируем
-                continue
-            value, did_convert = _scale_mm_value(numeric)
+            scaled, did_convert = _scale_mm_value(raw_value)
             if did_convert:
-                section[key] = value
+                section[key] = scaled
                 changed = True
-
         for source, mirror in _GEOMETRY_MIRROR_KEYS.items():
             if source in section and mirror not in section:
                 section[mirror] = section[source]
@@ -501,7 +489,6 @@ class SettingsManager:
             elif mirror in section and source not in section:
                 section[source] = section[mirror]
                 changed = True
-
         return changed
 
     def _normalise_units(self) -> bool:
@@ -591,23 +578,27 @@ class SettingsManager:
         return _normalise_dict_keys(section, _CAMERA_KEY_ALIASES)
 
     def _strip_legacy_material_keys(self, materials: dict[str, Any]) -> bool:
-        """Удаляет устаревшие свойства материалов, не поддерживаемые Qt 6.10.
-
-        Секции ``graphics.materials`` могут содержать ключи specular/specular_tint/
-        transmission/ior из старых конфигов. Эти параметры больше не применяются
-        и должны быть убраны, чтобы UI и рантайм не ссылались на них.
-        """
         if not isinstance(materials, dict):
             return False
         changed = False
         legacy_keys = ("specular", "specular_tint", "transmission", "ior")
+        removed_summary: dict[str, list[str]] = {}
         for mat_key, payload in list(materials.items()):
             if not isinstance(payload, dict):
                 continue
+            removed_local: list[str] = []
             for legacy in legacy_keys:
                 if legacy in payload:
                     payload.pop(legacy, None)
+                    removed_local.append(legacy)
                     changed = True
+            if removed_local:
+                removed_summary[mat_key] = removed_local
+        if removed_summary:
+            logger.debug(
+                "Удалены устаревшие материал ключи: %s",
+                removed_summary,
+            )
         return changed
 
     def _normalise_graphics_sections(self) -> bool:
@@ -717,7 +708,6 @@ class SettingsManager:
 
     def _normalise_hdr_paths(self) -> bool:
         changed = False
-
         for container in (self._data, self._defaults):
             if not isinstance(container, dict):
                 continue
@@ -727,14 +717,13 @@ class SettingsManager:
             environment = graphics.get("environment")
             if not isinstance(environment, dict):
                 continue
-
             if "ibl_source" in environment:
                 current_value = environment.get("ibl_source")
                 normalised = self._normalise_hdr_path_value(current_value)
                 if normalised != current_value:
+                    environment["ibl_source_original_raw"] = current_value
                     environment["ibl_source"] = normalised
                     changed = True
-
         return changed
 
     def _assign_sections(self, payload: dict[str, Any]) -> None:
@@ -981,8 +970,7 @@ class SettingsManager:
             else:
                 if not isinstance(payload, dict):
                     logger.error(
-                        "Settings file %s does not contain a JSON object (found %s). "
-                        "Using default payload.",
+                        "Settings file %s does not contain a JSON object (found %s). Using default payload.",
                         self._settings_path,
                         type(payload).__name__,
                     )
@@ -1196,18 +1184,13 @@ class SettingsManager:
     def set(self, dotted_path: str, value: Any, auto_save: bool = True) -> bool:
         if not dotted_path:
             raise ValueError("Path must be non-empty")
-
         self._check_permission(dotted_path, intent="set")
-
         segments = dotted_path.split(".")
         head = segments[0]
         tail = segments[1:]
         timestamp = _utc_now()
         category = dotted_path.split(".", 1)[0]
-
-        def _emit_change(
-            path: str, category_name: str, new_value: Any, previous: Any
-        ) -> None:
+        def _emit_change(path: str, category_name: str, new_value: Any, previous: Any) -> None:
             self._notify_change(
                 _SettingsChange(
                     path=path,
@@ -1218,7 +1201,6 @@ class SettingsManager:
                     timestamp=timestamp,
                 )
             )
-
         if head == "current" and not tail:
             if not isinstance(value, Mapping):
                 raise TypeError("The 'current' section must be a mapping")
@@ -1307,13 +1289,11 @@ class SettingsManager:
             else None
         )
         if not isinstance(node, dict):
-            raise TypeError(f"Cannot set value on non-mapping node at '{dotted_path}'")
+            raise TypeError("The 'current' section must be a mapping")
         node[leaf] = _deep_copy(value)
-
-        # Normalise HDR paths after applying the new value so that Windows
-        # style separators never leak back into the stored payload or events.
-        self._normalise_hdr_paths()
-
+        # Условная нормализация HDR путей — только если ключ касается ibl_source или содержит 'hdr'
+        if "ibl_source" in dotted_path or "hdr" in dotted_path:
+            self._normalise_hdr_paths()
         self._dirty = True
         if auto_save:
             self.save()

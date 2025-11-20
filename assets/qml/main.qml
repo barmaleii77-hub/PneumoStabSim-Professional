@@ -1,5 +1,4 @@
-
-pragma ComponentBehavior: Bound
+#pragma ComponentBehavior: Bound
 
 import QtQuick 6.10
 import QtQuick3D 6.10
@@ -9,8 +8,9 @@ import PneumoStabSim 1.0 as PSS    // keep alias for explicit references if need
 import "./"
 import "./effects" as Effects          // Ensure local effect controllers (e.g., SceneEnvironmentController) are resolved
 import "./Panels" as Panels
-import "./training" as Training // унифицированный импорт
-import "./components" as Components // унифицированный импорт
+import "./training" as Training
+import "./components" as Components
+import "./components/BatchDispatch.js" as Batch
 
 // Полноценная сцена; селектор "+screenshots" может подключать упрощённый вариант.
 Item {
@@ -54,6 +54,8 @@ Item {
     property var _pendingSimulationPanelCalls: []
     property bool showTrainingPresets: true
     property bool telemetryPanelVisible: true
+    property int _appliedBatchCounter: 0
+    property int _lastDeliveredBatchId: 0
 
     readonly property bool hasSceneBridge: contextSceneBridge !== null
     readonly property var simulationRootItem: simulationLoader.item
@@ -277,7 +279,18 @@ Item {
             if (ep.effects_bypass !== undefined) postProcessingBypassed = !!ep.effects_bypass
             if (ep.effects_bypass_reason !== undefined) postProcessingBypassReason = String(ep.effects_bypass_reason || "")
         }
+        // Фильтр по монотонику batch_id (если присутствует)
+        var batchId = -1
+        if (payload && typeof payload.batch_id === "number") batchId = payload.batch_id
+        if (batchId !== -1 && batchId <= _lastDeliveredBatchId) {
+            console.debug("[main.qml] Skipping stale batch", batchId, "<=", _lastDeliveredBatchId)
+            return true // считаем доставленным чтобы не зацикливать очередь
+        }
         var delivered = _invokeOnActiveRoot("applyBatchedUpdates", payload)
+        if (delivered) {
+            _lastDeliveredBatchId = batchId !== -1 ? batchId : (_lastDeliveredBatchId + 1)
+            _appliedBatchCounter += 1
+        }
         _syncPostProcessingState()
         return delivered
     }
@@ -340,11 +353,13 @@ Item {
 
     function _applyInitialGraphicsUpdatesFromBridge(){ if(!hasSceneBridge||!contextSceneBridge) return; try{ var initBatch=contextSceneBridge.initialGraphicsUpdates; if(!initBatch||typeof initBatch!=="object"||!Object.keys(initBatch).length) return; if(!_deliverBatchedUpdates(initBatch)) _enqueueBatchedPayload(initBatch) } catch(e){ console.debug("[main.qml] Initial graphics updates apply failed", e) } }
 
+    function _summarize_captured_payloads() { return { applied: _appliedBatchCounter, lastId: _lastDeliveredBatchId } }
+
     Component.onCompleted: { postProcessingBypassed=false; postProcessingBypassReason=""; _syncPostProcessingState(); _installProxyMethodStubs(); _flushSimulationPanelCalls(); _applyInitialGraphicsUpdatesFromBridge() }
 
     Loader { id: simulationLoader; objectName: "simulationLoader"; anchors.fill: parent; active: true; sourceComponent: SimulationRoot { id: simulationRoot; sceneBridge: contextSceneBridge } onStatusChanged: { if (status===Loader.Error){ var loadError=simulationLoader.sourceComponent ? simulationLoader.sourceComponent.errorString() : ""; console.error("Failed to load SimulationRoot:", loadError); var reason= loadError && loadError.length ? loadError : "SimulationRoot load failure"; simpleFallbackReason=reason; if(!simpleFallbackActive) console.warn("[main.qml] Switching to simplified fallback after SimulationRoot load failure"); simpleFallbackActive=true } if(status===Loader.Ready){ if(item) item.visible=!simpleFallbackActive; _syncPostProcessingState(); _flushQueuedBatches() } } onLoaded: { if(item&&item.batchUpdatesApplied) item.batchUpdatesApplied.connect(root.batchUpdatesApplied); if(item&&item.animationToggled) item.animationToggled.connect(root.animationToggled); if(item) item.visible=!simpleFallbackActive } }
 
-    Connections { target: simulationLoader.item; ignoreUnknownSignals: true; function onSimpleFallbackRequested(reason){ var normalized=reason&&reason.length?reason:"Rendering pipeline failure"; if(!simpleFallbackActive) console.warn("[main.qml] Simplified rendering fallback activated:", normalized); else if(simpleFallbackReason!==normalized) console.warn("[main.qml] Simplified rendering reason updated:", normalized); simpleFallbackReason=normalized; simpleFallbackActive=true; if(simulationLoader.item) simulationLoader.item.visible=false } function onSimpleFallbackRecovered(){ if(!simpleFallbackActive) return; simpleFallbackActive=false; simpleFallbackReason=""; if(simulationLoader.item) simulationLoader.item.visible=true; console.log("[main.qml] Simplified rendering fallback cleared") } function onShaderStatusDumpRequested(payload){ shaderStatusDumpRequested(payload) } }
+    Connections { target: simulationLoader.item; ignoreUnknownSignals: true; function onSimpleFallbackRequested(reason){ var normalized=reason&&reason.length?reason:"Rendering pipeline failure"; if(!simpleFallbackActive) console.warn("[main.qml] Simplified rendering fallback activated:", normalized); else if(simpleFallbackReason!==normalized) console.warn("[main.qml] Simplified rendering reason обновлена:", normalized); simpleFallbackReason=normalized; simpleFallbackActive=true; if(simulationLoader.item) simulationLoader.item.visible=false } function onSimpleFallbackRecovered(){ if(!simpleFallbackActive) return; simpleFallbackActive=false; simpleFallbackReason=""; if(simulationLoader.item) simulationLoader.item.visible=true; console.log("[main.qml] Simplified rendering fallback cleared") } function onShaderStatusDumpRequested(payload){ shaderStatusDumpRequested(payload) } }
 
     Loader { id: fallbackLoader; objectName: "fallbackLoader"; anchors.fill: parent; active: !hasSceneBridge || simpleFallbackActive; sourceComponent: SimulationFallbackRoot {} onStatusChanged: { if(status===Loader.Ready){ _syncPostProcessingState(); _flushQueuedBatches() } } onLoaded: { if(item&&item.batchUpdatesApplied) item.batchUpdatesApplied.connect(root.batchUpdatesApplied); if(item&&item.animationToggled) item.animationToggled.connect(root.animationToggled) } }
 

@@ -14,6 +14,7 @@ import "../lighting"
 import scene 1.0 as Scene
 import "../animation"
 import "../diagnostics/LogBridge.js" as Diagnostics
+import "../components/BatchDispatch.js" as Batch
 
 // Восстановленная функциональная версия SimulationRoot с расширенной логикой bypass + backup
 Item {
@@ -64,8 +65,8 @@ Item {
     property int sceneBridgeDispatchCount: 0
 
     readonly property bool sceneBridgeAvailable: sceneBridge !== null && sceneBridge !== undefined
-    readonly property bool geometryStateReady: !_isEmptyMap(geometryState)
-    readonly property bool simulationStateReady: !_isEmptyMap(simulationState)
+    readonly property bool geometryStateReady: !Batch.isEmptyMap(geometryState)
+    readonly property bool simulationStateReady: !Batch.isEmptyMap(simulationState)
 
     // SSAO properties (mirrored)
     property bool ssaoEnabled: true
@@ -126,17 +127,62 @@ Item {
     property real animationTime: 0.0
     property real batchFlashOpacity: 0.0
 
-    // Helpers --------------------------------------------------
-    function _isPlainObject(v){ return v && typeof v === 'object' && !Array.isArray(v) }
-    function _cloneObject(v){ if(!_isPlainObject(v)) return ({}); var c={}; for(var k in v) if(Object.prototype.hasOwnProperty.call(v,k)) c[k]=_isPlainObject(v[k])?_cloneObject(v[k]):v[k]; return c }
-    function _deepMerge(base,payload){ var r=_cloneObject(base); if(_isPlainObject(payload)) for(var k in payload) if(Object.prototype.hasOwnProperty.call(payload,k)) r[k]=_isPlainObject(payload[k])?_deepMerge(r[k],payload[k]):payload[k]; return r }
-    function _normaliseState(v){ if(!v||typeof v!=="object") return ({}); var c={}; for(var k in v) if(Object.prototype.hasOwnProperty.call(v,k)) c[k]=v[k]; return c }
-    function _isEmptyMap(v){ if(!v||typeof v!== "object") return true; for(var k in v) if(Object.prototype.hasOwnProperty.call(v,k)) return false; return true }
-    function _storeLastUpdate(cat,payload){ var snap=_cloneObject(lastUpdateByCategory); snap[cat]= payload && typeof payload === 'object' ? _normaliseState(payload) : payload; lastUpdateByCategory = snap }
-    function _ack(categories){ if(categories&&categories.length) batchFlashOpacity=1.0; batchUpdatesApplied({ timestamp: Date.now(), categories: categories.slice(), source: "python" }) }
+    function _logBatchEvent(eventType, name) {
+        try {
+            if (typeof window !== "undefined" && window && typeof window.logQmlEvent === "function")
+                window.logQmlEvent(eventType, name)
+        } catch (error) {
+            console.debug("[SimulationRoot] Failed to forward batch event", eventType, name, error)
+        }
+    }
+    function _isPlainObject(value) { return Batch.isPlainObject(value) }
+    function _cloneObject(value) { return Batch.cloneObject(value) }
+    function _deepMerge(base, payload) { return Batch.deepMerge(base, payload) }
+    function _normaliseState(value) { return Batch.normaliseState(value) }
+    function _isEmptyMap(value) { return Batch.isEmptyMap(value) }
+    function _normaliseMissingKeysList(value) {
+        if (value === null || value === undefined) return []
+        var rawList = Array.isArray(value) ? value.slice() : [value]
+        var result = []
+        for (var i = 0; i < rawList.length; ++i) {
+            var entry = rawList[i]
+            if (entry === undefined || entry === null) continue
+            var normalized = String(entry).toLowerCase()
+            if (result.indexOf(normalized) === -1) result.push(normalized)
+        }
+        return result
+    }
+
+    function _storeLastUpdate(category, payload) {
+        var snapshot = _cloneObject(lastUpdateByCategory)
+        snapshot[category] = payload && typeof payload === "object" ? _normaliseState(payload) : payload
+        lastUpdateByCategory = snapshot
+    }
+    function _acknowledgeBatch(categories) {
+        if (categories && categories.length) batchFlashOpacity = 1.0
+        var summary = { timestamp: Date.now(), categories: categories ? categories.slice() : [], source: "python" }
+        batchUpdatesApplied(summary)
+    }
 
     // Batch dispatcher ------------------------------------------
-    function applyBatchedUpdates(updates){ if(!updates||typeof updates!=='object') return; var cats=[]; if(updates.geometry!==undefined){ cats.push('geometry'); applyGeometryUpdates(updates.geometry) } if(updates.animation!==undefined){ cats.push('animation'); applyAnimationUpdates(updates.animation) } if(updates.lighting!==undefined){ cats.push('lighting'); applyLightingUpdates(updates.lighting) } if(updates.materials!==undefined){ cats.push('materials'); applyMaterialUpdates(updates.materials) } if(updates.environment!==undefined){ cats.push('environment'); applyEnvironmentUpdates(updates.environment) } if(updates.scene!==undefined){ cats.push('scene'); applySceneUpdates(updates.scene) } if(updates.quality!==undefined){ cats.push('quality'); applyQualityUpdates(updates.quality) } if(updates.camera!==undefined){ cats.push('camera'); applyCameraUpdates(updates.camera) } if(updates.effects!==undefined){ cats.push('effects'); applyEffectsUpdates(updates.effects) } if(updates.render!==undefined){ cats.push('render'); applyRenderSettings(updates.render) } if(updates.simulation!==undefined){ cats.push('simulation'); applySimulationUpdates(updates.simulation) } if(updates.threeD!==undefined){ cats.push('threeD'); applyThreeDUpdates(updates.threeD) } _ack(cats) }
+    function applyBatchedUpdates(updates) {
+        if (!updates || typeof updates !== "object") return
+        _logBatchEvent("signal_received","applyBatchedUpdates")
+        var mask = Batch.collectCategoriesMask(updates)
+        if (updates.geometry !== undefined) applyGeometryUpdates(updates.geometry)
+        if (updates.animation !== undefined) applyAnimationUpdates(updates.animation)
+        if (updates.lighting !== undefined) applyLightingUpdates(updates.lighting)
+        if (updates.materials !== undefined) applyMaterialUpdates(updates.materials)
+        if (updates.environment !== undefined) applyEnvironmentUpdates(updates.environment)
+        if (updates.scene !== undefined) applySceneUpdates(updates.scene)
+        if (updates.quality !== undefined) applyQualityUpdates(updates.quality)
+        if (updates.camera !== undefined) applyCameraUpdates(updates.camera)
+        if (updates.effects !== undefined) applyEffectsUpdates(updates.effects)
+        if (updates.render !== undefined) applyRenderSettings(updates.render)
+        if (updates.simulation !== undefined) applySimulationUpdates(updates.simulation)
+        if (updates.threeD !== undefined) applyThreeDUpdates(updates.threeD)
+        _acknowledgeBatch(Batch.expandMask(mask))
+    }
 
     // Category handlers -----------------------------------------
     function applyGeometryUpdates(p){ var n=_normaliseState(p); if(!_isEmptyMap(n)){ geometryState=_deepMerge(geometryState,n); geometryStateReceived=true } _storeLastUpdate('geometry', n); geometryUpdatesApplied(n) }
@@ -144,14 +190,14 @@ Item {
     function applyAnimationUpdates(p){ var d=p||{}; var prev=isRunning; function _num(v,f){ if(v===undefined||v===null) return f; var c=Number(v); return isNaN(c)?f:c } function _bool(v,f){ if(v===undefined||v===null) return f; return !!v } animationTime=_num(d.animation_time, animationTime); animationTime=_num(d.animationTime, animationTime); isRunning=_bool(d.is_running, isRunning); isRunning=_bool(d.isRunning, isRunning); pythonAnimationActive=_bool(d.python_driven, pythonAnimationActive); pythonAnimationActive=_bool(d.pythonDriven, pythonAnimationActive); if(isRunning!==prev) animationToggled(isRunning); _storeLastUpdate('animation', d) }
     function applyLightingUpdates(p){ _storeLastUpdate('lighting', _normaliseState(p)) }
     function applyMaterialUpdates(p){ var n=_normaliseState(p); previousMaterialsState=_cloneObject(materialsState); materialsState=_deepMerge(materialsState,n); _storeLastUpdate('materials', n); return materialsState }
-    function applyEnvironmentUpdates(p){ var n=_normaliseState(p); var base=environmentState&&typeof environmentState==='object'? environmentState : {}; var merged={}; for(var bk in base) if(Object.prototype.hasOwnProperty.call(base,bk)) merged[bk]=base[bk]; for(var nk in n) if(Object.prototype.hasOwnProperty.call(nk)) merged[nk]=n[nk]; environmentState = Object.keys(base).length===0 ? p : merged; if(n.reflection_enabled!==undefined) { envController.reflectionProbeEnabled=!!n.reflection_enabled; _applyReflectionProbeEnabledOverride(n.reflection_enabled) } _storeLastUpdate('environment', n); _refreshReflectionProbeObject() }
+    function applyEnvironmentUpdates(p){ var n=_normaliseState(p); var base=environmentState&&typeof environmentState==='object'? environmentState : {}; var merged=_deepMerge(base,n); environmentState = Object.keys(base).length===0 ? p : merged; if(n.reflection_enabled!==undefined){ envController.reflectionProbeEnabled=!!n.reflection_enabled; _applyReflectionProbeEnabledOverride(n.reflection_enabled) } _storeLastUpdate('environment', n); _refreshReflectionProbeObject() }
     function applySceneUpdates(p){ _storeLastUpdate('scene', p||{}) }
     function applyQualityUpdates(p){ var n=_normaliseState(p); qualityState=_deepMerge(qualityState,n); _syncRenderSettingsState(); _storeLastUpdate('quality', n) }
     function applyCameraUpdates(p){ var n=_normaliseState(p); cameraStateSnapshot=_deepMerge(cameraStateSnapshot,n); _storeLastUpdate('camera', n) }
     function applyEffectsUpdates(p){ var n=_normaliseState(p); effectsState=_deepMerge(effectsState,n); if(n.effects_bypass!==undefined) _applyEffectsBypassOverride(n.effects_bypass, n.effects_bypass_reason); else if(n.effects_bypass_reason!==undefined) _applyEffectsBypassOverride(effectsBypassRequested, n.effects_bypass_reason); _storeLastUpdate('effects', n) }
     function rollbackMaterials(){ if(_isEmptyMap(previousMaterialsState)) return materialsState; materialsState=_cloneObject(previousMaterialsState); _storeLastUpdate('materials', materialsState); return materialsState }
     function applyRenderSettings(p){ var d=p||{}; if(d.environment) applyEnvironmentUpdates(d.environment); if(d.quality) applyQualityUpdates(d.quality); if(d.effects) applyEffectsUpdates(d.effects); if(d.camera) applyCameraUpdates(d.camera); var direct=_normaliseState(d.render); if(!_isEmptyMap(direct)) renderState=_deepMerge(renderState,direct); _syncRenderSettingsState(); _storeLastUpdate('render', d) }
-    function applyThreeDUpdates(p){ var n=_normaliseState(p); threeDState=_deepMerge(threeDState,n); flowTelemetry=_normaliseState(n.flowNetwork||n.flownetwork); receiverTelemetry=_resolveReceiverTelemetry(n); var reflectionNode=n.reflectionProbe||n.reflection_probe||n.reflection; if(_isPlainObject(reflectionNode)){ if(reflectionNode.enabled!==undefined) _applyReflectionProbeEnabledOverride(reflectionNode.enabled); if(reflectionNode.padding!==undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding); if(reflectionNode.quality!==undefined) reflectionProbeQualitySetting=String(reflectionNode.quality).toLowerCase(); if(reflectionNode.refreshMode||reflectionNode.refresh_mode) reflectionProbeRefreshModeSetting=String(reflectionNode.refreshMode||reflectionNode.refresh_mode).toLowerCase(); if(reflectionNode.timeSlicing||reflectionNode.time_slicing) reflectionProbeTimeSlicingSetting=String(reflectionNode.timeSlicing||reflectionNode.time_slicing).toLowerCase() } _storeLastUpdate('threeD', n); _refreshReflectionProbeObject() }
+    function applyThreeDUpdates(p){ var n=_normaliseState(p); threeDState=_deepMerge(threeDState,n); flowTelemetry=_normaliseState(n.flowNetwork||n.flownetwork); receiverTelemetry=_resolveReceiverTelemetry(n); var reflectionNode=n.reflectionProbe||n.reflection_probe||n.reflection; if(_isPlainObject(reflectionNode)){ if(reflectionNode.enabled!==undefined) _applyReflectionProbeEnabledOverride(reflectionNode.enabled); if(reflectionNode.padding!==undefined) reflectionProbePaddingM = sanitizeReflectionProbePadding(reflectionNode.padding); if(reflectionNode.quality!==undefined){ var qc=String(reflectionNode.quality).toLowerCase(); var known=["low","medium","high","veryhigh"]; if(known.indexOf(qc)!==-1) reflectionProbeQualitySetting=qc; else console.warn("[SimulationRoot] Unknown reflectionProbe quality value:", qc) } if(reflectionNode.refreshMode||reflectionNode.refresh_mode) reflectionProbeRefreshModeSetting=String(reflectionNode.refreshMode||reflectionNode.refresh_mode).toLowerCase(); if(reflectionNode.timeSlicing||reflectionNode.time_slicing) reflectionProbeTimeSlicingSetting=String(reflectionNode.timeSlicing||reflectionNode.time_slicing).toLowerCase() } _storeLastUpdate('threeD', n); _refreshReflectionProbeObject() }
     function apply3DUpdates(p){ applyThreeDUpdates(p) }
 
     // Legacy aliases
