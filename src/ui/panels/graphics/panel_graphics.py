@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from PySide6.QtGui import QCloseEvent  # ✅ для type hint closeEvent
 
 # Рефакторенные табы
 from .effects_tab import EffectsTab
@@ -73,7 +74,7 @@ class GraphicsPanel(QWidget):
     scene_changed = Signal(dict)
     effects_changed = Signal(dict)
     animation_changed = Signal(dict)
-    preset_applied = Signal(dict)  # ✅ передаем полный state
+    preset_applied = Signal(dict)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -133,17 +134,15 @@ class GraphicsPanel(QWidget):
         """
         try:
             definition = self.preset_manager.apply_registered_preset(preset_id)
-        except Exception as exc:  # pragma: no cover - предохранитель
-            self.logger.warning("Не удалось применить пресет %s: %s", preset_id, exc)
+        except Exception as exc:  # более подробное логирование
+            self.logger.exception("Не удалось применить пресет %s", preset_id)
             return False
         if definition is None:
             return False
-        # Применённый патч уже занесён в контроллер; синхронизируем UI
         snapshot = self._sync_controller.snapshot()
         try:
             self._apply_state_to_tabs(snapshot)
         except Exception:
-            # Продолжаем, даже если какая-то вкладка не готова
             pass
         full_state = self.collect_state()
         self.preset_applied.emit(full_state)
@@ -241,18 +240,37 @@ class GraphicsPanel(QWidget):
             new_payload: новый payload, который будет применён
         """
         try:
-            # Логируем дифф построчно для аналитики; сохраняем только новые значения
             diff: dict[str, Any] = {}
             for key, value in new_payload.items():
+                old = None
                 try:
                     old = previous.get(key) if isinstance(previous, Mapping) else None
                 except Exception:
                     old = None
                 if old != value:
                     diff[key] = {"old": old, "new": value}
-            self.event_logger.log_state_change(
-                category, "update", previous, new_payload
-            )  # type: ignore[arg-type]
+            # ✅ Логируем размеры и дифф для аналитики
+            if diff:
+                self.logger.debug(
+                    "graphics_state_change category=%s changed_keys=%d",
+                    category,
+                    len(diff),
+                )
+                # Передаём дифф отдельно, чтобы аналитика могла агрегировать
+                self.event_logger.log_state_change(
+                    category,
+                    "update",
+                    previous,
+                    new_payload,
+                    diff=diff,  # type: ignore[arg-type]
+                )
+            else:
+                self.event_logger.log_state_change(
+                    category,
+                    "noop",
+                    previous,
+                    new_payload,  # type: ignore[arg-type]
+                )
         except Exception:
             pass
 
@@ -273,25 +291,34 @@ class GraphicsPanel(QWidget):
         getattr(self, signal_name).emit(deepcopy(payload))
 
     def _apply_state_to_tabs(self, state: Mapping[str, Any]) -> None:
+        # ✅ Снижаем количество deepcopy: создаём локальные копии один раз
         try:
+            lighting = state.get("lighting", {})
+            environment = state.get("environment", {})
+            quality = state.get("quality", {})
+            scene = state.get("scene", {})
+            animation = state.get("animation", {})
+            camera = state.get("camera", {})
+            materials = state.get("materials", {})
+            effects = state.get("effects", {})
             if self.lighting_tab is not None:
-                self.lighting_tab.set_state(deepcopy(state.get("lighting", {})))
+                self.lighting_tab.set_state(deepcopy(lighting))
             if self.environment_tab is not None:
-                self.environment_tab.set_state(deepcopy(state.get("environment", {})))
+                self.environment_tab.set_state(deepcopy(environment))
             if self.quality_tab is not None:
-                self.quality_tab.set_state(deepcopy(state.get("quality", {})))
+                self.quality_tab.set_state(deepcopy(quality))
             if self.scene_tab is not None:
-                self.scene_tab.set_state(deepcopy(state.get("scene", {})))
+                self.scene_tab.set_state(deepcopy(scene))
             if self.animation_tab is not None:
-                self.animation_tab.set_state(deepcopy(state.get("animation", {})))
+                self.animation_tab.set_state(deepcopy(animation))
             if self.camera_tab is not None:
-                self.camera_tab.set_state(deepcopy(state.get("camera", {})))
+                self.camera_tab.set_state(deepcopy(camera))
             if self.materials_tab is not None:
-                self.materials_tab.set_state(deepcopy(state.get("materials", {})))
+                self.materials_tab.set_state(deepcopy(materials))
             if self.effects_tab is not None:
-                self.effects_tab.set_state(deepcopy(state.get("effects", {})))
-                self._update_color_adjustments_toggle(state.get("effects"))
-        except Exception as exc:  # pragma: no cover - defensive logging
+                self.effects_tab.set_state(deepcopy(effects))
+                self._update_color_adjustments_toggle(effects)
+        except Exception as exc:
             self.logger.error("Failed to apply graphics state to tabs: %s", exc)
 
     def _on_state_synced(
@@ -330,24 +357,23 @@ class GraphicsPanel(QWidget):
     def _on_lighting_changed(self, payload: dict[str, Any]) -> None:
         """Обработчик сигнала вкладки освещения – обновляем агрегированное состояние и эмитим наружу."""
         try:
+            # ✅ Заменяем секции полностью, а не поверхностно, чтобы удалённые ключи исчезали
             current = self.state.get("lighting") or {}
-            merged = dict(current)
-            # Глубокое объединение ключевых секций (key, fill, rim, point, spot)
+            merged: dict[str, Any] = dict(current)
             for section, section_payload in payload.items():
                 if isinstance(section_payload, Mapping):
-                    base = merged.get(section)
-                    if isinstance(base, Mapping):
-                        new_section = dict(base)
-                        new_section.update(section_payload)
-                        merged[section] = new_section
-                    else:
-                        merged[section] = dict(section_payload)
+                    merged[section] = dict(section_payload)
                 else:
                     merged[section] = section_payload
+            # Удаляем секции, которые были в current, но отсутствуют в payload (чистка устаревших)
+            for stale in list(merged.keys()):
+                if stale not in payload and isinstance(current.get(stale), Mapping):
+                    # Если нужен полный wipe – оставляем как есть, так как merged уже содержит старый ключ.
+                    # В условиях отсутствия ключа в payload можно решиться на удаление:
+                    del merged[stale]
             self.state["lighting"] = merged
             self._emit_with_logging("lighting_changed", merged, "lighting")
         except Exception:
-            # Fallback: emit raw payload
             self._emit_with_logging("lighting_changed", payload, "lighting")
 
     def _on_environment_changed(self, data: dict[str, Any]) -> None:
@@ -463,26 +489,21 @@ class GraphicsPanel(QWidget):
         toggle = self._color_adjustments_toggle
         if toggle is None or not isinstance(payload, Mapping):
             return
-
-        enabled: Any | None = payload.get("color_adjustments_active")
-        if enabled is None:
-            enabled = payload.get("color_adjustments_enabled")
-        if enabled is None:
-            nested = payload.get("color_adjustments")
-            if isinstance(nested, Mapping):
-                enabled = (
-                    nested.get("active")
-                    if "active" in nested
-                    else nested.get("enabled")
-                )
-
+        # ✅ Упрощённая цепочка выбора первого доступного значения
+        candidates = [
+            payload.get("color_adjustments_active"),
+            payload.get("color_adjustments_enabled"),
+        ]
+        nested = payload.get("color_adjustments")
+        if isinstance(nested, Mapping):
+            candidates.append(nested.get("active"))
+            candidates.append(nested.get("enabled"))
+        enabled = next((c for c in candidates if c is not None), None)
         if enabled is None:
             return
-
         checked = bool(enabled)
         if toggle.isChecked() == checked:
             return
-
         self._syncing_color_toggle = True
         try:
             toggle.blockSignals(True)
@@ -490,6 +511,13 @@ class GraphicsPanel(QWidget):
         finally:
             toggle.blockSignals(False)
             self._syncing_color_toggle = False
+
+    def closeEvent(self, event: QCloseEvent) -> None:  # type: ignore[override]
+        # Документация: сохранение выполняется централизованно в MainWindow.closeEvent()
+        self.logger.info(
+            "GraphicsPanel closed (state collection delegated to MainWindow.closeEvent())"
+        )
+        super().closeEvent(event)
 
     # ------------------------------------------------------------------
     # Загрузка/применение состояния (без записи)
@@ -537,6 +565,7 @@ class GraphicsPanel(QWidget):
     def reset_to_defaults(self) -> None:
         try:
             state = self.settings_service.reset_to_defaults()
+            # Применяем одно состояние и сразу эмитим preset_applied вместо двойного батча
             self._sync_controller.apply_state(
                 state,
                 description="Reset graphics defaults",
@@ -544,50 +573,49 @@ class GraphicsPanel(QWidget):
                 origin="preset",
                 metadata={"preset_id": "defaults", "force_refresh": True},
             )
-            self.logger.info("✅ Graphics reset to defaults completed")
+            self.logger.info(
+                "✅ Graphics reset to defaults completed (categories=%d)", len(state)
+            )
             payload = self.collect_state()
-            self._emit_all_initial()
             self.preset_applied.emit(payload)
             self.event_logger.log_signal_emit("preset_applied", payload)
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Failed to reset graphics defaults: {exc}")
-        except Exception as exc:  # pragma: no cover - unexpected failures
-            self.logger.error(f"❌ Failed to reset graphics defaults: {exc}")
+        except Exception as exc:
+            self.logger.exception("❌ Failed to reset graphics defaults")
 
     @Slot()
-    def save_current_as_defaults(self) -> None:
+    def save_current_as_defaults(self) -> None:  # noqa: D401
         try:
             state = self.collect_state()
             self.settings_service.save_current_as_defaults(state)
+            self.logger.info(
+                "✅ Graphics defaults snapshot updated (categories=%d)", len(state)
+            )
             self.preset_applied.emit(state)
             self.event_logger.log_signal_emit("preset_applied", state)
-            self.logger.info("✅ Graphics defaults snapshot updated")
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Save graphics as defaults failed: {exc}")
-        except Exception as exc:  # pragma: no cover - defensive
-            self.logger.error(f"❌ Save graphics as defaults failed: {exc}")
+        except Exception as exc:
+            self.logger.exception("❌ Save graphics as defaults failed")
 
     @Slot()
-    def save_current(self) -> None:
+    def save_current(self) -> None:  # noqa: D401
         try:
             state = self.collect_state()
             self.settings_service.save_current(state)
-            self.logger.info("✅ Graphics current settings saved")
+            self.logger.info(
+                "✅ Graphics current settings saved (categories=%d)", len(state)
+            )
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Save graphics current failed: {exc}")
-        except Exception as exc:  # pragma: no cover - defensive
-            self.logger.error(f"❌ Save graphics current failed: {exc}")
+        except Exception as exc:
+            self.logger.exception("❌ Save graphics current failed")
 
     # ------------------------------------------------------------------
     # Централизованный сбор состояния — для MainWindow.closeEvent()
     # ------------------------------------------------------------------
-    def collect_state(self) -> dict[str, Any]:
-        """Собрать текущее состояние напрямую из табов и синхронизировать снапшот.
-
-        Требование тестов: возвращаемое состояние должно совпадать с тем, что
-        отражено в UI-табах после всех нормализаций/квантования значений.
-        Поэтому сбор выполняем ИЗ ТАБОВ, а не из внутреннего снапшота.
-        """
+    def collect_state(self) -> dict[str, Any]:  # noqa: D401
         try:
             aggregated: dict[str, Any] = {}
             if self.lighting_tab is not None:
@@ -607,14 +635,13 @@ class GraphicsPanel(QWidget):
                 aggregated["materials"] = deepcopy(self.materials_tab.get_all_state())
             if self.effects_tab is not None:
                 aggregated["effects"] = deepcopy(self.effects_tab.get_state())
-
-            # Валидация структуры/типов на уровне сервиса (без форс-правок значений табов)
             try:
                 validated = self.settings_service.ensure_valid_state(aggregated)
             except Exception:
+                self.logger.exception(
+                    "ensure_valid_state failed — using raw aggregated state"
+                )
                 validated = aggregated
-
-            # Синхронизируем внутренний снапшот, но не инициируем повторное применение к табам
             self._sync_controller.apply_state(
                 validated,
                 description="Collect graphics state",
@@ -628,8 +655,8 @@ class GraphicsPanel(QWidget):
         except GraphicsSettingsError as exc:
             self.logger.error(f"❌ Failed to collect graphics state: {exc}")
             return self.state or {}
-        except Exception as exc:  # pragma: no cover - defensive logging
-            self.logger.error(f"❌ Failed to collect graphics state: {exc}")
+        except Exception as exc:
+            self.logger.exception("❌ Failed to collect graphics state")
             return self.state or {}
 
     def get_parameters(self) -> dict[str, Any]:
@@ -698,8 +725,9 @@ class GraphicsPanel(QWidget):
         return self._sync_controller.redo() is not None
 
     # Не сохраняем здесь — централизованно в MainWindow.closeEvent()
-    def closeEvent(self, event) -> None:  # type: ignore[override]
+    def closeEvent(self, event: QCloseEvent) -> None:  # type: ignore[override]
+        # Документация: сохранение выполняется централизованно в MainWindow.closeEvent()
         self.logger.info(
-            "GraphicsPanel closed (no direct save, centralized by MainWindow)"
+            "GraphicsPanel closed (state collection delegated to MainWindow.closeEvent())"
         )
         super().closeEvent(event)

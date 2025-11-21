@@ -6,6 +6,7 @@ Developers are encouraged to use this thin shim instead of calling the
 ``tools/`` alongside other contributor utilities and allows us to evolve the
 runner implementation without breaking documentation links.
 """
+
 from __future__ import annotations
 
 import sys

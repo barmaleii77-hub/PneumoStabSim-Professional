@@ -2,6 +2,7 @@
 """Helper to run pytest and capture full output into reports/pytest_last.txt.
 Prints first 200 lines to stdout for quick inspection.
 """
+
 from __future__ import annotations
 
 import pathlib

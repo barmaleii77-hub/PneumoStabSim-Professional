@@ -8,9 +8,11 @@ Args:
   --summary-json PATH  Путь для JSON отчёта.
   --no-summary         Отключить вывод отчёта на диск.
 """
+
 from __future__ import annotations
 
 import json
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -31,6 +33,7 @@ OPTIONAL_FILES = [
     "warehouse_preview.png",
 ]
 
+
 @dataclass
 class HDRStatus:
     name: str
@@ -38,6 +41,7 @@ class HDRStatus:
     exists: bool
     size_bytes: int
     mismatch: bool
+
 
 EXPECTED_SIZES: dict[str, int] = {
     "studio.hdr": 7_000_000,  # примерный размер
@@ -125,6 +129,103 @@ def _write_summary_json(path: Path, statuses: list[HDRStatus]) -> None:
     print(f"[hdr-verify] summary written: {path}")
 
 
+# --- New public function required by tests ----------------------------------
+
+
+def verify_hdr_assets(manifest_path: Path, summary_path: Path) -> int:
+    """Verify HDR assets directory, produce manifest + status summary.
+
+    Test contract (see tests/unit/tools/test_verify_hdr_assets.py):
+    - On first run with missing manifest: create manifest with SHA256 checksums
+      for every .hdr file present; return 0.
+    - On subsequent runs: compare current file checksums & existence against
+      manifest. Return 0 if all present and matching, otherwise 1.
+    - Summary JSON structure expected key 'statuses' with per file entries
+      containing: name, status (ok|missing|checksum-mismatch), size_bytes.
+    """
+    hdr_dir = (
+        manifest_path.parent
+        if manifest_path.name.endswith("hdr_manifest.json")
+        else HDR_DIR
+    )
+    if hdr_dir != HDR_DIR and not hdr_dir.exists():  # allow tmp directories in tests
+        hdr_dir.mkdir(parents=True, exist_ok=True)
+
+    files = sorted([p for p in hdr_dir.iterdir() if p.suffix.lower() == ".hdr"])
+    manifest_payload: dict[str, dict[str, str]] = {}
+    if manifest_path.exists():
+        try:
+            manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            manifest_payload = {}
+        manifest_files = manifest_payload.get("files", {})
+    else:
+        manifest_files = {}
+
+    def _checksum(path: Path) -> str:
+        h = hashlib.sha256()
+        h.update(path.read_bytes())
+        return h.hexdigest()
+
+    wrote_manifest = False
+    if not manifest_files:
+        # Initial generation
+        manifest_files = {f.name: _checksum(f) for f in files}
+        manifest_payload = {"files": manifest_files, "count": len(manifest_files)}
+        manifest_path.write_text(
+            json.dumps(manifest_payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        wrote_manifest = True
+
+    statuses: list[dict[str, object]] = []
+    all_ok = True
+    recorded_names = set(manifest_files.keys())
+    for name, expected_hash in manifest_files.items():
+        path = hdr_dir / name
+        if not path.exists():
+            statuses.append({"name": name, "status": "missing", "size_bytes": 0})
+            all_ok = False
+            continue
+        actual_hash = _checksum(path)
+        size_bytes = path.stat().st_size
+        if actual_hash != expected_hash:
+            statuses.append(
+                {
+                    "name": name,
+                    "status": "checksum-mismatch",
+                    "size_bytes": size_bytes,
+                }
+            )
+            all_ok = False
+        else:
+            statuses.append({"name": name, "status": "ok", "size_bytes": size_bytes})
+
+    # Include any new files not present in manifest (treated as mismatch)
+    for f in files:
+        if f.name not in recorded_names:
+            statuses.append(
+                {
+                    "name": f.name,
+                    "status": "untracked",
+                    "size_bytes": f.stat().st_size,
+                }
+            )
+            all_ok = False
+
+    summary_payload = {
+        "dir": str(hdr_dir),
+        "manifest": str(manifest_path),
+        "manifest_created": wrote_manifest,
+        "statuses": statuses,
+    }
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        json.dumps(summary_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return 0 if all_ok else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     import argparse
 
@@ -143,12 +244,26 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Disable writing summary JSON file",
     )
+    # Новый аргумент для совместимости с ci_tasks (no-op, может быть расширен позже)
+    parser.add_argument(
+        "--fetch-missing",
+        action="store_true",
+        help="Attempt to fetch or generate missing HDR assets (currently no-op)",
+    )
     args = parser.parse_args(argv)
 
     required_statuses = _collect_status(REQUIRED_FILES)
     optional_statuses = _collect_status(OPTIONAL_FILES)
     _print_status(required_statuses + optional_statuses)
     _summarise(required_statuses)
+
+    # Если запрошено fetch-missing и отсутствуют .hdr, не повышаем severity (no-op)
+    if args.fetch_missing:
+        missing = [s for s in required_statuses if not s.exists]
+        if missing:
+            print(
+                f"[hdr-verify] fetch-missing requested; {len(missing)} required HDR absent (no-op)."
+            )
 
     if not args.no_summary:
         _write_summary_json(args.summary_json, required_statuses)

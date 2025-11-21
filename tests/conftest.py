@@ -996,3 +996,16 @@ try:
             pass
 except Exception:
     pass
+
+try:
+    import pytestqt.qtbot as _qtbot_mod  # type: ignore  # noqa: F401
+except Exception:  # pragma: no cover - stub injection path
+    import types as _types, sys as _sys
+
+    class QtBot:  # minimal stub for import from pytestqt.qtbot
+        def __init__(self):
+            pass
+
+    qtbot_pkg = _types.ModuleType("pytestqt.qtbot")
+    qtbot_pkg.QtBot = QtBot  # type: ignore[attr-defined]
+    _sys.modules["pytestqt.qtbot"] = qtbot_pkg

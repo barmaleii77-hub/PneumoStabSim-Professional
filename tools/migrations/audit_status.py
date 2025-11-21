@@ -4,6 +4,7 @@ Reads config/app_settings.json and reports/migrations.jsonl to determine
 latest applied migrations and detect unapplied JSON migration descriptor files.
 Outputs a markdown summary to reports/status/MIGRATIONS_AUDIT.md.
 """
+
 from __future__ import annotations
 
 import json
@@ -51,7 +52,11 @@ def main() -> int:
     logged = load_log_entries()
     known_ids = discover_migration_ids()
 
-    applied_in_settings = settings.get("metadata", {}).get("migrations", []) if isinstance(settings.get("metadata"), dict) else []
+    applied_in_settings = (
+        settings.get("metadata", {}).get("migrations", [])
+        if isinstance(settings.get("metadata"), dict)
+        else []
+    )
     applied_set = set(applied_in_settings)
     unapplied = [mid for mid in known_ids if mid not in applied_set]
 
@@ -61,7 +66,13 @@ def main() -> int:
             last_log_event = entry
             break
 
-    md = ["# Migrations Audit", "", f"**Generated:** {datetime.utcnow().isoformat()}Z", "", "## Summary"]
+    md = [
+        "# Migrations Audit",
+        "",
+        f"**Generated:** {datetime.utcnow().isoformat()}Z",
+        "",
+        "## Summary",
+    ]
     md.append(f"- Total migration files: {len(known_ids)}")
     md.append(f"- Applied (settings metadata): {len(applied_set)}")
     md.append(f"- Unapplied: {len(unapplied)}")

@@ -17,6 +17,7 @@ from collections.abc import Iterable, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REPORT_DIR = PROJECT_ROOT / "reports" / "quality"
+STABLE_DIR = REPORT_DIR / "latest"  # стабильный подкаталог для инструментов
 _DEFAULT_HISTORY_LIMIT = (
     7  # renamed internally (keep external name) but preserve constant usage
 )
@@ -241,6 +242,14 @@ def run_autonomous_check(
     latest_path = _latest_log_path()
     latest_path.write_text(log_text + "\n", encoding="utf-8")
 
+    # Стабильный подкаталог для упрощения доступа get_file (без динамических таймстампов)
+    try:
+        STABLE_DIR.mkdir(parents=True, exist_ok=True)
+        stable_log = STABLE_DIR / "autonomous_check.log"
+        stable_log.write_text(log_text + "\n", encoding="utf-8")
+    except Exception:
+        pass
+
     overall_return_code = max(result["return_code"] for result in results)
     try:
         relative_log = str(log_path.relative_to(PROJECT_ROOT))
@@ -269,6 +278,16 @@ def run_autonomous_check(
         json.dumps(status_payload, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+
+    # Дублируем статус в стабильный каталог
+    try:
+        stable_status = STABLE_DIR / "autonomous_check_status.json"
+        stable_status.write_text(
+            json.dumps(status_payload, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
 
     _prune_old_logs(history_limit)
 

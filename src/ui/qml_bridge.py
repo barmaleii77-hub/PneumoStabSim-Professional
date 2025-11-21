@@ -307,7 +307,9 @@ class QMLBridge:
 
         # Попытка получить существующую очередь.
         try:
-            queue: dict[str, dict[str, Any]] | None = getattr(window, "_qml_update_queue", None)
+            queue: dict[str, dict[str, Any]] | None = getattr(
+                window, "_qml_update_queue", None
+            )
         except Exception:
             queue = None
 

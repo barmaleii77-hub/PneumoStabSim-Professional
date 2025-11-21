@@ -11,6 +11,7 @@ Test logic:
 Can be invoked via: pytest -q tests/receiver/test_b3_integration.py
 Or programmatically: python tests/receiver/test_b3_integration.py --standalone
 """
+
 from __future__ import annotations
 
 import os
@@ -113,7 +114,9 @@ def test_b3_receiver_integration(qapp) -> None:
     pressure_min = float(receiver.property("pressureMin"))
     pressure_max = float(receiver.property("pressureMax"))
 
-    logger.write(f"hasPressureRange={has_range} pressureMin={pressure_min} pressureMax={pressure_max}")
+    logger.write(
+        f"hasPressureRange={has_range} pressureMin={pressure_min} pressureMax={pressure_max}"
+    )
 
     line_keys = _extract_keys(receiver)
     ratio_map: dict[str, float] = {}
@@ -152,7 +155,7 @@ def test_b3_receiver_integration(qapp) -> None:
         f"- Pressure Range: {pressure_min:.1f} → {pressure_max:.1f}",
         f"- High Pressure Samples: {sum(r > 0.5 for r in ratio_map.values())}",
         f"- Emissive Span: {emissive_span}",
-        f"- Line Ratios: {', '.join(f'{k}:{v:.2f}' for k,v in ratio_map.items())}",
+        f"- Line Ratios: {', '.join(f'{k}:{v:.2f}' for k, v in ratio_map.items())}",
         "",
         f"See `{LOG_PATH.name}` for detailed logs.",
     ]
@@ -162,6 +165,7 @@ def test_b3_receiver_integration(qapp) -> None:
 def generate_b3_artifacts() -> int:
     """Standalone artifact generator used when pytest cannot launch."""
     from PySide6 import QtWidgets
+
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     app = QtWidgets.QApplication(sys.argv)
     engine = QQmlEngine()
@@ -174,18 +178,28 @@ def generate_b3_artifacts() -> int:
         pressure_max = float(receiver.property("pressureMax"))
         line_keys = _extract_keys(receiver)
         pressures = PAYLOAD["receiverState"]["pressures"]
-        span = pressure_max - pressure_min if pressure_max > pressure_min else pressure_max
+        span = (
+            pressure_max - pressure_min if pressure_max > pressure_min else pressure_max
+        )
         ratio_map: dict[str, float] = {}
         for key in line_keys:
             val = pressures.get(key, 0.0)
             ratio = (val - pressure_min) / span if span > 0 else 0.0
             ratio = max(0.0, min(1.0, ratio))
             ratio_map[key] = ratio
-        status = "✅ PASSED" if (has_range and pressure_max > pressure_min and any(r > 0.5 for r in ratio_map.values())) else "❌ FAILED"
+        status = (
+            "✅ PASSED"
+            if (
+                has_range
+                and pressure_max > pressure_min
+                and any(r > 0.5 for r in ratio_map.values())
+            )
+            else "❌ FAILED"
+        )
         lines = [
             f"STANDALONE B3 {datetime.utcnow().isoformat()}Z",
             f"hasRange={has_range} min={pressure_min} max={pressure_max}",
-            *(f"ratio[{k}]={v:.4f}" for k,v in ratio_map.items()),
+            *(f"ratio[{k}]={v:.4f}" for k, v in ratio_map.items()),
             f"STATUS={status}",
         ]
         LOG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -198,7 +212,7 @@ def generate_b3_artifacts() -> int:
             "Key Metrics:",
             f"- Pressure Range: {pressure_min:.1f} → {pressure_max:.1f}",
             f"- High Pressure Samples: {sum(r > 0.5 for r in ratio_map.values())}",
-            f"- Line Ratios: {', '.join(f'{k}:{v:.2f}' for k,v in ratio_map.items())}",
+            f"- Line Ratios: {', '.join(f'{k}:{v:.2f}' for k, v in ratio_map.items())}",
             "",
             f"See `{LOG_PATH.name}` for detailed logs.",
         ]

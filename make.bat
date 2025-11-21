@@ -31,8 +31,36 @@ IF /I "%~1"=="analyze-logs" GOTO :analyze_logs
 IF /I "%~1"=="sanitize" GOTO :sanitize
 IF /I "%~1"=="cipilot-env" GOTO :cipilot
 IF /I "%~1"=="launcher" GOTO :launcher
+IF /I "%~1"=="env-check" GOTO :env_check
+IF /I "%~1"=="env-report" GOTO :env_report
+IF /I "%~1"=="hdr-verify" GOTO :hdr_verify
+IF /I "%~1"=="render-diagnostics" GOTO :render_diagnostics
+IF /I "%~1"=="smoke-render" GOTO :smoke_render
 
 GOTO :help
+
+:smoke_render
+REM Sequential smoke: pytest filter then safe test-mode app launch
+SHIFT
+SET "PY_ARGS=%*"
+IF "%PY_ARGS%"=="" SET "PY_ARGS=-k SimulationRoot -q"
+python -m pytest %PY_ARGS%
+IF ERRORLEVEL 1 (
+  ECHO Pytest failed (skip app launch). Exit code %ERRORLEVEL%.
+  GOTO :eof
+)
+where uv >NUL 2>&1
+IF ERRORLEVEL 1 (
+  python app.py --safe --test-mode
+) ELSE (
+  uv run --locked -- python app.py --safe --test-mode
+)
+GOTO :eof
+
+:render_diagnostics
+SHIFT
+python -m tools.render_diagnostics %*
+GOTO :eof
 
 :autonomous
 SHIFT
@@ -45,9 +73,10 @@ python -m tools.autonomous_check --launch-trace %*
 GOTO :eof
 
 :verify
-REM --- Added migrations apply, audit, and B3 receiver test before core verify ---
+REM --- Extended verification: migrations, audit, HDR verify, receiver smoke, autonomous check ---
 python tools/migrations/apply.py --settings config/app_settings.json --migrations config/migrations --in-place --verbose
 python tools/migrations/audit_status.py
+python tools/verify_hdr_assets.py || echo HDR verify failed
 REM Use standalone mode to avoid pytest launcher issues
 python tests/receiver/test_b3_integration.py --standalone
 python -m tools.autonomous_check --task verify --launch-trace
@@ -75,7 +104,6 @@ GOTO :eof
 
 :pytest_direct
 SHIFT
-REM Прямой fallback (обходит повреждённый pytest.exe launcher). Использует текущий интерпретатор.
 python -m pytest %*
 GOTO :eof
 
@@ -92,7 +120,7 @@ python -m tools.autonomous_check --task qml-lint
 GOTO :eof
 
 :format
-REM Use Ruff formatter via python to preserve virtualenv
+REM Ruff formatter (preserve virtualenv)
 python -m ruff format app.py src tests tools
 GOTO :eof
 
@@ -102,7 +130,6 @@ GOTO :eof
 
 :perf_check
 SHIFT
-REM Collect baseline performance metrics (default scenario)
 python -m tools.performance_monitor --scenario default %*
 GOTO :eof
 
@@ -118,7 +145,8 @@ IF ERRORLEVEL 1 (
   GOTO :eof
 )
 uv sync --frozen --extra dev
-uv run --locked -- python -c "import yaml; print(yaml.__version__)"
+REM Print versions (PySide6, Qt, yaml) for sanity check
+uv run --locked -- python -c "import PySide6, PySide6.QtCore as QC, yaml; print('PySide6', PySide6.__version__, 'Qt', QC.qVersion(), 'yaml', yaml.__version__)"
 GOTO :eof
 
 :uvrun
@@ -164,8 +192,25 @@ SHIFT
 PowerShell -ExecutionPolicy Bypass -File scripts\load_cipilot_env.ps1 %*
 GOTO :eof
 
+:env_check
+REM Quick environment diagnostics (does not start full UI)
+python app.py --env-check
+GOTO :eof
+
+:env_report
+SHIFT
+REM Save environment report (default path if none supplied)
+SET "TARGET=%~1"
+IF "%TARGET%"=="" SET "TARGET=reports\quality\env_report.md"
+python app.py --env-report="%TARGET%" --env-check
+ECHO Report written: %TARGET%
+GOTO :eof
+
+:hdr_verify
+python tools/verify_hdr_assets.py
+GOTO :eof
+
 :launcher
-REM Запуск интерактивного лаунчера (pythonw, если доступен)
 SET "LAUNCHER=scripts\interactive_launcher.py"
 IF EXIST .venv\Scripts\pythonw.exe (
   .venv\Scripts\pythonw.exe "%LAUNCHER%"
@@ -178,14 +223,23 @@ GOTO :eof
 ECHO Usage: make ^<target^> [extra args]
 ECHO.
 ECHO Quality gates:
-ECHO   autonomous-check [--args]    ^| autonomous-check-trace
-ECHO   verify ^| check ^| lint ^| typecheck ^| qml-lint ^| format
-ECHO   test ^| test-unit ^| test-integration ^| test-ui
-ECHO   pytest-direct  (fallback: python -m pytest)
-ECHO   security ^| perf-check ^| settings-migrate
+ECHO   autonomous-check ^| autonomous-check-trace ^| verify ^| check
+ECHO   lint ^| typecheck ^| qml-lint ^| format
+ECHO   test ^| test-unit ^| test-integration ^| test-ui ^| pytest-direct
+ECHO.
+ECHO Smoke:
+ECHO   smoke-render [pytest args]  ^(pytest + safe UI launch^)
+ECHO.
+ECHO Render diagnostics:
+ECHO   render-diagnostics [--qml-snapshot]
+ECHO.
+ECHO Environment / diagnostics:
+ECHO   uv-sync ^| uv-run CMD ^| cipilot-env ^| env-check ^| env-report [path] ^| hdr-verify
 ECHO.
 ECHO Utilities:
-ECHO   sanitize ^| trace-launch ^| analyze-logs
-ECHO   uv-sync ^| uv-run CMD ^| run [app args]
-ECHO   cipilot-env ^| launcher
+ECHO   sanitize ^| trace-launch ^| analyze-logs ^| run [app args] ^| launcher
+ECHO.
+ECHO Examples:
+ECHO   make smoke-render -k SimulationRoot -q
+ECHO   make render-diagnostics --qml-snapshot
 EXIT /B 0

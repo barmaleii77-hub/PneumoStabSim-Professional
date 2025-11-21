@@ -735,7 +735,8 @@ class EnvironmentTab(QWidget):
         if self._updating_ui:
             return
         self._update_ibl_dependency_states()
-        self._on_control_changed("skybox_ENABLED", checked)
+        # ✅ FIX: корректный snake_case ключ
+        self._on_control_changed("skybox_enabled", checked)
 
     def _on_fog_enabled_clicked(self, checked: bool) -> None:
         if self._updating_ui:
