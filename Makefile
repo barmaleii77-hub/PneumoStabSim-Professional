@@ -28,41 +28,7 @@ install-qt-runtime qt-env-check telemetry-etl profile-phase3 profile-render prof
 
 .PHONY: qml-lint qmllint
 qml-lint qmllint:
-	@echo "Running QML lint (qmllint)"
-	@LINTER="$(QML_LINTER)"; \
-	if [ -z "$$LINTER" ]; then \
-	 if command -v qmllint >/dev/null 2>&1; then \
-	 LINTER=qmllint; \
-	 elif command -v pyside6-qmllint >/dev/null 2>&1; then \
-	 LINTER=pyside6-qmllint; \
-	 else \
-	 echo "Error: qmllint or pyside6-qmllint is not installed. Set QML_LINTER to override." >&2; \
-	 		exit 1; \
-	 fi; \
-	fi; \
-if [ -f "$(QML_LINT_TARGETS_FILE)" ]; then \
-mapfile -t qml_files < "$(QML_LINT_TARGETS_FILE)"; \
-else \
-qml_files=(); \
-fi; \
-# Filter out comments and empty lines to avoid feeding garbage paths to the linter. \
-filtered_qml_files=(); \
-for entry in "$${qml_files[@]}"; do \
-if [ -n "$$entry" ] && [ "$$entry" != \#* ]; then \
-filtered_qml_files+=("$$entry"); \
-fi; \
-done; \
-if [ $${#filtered_qml_files[@]} -eq 0 ]; then \
-echo "No QML lint targets specified; skipping."; \
-exit 0; \
-fi; \
-for file in "$${filtered_qml_files[@]}"; do \
-if [ -d "$$file" ]; then \
-find "$$file" -type f -name '*.qml' -print0 | while IFS= read -r -d '' nested; do "$$LINTER" "$$nested"; done; \
-else \
-"$$LINTER" "$$file"; \
-fi; \
-done
+	$(PYTHON) tools/qml_lint_runner.py --targets-file $(QML_LINT_TARGETS_FILE)
 
 .PHONY: uv-sync uv-sync-qt uv-sync-locked uv-run uv-lock uv-export-requirements uv-release-refresh
 

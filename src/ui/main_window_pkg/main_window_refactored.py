@@ -1,7 +1,7 @@
 """MainWindow Coordinator - Refactored modular version
 
 Главное окно приложения - модульная версия v4.9.8.
-Тонкий координатор, делегирующий работу специализированным модулам.
+Тонкий координатор, делегирующий работу специализированным модулям.
 """
 
 from __future__ import annotations
@@ -306,6 +306,16 @@ class MainWindow(QMainWindow):
         self.logger.info("  ✅ Initial sync completed")
 
         self.logger.info("✅ MainWindow initialization complete")
+
+        # ====== CONNECT QML ACK SIGNAL ======
+        try:
+            if self._qml_root_object is not None and hasattr(self._qml_root_object, 'batchUpdatesApplied'):
+                self._qml_root_object.batchUpdatesApplied.connect(self._on_qml_batch_ack, Qt.ConnectionType.QueuedConnection)
+                self.logger.info("✅ Connected QML batchUpdatesApplied → _on_qml_batch_ack")
+            else:
+                self.logger.warning("⚠️ QML root missing batchUpdatesApplied signal")
+        except Exception as exc:
+            self.logger.warning("⚠️ Failed to connect batchUpdatesApplied: %s", exc)
 
     # ------------------------------------------------------------------
     # QML Event Logging (exposed to QML)
@@ -1110,15 +1120,33 @@ class MainWindow(QMainWindow):
             )
             return raw_value
 
-    @Slot(dict)
-    def _on_qml_batch_ack(self, summary: dict[str, Any]) -> None:
-        """QML batch ACK → QMLBridge"""
-        QMLBridge.handle_qml_ack(self, summary)
+    @Slot(object)
+    def _on_qml_batch_ack(self, summary: dict) -> None:
+        """Обработчик ACK из QML: фиксирует успешное применение батча.
 
-    @Slot(int)
-    def _on_tab_changed(self, index: int) -> None:
-        """Tab changed → MenuActions"""
-        MenuActions.on_tab_changed(self, index)
+        Args:
+            summary: Сводка от QML ({ timestamp, categories, source, local_batch_id/root_batch_id })
+        """
+        if not isinstance(summary, dict):
+            return
+        categories = summary.get("categories", [])
+        batch_id = summary.get("root_batch_id") or summary.get("local_batch_id")
+        ts = summary.get("timestamp")
+        if not categories:
+            return
+        self.logger.debug(f"📨 QML ACK batch_id={batch_id} categories={categories} ts={ts}")
+        try:
+            from src.common.event_logger import EventType
+            self.event_logger.log_event(
+                event_type=EventType.FUNCTION_CALLED,
+                component="main.qml",
+                action="batch_ack",
+                new_value=categories,
+                metadata={"batch_id": batch_id, "timestamp": ts},
+                source="qml",
+            )
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Render Update

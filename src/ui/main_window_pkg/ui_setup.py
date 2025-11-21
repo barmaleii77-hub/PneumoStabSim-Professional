@@ -96,9 +96,17 @@ class UISetup:
 
     @staticmethod
     def _build_effect_shader_manifest() -> dict[str, dict[str, Any]]:
-        """Return a manifest of effect shader files available on disk."""
+        """Return a manifest of effect shader files available on disk.
+
+        Завершение миграции путей: canonical теперь ``effects/``.
+        Legacy префикс ``post_effects/`` больше НЕ добавляется по умолчанию,
+        чтобы устранить предупреждения вида "shader manifest mismatch".
+        Для временной совместимости его можно вернуть, установив
+        переменную окружения ``PSS_ENABLE_LEGACY_POST_EFFECTS_PATHS=1``.
+        """
 
         manifest: dict[str, dict[str, Any]] = {}
+        enable_legacy = str(os.environ.get("PSS_ENABLE_LEGACY_POST_EFFECTS_PATHS", "")).strip().lower() in {"1","true","yes","on"}
 
         for directory in EFFECT_SHADER_DIRS:
             try:
@@ -116,18 +124,26 @@ class UISetup:
 
                     entry = manifest.get(path.name)
                     if entry is None:
-                        manifest[path.name] = {
+                        entry = {
                             "enabled": True,
-                            "path": relative_key,
+                            "path": relative_key,          # canonical effects/... путь
                             "paths": [relative_key],
                         }
-                        continue
+                        manifest[path.name] = entry
+                    else:
+                        entry.setdefault("enabled", True)
+                        entry_paths = entry.setdefault("paths", [])
+                        if relative_key not in entry_paths:
+                            entry_paths.append(relative_key)
+                        # Обновляем canonical при необходимости
+                        entry["path"] = relative_key
 
-                    entry.setdefault("enabled", True)
-                    entry_paths = entry.setdefault("paths", [])
-                    if relative_key not in entry_paths:
-                        entry_paths.append(relative_key)
-                    entry.setdefault("path", relative_key)
+                    # ─── Опционально добавляем legacy post_effects/ для старых логов ───
+                    if enable_legacy and relative_key.startswith("effects/"):
+                        alt_key = relative_key.replace("effects/", "post_effects/")
+                        alt_list = entry.setdefault("paths", [])
+                        if alt_key not in alt_list:
+                            alt_list.append(alt_key)
             except FileNotFoundError:
                 UISetup.logger.error(
                     "    ❌ Effect shader directory missing: %s", directory

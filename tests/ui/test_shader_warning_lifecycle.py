@@ -1,8 +1,7 @@
-import pytest
 from src.common.settings_manager import get_settings_manager
 
-@pytest.mark.qt
-def test_shader_warning_lifecycle(qtbot):
+
+def test_shader_warning_lifecycle():
     # Имитация QML root объекта с минимальным интерфейсом
     class DummyRoot:
         def __init__(self):
@@ -19,3 +18,5 @@ def test_shader_warning_lifecycle(qtbot):
     assert root.warnings["bloom"] == "Updated"
     root.clearShaderWarning("bloom")
     assert "bloom" not in root.warnings
+    root.registerShaderWarning("lensFlare", "Ghost dispersal fallback")
+    assert root.warnings["lensFlare"].startswith("Ghost dispersal")

@@ -1,11 +1,13 @@
 import QtQuick 6.10
 import QtQuick.Controls 6.10
+import QtQuick.Layouts 6.10
+import "Common" as Common
 
 Pane {
     id: root
     objectName: "simulationPanel"
 
-    // Публичные свойства, ожидаемые main.qml и тестами
+    // Публичные свойства (используются Python и тестами)
     property var controller: null
     property var modesMetadata: ({})
     property var initialModes: ({})
@@ -18,7 +20,7 @@ Pane {
     property bool simulationRunning: false
     property string statusText: simulationRunning ? qsTr("▶ Запущено") : qsTr("⏹ Остановлено")
 
-    // Сигналы панели (проксируются из main.qml)
+    // Сигналы
     signal simulationControlRequested(string command)
     signal modesPresetSelected(string presetId)
     signal modesModeChanged(string modeType, string newMode)
@@ -31,15 +33,11 @@ Pane {
     signal accordionFieldCommitted(string panelId, string field, var value)
     signal accordionValidationChanged(string panelId, string field, string state, string message)
 
-    // Вспомогательные скейлы
     readonly property int _floatScale: 10000
-
-    // Флаги внутреннего обновления
     property bool _updatingFromPython: false
     property string _activePresetId: "custom"
     property var _presetModel: _buildPresetModel()
 
-    // Диапазоны по умолчанию (собраны из initialAnimation, fallbacks)
     readonly property var _defaultRanges: ({
         amplitude: { min: 0.0, max: 0.5, step: 0.005, decimals: 3 },
         frequency: { min: 0.1, max: 18.0, step: 0.1, decimals: 1 },
@@ -50,7 +48,6 @@ Pane {
         smoothing_piston_snap_m: { min: 0.0, max: 0.3, step: 0.005, decimals: 3 }
     })
 
-    // Профили дороги
     readonly property var _roadProfiles: [
         { text: qsTr("Шоссе"), value: "smooth_highway" },
         { text: qsTr("Грейдер"), value: "gravel_road" },
@@ -65,8 +62,9 @@ Pane {
         border.width: 1
     }
 
+    function _tr(key, text) { return text }
+
     Component.onCompleted: {
-        // Применяем начальные значения, чтобы тесты считали панель готовой
         if (typeof initialModes === "object") applyModesSettings(initialModes)
         if (typeof initialAnimation === "object") applyAnimationSettings(initialAnimation)
         if (typeof initialPneumatic === "object") applyPneumaticSettings(initialPneumatic)
@@ -78,73 +76,249 @@ Pane {
     }
 
     // --- Утилиты ---
-    function _cloneObject(source){ if(!source||typeof source!=="object") return {}; return JSON.parse(JSON.stringify(source)) }
-    function _buildPresetModel(){ var metadata=modesMetadata||{}; var presets=metadata.presets||[]; if(!presets.length) return []; return presets.map(function(entry){ var label= entry.label||entry.name||entry.id|| (qsTr("Пресет")+" "+(entry.index!==undefined?entry.index:"")); return { id:String(entry.id||""), label:label, description:entry.description||"", descriptionKey:entry.descriptionKey||"", labelKey:entry.labelKey||"" } }) }
+    function _buildPresetModel(){ var metadata=modesMetadata||{}; var presets=metadata.presets||[]; if(!presets.length) return []; return presets.map(function(entry){ var label= entry.label||entry.name||entry.id|| (qsTr("Пресет")+" "+(entry.index!==undefined?entry.index:"")); return { id:String(entry.id||""), label:label, description:entry.description||"" } }) }
     function _formatValue(value,decimals){ if(value===undefined||value===null) return ""; var d=Math.max(0,Math.min(6,Number(decimals||0))); return Number(value).toLocaleString(Qt.locale(),{maximumFractionDigits:d,minimumFractionDigits:d}) }
-    function _setSliderValue(slider,value,fallback){ if(!slider) return; if(value===undefined||value===null){ if(fallback!==undefined&&fallback!==null) slider.value=fallback; return } var numeric=Number(value); if(Number.isFinite(numeric)) slider.value=numeric; else if(fallback!==undefined&&fallback!==null) slider.value=fallback }
+    function _setSliderValue(slider,value,fallback){ if(!slider) return; if(value===undefined||value===null){ if(fallback!==undefined&&fallback!==null) slider.value=fallback; return } var n=Number(value); if(Number.isFinite(n)) slider.value=n }
     function _setCheckBox(box,value,fallback){ if(!box) return; box.checked = (value===undefined||value===null)? !!fallback : !!value }
-    function _setComboValue(combo,value,fallback){ if(!combo) return; var target=(value===undefined||value===null||value==="")?fallback:value; if(target===undefined||target===null) target=""; var targetText=String(target).toUpperCase(); var found=-1; for(var i=0;i<combo.count;++i){ var cand=combo.model[i]; var candVal = cand.value!==undefined?cand.value:cand; if(String(candVal).toUpperCase()===targetText){ found=i; break } } if(found>=0) combo.currentIndex=found }
+    function _setComboValue(combo,value,fallback){ if(!combo) return; var target=(value===undefined||value===null||value==="")?fallback:value; if(target===undefined||target===null) target=""; var up=String(target).toUpperCase(); var found=-1; for(var i=0;i<combo.count;++i){ var cand=combo.model[i]; var val=cand.value!==undefined?cand.value:cand; if(String(val).toUpperCase()===up){ found=i; break } } if(found>=0) combo.currentIndex=found }
     function _coerceNumeric(v){ var n=Number(v); return Number.isFinite(n)? n : undefined }
-    function _asScaledInt(value,scale){ var n=Number(value); var s=Number(scale); if(!Number.isFinite(n)||!Number.isFinite(s)) return 0; return Math.round(n*s) }
-    function _assignSpinValue(spin,rawValue,options){ if(!spin) return; var opts=options||{}; var numeric=_coerceNumeric(rawValue); if(numeric===undefined){ console.warn("⚠️ SimulationPanel: ignoring non-numeric", opts.key||"value", rawValue); return } var scale=Number(spin.valueScale!==undefined?spin.valueScale:1); if(!Number.isFinite(scale)||scale<=0) scale=1; var finalValue; var requiresInt=false; if(scale!==1){ finalValue=_asScaledInt(numeric,scale) } else { var step=Number(spin.stepSize); var fromV=Number(spin.from); var toV=Number(spin.to); if(Number.isFinite(step)&&Number.isFinite(fromV)&&Number.isFinite(toV)&&Math.round(step)===step&&Math.round(fromV)===fromV&&Math.round(toV)===toV){ finalValue=Math.round(numeric); requiresInt=true } else finalValue=numeric } try { spin.value=finalValue } catch(e){ console.warn("⚠️ SimulationPanel: spin assignment failed", opts.key, e); if(scale!==1){ var scaled=_asScaledInt(numeric,scale); if(scaled!==finalValue){ try{ spin.value=scaled; return }catch(_){} } } else if(requiresInt){ var fb=Math.round(numeric); if(fb!==finalValue){ try{ spin.value=fb; return }catch(_){} } } } }
-    function _assignScaledSpinValue(spin,rawValue,options){ if(!spin) return; var numeric=_coerceNumeric(rawValue); if(numeric===undefined) return; var scale=Number(spin.valueScale!==undefined?spin.valueScale:1); if(scale!==1 && Math.round(numeric)===numeric && Math.abs(numeric)>=1) numeric = numeric/scale; _assignSpinValue(spin,numeric,options) }
+    function _assignSpinValue(spin,value){ if(!spin) return; var n=_coerceNumeric(value); if(n===undefined) return; spin.value=n }
+    function _assignScaledSpinValue(spin,value){ if(!spin) return; var n=_coerceNumeric(value); if(n===undefined) return; var scale=Number(spin.valueScale||1); if(scale>0) spin.value=Math.round(n*scale) }
 
     // --- Emitters ---
-    function _emitAnimationPayload(extra){ var payload={ amplitude: amplitudeSlider.value, frequency: frequencySlider.value, phase: phaseSlider.value, lf_phase: lfPhaseSlider.value, rf_phase: rfPhaseSlider.value, lr_phase: lrPhaseSlider.value, rr_phase: rrPhaseSlider.value, smoothing_enabled: smoothingEnabledCheck.checked, smoothing_duration_ms: smoothingDurationSlider.value, smoothing_angle_snap_deg: smoothingAngleSlider.value, smoothing_piston_snap_m: smoothingPistonSlider.value, smoothing_easing: smoothingCombo.model[smoothingCombo.currentIndex].value }; if(roadProfileCombo){ payload.road_profile = roadProfileCombo.currentValue || roadProfileCombo.currentText } if(customProfileField){ payload.custom_profile_path = customProfileField.text } if(extra){ for(var k in extra) if(Object.prototype.hasOwnProperty.call(extra,k)) payload[k]=extra[k] } modesAnimationChanged(payload) }
+    function _emitAnimationPayload(extra){ var payload={ amplitude: amplitudeSlider.value, frequency: frequencySlider.value, phase: phaseSlider.value, lf_phase: lfPhaseSlider.value, rf_phase: rfPhaseSlider.value, lr_phase: lrPhaseSlider.value, rr_phase: rrPhaseSlider.value, smoothing_enabled: smoothingEnabledCheck.checked, smoothing_duration_ms: smoothingDurationSlider.value, smoothing_angle_snap_deg: smoothingAngleSlider.value, smoothing_piston_snap_m: smoothingPistonSlider.value, smoothing_easing: smoothingCombo.model[smoothingCombo.currentIndex].value }; if(roadProfileCombo) payload.road_profile = roadProfileCombo.currentValue || roadProfileCombo.currentText; if(customProfileField) payload.custom_profile_path = customProfileField.text; if(extra){ for(var k in extra) if(Object.prototype.hasOwnProperty.call(extra,k)) payload[k]=extra[k] } modesAnimationChanged(payload) }
     function _emitPhysicsOptions(){ modesPhysicsChanged({ include_springs: springsCheck.checked, include_dampers: dampersCheck.checked, include_pneumatics: pneumaticsCheck.checked, include_springs_kinematics: kinematicSpringsCheck.checked, include_dampers_kinematics: kinematicDampersCheck.checked }) }
     function _emitAmbientTemperature(v){ var n=Number(v); if(!Number.isFinite(n)) return; modesModeChanged("ambient_temperature_c", n); pneumaticSettingsChanged({ atmo_temp: n }) }
     function _emitPneumaticChange(k,v){ var p={}; p[k]=v; pneumaticSettingsChanged(p) }
     function _emitSimulationChange(k,v){ var p={}; p[k]=v; simulationSettingsChanged(p) }
     function _emitCylinderChange(k,v){ var p={}; p[k]=v; cylinderSettingsChanged(p) }
 
-    // --- Apply* публичные методы (главные точки входа из Python) ---
-    function applyModesSettings(payload){ var d=payload||{}; _updatingFromPython=true; if(d.mode_preset!==undefined) _activePresetId=String(d.mode_preset||""); if(d.sim_type!==undefined) _setComboValue(simTypeCombo,d.sim_type,"KINEMATICS"); if(d.thermo_mode!==undefined) _setComboValue(thermoCombo,d.thermo_mode,"ISOTHERMAL"); if(d.road_profile!==undefined) _setComboValue(roadProfileCombo,d.road_profile,_roadProfiles[0].value); if(Object.prototype.hasOwnProperty.call(d,"custom_profile_path")) customProfileField.text=d.custom_profile_path||""; if(roadProfileCombo) customProfileField.enabled=(roadProfileCombo.currentValue||roadProfileCombo.currentText)==="custom"; if(Object.prototype.hasOwnProperty.call(d,"check_interference")) _setCheckBox(interferenceCheck,d.check_interference,false); if(Object.prototype.hasOwnProperty.call(d,"ambient_temperature_c")) ambientTemperatureField.value=Number(d.ambient_temperature_c)||20.0; if(d.physics){ _setCheckBox(springsCheck,d.physics.include_springs,true); _setCheckBox(dampersCheck,d.physics.include_dampers,true); _setCheckBox(pneumaticsCheck,d.physics.include_pneumatics,true); _setCheckBox(kinematicSpringsCheck,d.physics.include_springs_kinематикs,true); _setCheckBox(kinematicDampersCheck,d.physics.include_dampers_кинематикs,true) } _updatingFromPython=false; return true }
-    function applyAnimationSettings(payload){ var d=payload||{}; _updatingFromPython=true; if(d.amplitude!==undefined) _setSliderValue(amplitudeSlider,d.amplitude,amplitudeSlider.value); if(d.frequency!==undefined) _setSliderValue(frequencySlider,d.frequency,frequencySlider.value); if(d.phase!==undefined) _setSliderValue(phaseSlider,d.phase,phaseSlider.value); if(d.lf_phase!==undefined) _setSliderValue(lfPhaseSlider,d.lf_phase,lfPhaseSlider.value); if(d.rf_phase!==undefined) _setSliderValue(rfPhaseSlider,d.rf_phase,rfPhaseSlider.value); if(d.lr_phase!==undefined) _setSliderValue(lrPhaseSlider,d.lr_phase,lrPhaseSlider.value); if(d.rr_phase!==undefined) _setSliderValue(rrPhaseSlider,d.rr_phase,rrPhaseSlider.value); if(d.smoothing_enabled!==undefined) _setCheckBox(smoothingEnabledCheck,d.smoothing_enabled,true); if(d.smoothing_duration_ms!==undefined) _setSliderValue(smoothingDurationSlider,d.smoothing_duration_ms,smoothingDurationSlider.value); if(d.smoothing_angle_snap_deg!==undefined) _setSliderValue(smoothingAngleSlider,d.smoothing_angle_snap_deg,smoothingAngleSlider.value); if(d.smoothing_piston_snap_m!==undefined) _setSliderValue(smoothingPistonSlider,d.smoothing_piston_snap_m,smoothingPistonSlider.value); var easing=d.smoothing_easing||d.smoothingEasing||d.smoothingEasingName; if(easing!==undefined) _setComboValue(smoothingCombo,easing,smoothingCombo.model[0].value); if(d.road_profile!==undefined) _setComboValue(roadProfileCombo,d.road_profile,_roadProfiles[0].value); if(Object.prototype.hasOwnProperty.call(d,"custom_profile_path")) customProfileField.text=d.custom_profile_path||""; if(d.is_running!==undefined) simulationRunning=!!d.is_running; _updatingFromPython=false; return true }
-    function applyPneumaticSettings(payload){ var d=payload||{}; _updatingFromPython=true; if(d.volume_mode!==undefined) _setComboValue(volumeModeCombo,d.volume_mode,"MANUAL"); if(Object.prototype.hasOwnProperty.call(d,"receiver_volume")) _setSliderValue(receiverVolumeSlider,d.receiver_volume,receiverVolumeSlider.value); if(Object.prototype.hasOwnProperty.call(d,"cv_atmo_dp")) _assignSpinValue(cvAtmoDpSpin,d.cv_atmo_dp,{key:"cv_atmo_dp"}); if(Object.prototype.hasOwnProperty.call(d,"cv_tank_dp")) _assignSpinValue(cvTankDpSpin,d.cv_tank_dp,{key:"cv_tank_dp"}); if(Object.prototype.hasOwnProperty.call(d,"cv_atmo_dia")) _assignScaledSpinValue(cvAtmoDiaSpin,d.cv_atmo_dia,{key:"cv_atmo_dia"}); if(Object.prototype.hasOwnProperty.call(d,"cv_tank_dia")) _assignScaledSpinValue(cvTankDiaSpin,d.cv_tank_dia,{key:"cv_tank_dia"}); if(Object.prototype.hasOwnProperty.call(d,"relief_min_pressure")) _assignSpinValue(reliefMinSpin,d.relief_min_pressure,{key:"relief_min_pressure"}); if(Object.prototype.hasOwnProperty.call(d,"relief_stiff_pressure")) _assignSpinValue(reliefStiffSpin,d.relief_st stiff_pressure,{key:"relief_stiff_pressure"}); if(Object.prototype.hasOwnProperty.call(d,"relief_safety_pressure")) _assignSpinValue(reliefSafetySpin,d.relief_safety_pressure,{key:"relief_safety_pressure"}); if(Object.prototype.hasOwnProperty.call(d,"throttle_min_dia")) _assignScaledSpinValue(throttleMinSpin,d.throttle_min_dia,{key:"throttle_min_dia"}); if(Object.prototype.hasOwnProperty.call(d,"throttle_stiff_dia")) _assignScaledSpinValue(throttleStiffSpin,d.throttle_stiff_dia,{key:"throttle_stiff_dia"}); if(Object.prototype.hasOwnProperty.call(d,"diagonal_coupling_dia")) _assignScaledSpinValue(diagonalCouplingSpin,d.diagonal_coupling_dia,{key:"diagonal_coupling_dia"}); if(Object.prototype.hasOwnProperty.call(d,"atmo_temp")) _assignSpinValue(atmoTempSpin,d.atmo_temp,{key:"atmo_temp"}); if(Object.prototype.hasOwnProperty.call(d,"master_isolation_open")) masterIsolationCheck.checked=!!d.master_isolation_open; _updatingFromPython=false; return true }
-    function applySimulationSettings(payload){ var d=payload||{}; _updatingFromPython=true; if(Object.prototype.hasOwnProperty.call(d,"physics_dt")) _assignScaledSpinValue(physicsDtSpin,d.physics_dt,{key:"physics_dt"}); if(Object.prototype.hasOwnProperty.call(d,"render_vsync_hz")) _assignSpinValue(vsyncSpin,d.render_vsync_hz,{key:"render_vsync_hz"}); if(Object.prototype.hasOwnProperty.call(d,"max_steps_per_frame")) _assignSpinValue(maxStepsSpin,d.max_steps_per_frame,{key:"max_steps_per_frame"}); if(Object.prototype.hasOwnProperty.call(d,"max_frame_time")) _assignScaledSpinValue(maxFrameTimeSpin,d.max_frame_time,{key:"max_frame_time"}); _updatingFromPython=false; return true }
-    function applyCylinderSettings(payload){ var d=payload||{}; _updatingFromPython=true; if(Object.prototype.hasOwnProperty.call(d,"dead_zone_head_m3")) _assignScaledSpinValue(deadZoneHeadSpin,d.dead_zone_head_m3,{key:"dead_zone_head_m3"}); if(Object.prototype.hasOwnProperty.call(d,"dead_zone_rod_m3")) _assignScaledSpinValue(deadZoneRodSpin,d.dead_zone_rod_m3,{key:"dead_zone_rod_m3"}); _updatingFromPython=false; return true }
+    // --- Apply* методы ---
+    function applyModesSettings(d){ d=d||{}; _updatingFromPython=true; if(d.mode_preset!==undefined) _activePresetId=String(d.mode_preset||""); if(d.sim_type!==undefined) _setComboValue(simTypeCombo,d.sim_type,"KINEMATICS"); if(d.thermo_mode!==undefined) _setComboValue(thermoCombo,d.thermo_mode,"ISOTHERMAL"); if(d.road_profile!==undefined) _setComboValue(roadProfileCombo,d.road_profile,_roadProfiles[0].value); if(Object.prototype.hasOwnProperty.call(d,"custom_profile_path")) customProfileField.text=d.custom_profile_path||""; if(roadProfileCombo) customProfileField.enabled=(roadProfileCombo.currentValue||roadProfileCombo.currentText)==="custom"; if(Object.prototype.hasOwnProperty.call(d,"check_interference")) _setCheckBox(interferenceCheck,d.check_interference,false); if(Object.prototype.hasOwnProperty.call(d,"ambient_temperature_c")) ambientTemperatureField.value=Number(d.ambient_temperature_c)||20.0; if(d.physics){ _setCheckBox(springsCheck,d.physics.include_springs,true); _setCheckBox(dampersCheck,d.physics.include_dampers,true); _setCheckBox(pneumaticsCheck,d.physics.include_pneumatics,true); _setCheckBox(kinematicSpringsCheck,d.physics.include_springs_kinематикs,true); _setCheckBox(kinematicDampersCheck,d.physics.include_dамперов_кинематикs,true) } _updatingFromPython=false; return true }
+    function applyAnimationSettings(d){ d=d||{}; _updatingFromPython=true; if(d.amplitude!==undefined) _setSliderValue(amplitudeSlider,d.amplitude,amplitudeSlider.value); if(d.frequency!==undefined) _setSliderValue(frequencySlider,d.frequency,frequencySlider.value); if(d.phase!==undefined) _setSliderValue(phaseSlider,d.phase,phaseSlider.value); if(d.lf_phase!==undefined) _setSliderValue(lfPhaseSlider,d.lf_phase,lfPhaseSlider.value); if(d.rf_phase!==undefined) _setSliderValue(rfPhaseSlider,d.rf_phase,rfPhaseSlider.value); if(d.lr_phase!==undefined) _setSliderValue(lrPhaseSlider,d.lr_phase,lrPhaseSlider.value); if(d.rr_phase!==undefined) _setSliderValue(rrPhaseSlider,d.rr_phase,rrPhaseSlider.value); if(d.smoothing_enabled!==undefined) _setCheckBox(smoothingEnabledCheck,d.smoothing_enabled,true); if(d.smoothing_duration_ms!==undefined) _setSliderValue(smoothingDurationSlider,d.smoothing_duration_ms,smoothingDurationSlider.value); if(d.smoothing_angle_snap_deg!==undefined) _setSliderValue(smoothingAngleSlider,d.smoothing_angle_snap_deg,smoothingAngleSlider.value); if(d.smoothing_piston_snap_m!==undefined) _setSliderValue(smoothingPistonSlider,d.smoothing_piston_snap_m,smoothingPistonSlider.value); var easing=d.smoothing_easing||d.smoothingEasing||d.smoothingEasingName; if(easing!==undefined) _setComboValue(smoothingCombo,easing,smoothingCombo.model[0].value); if(d.road_profile!==undefined) _setComboValue(roadProfileCombo,d.road_profile,_roadProfiles[0].value); if(Object.prototype.hasOwnProperty.call(d,"custom_profile_path")) customProfileField.text=d.custom_profile_path||""; if(d.is_running!==undefined) simulationRunning=!!d.is_running; _updatingFromPython=false; return true }
+    function applyPneumaticSettings(d){ d=d||{}; _updatingFromPython=true; if(d.volume_mode!==undefined) _setComboValue(volumeModeCombo,d.volume_mode,"MANUAL"); if(Object.prototype.hasOwnProperty.call(d,"receiver_volume")) _setSliderValue(receiverVolumeSlider,d.receiver_volume,receiverVolumeSlider.value); if(Object.prototype.hasOwnProperty.call(d,"cv_atmo_dp")) _assignSpinValue(cvAtmoDpSpin,d.cv_atmo_dp); if(Object.prototype.hasOwnProperty.call(d,"cv_tank_dp")) _assignSpinValue(cvTankDpSpin,d.cv_tank_dp); if(Object.prototype.hasOwnProperty.call(d,"cv_atmo_dia")) _assignScaledSpinValue(cvAtmoDiaSpin,d.cv_atmo_dia); if(Object.prototype.hasOwnProperty.call(d,"cv_tank_dia")) _assignScaledSpinValue(cvTankDiaSpin,d.cv_tank_dia); if(Object.prototype.hasOwnProperty.call(d,"relief_min_pressure")) _assignSpinValue(reliefMinSpin,d.relief_min_pressure); if(Object.prototype.hasOwnProperty.call(d,"relief_stiff_pressure")) _assignSpinValue(reliefStiffSpin,d.relief_stiff_pressure); if(Object.prototype.hasOwnProperty.call(d,"relief_safety_pressure")) _assignSpinValue(reliefSafetySpin,d.relief_safety_pressure); if(Object.prototype.hasOwnProperty.call(d,"throttle_min_dia")) _assignScaledSpinValue(throttleMinSpin,d.throttle_min_dia); if(Object.prototype.hasOwnProperty.call(d,"throttle_stiff_dia")) _assignScaledSpinValue(throttleStiffSpin,d.throttle_stiff_dia); if(Object.prototype.hasOwnProperty.call(d,"diagonal_coupling_dia")) _assignScaledSpinValue(diagonalCouplingSpin,d.diagonal_coupling_dia); if(Object.prototype.hasOwnProperty.call(d,"atmo_temp")) _assignSpinValue(atmoTempSpin,d.atmo_temp); if(Object.prototype.hasOwnProperty.call(d,"master_isolation_open")) masterIsolationCheck.checked=!!d.master_isolation_open; _updatingFromPython=false; return true }
+    function applySimulationSettings(d){ d=d||{}; _updatingFromPython=true; if(Object.prototype.hasOwnProperty.call(d,"physics_dt")) _assignScaledSpinValue(physicsDtSpin,d.physics_dt); if(Object.prototype.hasOwnProperty.call(d,"render_vsync_hz")) _assignSpinValue(vsyncSpin,d.render_vsync_hz); if(Object.prototype.hasOwnProperty.call(d,"max_steps_per_frame")) _assignSpinValue(maxStepsSpin,d.max_steps_per_frame); if(Object.prototype.hasOwnProperty.call(d,"max_frame_time")) _assignScaledSpinValue(maxFrameTimeSpin,d.max_frame_time); _updatingFromPython=false; return true }
+    function applyCylinderSettings(d){ d=d||{}; _updatingFromPython=true; if(Object.prototype.hasOwnProperty.call(d,"dead_zone_head_m3")) _assignScaledSpinValue(deadZoneHeadSpin,d.dead_zone_head_m3); if(Object.prototype.hasOwnProperty.call(d,"dead_zone_rod_m3")) _assignScaledSpinValue(deadZoneRodSpin,d.dead_zone_rod_m3); _updatingFromPython=false; return true }
 
-    // Совместимость старых имён
+    // Совместимость
     function updateGeometry(p){ return true }
     function applyGeometryUpdates(p){ return true }
 
     function _onControl(command){ if(!command) return; if(command==="start") simulationRunning=true; else if(command==="pause") simulationRunning=false; else if(command==="stop") simulationRunning=false; else if(command==="reset") simulationRunning=false; if(command==="start") statusText=qsTr("▶ Запущено"); else if(command==="pause") statusText=qsTr("⏸ Пауза"); else if(command==="reset") statusText=qsTr("🔄 Сброс"); else statusText= simulationRunning ? qsTr("▶ Запущено") : qsTr("⏹ Остановлено"); simulationControlRequested(command) }
 
-    function _applyVolumeLimits(value){ var limits=(initialPneumatic && initialPneumatic.receiver_volume_limits)? initialPneumatic.receiver_volume_limits : {}; var minV = limits.min_m3 !== undefined ? Number(limits.min_m3) : receiverVolumeSlider.from; var maxV = limits.max_m3 !== undefined ? Number(limits.max_m3) : receiverVolumeSlider.to; var num=Number(value); if(!Number.isFinite(num)) return receiverVolumeSlider.value; if(num<minV) return minV; if(num>maxV) return maxV; return num }
-
-    // --- UI ---
-    ScrollView { id: scrollView; anchors.fill: parent; clip: true; ColumnLayout { id: contentColumn; width: scrollView.availableWidth; spacing: 12
-        GroupBox { title: qsTr("Управление симуляцией"); Layout.fillWidth: true; ColumnLayout { Layout.fillWidth: true; spacing: 8; RowLayout { Layout.fillWidth: true; spacing: 8; Button { text: qsTr("▶ Старт"); Layout.fillWidth: true; onClicked: _onControl("start"); enabled: !simulationRunning } Button { text: qsTr("⏹ Стоп"); Layout.fillWidth: true; onClicked: _onControl("stop"); enabled: simulationRunning } Button { text: qsTr("⏸ Пауза"); Layout.fillWidth: true; onClicked: _onControl("pause"); enabled: simulationRunning } Button { text: qsTr("🔄 Сброс"); Layout.fillWidth: true; onClicked: _onControl("reset"); enabled: !simulationRunning } } Label { text: qsTr("Статус: %1").arg(statusText); font.bold: true; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter } Label { text: qsTr("Используйте кнопки выше или горячие клавиши: Space — старт/пауза, R — сброс."); wrapMode: Text.WordWrap; color: Qt.rgba(0.75,0.78,0.86,1.0); font.pointSize: 9; Layout.fillWidth: true } } }
-        GroupBox { title: qsTr("Режим и пресеты"); Layout.fillWidth: true; ColumnLayout { Layout.fillWidth: true; spacing: 8; Common.PresetButtons { id: presetButtons; Layout.fillWidth: true; title: qsTr("Быстрые пресеты"); model: _presetModel; activePresetId: _activePresetId; onPresetActivated: function(presetId){ if(_updatingFromPython) return; _activePresetId=presetId; modesPresetSelected(presetId); accordionPresetActivated("modes", presetId) } } ComboBox { id: simTypeCombo; Layout.fillWidth: true; model:[{text:qsTr("Кинематика"),value:"KINEMATICS"},{text:qsTr("Динамика"),value:"DYNAMICS"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; var e=model[index]; if(!e) return; _activePresetId="custom"; modesModeChanged("sim_type", e.value) } } ComboBox { id: thermoCombo; Layout.fillWidth: true; model:[{text:qsTr("Изотермический"),value:"ISOTHERMAL"},{text:qsTr("Адиабатический"),value:"ADIABATIC"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; var e=model[index]; if(!e) return; _activePresetId="custom"; modesModeChanged("thermo_mode", e.value) } } } }
-        GroupBox { title: qsTr("Опции физики"); Layout.fillWidth: true; ColumnLayout { Layout.fillWidth: true; spacing:4; CheckBox { id: springsCheck; text: qsTr("Учитывать пружины"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } } CheckBox { id: dampersCheck; text: qsTr("Учитывать демпферы"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } } CheckBox { id: pneumaticsCheck; text: qsTr("Учитывать пневматику"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } } CheckBox { id: kinematicSpringsCheck; text: qsTr("Пружины в кинематике"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } } CheckBox { id: kinematicDampersCheck; text: qsTr("Демпферы в кинематике"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } } CheckBox { id: interferenceCheck; text: qsTr("Проверять пересечения"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions(); modesModeChanged("check_interference", interferenceCheck.checked) } } } }
-        GroupBox { title: qsTr("Дорожное воздействие"); Layout.fillWidth: true; ColumnLayout { Layout.fillWidth: true; spacing:10; RowLayout { Layout.fillWidth: true; Label { text: qsTr("Профиль дороги"); Layout.preferredWidth:150 } ComboBox { id: roadProfileCombo; Layout.fillWidth: true; model: _roadProfiles; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; _activePresetId="custom"; customProfileField.enabled=currentValue==="custom"; _emitAnimationPayload() } } } TextField { id: customProfileField; Layout.fillWidth: true; enabled: roadProfileCombo.currentValue==="custom"; placeholderText: qsTr("Путь или идентификатор пользовательского профиля"); onEditingFinished:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitAnimationPayload() } }
-          Common.ValidatedField { id: ambientTemperatureField; Layout.fillWidth: true; labelText: qsTr("Температура среды"); settingsKey:"ambient_temperature_c"; panelId:"modes"; from:-80; to:150; stepSize:0.5; decimals:1; unit:"°C"; value:20; onValueCommitted:function(key,nv){ if(_updatingFromPython) return; _activePresetId="custom"; _emitAmbientTemperature(nv); accordionFieldCommitted("modes", key, nv) } onValidationStateEvaluated:function(key,state,message){ accordionValidationChanged("modes", key, state, message) } }
-          RowLayout { Layout.fillWidth: true; Label { text: qsTr("Амплитуда (м)"); Layout.preferredWidth:150 } Slider { id: amplitudeSlider; from:_defaultRanges.amplitude.min; to:_defaultRanges.amplitude.max; stepSize:_defaultRanges.amplitude.step; Layout.fillWidth: true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } SpinBox { Layout.preferredWidth:96; readonly property int valueScale:1000; from:Math.round(amplitudeSlider.from*valueScale); to:Math.round(amplitudeSlider.to*valueScale); stepSize:Math.max(1,Math.round(amplitudeSlider.stepSize*valueScale)); value:Math.round(amplitudeSlider.value*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,_defaultRanges.amplitude.decimals) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: amplitudeSlider.value = value/valueScale } }
-          RowLayout { Layout.fillWidth: true; Label { text: qsTr("Частота (Гц)"); Layout.preferredWidth:150 } Slider { id: frequencySlider; from:_defaultRanges.frequency.min; to:_defaultRanges.frequency.max; stepSize:_defaultRanges.frequency.step; Layout.fillWidth: true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } SpinBox { Layout.preferredWidth:96; readonly property int valueScale:10; from:Math.round(frequencySlider.from*valueScale); to:Math.round(frequencySlider.to*valueScale); stepSize:Math.max(1,Math.round(frequencySlider.stepSize*valueScale)); value:Math.round(frequencySlider.value*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,_defaultRanges.frequency.decimals) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: frequencySlider.value = value/valueScale } }
-          RowLayout { Layout.fillWidth: true; Label { text: qsTr("Глобальная фаза (°)"); Layout.preferredWidth:150 } Slider { id: phaseSlider; from:_defaultRanges.phase.min; to:_defaultRanges.phase.max; stepSize:_defaultRanges.phase.step; Layout.fillWidth: true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } SpinBox { Layout.preferredWidth:96; from:phaseSlider.from; to:phaseSlider.to; stepSize:phaseSlider.stepSize; value:phaseSlider.value; editable:true; textFromValue:function(v,l){ return _formatValue(v,_defaultRanges.phase.decimals) }; valueFromText:function(t,l){ return Number(t) }; onValueModified: phaseSlider.value=value } }
-          GridLayout { columns:2; columnSpacing:12; rowSpacing:8; Layout.fillWidth:true; Label { text: qsTr("Фаза ЛП (°)") } Slider { id: lfPhaseSlider; from:_defaultRanges.wheel_phase.min; to:_defaultRanges.wheel_phase.max; stepSize:_defaultRanges.wheel_phase.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } Label { text: qsTr("Фаза ПП (°)") } Slider { id: rfPhaseSlider; from:lfPhaseSlider.from; to:lfPhaseSlider.to; stepSize:lfPhaseSlider.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } Label { text: qsTr("Фаза ЛЗ (°)") } Slider { id: lrPhaseSlider; from:lfPhaseSlider.from; to:lfPhaseSlider.to; stepSize:lfPhaseSlider.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } Label { text: qsTr("Фаза ПЗ (°)") } Slider { id: rrPhaseSlider; from:lfPhaseSlider.from; to:lfPhaseSlider.to; stepSize:lfPhaseSlider.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } }
-          CheckBox { id: smoothingEnabledCheck; text: qsTr("Плавное сглаживание движения"); onToggled:{ if(_updatingFromPython) return; _emitAnimationPayload({smoothing_enabled: smoothingEnabledCheck.checked}) } }
-          RowLayout { Layout.fillWidth: true; Label { text: qsTr("Длительность сглаживания (мс)"); Layout.preferredWidth:210 } Slider { id: smoothingDurationSlider; from:_defaultRanges.smoothing_duration_ms.min; to:_defaultRanges.smoothing_duration_ms.max; stepSize:_defaultRanges.smoothing_duration_ms.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } SpinBox { Layout.preferredWidth:96; from:smoothingDurationSlider.from; to:smoothingDurationSlider.to; stepSize:smoothingDurationSlider.stepSize; value:smoothingDurationSlider.value; editable:true; textFromValue:function(v,l){ return _formatValue(v,_defaultRanges.smoothing_duration_ms.decimals) }; valueFromText:function(t,l){ return Number(t) }; onValueModified: smoothingDurationSlider.value=value } }
-          RowLayout { Layout.fillWidth:true; Label { text: qsTr("Угол привязки (°)"); Layout.preferredWidth:210 } Slider { id: smoothingAngleSlider; from:_defaultRanges.smoothing_angle_snap_deg.min; to:_defaultRanges.smoothing_angle_snap_deg.max; stepSize:_defaultRanges.smoothing_angle_snap_deg.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } SpinBox { Layout.preferredWidth:96; from:smoothingAngleSlider.from; to:smoothingAngleSlider.to; stepSize:smoothingAngleSlider.stepSize; value:smoothingAngleSlider.value; editable:true; textFromValue:function(v,l){ return _formatValue(v,_defaultRanges.smoothing_angle_snap_deg.decimals) }; valueFromText:function(t,l){ return Number(t) }; onValueModified: smoothingAngleSlider.value=value } }
-          RowLayout { Layout.fillWidth:true; Label { text: qsTr("Порог хода поршня (м)"); Layout.preferredWidth:210 } Slider { id: smoothingPistonSlider; from:_defaultRanges.smoothing_piston_snap_m.min; to:_defaultRanges.smoothing_piston_snap_m.max; stepSize:_defaultRanges.smoothing_piston_snap_m.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } } SpinBox { Layout.preferredWidth:96; readonly property int valueScale:1000; from:Math.round(smoothingPistonSlider.from*valueScale); to:Math.round(smoothingPistonSlider.to*valueScale); stepSize:Math.max(1,Math.round(smoothingPistonSlider.stepSize*valueScale)); value:Math.round(smoothingPistonSlider.value*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,_defaultRanges.smoothing_piston_snap_m.decimals) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: smoothingPistonSlider.value=value/valueScale } }
-          ComboBox { id: smoothingCombo; Layout.fillWidth:true; model:[{text:qsTr("OutCubic"),value:"OutCubic"},{text:qsTr("OutQuad"),value:"OutQuad"},{text:qsTr("Linear"),value:"Linear"},{text:qsTr("InOutSine"),value:"InOutSine"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; _emitAnimationPayload({smoothing_easing:model[index].value}) } }
-        } }
-        GroupBox { title: qsTr("Пневматика"); Layout.fillWidth:true; ColumnLayout { Layout.fillWidth:true; spacing:8; ComboBox { id: volumeModeCombo; Layout.fillWidth:true; model:[{text:qsTr("Ручной объём"),value:"MANUAL"},{text:qsTr("Геометрический расчёт"),value:"GEOMETRIC"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; var e=model[index]; if(!e) return; _emitPneumaticChange("volume_mode", e.value) } } RowLayout { Layout.fillWidth:true; Label { text: qsTr("Объём ресивера (м³)"); Layout.preferredWidth:200 } Slider { id: receiverVolumeSlider; from:(initialPneumatic && initialPneumatic.receiver_volume_limits && initialPneumatic.receiver_volume_limits.min_m3!==undefined)? Number(initialPneumatic.receiver_volume_limits.min_m3):0.001; to:(initialPneumatic && initialPneumatic.receiver_volume_limits && initialPneumatic.receiver_volume_limits.max_m3!==undefined)? Number(initialPneumatic.receiver_volume_limits.max_m3):1.0; stepSize:0.0005; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitPneumaticChange("receiver_volume", value) } } SpinBox { Layout.preferredWidth:110; readonly property int valueScale:_floatScale; from:Math.round(receiverVolumeSlider.from*valueScale); to:Math.round(receiverVolumeSlider.to*valueScale); stepSize:Math.max(1,Math.round(receiverVolumeSlider.stepSize*valueScale)); value:Math.round(receiverVolumeSlider.value*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: receiverVolumeSlider.value=_applyVolumeLimits(value/valueScale) } }
-          GridLayout { columns:2; columnSpacing:12; rowSpacing:6; Layout.fillWidth:true; Label { text: qsTr("ΔP атмосферного клапана (Па)") } SpinBox { id: cvAtmoDpSpin; from:0; to:5000000; stepSize:100; value:1000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("cv_atmo_dp", value) } Label { text: qsTr("ΔP клапана ресивера (Па)") } SpinBox { id: cvTankDpSpin; from:0; to:5000000; stepSize:100; value:1000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("cv_tank_dp", value) } }
-          Label { text: qsTr("Настройки клапанов") }
-          GridLayout { columns:2; columnSpacing:12; rowSpacing:6; Layout.fillWidth:true; Label { text: root._tr("simulation.panel.cvAtmoDia", qsTr("Диаметр атмосферного клапана (м)")) } SpinBox { id: cvAtmoDiaSpin; readonly property int valueScale: _floatScale; from:1; to:200; stepSize:1; value: _asScaledInt(0.003, valueScale); editable:true; textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }; valueFromText: function(text, locale) { var numeric = Number(text); return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value }  onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("cv_atmo_dia", value / valueScale) }
-          Label { text: root._tr("simulation.panel.cvTankDia", qsTr("Диаметр клапана ресивера (м)")) } SpinBox { id: cvTankDiaSpin; readonly property int valueScale: _floatScale; from:1; to:200; stepSize:1; value: _asScaledInt(0.003, valueScale); editable:true; textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }; valueFromText: function(text, locale) { var numeric = Number(text); return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value }  onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("cv_tank_dia", value / valueScale) }
-          Label { text: root._tr("simulation.panel.reliefMin", qsTr("Порог открытия сброса (Па)")) } SpinBox { id: reliefMinSpin; from:0; to:10000000; stepSize:1000; value:250000; editable:true; onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("relief_min_pressure", value) }
-          Label { text: root._tr("simulation.panel.reliefStiff", qsTr("Жёсткий сброс (Па)")) } SpinBox { id: reliefStiffSpin; from:0; to:20000000; stepSize:1000; value:1500000; editable:true; onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("relief_stiff_pressure", value) }
-          Label { text: root._tr("simulation.panel.reliefSafety", qsTr("Аварийный сброс (Па)")) } SpinBox { id: reliefSafetySpin; from:0; to:50000000; stepSize:1000; value:5000000; editable:true; onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("relief_safety_pressure", value) }
-          Label { text: root._tr("simulation.panel.throttleMin", qsTr("Диаметр дросселя min (м)")) } SpinBox { id: throttleMinSpin; readonly property int valueScale: _floatScale; from:1; to:200; stepSize:1; value: _asScaledInt(0.001, valueScale); editable:true; textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }; valueFromText: function(text, locale) { var numeric = Number(text); return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value }  onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("throttle_min_dia", value / valueScale) }
-          Label { text: root._tr("simulation.panel.throttleStiff", qsTr("Диаметр дросселя жёстк. (м)")) } SpinBox { id: throttleStiffSpin; readonly property int valueScale: _floatScale; from:1; to:200; stepSize:1; value: _asScaledInt(0.0015, valueScale); editable:true; textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }; valueFromText: function(text, locale) { var numeric = Number(text); return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value }  onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("throttle_stiff_dia", value / valueScale) }
-          Label { text: root._tr("simulation.panel.diagonalThrottle", qsTr("Диаметр дросселя диагоналей (м)")) } SpinBox { id: diagonalCouplingSpin; readonly property int valueScale: _floatScale; from:0; to:200; stepSize:1; value: _asScaledInt(0.0008, valueScale); editable:true; textFromValue: function(value, locale) { return root._formatValue(value / valueScale, 4) }; valueFromText: function(text, locale) { var numeric = Number(text); return Number.isFinite(numeric) ? Math.round(numeric * valueScale) : value }  onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("diagonal_coupling_dia", value / valueScale) }
-          Label { text: root._tr("simulation.panel.airTemperature", qsTr("Температура воздуха (°C)")) } SpinBox { id: atmoTempSpin; from:-50; to:150; stepSize:1; value:20; editable:true; onValueModified: if (!_updatingFromPython) root._emitPneumaticChange("atmo_temp", value) }
-          CheckBox { id: masterIsolationCheck; text: root._tr("simulation.panel.masterIsolation", qsTr("Главный отсечной клапан открыт")) onToggled:{ if(_updatingFromPython) return; _emitPneumaticChange("master_isolation_open", masterIsolationCheck.checked) } }
-        } }
-        GroupBox { title: qsTr("Настройки симуляции"); Layout.fillWidth:true; GridLayout { columns:2; columnSpacing:12; rowSpacing:8; Layout.fillWidth:true; Label { text: qsTr("Шаг физики dt (с)") } SpinBox { id: physicsDtSpin; readonly property int valueScale:_floatScale; from:1; to:200; stepSize:1; value:_asScaledInt(0.001,valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitSimulationChange("physics_dt", value/valueScale) } Label { text: qsTr("Ограничение FPS (Гц)") } SpinBox { id: vsyncSpin; from:15; to:360; stepSize:1; value:60; editable:true; onValueModified: if(!_updatingFromPython) _emitSimulationChange("render_vsync_hz", value) } Label { text: qsTr("Шагов на кадр (шт)") } SpinBox { id: maxStepsSpin; from:1; to:120; stepSize:1; value:10; editable:true; onValueModified: if(!_updatingFromPython) _emitSimulationChange("max_steps_per_frame", value) } Label { text: qsTr("Макс. время кадра (с)") } SpinBox { id: maxFrameTimeSpin; readonly property int valueScale:1000; from:1; to:200; stepSize:1; value:_asScaledInt(0.05,valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,3) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitSimulationChange("max_frame_time", value/valueScale) } } }
-        GroupBox { title: qsTr("Мёртвые зоны цилиндров"); Layout.fillWidth:true; GridLayout { columns:2; columnSpacing:12; rowSpacing:6; Layout.fillWidth:true; Label { text: qsTr("Головная камера (м³)") } SpinBox { id: deadZoneHeadSpin; readonly property int valueScale:_floatScale; from:0; to:100; stepSize:1; value:_asScaledInt(0.001,valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitCylinderChange("dead_zone_head_m3", value/valueScale) } Label { text: qsTr("Штоковая камера (м³)") } SpinBox { id: deadZoneRodSpin; readonly property int valueScale:_floatScale; from:0; to:100; stepSize:1; value:_asScaledInt(0.001,valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitCylinderChange("dead_zone_rod_m3", value/valueScale) } } }
-        Item { Layout.fillWidth:true; Layout.preferredHeight:8 }
-    } }
+    ScrollView { anchors.fill: parent; clip: true
+        ColumnLayout { width: parent.width; spacing: 12
+            GroupBox { title: qsTr("Управление симуляцией"); Layout.fillWidth: true
+                ColumnLayout { Layout.fillWidth: true; spacing: 8
+                    RowLayout { Layout.fillWidth: true; spacing: 8
+                        Button { text: qsTr("▶ Старт"); Layout.fillWidth: true; enabled: !simulationRunning; onClicked: _onControl("start") }
+                        Button { text: qsTr("⏹ Стоп"); Layout.fillWidth: true; enabled: simulationRunning; onClicked: _onControl("stop") }
+                        Button { text: qsTr("⏸ Пауза"); Layout.fillWidth: true; enabled: simulationRunning; onClicked: _onControl("pause") }
+                        Button { text: qsTr("🔄 Сброс"); Layout.fillWidth: true; enabled: !simulationRunning; onClicked: _onControl("reset") }
+                    }
+                    Label { text: qsTr("Статус: %1").arg(statusText); font.bold: true; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter }
+                }
+            }
+            GroupBox { title: qsTr("Режим и пресеты"); Layout.fillWidth: true
+                ColumnLayout { Layout.fillWidth: true; spacing: 8
+                    Common.PresetButtons { id: presetButtons; Layout.fillWidth: true; title: qsTr("Быстрые пресеты"); model: _presetModel; activePresetId: _activePresetId; onPresetActivated: function(pid){ if(_updatingFromPython) return; _activePresetId=pid; modesPresetSelected(pid); accordionPresetActivated("modes", pid) } }
+                    ComboBox { id: simTypeCombo; Layout.fillWidth: true; model:[{text:qsTr("Кинематика"),value:"KINEMATICS"},{text:qsTr("Динамика"),value:"DYNAMICS"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; var e=model[index]; if(!e) return; _activePresetId="custom"; modesModeChanged("sim_type", e.value) } }
+                    ComboBox { id: thermoCombo; Layout.fillWidth: true; model:[{text:qsTr("Изотермический"),value:"ISOTHERMAL"},{text:qsTr("Адиабатический"),value:"ADIABATIC"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; var e=model[index]; if(!e) return; _activePresetId="custom"; modesModeChanged("thermo_mode", e.value) } }
+                }
+            }
+            GroupBox { title: qsTr("Опции физики"); Layout.fillWidth: true
+                ColumnLayout { Layout.fillWidth: true; spacing: 4
+                    CheckBox { id: springsCheck; text: qsTr("Учитывать пружины"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } }
+                    CheckBox { id: dampersCheck; text: qsTr("Учитывать демпферы"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } }
+                    CheckBox { id: pneumaticsCheck; text: qsTr("Учитывать пневматику"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } }
+                    CheckBox { id: kinematicSpringsCheck; text: qsTr("Пружины в кинематике"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } }
+                    CheckBox { id: kinematicDampersCheck; text: qsTr("Демпферы в кинематике"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions() } }
+                    CheckBox { id: interferenceCheck; text: qsTr("Проверять пересечения"); onToggled:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitPhysicsOptions(); modesModeChanged("check_interference", interferenceCheck.checked) } }
+                }
+            }
+            GroupBox { title: qsTr("Дорожное воздействие"); Layout.fillWidth: true
+                ColumnLayout { Layout.fillWidth: true; spacing: 8
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Профиль дороги"); Layout.preferredWidth:150 }
+                        ComboBox { id: roadProfileCombo; Layout.fillWidth: true; model:_roadProfiles; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; _activePresetId="custom"; customProfileField.enabled=currentValue==="custom"; _emitAnimationPayload() } }
+                    }
+                    TextField { id: customProfileField; Layout.fillWidth: true; enabled: roadProfileCombo.currentValue==="custom"; placeholderText: qsTr("Путь или идентификатор пользовательского профиля"); onEditingFinished:{ if(_updatingFromPython) return; _activePresetId="custom"; _emitAnimationPayload() } }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Амплитуда (м)"); Layout.preferredWidth:150 }
+                        Slider { id: amplitudeSlider; from:_defaultRanges.amplitude.min; to:_defaultRanges.amplitude.max; stepSize:_defaultRanges.amplitude.step; Layout.fillWidth: true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        SpinBox {
+                            Layout.preferredWidth:96
+                            readonly property int valueScale:1000
+                            from:Math.round(amplitudeSlider.from*valueScale)
+                            to:Math.round(amplitudeSlider.to*valueScale)
+                            stepSize:Math.max(1,Math.round(amplitudeSlider.stepSize*valueScale))
+                            value:Math.round(amplitudeSlider.value*valueScale)
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v/valueScale,_defaultRanges.amplitude.decimals) }
+                            valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }
+                            onValueModified: amplitudeSlider.value = value/valueScale
+                        }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Частота (Гц)"); Layout.preferredWidth:150 }
+                        Slider { id: frequencySlider; from:_defaultRanges.frequency.min; to:_defaultRanges.frequency.max; stepSize:_defaultRanges.frequency.step; Layout.fillWidth: true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        SpinBox {
+                            Layout.preferredWidth:96
+                            readonly property int valueScale:10
+                            from:Math.round(frequencySlider.from*valueScale)
+                            to:Math.round(frequencySlider.to*valueScale)
+                            stepSize:Math.max(1,Math.round(frequencySlider.stepSize*valueScale))
+                            value:Math.round(frequencySlider.value*valueScale)
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v/valueScale,_defaultRanges.frequency.decimals) }
+                            valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }
+                            onValueModified: frequencySlider.value = value/valueScale
+                        }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Глобальная фаза (°)"); Layout.preferredWidth:150 }
+                        Slider { id: phaseSlider; from:_defaultRanges.phase.min; to:_defaultRanges.phase.max; stepSize:_defaultRanges.phase.step; Layout.fillWidth: true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        SpinBox {
+                            Layout.preferredWidth:96
+                            from:phaseSlider.from
+                            to:phaseSlider.to
+                            stepSize:phaseSlider.stepSize
+                            value:phaseSlider.value
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v,_defaultRanges.phase.decimals) }
+                            valueFromText:function(t,l){ return Number(t) }
+                            onValueModified: phaseSlider.value=value
+                        }
+                    }
+                    GridLayout { columns:2; columnSpacing:12; rowSpacing:8; Layout.fillWidth:true
+                        Label { text: qsTr("Фаза ЛП (°)") }
+                        Slider { id: lfPhaseSlider; from:_defaultRanges.wheel_phase.min; to:_defaultRanges.wheel_phase.max; stepSize:_defaultRanges.wheel_phase.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        Label { text: qsTr("Фаза ПП (°)") }
+                        Slider { id: rfPhaseSlider; from:lfPhaseSlider.from; to:lfPhaseSlider.to; stepSize:lfPhaseSlider.stepSize; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        Label { text: qsTr("Фаза ЛЗ (°)") }
+                        Slider { id: lrPhaseSlider; from:lfPhaseSlider.from; to:lfPhaseSlider.to; stepSize:lfPhaseSlider.stepSize; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        Label { text: qsTr("Фаза ПЗ (°)") }
+                        Slider { id: rrPhaseSlider; from:lfPhaseSlider.from; to:lfPhaseSlider.to; stepSize:lfPhaseSlider.stepSize; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                    }
+                    CheckBox { id: smoothingEnabledCheck; text: qsTr("Плавное сглаживание движения"); onToggled:{ if(_updatingFromPython) return; _emitAnimationPayload({smoothing_enabled: smoothingEnabledCheck.checked}) } }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Длительность сглаживания (мс)"); Layout.preferredWidth:210 }
+                        Slider { id: smoothingDurationSlider; from:_defaultRanges.smoothing_duration_ms.min; to:_defaultRanges.smoothing_duration_ms.max; stepSize:_defaultRanges.smoothing_duration_ms.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        SpinBox {
+                            Layout.preferredWidth:96
+                            from:smoothingDurationSlider.from
+                            to:smoothingDurationSlider.to
+                            stepSize:smoothingDurationSlider.stepSize
+                            value:smoothingDurationSlider.value
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v,_defaultRanges.smoothing_duration_ms.decimals) }
+                            valueFromText:function(t,l){ return Number(t) }
+                            onValueModified: smoothingDurationSlider.value=value
+                        }
+                    }
+                    RowLayout { Layout.fillWidth:true
+                        Label { text: qsTr("Угол привязки (°)"); Layout.preferredWidth:210 }
+                        Slider { id: smoothingAngleSlider; from:_defaultRanges.smoothing_angle_snap_deg.min; to:_defaultRanges.smoothing_angle_snap_deg.max; stepSize:_defaultRanges.smoothing_angle_snap_deg.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        SpinBox {
+                            Layout.preferredWidth:96
+                            from:smoothingAngleSlider.from
+                            to:smoothingAngleSlider.to
+                            stepSize:smoothingAngleSlider.stepSize
+                            value:smoothingAngleSlider.value
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v,_defaultRanges.smoothing_angle_snap_deg.decimals) }
+                            valueFromText:function(t,l){ return Number(t) }
+                            onValueModified: smoothingAngleSlider.value=value
+                        }
+                    }
+                    RowLayout { Layout.fillWidth:true
+                        Label { text: qsTr("Порог хода поршня (м)"); Layout.preferredWidth:210 }
+                        Slider { id: smoothingPistonSlider; from:_defaultRanges.smoothing_piston_snap_m.min; to:_defaultRanges.smoothing_piston_snap_m.max; stepSize:_defaultRanges.smoothing_piston_snap_m.step; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitAnimationPayload() } }
+                        SpinBox {
+                            Layout.preferredWidth:96
+                            readonly property int valueScale:1000
+                            from:Math.round(smoothingPistonSlider.from*valueScale)
+                            to:Math.round(smoothingPistonSlider.to*valueScale)
+                            stepSize:Math.max(1,Math.round(smoothingPistonSlider.stepSize*valueScale))
+                            value:Math.round(smoothingPistonSlider.value*valueScale)
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v/valueScale,_defaultRanges.smoothing_piston_snap_m.decimals) }
+                            valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }
+                            onValueModified: smoothingPistonSlider.value=value/valueScale
+                        }
+                    }
+                    ComboBox { id: smoothingCombo; Layout.fillWidth:true; model:[{text:qsTr("OutCubic"),value:"OutCubic"},{text:qsTr("OutQuad"),value:"OutQuad"},{text:qsTr("Linear"),value:"Linear"},{text:qsTr("InOutSine"),value:"InOutSine"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; _emitAnimationPayload({smoothing_easing:model[index].value}) } }
+                }
+            }
+            GroupBox { title: qsTr("Пневматика"); Layout.fillWidth:true
+                ColumnLayout { Layout.fillWidth:true; spacing:8
+                    ComboBox { id: volumeModeCombo; Layout.fillWidth:true; model:[{text:qsTr("Ручной объём"),value:"MANUAL"},{text:qsTr("Геометрический расчёт"),value:"GEOMETRIC"}]; textRole:"text"; valueRole:"value"; onActivated:{ if(_updatingFromPython) return; var e=model[index]; if(!e) return; _emitPneumaticChange("volume_mode", e.value) } }
+                    RowLayout { Layout.fillWidth:true
+                        Label { text: qsTr("Объём ресивера (м³)"); Layout.preferredWidth:200 }
+                        Slider { id: receiverVolumeSlider; from:(initialPneumatic && initialPneumatic.receiver_volume_limits && initialPneumatic.receiver_volume_limits.min_m3!==undefined)? Number(initialPneumatic.receiver_volume_limits.min_m3):0.001; to:(initialPneumatic && initialPneumatic.receiver_volume_limits && initialPneumatic.receiver_volume_limits.max_m3!==undefined)? Number(initialPneumatic.receiver_volume_limits.max_m3):1.0; stepSize:0.0005; Layout.fillWidth:true; onValueChanged:{ if(_updatingFromPython) return; _emitPneumaticChange("receiver_volume", value) } }
+                        SpinBox {
+                            Layout.preferredWidth:110
+                            readonly property int valueScale:_floatScale
+                            from:Math.round(receiverVolumeSlider.from*valueScale)
+                            to:Math.round(receiverVolumeSlider.to*valueScale)
+                            stepSize:Math.max(1,Math.round(receiverVolumeSlider.stepSize*valueScale))
+                            value:Math.round(receiverVolumeSlider.value*valueScale)
+                            editable:true
+                            textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }
+                            valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }
+                            onValueModified: receiverVolumeSlider.value=_applyVolumeLimits(value/valueScale)
+                        }
+                    }
+                    GridLayout { columns:2; columnSpacing:12; rowSpacing:6; Layout.fillWidth:true
+                        Label { text: qsTr("ΔP атмосферного клапана (Па)") }
+                        SpinBox { id: cvAtmoDpSpin; from:0; to:5000000; stepSize:100; value:1000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("cv_atmo_dp", value) }
+                        Label { text: qsTr("ΔP клапана ресивера (Па)") }
+                        SpinBox { id: cvTankDpSpin; from:0; to:5000000; stepSize:100; value:1000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("cv_tank_dp", value) }
+                    }
+                    GridLayout { columns:2; columnSpacing:12; rowSpacing:6; Layout.fillWidth:true
+                        Label { text: _tr("simulation.panel.cvAtmoDia", qsTr("Диаметр атмосферного клапана (м)")) }
+                        SpinBox { id: cvAtmoDiaSpin; readonly property int valueScale:_floatScale; from:1; to:200; stepSize:1; value:Math.round(0.003*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("cv_atmo_dia", value/valueScale) }
+                        Label { text: _tr("simulation.panel.cvTankDia", qsTr("Диаметр клапана ресивера (м)")) }
+                        SpinBox { id: cvTankDiaSpin; readonly property int valueScale:_floatScale; from:1; to:200; stepSize:1; value:Math.round(0.003*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("cv_tank_dia", value/valueScale) }
+                        Label { text: _tr("simulation.panel.reliefMin", qsTr("Порог открытия сброса (Па)")) }
+                        SpinBox { id: reliefMinSpin; from:0; to:10000000; stepSize:1000; value:250000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("relief_min_pressure", value) }
+                        Label { text: _tr("simulation.panel.reliefStiff", qsTr("Жёсткий сброс (Па)")) }
+                        SpinBox { id: reliefStiffSpin; from:0; to:20000000; stepSize:1000; value:1500000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("relief_stiff_pressure", value) }
+                        Label { text: _tr("simulation.panel.reliefSafety", qsTr("Аварийный сброс (Па)")) }
+                        SpinBox { id: reliefSafetySpin; from:0; to:50000000; stepSize:1000; value:5000000; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("relief_safety_pressure", value) }
+                        Label { text: _tr("simulation.panel.throttleMin", qsTr("Диаметр дросселя min (м)")) }
+                        SpinBox { id: throttleMinSpin; readonly property int valueScale:_floatScale; from:1; to:200; stepSize:1; value:Math.round(0.001*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("throttle_min_dia", value/valueScale) }
+                        Label { text: _tr("simulation.panel.throttleStiff", qsTr("Диаметр дросселя жёстк. (м)")) }
+                        SpinBox { id: throttleStiffSpin; readonly property int valueScale:_floatScale; from:1; to:200; stepSize:1; value:Math.round(0.0015*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("throttle_stiff_dia", value/valueScale) }
+                        Label { text: _tr("simulation.panel.diagonalThrottle", qsTr("Диаметр дросселя диагоналей (м)")) }
+                        SpinBox { id: diagonalCouplingSpin; readonly property int valueScale:_floatScale; from:0; to:200; stepSize:1; value:Math.round(0.0008*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("diagonal_coupling_dia", value/valueScale) }
+                        Label { text: _tr("simulation.panel.airTemperature", qsTr("Температура воздуха (°C)")) }
+                        SpinBox { id: atmoTempSpin; from:-50; to:150; stepSize:1; value:20; editable:true; onValueModified: if(!_updatingFromPython) _emitPneumaticChange("atmo_temp", value) }
+                        CheckBox { id: masterIsolationCheck; text: _tr("simulation.panel.masterIsolation", qsTr("Главный отсечной клапан открыт")); onToggled:{ if(_updatingFromPython) return; _emitPneumaticChange("master_isolation_open", masterIsolationCheck.checked) } }
+                    }
+                }
+            }
+            GroupBox { title: qsTr("Настройки симуляции"); Layout.fillWidth:true
+                GridLayout { columns:2; columnSpacing:12; rowSpacing:8; Layout.fillWidth:true
+                    Label { text: qsTr("Шаг физики dt (с)") }
+                    SpinBox { id: physicsDtSpin; readonly property int valueScale:_floatScale; from:1; to:200; stepSize:1; value:Math.round(0.001*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitSimulationChange("physics_dt", value/valueScale) }
+                    Label { text: qsTr("Ограничение FPS (Гц)") }
+                    SpinBox { id: vsyncSpin; from:15; to:360; stepSize:1; value:60; editable:true; onValueModified: if(!_updatingFromPython) _emitSimulationChange("render_vsync_hz", value) }
+                    Label { text: qsTr("Шагов на кадр (шт)") }
+                    SpinBox { id: maxStepsSpin; from:1; to:120; stepSize:1; value:10; editable:true; onValueModified: if(!_updatingFromPython) _emitSimulationChange("max_steps_per_frame", value) }
+                    Label { text: qsTr("Макс. время кадра (с)") }
+                    SpinBox { id: maxFrameTimeSpin; readonly property int valueScale:1000; from:1; to:200; stepSize:1; value:Math.round(0.05*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,3) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitSimulationChange("max_frame_time", value/valueScale) }
+                }
+            }
+            GroupBox { title: qsTr("Мёртвые зоны цилиндров"); Layout.fillWidth:true
+                GridLayout { columns:2; columnSpacing:12; rowSpacing:6; Layout.fillWidth:true
+                    Label { text: qsTr("Головная камера (м³)") }
+                    SpinBox { id: deadZoneHeadSpin; readonly property int valueScale:_floatScale; from:0; to:100; stepSize:1; value:Math.round(0.001*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitCylinderChange("dead_zone_head_m3", value/valueScale) }
+                    Label { text: qsTr("Штоковая камера (м³)") }
+                    SpinBox { id: deadZoneRodSpin; readonly property int valueScale:_floatScale; from:0; to:100; stepSize:1; value:Math.round(0.001*valueScale); editable:true; textFromValue:function(v,l){ return _formatValue(v/valueScale,4) }; valueFromText:function(t,l){ var n=Number(t); return Number.isFinite(n)? Math.round(n*valueScale): value }; onValueModified: if(!_updatingFromPython) _emitCylinderChange("dead_zone_rod_m3", value/valueScale) }
+                }
+            }
+            Item { Layout.fillWidth:true; Layout.preferredHeight:8 }
+        }
+    }
 }

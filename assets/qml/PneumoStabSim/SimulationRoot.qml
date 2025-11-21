@@ -84,7 +84,95 @@ Item {
     signal batchUpdatesApplied(var summary)
     signal animationToggled(bool running)
 
-    onPendingPythonUpdatesChanged: { if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") return; try { applyBatchedUpdates(pendingPythonUpdates) } finally { pendingPythonUpdates = null } }
+    // ── Добавляем debounce/ACK инфраструктуру ──
+    property int batchDispatchDebounceMs: 150
+    property var _batchDispatchTimer: null
+    property var _pendingBatchQueue: []
+    property int _batchAckTimeoutMs: 1500
+    property var _inflightBatchIds: ({})
+    property int _nextLocalBatchId: 1
+    property int _successfulAckCount: 0
+    property int _failedAckCount: 0
+
+    onPendingPythonUpdatesChanged: { if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") return; try { _queueDebouncedBatch(pendingPythonUpdates) } finally { pendingPythonUpdates = null } }
+
+    function _queueDebouncedBatch(payload) {
+        if (!payload || typeof payload !== "object") return
+        _pendingBatchQueue.push(payload)
+        _ensureBatchTimer()
+    }
+    function _ensureBatchTimer() {
+        if (_batchDispatchTimer) return
+        _batchDispatchTimer = Qt.createQmlObject('import QtQuick; Timer { interval: root.batchDispatchDebounceMs; repeat: false }', root, "debounceTimer")
+        _batchDispatchTimer.triggered.connect(function(){ _flushDebouncedBatches() })
+        _batchDispatchTimer.start()
+    }
+    function _flushDebouncedBatches() {
+        if (!_pendingBatchQueue.length) return
+        var merged = ({})
+        for (var i=0;i<_pendingBatchQueue.length;++i){ var b=_pendingBatchQueue[i]; for (var k in b){ if (!b.hasOwnProperty(k)) continue; merged[k]=b[k] } }
+        _pendingBatchQueue = []
+        _dispatchBatchedUpdates(merged)
+        _batchDispatchTimer = null
+    }
+    function _dispatchBatchedUpdates(payload) {
+        if (!payload || typeof payload !== "object") return false
+        var localId = _nextLocalBatchId++
+        payload.local_batch_id = localId
+        var mask = Batch.collectCategoriesMask(payload)
+        var categories = Batch.expandMask(mask)
+        var delivered = applyBatchedUpdates(payload)
+        if (delivered) {
+            _registerInflightBatch(localId, categories)
+        } else {
+            console.warn("[SimulationRoot] Batch dispatch failed (will retry)", localId)
+            _scheduleRetry(payload, localId)
+        }
+        return delivered
+    }
+    function _registerInflightBatch(id, categories) {
+        _inflightBatchIds[id] = { timestamp: Date.now(), categories: categories }
+        _scheduleAckWatchdog(id)
+    }
+    function _scheduleAckWatchdog(id) {
+        var watchdog = Qt.createQmlObject('import QtQuick; Timer { repeat: false }', root, "ackWatchdog"+id)
+        watchdog.interval = _batchAckTimeoutMs
+        watchdog.triggered.connect(function(){ _onBatchAckTimeout(id) })
+        watchdog.start()
+    }
+    function _onBatchAckTimeout(id) {
+        var entry = _inflightBatchIds[id]
+        if (!entry) return
+        _failedAckCount += 1
+        console.warn("[SimulationRoot] Batch ACK timeout", id, entry.categories)
+        delete _inflightBatchIds[id]
+        // Лёгкая повторная попытка с теми же категориями (без merging)
+        var retryPayload = ({})
+        for (var i=0;i<entry.categories.length;++i){ var c=entry.categories[i]; retryPayload[c] = lastUpdateByCategory[c] }
+        _queueDebouncedBatch(retryPayload)
+    }
+    function _scheduleRetry(payload, id) { _queueDebouncedBatch(payload) }
+    function _acknowledgeBatch(categories, batchId) {
+        if (categories && categories.length) batchFlashOpacity = 1.0
+        var summary = { timestamp: Date.now(), categories: categories ? categories.slice() : [], source: "python" }
+        if (batchId !== undefined && batchId !== null) summary.local_batch_id = batchId
+        batchUpdatesApplied(summary)
+        _processAck(summary)
+    }
+    function _processAck(summary) {
+        var id = summary && summary.batch_id ? summary.batch_id : summary.local_batch_id
+        if (id && _inflightBatchIds[id]) {
+            _successfulAckCount += 1
+            delete _inflightBatchIds[id]
+        }
+        _logSyncMetrics()
+    }
+    function _logSyncMetrics() {
+        // Структурированный лог для последующего анализа CI
+        var active = Object.keys(_inflightBatchIds).length
+        var payload = { level: "info", logger: "qml.batch_sync", event: "syncMetrics", inflight: active, successCount: _successfulAckCount, failCount: _failedAckCount, timestamp: new Date().toISOString() }
+        console.log(JSON.stringify(payload))
+    }
 
     // Render related state
     property real renderScale: 1.0
@@ -158,9 +246,10 @@ Item {
         snapshot[category] = payload && typeof payload === "object" ? _normaliseState(payload) : payload
         lastUpdateByCategory = snapshot
     }
-    function _acknowledgeBatch(categories) {
+    function _acknowledgeBatch(categories, batchId) {
         if (categories && categories.length) batchFlashOpacity = 1.0
         var summary = { timestamp: Date.now(), categories: categories ? categories.slice() : [], source: "python" }
+        if (batchId !== undefined && batchId !== null) summary.local_batch_id = batchId
         batchUpdatesApplied(summary)
     }
 
@@ -169,6 +258,7 @@ Item {
         if (!updates || typeof updates !== "object") return
         _logBatchEvent("signal_received","applyBatchedUpdates")
         var mask = Batch.collectCategoriesMask(updates)
+        var localId = updates.local_batch_id !== undefined ? updates.local_batch_id : undefined
         if (updates.geometry !== undefined) applyGeometryUpdates(updates.geometry)
         if (updates.animation !== undefined) applyAnimationUpdates(updates.animation)
         if (updates.lighting !== undefined) applyLightingUpdates(updates.lighting)
@@ -181,7 +271,7 @@ Item {
         if (updates.render !== undefined) applyRenderSettings(updates.render)
         if (updates.simulation !== undefined) applySimulationUpdates(updates.simulation)
         if (updates.threeD !== undefined) applyThreeDUpdates(updates.threeD)
-        _acknowledgeBatch(Batch.expandMask(mask))
+        _acknowledgeBatch(Batch.expandMask(mask), localId)
     }
 
     // Category handlers -----------------------------------------

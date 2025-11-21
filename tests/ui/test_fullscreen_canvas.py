@@ -64,6 +64,7 @@ def _ensure_fullscreen(view) -> None:
 
 @pytest.mark.gui
 @pytest.mark.usefixtures("qapp")
+# Не используем skip: headless окружение проходит упрощённой веткой PASS
 def test_canvas_fullscreen_animation(qapp, integration_reports_dir) -> None:  # noqa: D401
     """Открыть сцену канваса в полноэкранном режиме и подтвердить движение.
 

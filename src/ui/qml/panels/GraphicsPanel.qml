@@ -23,12 +23,10 @@ Item {
      * Ожидается структура config/app_settings.json → current.graphics.scene.
      */
     property var sceneSettings: ({})
-
     /**
      * Базовые значения для отображения подсказок и кнопки Reset.
      */
     property var sceneDefaults: ({})
-
     /**
      * Сигнал обновления состояния (для привязки к SettingsManager/QML bridge).
      */
@@ -37,6 +35,9 @@ Item {
     property var _sceneState: ({})
     property bool _syncingSceneControls: false
     property var _sceneControls: null
+
+    // ✅ Диапазоны пользовательских параметров
+    property var _ranges: ({}) // {paramName:{min:Number,max:Number}}
 
     property alias currentTab: tabBar.currentIndex
     readonly property var tabs: [
@@ -191,24 +192,54 @@ Item {
     }
 
     function _setSceneValue(key, value) {
-        if (_syncingSceneControls)
-            return
+        if (_syncingSceneControls) return
         _sceneState[key] = value
         sceneSettings = exportSceneSettings()
         sceneChanged(sceneSettings)
     }
 
     function _setSuspensionValue(key, value) {
-        if (_syncingSceneControls)
-            return
+        if (_syncingSceneControls) return
         _sceneState.suspension = _sceneState.suspension || {}
         _sceneState.suspension[key] = value
         sceneSettings = exportSceneSettings()
         sceneChanged(sceneSettings)
     }
 
+    // ✅ Управление диапазонами
+    function _setRange(key, minValue, maxValue) {
+        if (!_sceneState.range_overrides)
+            _sceneState.range_overrides = {}
+        _sceneState.range_overrides[key] = { min: Number(minValue), max: Number(maxValue) }
+        _ranges[key] = { min: Number(minValue), max: Number(maxValue) }
+        sceneSettings = exportSceneSettings()
+        sceneChanged(sceneSettings)
+        _applyRangeToControl(key)
+    }
+    function _applyRangeToControl(key) {
+        if (!_sceneControls) return
+        var c = _sceneControls[key]
+        if (!c) return
+        var r = _ranges[key] || (_sceneState.range_overrides ? _sceneState.range_overrides[key] : null)
+        if (r) {
+            if (isFinite(r.min)) c.from = r.min
+            if (isFinite(r.max)) c.to = r.max
+        }
+    }
+    function _applyAllRanges() {
+        if (_sceneState.range_overrides) {
+            for (var k in _sceneState.range_overrides) {
+                if (!_ranges[k]) _ranges[k] = { min: _sceneState.range_overrides[k].min, max: _sceneState.range_overrides[k].max }
+            }
+        }
+        for (var rk in _ranges) _applyRangeToControl(rk)
+    }
+
     function exportSceneSettings() {
-        return _clone(_sceneState)
+        var snap = JSON.parse(JSON.stringify(_sceneState || {}))
+        if (_sceneState.range_overrides)
+            snap.range_overrides = JSON.parse(JSON.stringify(_sceneState.range_overrides))
+        return snap
     }
 
     function applySceneState(payload) {
@@ -227,34 +258,368 @@ Item {
 
     function _syncSceneControls() {
         var controls = _sceneControls
-        if (!controls)
-            return
+        if (!controls) return
         _syncingSceneControls = true
         try {
-            controls.scaleSlider.value = _sceneNumber("scale_factor", 1.0)
-            controls.exposureSlider.value = _sceneNumber("exposure", 1.0)
-            controls.clearColorSwatch.color = _sceneColor("default_clear_color", "#1b1f27")
-            controls.baseColorSwatch.color = _sceneColor("model_base_color", "#9da3aa")
-            controls.roughnessSlider.value = _sceneNumber("model_roughness", 0.42)
-            controls.metalnessSlider.value = _sceneNumber("model_metalness", 0.82)
-            controls.suspensionThresholdSlider.value = Number(
-                _sceneState.suspension && _sceneState.suspension.rod_warning_threshold_m
-            ) || 0.001
-            controls.postEffectsBypass.checked = !!_sceneState.effects_bypass
-            controls.postEffectsReason.text = _sceneState.effects_bypass_reason || ""
-        } finally {
-            _syncingSceneControls = false
+            if (controls.scaleSlider) controls.scaleSlider.value = Number(_sceneState.scale_factor) || 1.0
+            if (controls.exposureSlider) controls.exposureSlider.value = Number(_sceneState.exposure) || 1.0
+            if (controls.clearColorSwatch) controls.clearColorSwatch.color = _sceneState.default_clear_color || "#1b1f27"
+            if (controls.baseColorSwatch) controls.baseColorSwatch.color = _sceneState.model_base_color || "#9da3aa"
+            if (controls.roughnessSlider) controls.roughnessSlider.value = Number(_sceneState.model_roughness) || 0.42
+            if (controls.metalnessSlider) controls.metalnessSlider.value = Number(_sceneState.model_metalness) || 0.82
+            if (controls.suspensionThresholdSlider) controls.suspensionThresholdSlider.value = Number(_sceneState.suspension && _sceneState.suspension.rod_warning_threshold_m) || 0.001
+            if (controls.postEffectsBypass) controls.postEffectsBypass.checked = !!_sceneState.effects_bypass
+            if (controls.postEffectsReason) controls.postEffectsReason.text = _sceneState.effects_bypass_reason || ""
+            _applyAllRanges()
+        } finally { _syncingSceneControls = false }
+    }
+
+    // ✅ Редактор диапазона
+    Component { id: rangeEditorComponent
+        RowLayout {
+            required property var targetSlider
+            required property string paramKey
+            spacing: 4
+            TextField { id: minField; Layout.preferredWidth: 60; placeholderText: "min"; text: targetSlider.from.toFixed(3)
+                onEditingFinished: { var v = Number(text); if (isFinite(v)) root._setRange(paramKey, v, maxField.text.length?Number(maxField.text):targetSlider.to) }
+            }
+            TextField { id: maxField; Layout.preferredWidth: 60; placeholderText: "max"; text: targetSlider.to.toFixed(3)
+                onEditingFinished: { var v = Number(text); if (isFinite(v)) root._setRange(paramKey, minField.text.length?Number(minField.text):targetSlider.from, v) }
+            }
         }
     }
 
-    function _registerSceneControls(controls) {
-        _sceneControls = controls
-        _syncSceneControls()
+    // ✅ Постэффекты (только эффекты камеры и изображения, без tonemap/DOF/motionBlur/fog)
+    Component { id: postEffectsComponent
+        ColumnLayout { Layout.fillWidth: true; spacing: 12
+            GroupBox { Layout.fillWidth: true; title: qsTr("Bloom")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: bloomEnabled; text: qsTr("Enabled"); onToggled: { root._setSceneValue("bloomEnabled", checked); } }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Intensity"); color: root.textColor; Layout.preferredWidth: 110 }
+                        Slider { id: bloomIntensity; Layout.fillWidth: true; from: 0.0; to: 3.0; stepSize: 0.01; onValueChanged: root._setSceneValue("bloomIntensity", value) }
+                        Label { text: bloomIntensity.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 54 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: bloomIntensity; property string paramKey: "bloomIntensity" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Threshold"); color: root.textColor; Layout.preferredWidth: 110 }
+                        Slider { id: bloomThreshold; Layout.fillWidth: true; from: 0.0; to: 4.0; stepSize: 0.01; onValueChanged: root._setSceneValue("bloomThreshold", value) }
+                        Label { text: bloomThreshold.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 54 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: bloomThreshold; property string paramKey: "bloomThreshold" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Secondary Bloom"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: bloomSecondaryBloom; Layout.fillWidth: true; from: 0.0; to: 2.0; stepSize: 0.01; onValueChanged: root._setSceneValue("bloomSecondaryBloom", value) }
+                        Label { text: bloomSecondaryBloom.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: bloomSecondaryBloom; property string paramKey: "bloomSecondaryBloom" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Glow Strength"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: bloomStrength; Layout.fillWidth: true; from: 0.0; to: 4.0; stepSize: 0.01; onValueChanged: root._setSceneValue("bloomStrength", value) }
+                        Label { text: bloomStrength.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: bloomStrength; property string paramKey: "bloomStrength" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("HDR Maximum"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: glowHdrMaximumValue; Layout.fillWidth: true; from: 0.0; to: 16.0; stepSize: 0.1; onValueChanged: root._setSceneValue("glowHdrMaximumValue", value) }
+                        Label { text: glowHdrMaximumValue.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: glowHdrMaximumValue; property string paramKey: "glowHdrMaximumValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("HDR Scale"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: glowHdrScale; Layout.fillWidth: true; from: 0.0; to: 4.0; stepSize: 0.01; onValueChanged: root._setSceneValue("glowHdrScale", value) }
+                        Label { text: glowHdrScale.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: glowHdrScale; property string paramKey: "glowHdrScale" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Quality High"); color: root.textColor; Layout.preferredWidth: 140 }
+                        CheckBox { id: glowQualityHighEnabled; text: glowQualityHighEnabled.checked ? qsTr("On") : qsTr("Off"); onToggled: root._setSceneValue("glowQualityHighEnabled", checked) }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Bicubic Upscale"); color: root.textColor; Layout.preferredWidth: 140 }
+                        CheckBox { id: glowUseBicubic; text: glowUseBicubic.checked ? qsTr("On") : qsTr("Off"); onToggled: root._setSceneValue("glowUseBicubic", checked) }
+                    }
+                }
+            }
+            GroupBox { Layout.fillWidth: true; title: qsTr("SSAO")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: ssaoEnabled; text: qsTr("Enabled"); onToggled: root._setSceneValue("ssaoEnabled", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Intensity"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: ssaoIntensity; Layout.fillWidth: true; from: 0.0; to: 4.0; stepSize: 0.01; onValueChanged: root._setSceneValue("ssaoIntensity", value) }
+                        Label { text: ssaoIntensity.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 50 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: ssaoIntensity; property string paramKey: "ssaoIntensity" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Radius"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: ssaoRadius; Layout.fillWidth: true; from: 0.001; to: 0.05; stepSize: 0.0005; onValueChanged: root._setSceneValue("ssaoRadius", value) }
+                        Label { text: ssaoRadius.value.toFixed(4); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: ssaoRadius; property string paramKey: "ssaoRadius" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Softness"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: ssaoSoftness; Layout.fillWidth: true; from: 0.0; to: 40.0; stepSize: 0.1; onValueChanged: root._setSceneValue("ssaoSoftness", value) }
+                        Label { text: ssaoSoftness.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: ssaoSoftness; property string paramKey: "ssaoSoftness" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Bias"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: ssaoBias; Layout.fillWidth: true; from: 0.0; to: 0.2; stepSize: 0.001; onValueChanged: root._setSceneValue("ssaoBias", value) }
+                        Label { text: ssaoBias.value.toFixed(3); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: ssaoBias; property string paramKey: "ssaoBias" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Sample Rate"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: ssaoSampleRate; Layout.fillWidth: true; from: 1; to: 64; stepSize: 1; onValueChanged: root._setSceneValue("ssaoSampleRate", value) }
+                        Label { text: ssaoSampleRate.value.toFixed(0); color: root.textColor; Layout.preferredWidth: 50 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: ssaoSampleRate; property string paramKey: "ssaoSampleRate" }
+                    }
+                    CheckBox { id: ssaoDither; text: qsTr("Dither"); onToggled: root._setSceneValue("ssaoDither", checked) }
+                }
+            }
+            GroupBox { Layout.fillWidth: true; title: qsTr("Lens Flare")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: lensFlareActive; text: qsTr("Active"); onToggled: root._setSceneValue("lensFlareActive", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Ghosts"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: lensFlareGhosts; Layout.fillWidth: true; from: 0; to: 12; stepSize: 1; onValueChanged: root._setSceneValue("lensFlareGhosts", value) }
+                        Label { text: lensFlareGhosts.value.toFixed(0); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: lensFlareGhosts; property string paramKey: "lensFlareGhosts" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Ghost Dispersal"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: lensFlareGhostDispersalValue; Layout.fillWidth: true; from: 0.0; to: 2.0; stepSize: 0.01; onValueChanged: root._setSceneValue("lensFlareGhostDispersalValue", value) }
+                        Label { text: lensFlareGhostDispersalValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: lensFlareGhostDispersalValue; property string paramKey: "lensFlareGhostDispersalValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Halo Width"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: lensFlareHaloWidthValue; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("lensFlareHaloWidthValue", value) }
+                        Label { text: lensFlareHaloWidthValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: lensFlareHaloWidthValue; property string paramKey: "lensFlareHaloWidthValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Bloom Bias"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: lensFlareBloomBiasValue; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("lensFlareBloomBiasValue", value) }
+                        Label { text: lensFlareBloomBiasValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: lensFlareBloomBiasValue; property string paramKey: "lensFlareBloomBiasValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Stretch"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: lensFlareStretchValue; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("lensFlareStretchValue", value) }
+                        Label { text: lensFlareStretchValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: lensFlareStretchValue; property string paramKey: "lensFlareStretchValue" }
+                    }
+                }
+            }
+            GroupBox { Layout.fillWidth: true; title: qsTr("Color Adjustments")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    RowLayout { Layout.fillWidth: true
+                        CheckBox { id: colorAdjustmentsEnabled; text: qsTr("Enabled"); onToggled: root._setSceneValue("colorAdjustmentsEnabled", checked) }
+                        CheckBox { id: colorAdjustmentsActive; text: qsTr("Active"); onToggled: root._setSceneValue("colorAdjustmentsActive", checked) }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Brightness"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: adjustmentBrightness; Layout.fillWidth: true; from: -2.0; to: 2.0; stepSize: 0.01; onValueChanged: root._setSceneValue("adjustmentBrightness", value) }
+                        Label { text: adjustmentBrightness.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: adjustmentBrightness; property string paramKey: "adjustmentBrightness" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Contrast"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: adjustmentContrast; Layout.fillWidth: true; from: -2.0; to: 2.0; stepSize: 0.01; onValueChanged: root._setSceneValue("adjustmentContrast", value) }
+                        Label { text: adjustmentContrast.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: adjustmentContrast; property string paramKey: "adjustmentContrast" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Saturation"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: adjustmentSaturation; Layout.fillWidth: true; from: -2.0; to: 2.0; stepSize: 0.01; onValueChanged: root._setSceneValue("adjustmentSaturation", value) }
+                        Label { text: adjustmentSaturation.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: adjustmentSaturation; property string paramKey: "adjustmentSaturation" }
+                    }
+                }
+            }
+            GroupBox { Layout.fillWidth: true; title: qsTr("Vignette")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: vignetteActive; text: qsTr("Active"); onToggled: root._setSceneValue("vignetteActive", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Strength"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: vignetteStrengthValue; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("vignetteStrengthValue", value) }
+                        Label { text: vignetteStrengthValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: vignetteStrengthValue; property string paramKey: "vignetteStrengthValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Radius"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: vignetteRadiusValue; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("vignetteRadiusValue", value) }
+                        Label { text: vignetteRadiusValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: vignetteRadiusValue; property string paramKey: "vignetteRadiusValue" }
+                    }
+                }
+            }
+        }
     }
 
-    onSceneDefaultsChanged: applySceneState(sceneSettings)
-    onSceneSettingsChanged: applySceneState(sceneSettings)
-    Component.onCompleted: applySceneState(sceneSettings)
+    Component { id: dofComponent
+        ColumnLayout { Layout.fillWidth: true; spacing: 10
+            GroupBox { Layout.fillWidth: true; title: qsTr("Depth of Field")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: depthOfFieldActive; text: qsTr("Active"); onToggled: root._setSceneValue("depthOfFieldActive", checked) }
+                    CheckBox { id: depthOfFieldAutoFocus; text: qsTr("Auto Focus"); onToggled: root._setSceneValue("depthOfFieldAutoFocus", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Focus Distance"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: depthOfFieldFocusDistanceValue; Layout.fillWidth: true; from: 0.1; to: 50.0; stepSize: 0.1; onValueChanged: root._setSceneValue("depthOfFieldFocusDistanceValue", value) }
+                        Label { text: depthOfFieldFocusDistanceValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: depthOfFieldFocusDistanceValue; property string paramKey: "depthOfFieldFocusDistanceValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Focus Range"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: depthOfFieldFocusRangeValue; Layout.fillWidth: true; from: 0.01; to: 20.0; stepSize: 0.05; onValueChanged: root._setSceneValue("depthOfFieldFocusRangeValue", value) }
+                        Label { text: depthOfFieldFocusRangeValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: depthOfFieldFocusRangeValue; property string paramKey: "depthOfFieldFocusRangeValue" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Blur Amount"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: depthOfFieldBlurAmountValue; Layout.fillWidth: true; from: 0.0; to: 10.0; stepSize: 0.05; onValueChanged: root._setSceneValue("depthOfFieldBlurAmountValue", value) }
+                        Label { text: depthOfFieldBlurAmountValue.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 70 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: depthOfFieldBlurAmountValue; property string paramKey: "depthOfFieldBlurAmountValue" }
+                    }
+                }
+            }
+        }
+    }
+
+    // ✅ Motion Blur отделён
+    Component { id: motionBlurComponent
+        ColumnLayout { Layout.fillWidth: true; spacing: 10
+            GroupBox { Layout.fillWidth: true; title: qsTr("Motion Blur")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: motionBlurEnabled; text: qsTr("Enabled"); onToggled: root._setSceneValue("motionBlurEnabled", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Strength"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: motionBlurStrength; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("motionBlurStrength", value) }
+                        Label { text: motionBlurStrength.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 50 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: motionBlurStrength; property string paramKey: "motionBlurStrength" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Samples"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: motionBlurSamples; Layout.fillWidth: true; from: 1; to: 64; stepSize: 1; onValueChanged: root._setSceneValue("motionBlurSamples", value) }
+                        Label { text: motionBlurSamples.value.toFixed(0); color: root.textColor; Layout.preferredWidth: 50 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: motionBlurSamples; property string paramKey: "motionBlurSamples" }
+                    }
+                }
+            }
+        }
+    }
+
+    // ✅ Окружение + Fog (перенесён сюда)
+    Component { id: environmentComponent
+        ColumnLayout { Layout.fillWidth: true; spacing: 10
+            GroupBox { Layout.fillWidth: true; title: qsTr("IBL / Skybox")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: iblLightingEnabled; text: qsTr("Lighting Enabled"); onToggled: root._setSceneValue("iblLightingEnabled", checked) }
+                    CheckBox { id: iblBackgroundEnabled; text: qsTr("Background Enabled"); onToggled: root._setSceneValue("iblBackgroundEnabled", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Intensity"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: iblIntensity; Layout.fillWidth: true; from: 0.0; to: 8.0; stepSize: 0.05; onValueChanged: root._setSceneValue("iblIntensity", value) }
+                        Label { text: iblIntensity.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: iblIntensity; property string paramKey: "iblIntensity" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Skybox Brightness"); color: root.textColor; Layout.preferredWidth: 140 }
+                        Slider { id: skyboxBrightness; Layout.fillWidth: true; from: 0.0; to: 8.0; stepSize: 0.05; onValueChanged: root._setSceneValue("skyboxBrightness", value) }
+                        Label { text: skyboxBrightness.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: skyboxBrightness; property string paramKey: "skyboxBrightness" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Horizon"); color: root.textColor; Layout.preferredWidth: 100 }
+                        Slider { id: probeHorizon; Layout.fillWidth: true; from: -2.0; to: 2.0; stepSize: 0.01; onValueChanged: root._setSceneValue("probeHorizon", value) }
+                        Label { text: probeHorizon.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: probeHorizon; property string paramKey: "probeHorizon" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Pitch"); color: root.textColor; Layout.preferredWidth: 80 }
+                        Slider { id: iblRotationPitchDeg; Layout.fillWidth: true; from: -180.0; to: 180.0; stepSize: 0.5; onValueChanged: root._setSceneValue("iblRotationPitchDeg", value) }
+                        Label { text: iblRotationPitchDeg.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: iblRotationPitchDeg; property string paramKey: "iblRotationPitchDeg" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Yaw"); color: root.textColor; Layout.preferredWidth: 80 }
+                        Slider { id: iblRotationDeg; Layout.fillWidth: true; from: -180.0; to: 180.0; stepSize: 0.5; onValueChanged: root._setSceneValue("iblRotationDeg", value) }
+                        Label { text: iblRotationDeg.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: iblRotationDeg; property string paramKey: "iblRotationDeg" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Roll"); color: root.textColor; Layout.preferredWidth: 80 }
+                        Slider { id: iblRotationRollDeg; Layout.fillWidth: true; from: -180.0; to: 180.0; stepSize: 0.5; onValueChanged: root._setSceneValue("iblRotationRollDeg", value) }
+                        Label { text: iblRotationRollDeg.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: iblRotationRollDeg; property string paramKey: "iblRotationRollDeg" }
+                    }
+                    CheckBox { id: iblBindToCamera; text: qsTr("Bind To Camera"); onToggled: root._setSceneValue("iblBindToCamera", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Skybox Blur"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: skyboxBlur; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.01; onValueChanged: root._setSceneValue("skyboxBlur", value) }
+                        Label { text: skyboxBlur.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: skyboxBlur; property string paramKey: "skyboxBlur" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("HDR Path"); color: root.textColor; Layout.preferredWidth: 100 }
+                        TextField { id: hdrPathField; Layout.fillWidth: true; placeholderText: qsTr("assets/hdr/studio.hdr"); onEditingFinished: root._setSceneValue("hdriPath", text) }
+                    }
+                }
+            }
+            GroupBox { Layout.fillWidth: true; title: qsTr("Fog")
+                ColumnLayout { spacing: 6; Layout.fillWidth: true
+                    CheckBox { id: fogEnabled; text: qsTr("Enabled"); onToggled: root._setSceneValue("fogEnabled", checked) }
+                    Button { text: qsTr("Color"); onClicked: fogColorDialog.open() }
+                    Rectangle { id: fogColorSwatch; width: 40; height: 20; radius: 4; border.color: root.borderColor; color: _sceneState.fogColor || "#aab9cf" }
+                    ColorDialog { id: fogColorDialog; title: qsTr("Fog Color"); onAccepted: { fogColorSwatch.color = selectedColor; root._setSceneValue("fogColor", selectedColor.toString()) } }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Density"); color: root.textColor; Layout.preferredWidth: 90 }
+                        Slider { id: fogDensity; Layout.fillWidth: true; from: 0.0; to: 1.0; stepSize: 0.001; onValueChanged: root._setSceneValue("fogDensity", value) }
+                        Label { text: fogDensity.value.toFixed(3); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogDensity; property string paramKey: "fogDensity" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Near"); color: root.textColor; Layout.preferredWidth: 60 }
+                        Slider { id: fogNear; Layout.fillWidth: true; from: 0.0; to: 200.0; stepSize: 0.5; onValueChanged: root._setSceneValue("fogDepthNear", value) }
+                        Label { text: fogNear.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 50 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogNear; property string paramKey: "fogDepthNear" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Far"); color: root.textColor; Layout.preferredWidth: 60 }
+                        Slider { id: fogFar; Layout.fillWidth: true; from: 0.0; to: 2000.0; stepSize: 1.0; onValueChanged: root._setSceneValue("fogDepthFar", value) }
+                        Label { text: fogFar.value.toFixed(0); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogFar; property string paramKey: "fogDepthFar" }
+                    }
+                    CheckBox { id: fogHeightEnabled; text: qsTr("Height Enabled"); onToggled: root._setSceneValue("fogHeightEnabled", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Least Y"); color: root.textColor; Layout.preferredWidth: 90 }
+                        Slider { id: fogLeast; Layout.fillWidth: true; from: -50.0; to: 200.0; stepSize: 0.5; onValueChanged: root._setSceneValue("fogLeastIntenseY", value) }
+                        Label { text: fogLeast.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogLeast; property string paramKey: "fogLeastIntenseY" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Most Y"); color: root.textColor; Layout.preferredWidth: 90 }
+                        Slider { id: fogMost; Layout.fillWidth: true; from: -50.0; to: 400.0; stepSize: 0.5; onValueChanged: root._setSceneValue("fogMostIntenseY", value) }
+                        Label { text: fogMost.value.toFixed(1); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogMost; property string paramKey: "fogMostIntenseY" }
+                    }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Height Curve"); color: root.textColor; Layout.preferredWidth: 120 }
+                        Slider { id: fogHeightCurve; Layout.fillWidth: true; from: 0.0; to: 4.0; stepSize: 0.01; onValueChanged: root._setSceneValue("fogHeightCurve", value) }
+                        Label { text: fogHeightCurve.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogHeightCurve; property string paramKey: "fogHeightCurve" }
+                    }
+                    CheckBox { id: fogTransmitEnabled; text: qsTr("Transmit Enabled"); onToggled: root._setSceneValue("fogTransmitEnabled", checked) }
+                    RowLayout { Layout.fillWidth: true
+                        Label { text: qsTr("Transmit Curve"); color: root.textColor; Layout.preferredWidth: 130 }
+                        Slider { id: fogTransmitCurve; Layout.fillWidth: true; from: 0.0; to: 4.0; stepSize: 0.01; onValueChanged: root._setSceneValue("fogTransmitCurve", value) }
+                        Label { text: fogTransmitCurve.value.toFixed(2); color: root.textColor; Layout.preferredWidth: 60 }
+                        Loader { sourceComponent: rangeEditorComponent; property var targetSlider: fogTransmitCurve; property string paramKey: "fogTransmitCurve" }
+                    }
+                }
+            }
+        }
+    }
 
     Component {
         id: sceneDefaultsComponent
@@ -647,91 +1012,3 @@ Item {
                                         active: sectionGroup.section.key === "sceneDefaults"
                                         sourceComponent: sceneDefaultsComponent
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Button {
-                id: resetButton
-                objectName: "resetButton"
-                text: qsTr("Reset to defaults")
-                focusPolicy: Qt.StrongFocus
-                Accessible.name: text
-                Accessible.description: qsTr("Revert all tabs to their default values")
-                background: Rectangle {
-                    radius: 6
-                    color: resetButton.down ? Qt.darker(root.surfaceColor, 1.4) : root.surfaceColor
-                    border.width: resetButton.activeFocus ? 2 : 1
-                    border.color: resetButton.activeFocus ? root.accentColor : root.borderColor
-                }
-                contentItem: Label {
-                    text: resetButton.text
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: resetButton.activeFocus || resetButton.hovered ? root.accentColor : root.textColor
-                }
-                ToolTip.visible: hovered
-                ToolTip.text: qsTr("Revert all tabs to the active profile defaults.")
-                onClicked: root.resetSceneToDefaults()
-            }
-
-            Button {
-                id: saveDefaultsButton
-                objectName: "saveDefaultsButton"
-                text: qsTr("Save as defaults")
-                focusPolicy: Qt.StrongFocus
-                Accessible.name: text
-                Accessible.description: qsTr("Store the active configuration as the default profile")
-                background: Rectangle {
-                    radius: 6
-                    color: saveDefaultsButton.down ? Qt.darker(root.surfaceColor, 1.4) : root.surfaceColor
-                    border.width: saveDefaultsButton.activeFocus ? 2 : 1
-                    border.color: saveDefaultsButton.activeFocus ? root.accentColor : root.borderColor
-                }
-                contentItem: Label {
-                    text: saveDefaultsButton.text
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: saveDefaultsButton.activeFocus || saveDefaultsButton.hovered ? root.accentColor : root.textColor
-                }
-                ToolTip.visible: hovered
-                ToolTip.text: qsTr("Store the current configuration as the new default profile.")
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            Button {
-                id: exportButton
-                objectName: "exportButton"
-                text: qsTr("Export snapshot")
-                focusPolicy: Qt.StrongFocus
-                Accessible.name: text
-                Accessible.description: qsTr("Export the current graphics configuration for diagnostics")
-                background: Rectangle {
-                    radius: 6
-                    color: exportButton.down ? Qt.darker(root.surfaceColor, 1.4) : root.surfaceColor
-                    border.width: exportButton.activeFocus ? 2 : 1
-                    border.color: exportButton.activeFocus ? root.accentColor : root.borderColor
-                }
-                contentItem: Label {
-                    text: exportButton.text
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    color: exportButton.activeFocus || exportButton.hovered ? root.accentColor : root.textColor
-                }
-                ToolTip.visible: hovered
-                ToolTip.text: qsTr("Export the active graphics configuration for diagnostics.")
-            }
-        }
-    }
-}

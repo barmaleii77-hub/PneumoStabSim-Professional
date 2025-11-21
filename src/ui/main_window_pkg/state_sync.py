@@ -165,6 +165,19 @@ class StateSync:
                 except Exception as exc:
                     StateSync.logger.error(f"Failed to collect modes state: {exc}")
 
+            # RoadPanel (новая категория сохранения профилей дороги)
+            if getattr(window, "road_panel", None) and hasattr(
+                window.road_panel, "collect_state"
+            ):
+                try:
+                    state = window.road_panel.collect_state()
+                    if isinstance(state, dict):
+                        sm.set_category("road", state, auto_save=False)
+                        categories_written = True
+                        StateSync.logger.debug("Road state collected")
+                except Exception as exc:
+                    StateSync.logger.error(f"Failed to collect road state: {exc}")
+
             # ОДНО сохранение в конце
             if categories_written:
                 sm.save()

@@ -56,6 +56,13 @@ Item {
     property bool telemetryPanelVisible: true
     property int _appliedBatchCounter: 0
     property int _lastDeliveredBatchId: 0
+    // ── Debounce / ACK sync метрики ──
+    property int batchDispatchDebounceMs: 160
+    property var _batchDebounceTimer: null
+    property var _batchedPayloadQueue: []
+    property int _ackTimeoutMs: 1400
+    property var _inflightRootBatches: ({})
+    property int _rootBatchSeq: 1
 
     readonly property bool hasSceneBridge: contextSceneBridge !== null
     readonly property var simulationRootItem: simulationLoader.item
@@ -237,26 +244,54 @@ Item {
         }
     }
 
-    onPendingPythonUpdatesChanged: {
-        if (!pendingPythonUpdates || typeof pendingPythonUpdates !== "object") return
-        if (Object.keys(pendingPythonUpdates).length === 0) return
-        if (!_deliverBatchedUpdates(pendingPythonUpdates)) _enqueueBatchedPayload(pendingPythonUpdates)
+    function _enqueueRootDebouncedBatch(payload){ if(!payload||typeof payload!=="object") return; _batchedPayloadQueue.push(payload); _ensureRootDebounceTimer() }
+    function _ensureRootDebounceTimer(){ if(_batchDebounceTimer) return; _batchDebounceTimer = Qt.createQmlObject('import QtQuick; Timer { repeat: false }', root, 'rootDebounceTimer'); _batchDebounceTimer.interval = batchDispatchDebounceMs; _batchDebounceTimer.triggered.connect(function(){ _flushRootDebouncedQueue() }); _batchDebounceTimer.start() }
+    function _flushRootDebouncedQueue(){ if(!_batchedPayloadQueue.length){ _batchDebounceTimer=null; return } var merged=({}); for(var i=0;i<_batchedPayloadQueue.length;++i){ var b=_batchedPayloadQueue[i]; for(var k in b){ if(b.hasOwnProperty(k)) merged[k]=b[k] } } _batchedPayloadQueue=[]; _batchDebounceTimer=null; _deliverBatchedUpdates(merged) }
+
+    function _deliverBatchedUpdates(payload) {
+        if (payload && typeof payload === "object" && payload.effects) {
+            var ep = payload.effects
+            if (ep.effects_bypass !== undefined) postProcessingBypassed = !!ep.effects_bypass
+            if (ep.effects_bypass_reason !== undefined) postProcessingBypassReason = String(ep.effects_bypass_reason || "")
+        }
+        var batchId = _rootBatchSeq++
+        payload.root_batch_id = batchId
+        var delivered = _invokeOnActiveRoot("applyBatchedUpdates", payload)
+        if (delivered) {
+            _inflightRootBatches[batchId] = { timestamp: Date.now(), categories: Object.keys(payload) }
+            _scheduleRootAckWatchdog(batchId)
+            _lastDeliveredBatchId = batchId
+            _appliedBatchCounter += 1
+        } else {
+            console.warn("[main.qml] Root batch delivery failed, requeue", batchId)
+            _enqueueRootDebouncedBatch(payload)
+        }
+        _syncPostProcessingState()
+        return delivered
+    }
+    function _scheduleRootAckWatchdog(id){ var t=Qt.createQmlObject('import QtQuick; Timer { repeat: false }', root, 'rootAckWatchdog'+id); t.interval=_ackTimeoutMs; t.triggered.connect(function(){ _onRootAckTimeout(id) }); t.start() }
+    function _onRootAckTimeout(id){ var entry=_inflightRootBatches[id]; if(!entry) return; console.warn('[main.qml] Root batch ACK timeout', id, entry.categories); delete _inflightRootBatches[id]; _enqueueRootDebouncedBatch(_reconstructRetryPayload(entry.categories)) }
+    function _reconstructRetryPayload(categories){ var p=({}); for(var i=0;i<categories.length;++i){ var c=categories[i]; if(c==='effects') continue; p[c]=({ retry:true }) } return p }
+
+    function batchUpdatesApplied(summary){ // перехват ACK из SimulationRoot и дополнение root_batch_id
+        if(!summary || typeof summary!=="object") return
+        if(summary.local_batch_id !== undefined && summary.root_batch_id === undefined) {
+            // пробрасываем в Python как root_batch_id если отсутствует
+            summary.root_batch_id = summary.local_batch_id
+        }
+        root.batchUpdatesApplied(summary)
+        _onRootAck(summary)
+    }
+    function _onRootAck(summary){
+        var id = summary && (summary.root_batch_id || summary.local_batch_id)
+        if(id && _inflightRootBatches[id]){
+            delete _inflightRootBatches[id]
+        }
     }
 
-    function _enqueueBatchedPayload(payload) {
-        if (!payload || typeof payload !== "object") return
-        if (!_queuedBatchedUpdates) _queuedBatchedUpdates = []
-        _queuedBatchedUpdates.push(payload)
-    }
-    function _flushQueuedBatches() {
-        if (!_queuedBatchedUpdates || !_queuedBatchedUpdates.length) return
-        var remaining = []
-        for (var i = 0; i < _queuedBatchedUpdates.length; ++i) {
-            var payload = _queuedBatchedUpdates[i]
-            if (!_deliverBatchedUpdates(payload)) remaining.push(payload)
-        }
-        _queuedBatchedUpdates = remaining
-    }
+    function _logRootSyncMetrics(){ var active=Object.keys(_inflightRootBatches).length; var payload={ level:'info', logger:'qml.root_sync', event:'rootSyncMetrics', inflight:active, applied:_appliedBatchCounter, lastId:_lastDeliveredBatchId, timestamp:new Date().toISOString() }; console.log(JSON.stringify(payload)) }
+
+    function applyGeometryUpdates(p){ return _invokeOnActiveRoot('applyGeometryUpdates', p) }
 
     function _syncPostProcessingState() {
         var target = _activeSimulationRoot()
@@ -271,28 +306,6 @@ Item {
         }
         if (postProcessingBypassed !== bypass) postProcessingBypassed = bypass
         if (postProcessingBypassReason !== reason) postProcessingBypassReason = reason
-    }
-
-    function _deliverBatchedUpdates(payload) {
-        if (payload && typeof payload === "object" && payload.effects) {
-            var ep = payload.effects
-            if (ep.effects_bypass !== undefined) postProcessingBypassed = !!ep.effects_bypass
-            if (ep.effects_bypass_reason !== undefined) postProcessingBypassReason = String(ep.effects_bypass_reason || "")
-        }
-        // Фильтр по монотонику batch_id (если присутствует)
-        var batchId = -1
-        if (payload && typeof payload.batch_id === "number") batchId = payload.batch_id
-        if (batchId !== -1 && batchId <= _lastDeliveredBatchId) {
-            console.debug("[main.qml] Skipping stale batch", batchId, "<=", _lastDeliveredBatchId)
-            return true // считаем доставленным чтобы не зацикливать очередь
-        }
-        var delivered = _invokeOnActiveRoot("applyBatchedUpdates", payload)
-        if (delivered) {
-            _lastDeliveredBatchId = batchId !== -1 ? batchId : (_lastDeliveredBatchId + 1)
-            _appliedBatchCounter += 1
-        }
-        _syncPostProcessingState()
-        return delivered
     }
 
     function _invokeOnActiveRoot(methodName, payload) {

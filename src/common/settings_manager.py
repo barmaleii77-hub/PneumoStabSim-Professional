@@ -147,8 +147,29 @@ _EFFECTS_KEY_ALIASES: dict[str, str] = {
     "color_contrast": "adjustment_contrast",
     "color_saturation": "adjustment_saturation",
     "bloom_hdr_maximum": "bloom_hdr_max",
-    # Дополнительный fallback для случаев когда акронимы не были слиты (до обновления функции):
     "bloom_h_d_r_maximum": "bloom_hdr_max",
+    # 🔽 Добавлены новые ключи UI → канонические engine-ключи
+    "bloom_secondary_bloom": "bloom_spread",
+    "bloom_strength": "bloom_glow_strength",
+    "glow_hdr_maximum_value": "bloom_hdr_max",
+    "glow_hdr_scale": "bloom_hdr_scale",
+    "glow_quality_high_enabled": "bloom_quality_high",
+    "glow_use_bicubic": "bloom_bicubic_upscale",
+    "lens_flare_active": "lens_flare",
+    "lens_flare_ghosts": "lens_flare_ghost_count",
+    "lens_flare_ghost_dispersal_value": "lens_flare_ghost_dispersal",
+    "lens_flare_halo_width_value": "lens_flare_halo_width",
+    "lens_flare_bloom_bias_value": "lens_flare_bloom_bias",
+    "lens_flare_stretch_value": "lens_flare_stretch_to_aspect",
+    "depth_of_field_active": "depth_of_field",
+    "depth_of_field_auto_focus": "dof_auto_focus",
+    "depth_of_field_focus_distance_value": "dof_focus_distance",
+    "depth_of_field_focus_range_value": "dof_focus_range",
+    "depth_of_field_blur_amount_value": "dof_blur",
+    "vignette_active": "vignette",
+    "vignette_strength_value": "vignette_strength",
+    "vignette_radius_value": "vignette_radius",
+    "ssao_softness": "ao_softness",
 }
 
 _CAMERA_KEY_ALIASES: dict[str, str] = {"manual_mode": "manual_camera"}
@@ -258,19 +279,17 @@ def _camel_to_snake(name: Any) -> Any:
     while "__" in snake:
         snake = snake.replace("__", "_")
     snake = snake.lower()
-    # Усиленная нормализация акронимов: соединяем разорванные буквы (h_d_r -> hdr, i_b_l -> ibl, s_s_a_o -> ssao)
-    # Выполняем глобальные замены без опоры на границы слова – это устойчивее к позициям внутри идентификатора
-    for acronym_parts, fused in (
-        ("h_d_r", "hdr"),
-        ("i_b_l", "ibl"),
-        ("s_s_a_o", "ssao"),
-        (
-            "t_o_n_e_m_a_p",
-            "tonemap",
-        ),  # встречается в некоторых плохо сформированных payload
+    # Усиленная нормализация акронимов через границы слова, предотвращает искажение внутренних последовательностей
+    for pattern, fused in (
+        (r"\bh_d_r\b", "hdr"),
+        (r"\bi_b_l\b", "ibl"),
+        (r"\bs_s_a_o\b", "ssao"),
+        (r"\bt_o_n_e_m_a_p\b", "tonemap"),
     ):
-        if acronym_parts in snake:
-            snake = snake.replace(acronym_parts, fused)
+        try:
+            snake = re.sub(pattern, fused, snake)
+        except Exception:
+            pass
     return snake
 
 
