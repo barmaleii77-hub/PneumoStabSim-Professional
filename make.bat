@@ -45,6 +45,11 @@ python -m tools.autonomous_check --launch-trace %*
 GOTO :eof
 
 :verify
+REM --- Added migrations apply, audit, and B3 receiver test before core verify ---
+python tools/migrations/apply.py --settings config/app_settings.json --migrations config/migrations --in-place --verbose
+python tools/migrations/audit_status.py
+REM Use standalone mode to avoid pytest launcher issues
+python tests/receiver/test_b3_integration.py --standalone
 python -m tools.autonomous_check --task verify --launch-trace
 GOTO :eof
 

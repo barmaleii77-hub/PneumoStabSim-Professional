@@ -91,6 +91,12 @@
         },
         "advanced": {
           "$ref": "#/$defs/AdvancedSettings"
+        },
+        "geometry": {
+          "$ref": "#/$defs/GeometrySettings"
+        },
+        "graphics": {
+          "$ref": "#/$defs/GraphicsSettings"
         }
       }
     },
@@ -116,6 +122,12 @@
         },
         "advanced": {
           "$ref": "#/$defs/AdvancedSettings"
+        },
+        "geometry": {
+          "$ref": "#/$defs/GeometrySettings"
+        },
+        "graphics": {
+          "$ref": "#/$defs/GraphicsSettings"
         }
       }
     },
@@ -1415,6 +1427,23 @@
         "active_preset": {
           "title": "Active Preset",
           "type": "string"
+        },
+        "lever_length_m": {
+          "title": "Lever Length M (Mirror)",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1.5
+        },
+        "max_susp_travel": {
+          "title": "Max Suspension Travel",
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 5.0
+        },
+        "meta": {
+          "title": "Geometry Meta",
+          "type": "object",
+          "additionalProperties": true
         }
       },
       "allOf": [
@@ -3779,3 +3808,4 @@
     }
   }
 }
+

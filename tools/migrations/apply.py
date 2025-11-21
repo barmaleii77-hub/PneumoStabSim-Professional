@@ -6,18 +6,25 @@ Developers are encouraged to use this thin shim instead of calling the
 ``tools/`` alongside other contributor utilities and allows us to evolve the
 runner implementation without breaking documentation links.
 """
-
 from __future__ import annotations
 
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
-from src.tools import settings_migrate
+# --- Ensure repository root is on sys.path (direct script invocation safety) ---
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    from src.tools import settings_migrate  # type: ignore
+except ModuleNotFoundError as exc:  # pragma: no cover - defensive path fix
+    raise SystemExit(f"Failed to import settings_migrate: {exc}. ROOT={ROOT}")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Delegate to :mod:`src.tools.settings_migrate`."""
-
     return settings_migrate.main(argv)
 
 
