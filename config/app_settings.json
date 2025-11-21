@@ -2,7 +2,7 @@
   "metadata": {
     "version": "4.9.8",
     "schema_version": "0.2.1",
-    "last_modified": "2025-11-20T19:30:00Z",
+    "last_modified": "2025-11-21T00:00:00Z",
     "units_version": "si_v2",
     "migrations": [
       "0001_add_diagnostics_defaults",
@@ -1069,384 +1069,181 @@
           "alpha_cutoff": 0.5
         }
       },
-      "modes": {
-        "sim_type": "KINEMATICS",
-        "thermo_mode": "ISOTHERMAL",
-        "mode_preset": "standard",
-        "road_profile": "smooth_highway",
-        "custom_profile_path": "",
-        "check_interference": true,
-        "ambient_temperature_c": 20.0,
-        "amplitude": 0.05,
-        "frequency": 1.0,
-        "phase": 0.0,
-        "lf_phase": 0.0,
-        "rf_phase": 0.0,
-        "lr_phase": 0.0,
-        "rr_phase": 0.0,
-        "physics": {
-          "include_springs": true,
-          "include_dampers": true,
-          "include_pneumatics": true,
-          "include_springs_kinematics": true,
-          "include_dampers_kinematics": true,
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "lever_inertia_multiplier": 1.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "integrator_method": "rk4"
-        }
+      "effects": {
+        "bloom_enabled": true,
+        "bloom_intensity": 0.6,
+        "bloom_threshold": 1.0,
+        "bloom_spread": 0.5,
+        "bloom_glow_strength": 0.8,
+        "bloom_hdr_max": 8.0,
+        "bloom_hdr_scale": 2.0,
+        "bloom_quality_high": true,
+        "bloom_bicubic_upscale": true,
+        "tonemap_enabled": false,
+        "tonemap_mode": "filmic",
+        "tonemap_exposure": 1.0,
+        "tonemap_white_point": 2.0,
+        "depth_of_field": false,
+        "dof_auto_focus": false,
+        "dof_focus_distance": 2.5,
+        "dof_blur": 3.0,
+        "motion_blur": false,
+        "motion_blur_amount": 0.0,
+        "lens_flare": false,
+        "lens_flare_ghost_count": 3,
+        "lens_flare_ghost_dispersal": 0.6,
+        "lens_flare_halo_width": 0.25,
+        "lens_flare_bloom_bias": 0.35,
+        "lens_flare_stretch_to_aspect": false,
+        "vignette": false,
+        "vignette_strength": 0.4,
+        "vignette_radius": 0.4,
+        "color_adjustments_enabled": true,
+        "color_adjustments_active": true,
+        "adjustment_brightness": 1.0,
+        "adjustment_contrast": 1.0,
+        "adjustment_saturation": 1.0
       },
-      "animation": {
-        "is_running": false,
-        "animation_time": 0.0,
-        "amplitude": 8.0,
-        "frequency": 1.0,
-        "phase_global": 0.0,
-        "phase_fl": 0.0,
-        "phase_fr": 0.0,
-        "phase_rl": 0.0,
-        "phase_rr": 0.0,
-        "smoothing_enabled": true,
-        "smoothing_duration_ms": 120,
-        "smoothing_angle_snap_deg": 65.0,
-        "smoothing_piston_snap_m": 0.05,
-        "smoothing_easing": "OutCubic"
-      },
-      "physics": {
+      "scene": {
+        "scale_factor": 1.0,
+        "exposure": 1.0,
+        "default_clear_color": "#1b1f27",
+        "model_base_color": "#9da3aa",
+        "model_roughness": 0.42,
+        "model_metalness": 0.82,
         "suspension": {
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "cylinder_head_area_m2": 0.005,
-          "cylinder_rod_area_m2": 0.004,
-          "axis_unit_world": [0.0,1.0,0.0]
-        },
-        "reference_axes": {
-          "vertical_world": [0.0,1.0,0.0]
-        },
-        "validation": {
-          "max_force_n": 100000.0,
-          "max_moment_n_m": 1000000.0
+          "rod_warning_threshold_m": 0.001
         }
       },
-      "simulation": {
-        "physics_dt": 0.001,
-        "render_vsync_hz": 60.0,
-        "max_steps_per_frame": 10,
-        "max_frame_time": 0.05,
-        "sim_speed": 1.0
-      },
-      "quality_presets": {
-        "ultra": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 4096,
-            "filter": 32,
-            "bias": 8.0,
-            "darkness": 80.0
-          },
-          "antialiasing": {
-            "primary": "ssaa",
-            "quality": "high",
-            "post": "taa"
-          },
-          "taa_enabled": true,
-          "taa_strength": 0.4,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.05,
-          "render_policy": "always",
-          "frame_rate_limit": 144.0,
-          "oit": "weighted"
+      "environment_ranges": {
+        "ibl_intensity": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
         },
-        "high": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 2048,
-            "filter": 16,
-            "bias": 9.5,
-            "darkness": 78.0
-          },
-          "antialiasing": {
-            "primary": "msaa",
-            "quality": "high",
-            "post": "off"
-          },
-          "taa_enabled": false,
-          "taa_strength": 0.3,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.0,
-          "render_policy": "always",
-          "frame_rate_limit": 120.0,
-          "oit": "weighted"
+        "skybox_brightness": {
+          "min": 0.0,
+          "max": 8.0,
+          "step": 0.05
         },
-        "medium": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 1024,
-            "filter": 8,
-            "bias": 10.0,
-            "darkness": 75.0
-          },
-          "antialiasing": {
-            "primary": "msaa",
-            "quality": "medium",
-            "post": "fxaa"
-          },
-          "taa_enabled": false,
-          "taa_strength": 0.25,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": true,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 0.9,
-          "render_policy": "always",
-          "frame_rate_limit": 90.0,
-          "oit": "weighted"
+        "probe_horizon": {
+          "min": -1.0,
+          "max": 1.0,
+          "step": 0.01
         },
-        "low": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 512,
-            "filter": 4,
-            "bias": 12.0,
-            "darkness": 70.0
-          },
-          "antialiasing": {
-            "primary": "off",
-            "quality": "low",
-            "post": "fxaa"
-          },
-          "taa_enabled": false,
-          "taa_strength": 0.2,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": true,
-          "specular_aa": false,
-          "dithering": true,
-          "render_scale": 0.8,
-          "render_policy": "ondemand",
-          "frame_rate_limit": 60.0,
-          "oit": "none"
+        "skybox_blur": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "ibl_rotation": {
+          "min": -1080.0,
+          "max": 1080.0,
+          "step": 1.0
+        },
+        "ibl_offset_x": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "ibl_offset_y": {
+          "min": -180.0,
+          "max": 180.0,
+          "step": 1.0
+        },
+        "reflection_padding_m": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_density": {
+          "min": 0.0,
+          "max": 1.0,
+          "step": 0.01
+        },
+        "fog_depth_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_near": {
+          "min": 0.0,
+          "max": 200.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_depth_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_far": {
+          "min": 0.0,
+          "max": 500.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_least_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_most_intense_y": {
+          "min": -100.0,
+          "max": 100.0,
+          "step": 0.1,
+          "decimals": 2,
+          "units": "м"
+        },
+        "fog_height_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_depth_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "fog_transmit_curve": {
+          "min": 0.0,
+          "max": 4.0,
+          "step": 0.05
+        },
+        "ao_strength": {
+          "min": 0.0,
+          "max": 100.0,
+          "step": 1.0
+        },
+        "ao_radius": {
+          "min": 0.001,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3,
+          "units": "м"
+        },
+        "ao_bias": {
+          "min": 0.0,
+          "max": 0.1,
+          "step": 0.001,
+          "decimals": 3
+        },
+        "ao_softness": {
+          "min": 0.0,
+          "max": 50.0,
+          "step": 1.0
         }
-      },
-      "diagnostics": {
-        "signal_trace": {
-          "enabled": false,
-          "overlay_enabled": false,
-          "include": [],
-          "exclude": [],
-          "history_limit": 1000
-        },
-        "camera_hud": {
-          "enabled": false,
-          "precision": 2,
-          "showPivot": true,
-          "showPan": true,
-          "showAngles": true,
-          "showMotion": true
-        }
-      },
-      "system": {
-        "dependencies": {
-          "opengl_runtime": {
-            "description": "OpenGL runtime required for Qt Quick rendering.",
-            "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
-            "variants": [
-              {
-                "id": "linux_mesa",
-                "platform_prefixes": ["linux","linux2"],
-                "library_name": "GL",
-                "human_name": "libGL.so.1",
-                "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
-                "error_markers": ["libGL.so.1"],
-                "packages": ["libgl1"],
-                "install_command": "apt-get install -y libgl1"
-              }
-            ]
-          },
-          "egl_runtime": {
-            "description": "EGL runtime required for Qt Quick OpenGL context creation.",
-            "missing_message": "Required EGL runtime ({human_name}) is missing.",
-            "variants": [
-              {
-                "id": "linux_mesa",
-                "platform_prefixes": ["linux","linux2"],
-                "library_name": "EGL",
-                "human_name": "libEGL.so.1",
-                "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
-                "error_markers": ["libEGL.so.1"],
-                "packages": ["libegl1"],
-                "install_command": "apt-get install -y libegl1"
-              }
-            ]
-          },
-          "xkb_runtime": {
-            "description": "XKB common library required for Qt input handling.",
-            "missing_message": "Required XKB runtime ({human_name}) is missing.",
-            "variants": [
-              {
-                "id": "linux_default",
-                "platform_prefixes": ["linux","linux2"],
-                "library_name": "xkbcommon",
-                "human_name": "libxkbcommon.so.0",
-                "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
-                "error_markers": ["libxkbcommon.so.0"],
-                "packages": ["libxkbcommon0","xkb-data"],
-                "install_command": "apt-get install -y libxkbcommon0"
-              }
-            ]
-          }
-        }
-      },
-      "constants": {
-        "geometry": {
-          "kinematics": {
-            "track_width_m": 1.1,
-            "lever_length_m": 0.35,
-            "pivot_offset_from_frame_m": 0.2,
-            "rod_attach_fraction": 0.5
-          },
-          "cylinder": {
-            "inner_diameter_m": 0.08,
-            "rod_diameter_m": 0.035,
-            "piston_thickness_m": 0.02,
-            "body_length_m": 0.25,
-            "dead_zone_rod_m3": 0.001,
-            "dead_zone_head_m3": 0.001
-          },
-          "visualization": {
-            "arm_radius_m": 0.05,
-            "cylinder_radius_m": 0.04,
-            "pivot_offset_x_m": 0.0,
-            "tail_offset_x_m": 0.0,
-            "piston_clip_min_fraction": 0.05,
-            "piston_clip_max_fraction": 0.95,
-            "max_stroke_fraction": 0.9
-          },
-          "initial_state": {
-            "lever_length_m": 0.35,
-            "tail_rod_length_m": 0.18,
-            "frame_beam_size_m": 0.12,
-            "frame_height_m": 0.65,
-            "frame_length_m": 2.0,
-            "cylinder_body_length_m": 0.25,
-            "j_arm_left": [-0.35,0.65,-0.5],
-            "j_arm_right": [0.35,0.65,-0.5],
-            "j_tail_left": [-0.4,0.35,-0.5],
-            "j_tail_right": [0.4,0.35,-0.5]
-          }
-        },
-        "pneumo": {
-          "valves": {
-            "delta_open_pa": 5000.0,
-            "equivalent_diameter_m": 0.008,
-            "relief_min_orifice_diameter_m": 0.001,
-            "relief_stiff_orifice_diameter_m": 0.0015
-          },
-          "receiver": {
-            "volume_min_m3": 0.0018,
-            "volume_max_m3": 0.0045,
-            "initial_volume_m3": 0.003,
-            "initial_pressure_pa": 101325.0,
-            "initial_temperature_k": 293.15,
-            "volume_mode": "ADIABATIC_RECALC"
-          },
-          "gas": {
-            "tank_volume_initial_m3": 0.0035,
-            "tank_pressure_initial_pa": 101325.0,
-            "tank_temperature_initial_k": 293.15,
-            "tank_volume_mode": "ADIABATIC_RECALC",
-            "time_step_s": 0.005,
-            "thermo_mode": "ISOTHERMAL",
-            "total_time_s": 3.0,
-            "relief_min_threshold_pa": 106391.25,
-            "relief_stiff_threshold_pa": 151987.5,
-            "relief_safety_threshold_pa": 202650.0
-          }
-        },
-        "physics": {
-          "suspension": {
-            "spring_constant": 50000.0,
-            "damper_coefficient": 2000.0,
-            "damper_force_threshold_n": 50.0,
-            "spring_rest_position_m": 0.0,
-            "cylinder_head_area_m2": 0.005,
-            "cylinder_rod_area_m2": 0.004,
-            "axis_unit_world": [0.0,1.0,0.0]
-          },
-          "reference_axes": {
-            "vertical_world": [0.0,1.0,0.0]
-          },
-          "validation": {
-            "max_force_n": 100000.0,
-            "max_moment_n_m": 1000000.0
-          },
-          "rigid_body": {
-            "default_mass_kg": 1500.0,
-            "default_inertia_pitch_kg_m2": 2000.0,
-            "default_inertia_roll_kg_m2": 3000.0,
-            "gravity_m_s2": 9.81,
-            "track_width_m": 1.6,
-            "wheelbase_m": 3.2,
-            "angle_limit_rad": 0.5,
-            "damping_coefficient": 0.1,
-            "static_load_tolerance": 0.05,
-            "load_sum_tolerance_scale": 1e-09,
-            "load_sum_min_reference": 1.0,
-            "attachment_points_m": {
-              "LP": {"x_m": -0.8, "z_m": -1.6},
-              "PP": {"x_m": 0.8, "z_m": -1.6},
-              "LZ": {"x_m": -0.8, "z_m": 1.6},
-              "PZ": {"x_m": 0.8, "z_m": 1.6}
-            }
-          }
-        },
-        "integrator": {
-          "solver": {
-            "primary_method": "Radau",
-            "fallback_methods": ["BDF","RK45"],
-            "relative_tolerance": 1e-06,
-            "absolute_tolerance": 1e-09,
-            "max_step_divisor": 4.0
-          },
-          "loop": {
-            "max_steps_per_render": 50,
-            "lever_ratio_clip_min": -0.999,
-            "lever_ratio_clip_max": 0.999,
-            "statistics_min_total_steps": 1,
-            "max_linear_velocity_m_s": 10.0,
-            "max_angular_velocity_rad_s": 10.0,
-            "nan_replacement_value": 0.0,
-            "posinf_replacement_value": 0.0,
-            "neginf_replacement_value": 0.0
-          }
-        }
-      },
-      "road": {
-        "mode": "manual",
-        "amplitude_m": 0.05,
-        "frequency_hz": 1.0,
-        "phase_offset_deg": 0.0,
-        "profile_type": "smooth_highway",
-        "avg_speed_kmh": 60.0
-      },
-      "advanced": {
-        "spring_stiffness_n_m": 50000.0,
-        "damper_coefficient_n_s_m": 2000.0,
-        "dead_zone_percent": 5.0,
-        "target_fps": 60.0,
-        "aa_quality": 2,
-        "shadow_quality": 2
-      },
-      "legacy": {}
+      }
     },
     "defaults_snapshot": {
       "geometry": {
@@ -1893,386 +1690,183 @@
             "alpha_mode": "default",
             "alpha_cutoff": 0.0
           }
-        }
-      },
-      "modes": {
-        "sim_type": "KINEMATICS",
-        "thermo_mode": "ISOTHERMAL",
-        "mode_preset": "standard",
-        "road_profile": "smooth_highway",
-        "custom_profile_path": "",
-        "check_interference": true,
-        "ambient_temperature_c": 20.0,
-        "amplitude": 0.05,
-        "frequency": 1.0,
-        "phase": 0.0,
-        "lf_phase": 0.0,
-        "rf_phase": 0.0,
-        "lr_phase": 0.0,
-        "rr_phase": 0.0,
-        "physics": {
-          "include_springs": true,
-          "include_dampers": true,
-          "include_pneumatics": true,
-          "include_springs_kinematics": true,
-          "include_dampers_kinematics": true,
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "lever_inertia_multiplier": 1.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "integrator_method": "rk4"
-        }
-      },
-      "animation": {
-        "is_running": false,
-        "animation_time": 0.0,
-        "amplitude": 8.0,
-        "frequency": 1.0,
-        "phase_global": 0.0,
-        "phase_fl": 0.0,
-        "phase_fr": 0.0,
-        "phase_rl": 0.0,
-        "phase_rr": 0.0,
-        "smoothing_enabled": true,
-        "smoothing_duration_ms": 120,
-        "smoothing_angle_snap_deg": 65.0,
-        "smoothing_piston_snap_m": 0.05,
-        "smoothing_easing": "OutCubic"
-      },
-      "physics": {
-        "suspension": {
-          "spring_constant": 50000.0,
-          "damper_coefficient": 2000.0,
-          "damper_force_threshold_n": 50.0,
-          "spring_rest_position_m": 0.0,
-          "cylinder_head_area_m2": 0.005,
-          "cylinder_rod_area_m2": 0.004,
-          "axis_unit_world": [0.0,1.0,0.0]
         },
-        "reference_axes": {
-          "vertical_world": [0.0,1.0,0.0]
+        "effects": {
+          "bloom_enabled": true,
+          "bloom_intensity": 0.6,
+          "bloom_threshold": 1.0,
+          "bloom_spread": 0.5,
+          "bloom_glow_strength": 0.8,
+          "bloom_hdr_max": 8.0,
+          "bloom_hdr_scale": 2.0,
+          "bloom_quality_high": true,
+          "bloom_bicubic_upscale": true,
+          "tonemap_enabled": false,
+          "tonemap_mode": "filmic",
+          "tonemap_exposure": 1.0,
+          "tonemap_white_point": 2.0,
+          "depth_of_field": false,
+          "dof_auto_focus": false,
+          "dof_focus_distance": 2.5,
+          "dof_blur": 3.0,
+          "motion_blur": false,
+          "motion_blur_amount": 0.0,
+          "lens_flare": false,
+          "lens_flare_ghost_count": 3,
+          "lens_flare_ghost_dispersal": 0.6,
+          "lens_flare_halo_width": 0.25,
+          "lens_flare_bloom_bias": 0.35,
+          "lens_flare_stretch_to_aspect": false,
+          "vignette": false,
+          "vignette_strength": 0.4,
+          "vignette_radius": 0.4,
+          "color_adjustments_enabled": true,
+          "color_adjustments_active": true,
+          "adjustment_brightness": 1.0,
+          "adjustment_contrast": 1.0,
+          "adjustment_saturation": 1.0
         },
-        "validation": {
-          "max_force_n": 100000.0,
-          "max_moment_n_m": 1000000.0
-        }
-      },
-      "simulation": {
-        "physics_dt": 0.001,
-        "render_vsync_hz": 60.0,
-        "max_steps_per_frame": 10,
-        "max_frame_time": 0.05,
-        "sim_speed": 1.0
-      },
-      "quality_presets": {
-        "ultra": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 4096,
-            "filter": 32,
-            "bias": 8.0,
-            "darkness": 80.0
-          },
-          "antialiasing": {
-            "primary": "ssaa",
-            "quality": "high",
-            "post": "taa"
-          },
-          "taa_enabled": true,
-          "taa_strength": 0.4,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.05,
-          "render_policy": "always",
-          "frame_rate_limit": 144.0,
-          "oit": "weighted"
-        },
-        "high": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 2048,
-            "filter": 16,
-            "bias": 9.5,
-            "darkness": 78.0
-          },
-          "antialiasing": {
-            "primary": "msaa",
-            "quality": "high",
-            "post": "off"
-          },
-          "taa_enabled": false,
-          "taa_strength": 0.3,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": false,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 1.0,
-          "render_policy": "always",
-          "frame_rate_limit": 120.0,
-          "oit": "weighted"
-        },
-        "medium": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 1024,
-            "filter": 8,
-            "bias": 10.0,
-            "darkness": 75.0
-          },
-          "antialiasing": {
-            "primary": "msaa",
-            "quality": "medium",
-            "post": "fxaa"
-          },
-          "taa_enabled": false,
-          "taa_strength": 0.25,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": true,
-          "specular_aa": true,
-          "dithering": true,
-          "render_scale": 0.9,
-          "render_policy": "always",
-          "frame_rate_limit": 90.0,
-          "oit": "weighted"
-        },
-        "low": {
-          "shadows": {
-            "enabled": true,
-            "resolution": 512,
-            "filter": 4,
-            "bias": 12.0,
-            "darkness": 70.0
-          },
-          "antialiasing": {
-            "primary": "off",
-            "quality": "low",
-            "post": "fxaa"
-          },
-          "taa_enabled": false,
-          "taa_strength": 0.2,
-          "taa_motion_adaptive": true,
-          "fxaa_enabled": true,
-          "specular_aa": false,
-          "dithering": true,
-          "render_scale": 0.8,
-          "render_policy": "ondemand",
-          "frame_rate_limit": 60.0,
-          "oit": "none"
-        }
-      },
-      "diagnostics": {
-        "signal_trace": {
-          "enabled": false,
-          "overlay_enabled": false,
-          "include": [],
-          "exclude": [],
-          "history_limit": 1000
-        },
-        "camera_hud": {
-          "enabled": false,
-          "precision": 2,
-          "showPivot": true,
-          "showPan": true,
-          "showAngles": true,
-          "showMotion": true
-        }
-      },
-      "system": {
-        "dependencies": {
-          "opengl_runtime": {
-            "description": "OpenGL runtime required for Qt Quick rendering.",
-            "missing_message": "Required OpenGL runtime ({human_name}) is missing.",
-            "variants": [
-              {
-                "id": "linux_mesa",
-                "platform_prefixes": ["linux","linux2"],
-                "library_name": "GL",
-                "human_name": "libGL.so.1",
-                "install_hint": "Install a Mesa/OpenGL package (e.g. 'apt-get install -y libgl1').",
-                "error_markers": ["libGL.so.1"],
-                "packages": ["libgl1"],
-                "install_command": "apt-get install -y libgl1"
-              }
-            ]
-          },
-          "egl_runtime": {
-            "description": "EGL runtime required for Qt Quick OpenGL context creation.",
-            "missing_message": "Required EGL runtime ({human_name}) is missing.",
-            "variants": [
-              {
-                "id": "linux_mesa",
-                "platform_prefixes": ["linux","linux2"],
-                "library_name": "EGL",
-                "human_name": "libEGL.so.1",
-                "install_hint": "Install an EGL runtime package (e.g. 'apt-get install -y libegl1').",
-                "error_markers": ["libEGL.so.1"],
-                "packages": ["libegl1"],
-                "install_command": "apt-get install -y libegl1"
-              }
-            ]
-          },
-          "xkb_runtime": {
-            "description": "XKB common library required for Qt input handling.",
-            "missing_message": "Required XKB runtime ({human_name}) is missing.",
-            "variants": [
-              {
-                "id": "linux_default",
-                "platform_prefixes": ["linux","linux2"],
-                "library_name": "xkbcommon",
-                "human_name": "libxkbcommon.so.0",
-                "install_hint": "Install libxkbcommon (e.g. 'apt-get install -y libxkbcommon0').",
-                "error_markers": ["libxkbcommon.so.0"],
-                "packages": ["libxkbcommon0","xkb-data"],
-                "install_command": "apt-get install -y libxkbcommon0"
-              }
-            ]
-          }
-        }
-      },
-      "constants": {
-        "geometry": {
-          "kinematics": {
-            "track_width_m": 1.1,
-            "lever_length_m": 0.35,
-            "pivot_offset_from_frame_m": 0.2,
-            "rod_attach_fraction": 0.5
-          },
-          "cylinder": {
-            "inner_diameter_m": 0.08,
-            "rod_diameter_m": 0.035,
-            "piston_thickness_m": 0.02,
-            "body_length_m": 0.25,
-            "dead_zone_rod_m3": 0.001,
-            "dead_zone_head_m3": 0.001
-          },
-          "visualization": {
-            "arm_radius_m": 0.05,
-            "cylinder_radius_m": 0.04,
-            "pivot_offset_x_m": 0.0,
-            "tail_offset_x_m": 0.0,
-            "piston_clip_min_fraction": 0.05,
-            "piston_clip_max_fraction": 0.95,
-            "max_stroke_fraction": 0.9
-          },
-          "initial_state": {
-            "lever_length_m": 0.35,
-            "tail_rod_length_m": 0.18,
-            "frame_beam_size_m": 0.12,
-            "frame_height_m": 0.65,
-            "frame_length_m": 2.0,
-            "cylinder_body_length_m": 0.25,
-            "j_arm_left": [-0.35,0.65,-0.5],
-            "j_arm_right": [0.35,0.65,-0.5],
-            "j_tail_left": [-0.4,0.35,-0.5],
-            "j_tail_right": [0.4,0.35,-0.5]
-          }
-        },
-        "pneumo": {
-          "valves": {
-            "delta_open_pa": 5000.0,
-            "equivalent_diameter_m": 0.008,
-            "relief_min_orifice_diameter_m": 0.001,
-            "relief_stiff_orifice_diameter_m": 0.0015
-          },
-          "receiver": {
-            "volume_min_m3": 0.0018,
-            "volume_max_m3": 0.0045,
-            "initial_volume_m3": 0.003,
-            "initial_pressure_pa": 101325.0,
-            "initial_temperature_k": 293.15,
-            "volume_mode": "ADIABATIC_RECALC"
-          },
-          "gas": {
-            "tank_volume_initial_m3": 0.0035,
-            "tank_pressure_initial_pa": 101325.0,
-            "tank_temperature_initial_k": 293.15,
-            "tank_volume_mode": "ADIABATIC_RECALC",
-            "time_step_s": 0.005,
-            "thermo_mode": "ISOTHERMAL",
-            "total_time_s": 3.0,
-            "relief_min_threshold_pa": 106391.25,
-            "relief_stiff_threshold_pa": 151987.5,
-            "relief_safety_threshold_pa": 202650.0
-          }
-        },
-        "physics": {
+        "scene": {
+          "scale_factor": 1.0,
+          "exposure": 1.0,
+          "default_clear_color": "#1b1f27",
+          "model_base_color": "#9da3aa",
+          "model_roughness": 0.42,
+          "model_metalness": 0.82,
           "suspension": {
-            "spring_constant": 50000.0,
-            "damper_coefficient": 2000.0,
-            "damper_force_threshold_n": 50.0,
-            "spring_rest_position_m": 0.0,
-            "cylinder_head_area_m2": 0.005,
-            "cylinder_rod_area_m2": 0.004,
-            "axis_unit_world": [0.0,1.0,0.0]
-          },
-          "reference_axes": {
-            "vertical_world": [0.0,1.0,0.0]
-          },
-          "validation": {
-            "max_force_n": 100000.0,
-            "max_moment_n_m": 1000000.0
-          },
-          "rigid_body": {
-            "default_mass_kg": 1500.0,
-            "default_inertia_pitch_kg_m2": 2000.0,
-            "default_inertia_roll_kg_m2": 3000.0,
-            "gravity_m_s2": 9.81,
-            "track_width_m": 1.6,
-            "wheelbase_m": 3.2,
-            "angle_limit_rad": 0.5,
-            "damping_coefficient": 0.1,
-            "static_load_tolerance": 0.05,
-            "load_sum_tolerance_scale": 1e-09,
-            "load_sum_min_reference": 1.0,
-            "attachment_points_m": {
-              "LP": {"x_m": -0.8, "z_m": -1.6},
-              "PP": {"x_m": 0.8, "z_m": -1.6},
-              "LZ": {"x_m": -0.8, "z_m": 1.6},
-              "PZ": {"x_m": 0.8, "z_m": 1.6}
-            }
+            "rod_warning_threshold_m": 0.001
           }
         },
-        "integrator": {
-          "solver": {
-            "primary_method": "Radau",
-            "fallback_methods": ["BDF","RK45"],
-            "relative_tolerance": 1e-06,
-            "absolute_tolerance": 1e-09,
-            "max_step_divisor": 4.0
+        "environment_ranges": {
+          "ibl_intensity": {
+            "min": 0.0,
+            "max": 8.0,
+            "step": 0.05
           },
-          "loop": {
-            "max_steps_per_render": 50,
-            "lever_ratio_clip_min": -0.999,
-            "lever_ratio_clip_max": 0.999,
-            "statistics_min_total_steps": 1,
-            "max_linear_velocity_m_s": 10.0,
-            "max_angular_velocity_rad_s": 10.0,
-            "nan_replacement_value": 0.0,
-            "posinf_replacement_value": 0.0,
-            "neginf_replacement_value": 0.0
+          "skybox_brightness": {
+            "min": 0.0,
+            "max": 8.0,
+            "step": 0.05
+          },
+          "probe_horizon": {
+            "min": -1.0,
+            "max": 1.0,
+            "step": 0.01
+          },
+          "skybox_blur": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01
+          },
+          "ibl_rotation": {
+            "min": -1080.0,
+            "max": 1080.0,
+            "step": 1.0
+          },
+          "ibl_offset_x": {
+            "min": -180.0,
+            "max": 180.0,
+            "step": 1.0
+          },
+          "ibl_offset_y": {
+            "min": -180.0,
+            "max": 180.0,
+            "step": 1.0
+          },
+          "reflection_padding_m": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_density": {
+            "min": 0.0,
+            "max": 1.0,
+            "step": 0.01
+          },
+          "fog_depth_near": {
+            "min": 0.0,
+            "max": 200.0,
+            "step": 0.1,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_near": {
+            "min": 0.0,
+            "max": 200.0,
+            "step": 0.1,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_depth_far": {
+            "min": 0.0,
+            "max": 500.0,
+            "step": 0.1,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_far": {
+            "min": 0.0,
+            "max": 500.0,
+            "step": 0.1,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_least_intense_y": {
+            "min": -100.0,
+            "max": 100.0,
+            "step": 0.1,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_most_intense_y": {
+            "min": -100.0,
+            "max": 100.0,
+            "step": 0.1,
+            "decimals": 2,
+            "units": "м"
+          },
+          "fog_height_curve": {
+            "min": 0.0,
+            "max": 4.0,
+            "step": 0.05
+          },
+          "fog_depth_curve": {
+            "min": 0.0,
+            "max": 4.0,
+            "step": 0.05
+          },
+          "fog_transmit_curve": {
+            "min": 0.0,
+            "max": 4.0,
+            "step": 0.05
+          },
+          "ao_strength": {
+            "min": 0.0,
+            "max": 100.0,
+            "step": 1.0
+          },
+          "ao_radius": {
+            "min": 0.001,
+            "max": 0.1,
+            "step": 0.001,
+            "decimals": 3,
+            "units": "м"
+          },
+          "ao_bias": {
+            "min": 0.0,
+            "max": 0.1,
+            "step": 0.001,
+            "decimals": 3
+          },
+          "ao_softness": {
+            "min": 0.0,
+            "max": 50.0,
+            "step": 1.0
           }
         }
-      },
-      "road": {
-        "mode": "manual",
-        "amplitude_m": 0.05,
-        "frequency_hz": 1.0,
-        "phase_offset_deg": 0.0,
-        "profile_type": "smooth_highway",
-        "avg_speed_kmh": 60.0
-      },
-      "advanced": {
-        "spring_stiffness_n_m": 50000.0,
-        "damper_coefficient_n_s_m": 2000.0,
-        "dead_zone_percent": 5.0,
-        "target_fps": 60.0,
-        "aa_quality": 2,
-        "shadow_quality": 2
-      },
-      "legacy": {}
+      }
     }
   }
 }
