@@ -1,8 +1,8 @@
 # Quality Metrics Summary
 
-- Timestamp: 2025-11-20T19:18:24.066036+00:00
+- Timestamp: 2025-11-21T08:38:54.732060+00:00
 - Coverage: percent=18.83, lines_covered=6724, lines_total=35709
-- Test totals: cases=281, duration=200.788s
+- Test totals: cases=757, duration=201.899s
 
 ## Suites
 - integration_cases: 48
