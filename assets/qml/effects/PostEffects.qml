@@ -3,10 +3,10 @@
 import QtQuick
 import QtQml 2.15
 import QtQuick.Window 2.15
-import QtQuick3D 6.4
+import QtQuick3D 6.10
 // qmllint disable unused-imports
-import QtQuick3D.Effects 6.4
-import QtQuick3D.Helpers 6.4
+import QtQuick3D.Effects 6.10
+import QtQuick3D.Helpers 6.10
 // qmllint enable unused-imports
 import "../components/ShaderProfileHelper.js" as SPH
 
@@ -23,48 +23,49 @@ Item {
     property string simplifiedFallbackReason: ""
     property var shaderStatusCache: ({})
 
+    // ── Троттлинг логов ──
+    property var _logLastTs: ({})
+    readonly property int _logMinIntervalMs: 1200
+    function throttledLog(key, fn) {
+        var now = Date.now()
+        var last = _logLastTs[key] || 0
+        if (now - last < _logMinIntervalMs) return
+        _logLastTs[key] = now
+        try { fn() } catch(e) {}
+    }
+
     onEffectsBypassChanged: {
         if (effectsBypass) {
             var reason = effectsBypassReason && effectsBypassReason.length
                     ? effectsBypassReason
                     : "unknown shader failure"
-            console.warn("⚠️ PostEffects: bypassing post-processing due to persistent shader errors", reason)
+            throttledLog('bypass_warn', function(){ console.warn("⚠️ PostEffects: bypassing post-processing due to persistent shader errors", reason) })
         } else {
-            console.log("✅ PostEffects: shader bypass cleared; post-processing restored")
+            throttledLog('bypass_clear', function(){ console.log("✅ PostEffects: shader bypass cleared; post-processing restored") })
         }
     }
 
     function logDiagnostics(eventName, params, environment) {
         if (!diagnosticsLoggingEnabled)
             return
-
         var windowRef = null
         try {
-            var globalScope = Function("return this")()
-            if (globalScope && globalScope.window)
-                windowRef = globalScope.window
+            if (typeof globalThis !== 'undefined' && globalThis.window)
+                windowRef = globalThis.window
         } catch (globalError) {
             windowRef = null
         }
         if (windowRef && typeof windowRef.logQmlEvent === "function") {
-            try {
-                windowRef.logQmlEvent("function_called", eventName)
-            } catch (error) {
-                console.debug("PostEffects", eventName, "window.logQmlEvent failed", error)
+            try { windowRef.logQmlEvent("function_called", eventName) } catch (error) {
+                if (verboseLogging) console.debug("PostEffects", eventName, "window.logQmlEvent failed", error)
             }
         }
-
         function ownKeys(value) {
-            if (!value || typeof value !== "object")
-                return []
+            if (!value || typeof value !== "object") return []
             var keys = []
-            for (var key in value) {
-                if (objectHasOwn.call(value, key))
-                    keys.push(key)
-            }
+            for (var key in value) if (objectHasOwn.call(value, key)) keys.push(key)
             return keys
         }
-
         var payload = {
             level: "info",
             logger: "qml.post_effects",
@@ -73,8 +74,7 @@ Item {
             environmentKeys: ownKeys(environment),
             timestamp: new Date().toISOString()
         }
-
-        console.log(JSON.stringify(payload))
+        throttledLog('diagnostics_'+eventName, function(){ console.log(JSON.stringify(payload)) })
     }
 
     function shaderStatusSnapshot(reasonOverride) {
@@ -92,19 +92,13 @@ Item {
         var failures = persistentEffectFailures
         if (failures && typeof failures === "object") {
             var failureCopy = {}
-            for (var key in failures) {
-                if (objectHasOwn.call(failures, key))
-                    failureCopy[key] = failures[key]
-            }
+            for (var key in failures) if (objectHasOwn.call(failures, key)) failureCopy[key] = failures[key]
             snapshot.persistentEffectFailures = failureCopy
         }
         var cache = shaderStatusCache
         if (cache && typeof cache === "object") {
             var shaderCopy = {}
-            for (var shaderKey in cache) {
-                if (objectHasOwn.call(cache, shaderKey))
-                    shaderCopy[shaderKey] = cache[shaderKey]
-            }
+            for (var shaderKey in cache) if (objectHasOwn.call(cache, shaderKey)) shaderCopy[shaderKey] = cache[shaderKey]
             snapshot.shaderStatus = shaderCopy
         }
         return snapshot
@@ -118,15 +112,10 @@ Item {
     }
 
     function notifyEffectCompilation(effectId, fallbackActive, errorLog) {
-        var normalizedId = effectId !== undefined && effectId !== null
-                ? String(effectId)
-                : "unknown"
+        var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
         if (fallbackActive) {
-            var message = ""
-            if (errorLog !== undefined && errorLog !== null)
-                message = String(errorLog)
-            if (!message.length)
-                message = qsTr("%1: fallback shader active").arg(normalizedId)
+            var message = (errorLog !== undefined && errorLog !== null) ? String(errorLog) : ""
+            if (!message.length) message = qsTr("%1: fallback shader active").arg(normalizedId)
             effectCompilationError(normalizedId, message)
         } else {
             effectCompilationRecovered(normalizedId)
@@ -136,10 +125,7 @@ Item {
     function updateEffectsBypassState(nextState) {
         persistentEffectFailures = nextState
         var keys = []
-        for (var key in nextState) {
-            if (objectHasOwn.call(nextState, key))
-                keys.push(key)
-        }
+        for (var key in nextState) if (objectHasOwn.call(nextState, key)) keys.push(key)
         var active = keys.length > 0
         var reason = ""
         if (active) {
@@ -147,42 +133,34 @@ Item {
                 var value = nextState[keys[i]]
                 if (value !== undefined && value !== null) {
                     var normalized = String(value)
-                    if (normalized.length) {
-                        reason = normalized
-                        break
-                    }
+                    if (normalized.length) { reason = normalized; break }
                 }
             }
         }
-        // СНАЧАЛА обновляем reason, затем флаг, чтобы обработчик видел актуальную причину
-        if (effectsBypassReason !== reason)
-            effectsBypassReason = reason
-        if (effectsBypass !== active)
-            effectsBypass = active
+        if (effectsBypassReason !== reason) effectsBypassReason = reason
+        if (effectsBypass !== active) effectsBypass = active
         updateSimplifiedFallbackState(active, reason)
     }
 
     function updateSimplifiedFallbackState(active, reason) {
-        var normalizedReason = reason && reason.length
-                ? reason
-                : qsTr("Rendering pipeline failure")
+        var normalizedReason = reason && reason.length ? reason : qsTr("Rendering pipeline failure")
         if (active) {
             var reasonChanged = simplifiedFallbackReason !== normalizedReason
             if (!simplifiedFallbackActive) {
                 simplifiedFallbackActive = true
                 simplifiedFallbackReason = normalizedReason
-                console.warn("⚠️ PostEffects: requesting simplified rendering fallback ->", normalizedReason)
+                throttledLog('simplified_fallback_on', function(){ console.warn("⚠️ PostEffects: requesting simplified rendering fallback ->", normalizedReason) })
                 simplifiedRenderingRequested(normalizedReason)
             } else if (reasonChanged) {
                 simplifiedFallbackReason = normalizedReason
-                console.warn("⚠️ PostEffects: simplified rendering reason updated ->", normalizedReason)
+                throttledLog('simplified_fallback_update', function(){ console.warn("⚠️ PostEffects: simplified rendering reason updated ->", normalizedReason) })
                 simplifiedRenderingRequested(normalizedReason)
             }
         } else {
             if (simplifiedFallbackActive) {
                 simplifiedFallbackActive = false
                 simplifiedFallbackReason = ""
-                console.log("✅ PostEffects: simplified rendering fallback cleared")
+                throttledLog('simplified_fallback_off', function(){ console.log("✅ PostEffects: simplified rendering fallback cleared") })
                 simplifiedRenderingRecovered()
             } else if (simplifiedFallbackReason.length) {
                 simplifiedFallbackReason = ""
@@ -191,23 +169,15 @@ Item {
     }
 
     function setEffectPersistentFailure(effectId, active, reason) {
-        var normalizedId = effectId !== undefined && effectId !== null
-                ? String(effectId)
-                : "unknown"
+        var normalizedId = effectId !== undefined && effectId !== null ? String(effectId) : "unknown"
         var state = persistentEffectFailures || ({})
         var nextState = ({})
-        for (var key in state) {
-            if (objectHasOwn.call(state, key))
-                nextState[key] = state[key]
-        }
+        for (var key in state) if (objectHasOwn.call(state, key)) nextState[key] = state[key]
         if (active) {
             var normalizedReason = ""
-            if (reason !== undefined && reason !== null)
-                normalizedReason = String(reason).trim()
-            if (!normalizedReason.length)
-                normalizedReason = qsTr("%1: persistent shader failure").arg(normalizedId)
-            else if (normalizedReason.indexOf(normalizedId) !== 0)
-                normalizedReason = normalizedId + ": " + normalizedReason
+            if (reason !== undefined && reason !== null) normalizedReason = String(reason).trim()
+            if (!normalizedReason.length) normalizedReason = qsTr("%1: persistent shader failure").arg(normalizedId)
+            else if (normalizedReason.indexOf(normalizedId) !== 0) normalizedReason = normalizedId + ": " + normalizedReason
             nextState[normalizedId] = normalizedReason
         } else if (objectHasOwn.call(nextState, normalizedId)) {
             delete nextState[normalizedId]
@@ -216,152 +186,58 @@ Item {
     }
 
     function trySetEffectProperty(effectItem, propertyName, value) {
-        if (!effectItem || !propertyName)
-            return false
-        // ── Пропуск устаревших depth/velocity свойств (Qt 6.10 удалил их) ──
-        var legacy = ["explicitDepthTextureEnabled","explicitVelocityTextureEnabled","requiresDepthTexture","requiresVelocityTexture"]
+        if (!effectItem || !propertyName) return false
+        // Обновлённый список legacy (не исключаем requiresDepthTexture / requiresVelocityTexture)
+        var legacy = ["explicitDepthTextureEnabled","explicitVelocityTextureEnabled"]
         if (legacy.indexOf(propertyName) !== -1) {
-            console.debug("PostEffects: legacy property skipped", propertyName)
+            if (verboseLogging) console.debug("PostEffects: legacy property skipped", propertyName)
             return false
         }
-        // Прямое присваивание свойства; QML может не поддерживать оператор `in`
-        try {
-            effectItem[propertyName] = value
-            return true
-        } catch (error) {
-        }
-        try {
-            if (typeof effectItem.setProperty === "function") {
-                effectItem.setProperty(propertyName, value)
-                return true
-            }
-        } catch (error) {
-        }
-        console.debug("⚠️", effectItem, "property assignment failed for", propertyName)
+        try { effectItem[propertyName] = value; return true } catch (error) {}
+        try { if (typeof effectItem.setProperty === "function") { effectItem.setProperty(propertyName, value); return true } } catch (error) {}
+        if (verboseLogging) console.debug("⚠️", effectItem, "property assignment failed for", propertyName)
         return false
     }
 
-    // Стратегия выбора профиля шейдеров:
-    // 1. Не задаём language: Shader.GLSL, позволяя Qt Quick 3D автоматически
-    //    подобрать профиль GLSL в зависимости от используемого графического API.
-    // 2. Предпочтение GLES-профиля определяется логикой ниже и может быть
-    //    переопределено свойством forceDesktopShaderProfile.
-    // Shader profile selection strategy:
-    // 1. Omit language: Shader.GLSL so Qt Quick 3D can automatically choose the
-    //    correct GLSL profile for the active graphics backend.
-    // 2. The GLES preference is decided by the detection logic below and can be
-    //    overridden with forceDesktopShaderProfile.
-    // qmllint disable unqualified
+    // Shader profile selection
     property bool forceDesktopShaderProfile: false
     readonly property bool preferDesktopShaderProfile: SPH.ShaderProfileHelper.preferDesktopProfile(forceDesktopShaderProfile, false, normalizedRendererGraphicsApi, reportedGlesContext, (function(){ try { return qtGraphicsApiRequiresDesktopShaders } catch(e){ return undefined } })(), GraphicsInfo)
     readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
-    onForceDesktopShaderProfileChanged: {
-        shaderVariantSelectionCache = ({})
-        resetShaderCaches()
-        SPH.ShaderProfileHelper.markProfileSwitch()
-        if (verboseLogging) console.log('[PostEffects] profile override desktop=', forceDesktopShaderProfile)
-    }
-    onUseGlesShadersChanged: {
-        shaderVariantSelectionCache = ({})
-        resetShaderCaches()
-        SPH.ShaderProfileHelper.markProfileSwitch()
-        if (verboseLogging) console.log('[PostEffects] useGlesShaders ->', useGlesShaders)
-    }
+    onForceDesktopShaderProfileChanged: { shaderVariantSelectionCache = ({}); resetShaderCaches(); SPH.ShaderProfileHelper.markProfileSwitch(); if (verboseLogging) console.log('[PostEffects] profile override desktop=', forceDesktopShaderProfile) }
+    onUseGlesShadersChanged: { shaderVariantSelectionCache = ({}); resetShaderCaches(); SPH.ShaderProfileHelper.markProfileSwitch(); if (verboseLogging) console.log('[PostEffects] useGlesShaders ->', useGlesShaders) }
 
     readonly property string rendererGraphicsApi: {
-        try {
-            if (typeof qtGraphicsApiName === "string")
-                return qtGraphicsApiName
-        } catch (error) {
-        }
+        try { if (typeof qtGraphicsApiName === "string") return qtGraphicsApiName } catch (error) {}
         switch (GraphicsInfo.api) {
-        case GraphicsInfo.OpenGL:
-            return "opengl"
-        case GraphicsInfo.Direct3D11:
-            return "direct3d11"
-        case GraphicsInfo.Vulkan:
-            return "vulkan"
-        case GraphicsInfo.Metal:
-            return "metal"
-        case GraphicsInfo.Software:
-            return "software"
-        default:
-            return "unknown"
+        case GraphicsInfo.OpenGL: return "opengl"
+        case GraphicsInfo.Direct3D11: return "direct3d11"
+        case GraphicsInfo.Vulkan: return "vulkan"
+        case GraphicsInfo.Metal: return "metal"
+        case GraphicsInfo.Software: return "software"
+        default: return "unknown"
         }
     }
-    readonly property string normalizedRendererGraphicsApi: {
-        var apiName = rendererGraphicsApi
-        if (!apiName || typeof apiName !== "string")
-            return ""
-        return apiName.trim().toLowerCase()
-    }
-    readonly property string openGlVersionLabel: {
-        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
-            return ""
-        var major = Number(GraphicsInfo.majorVersion)
-        if (!isFinite(major) || major <= 0)
-            return ""
-        var minorValue = Number(GraphicsInfo.minorVersion)
-        var minor = isFinite(minorValue) && minorValue >= 0 ? minorValue : 0
-        return major + "." + minor
-    }
-    readonly property bool enforceLegacyFallbackShaders: {
-        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
-            return false
-        var major = Number(GraphicsInfo.majorVersion)
-        if (!isFinite(major) || major <= 0)
-            return false
-        if (major < 3)
-            return true
-        if (major === 3) {
-            var minorValue = Number(GraphicsInfo.minorVersion)
-            if (!isFinite(minorValue))
-                return false
-            // OpenGL 3.3 И ВЫШЕ не требует принудительного GLSL 330 fallback
-            return minorValue <= 2
-        }
-        return false
-    }
-    readonly property string legacyFallbackReason: enforceLegacyFallbackShaders
-            ? qsTr("Legacy OpenGL profile detected (OpenGL %1); forcing GLSL 330 fallback shaders.")
-                .arg(openGlVersionLabel.length ? openGlVersionLabel : "3.3")
-            : ""
+    readonly property string normalizedRendererGraphicsApi: { var apiName = rendererGraphicsApi; if (!apiName || typeof apiName !== "string") return ""; return apiName.trim().toLowerCase() }
+    readonly property string openGlVersionLabel: { if (GraphicsInfo.api !== GraphicsInfo.OpenGL) return ""; var major = Number(GraphicsInfo.majorVersion); if (!isFinite(major) || major <= 0) return ""; var minorValue = Number(GraphicsInfo.minorVersion); var minor = isFinite(minorValue) && minorValue >= 0 ? minorValue : 0; return major + "." + minor }
+    readonly property bool enforceLegacyFallbackShaders: { if (GraphicsInfo.api !== GraphicsInfo.OpenGL) return false; var major = Number(GraphicsInfo.majorVersion); if (!isFinite(major) || major <= 0) return false; if (major < 3) return true; if (major === 3) { var minorValue = Number(GraphicsInfo.minorVersion); if (!isFinite(minorValue)) return false; return minorValue <= 2 } return false }
+    readonly property string legacyFallbackReason: enforceLegacyFallbackShaders ? qsTr("Legacy OpenGL profile detected (OpenGL %1); forcing GLSL 330 fallback shaders.").arg(openGlVersionLabel.length ? openGlVersionLabel : "3.3") : ""
     readonly property bool reportedGlesContext: {
-        if (forceDesktopShaderProfile)
-            return false
-// qmllint disable property
-        try {
-            if (GraphicsInfo.renderableType === GraphicsInfo.SurfaceFormatOpenGLES)
-                return true
-        } catch (error) {
-        }
-// qmllint enable property
+        if (forceDesktopShaderProfile) return false
+        try { if (GraphicsInfo.renderableType === GraphicsInfo.SurfaceFormatOpenGLES) return true } catch (error) {}
         try {
             var normalized = normalizedRendererGraphicsApi
-            if (!normalized.length)
-                return false
+            if (!normalized.length) return false
             var normalizedCondensed = normalized.replace(/[\s_-]+/g, "")
             var normalizedWithSpaces = normalized.replace(/[_-]+/g, " ")
-            if (normalized.indexOf("rhi") !== -1
-                    && normalized.indexOf("opengl") !== -1
-                    && normalizedCondensed.indexOf("gles") === -1)
-                return false
-            if (normalizedWithSpaces.indexOf("opengl es") !== -1)
-                return true
-            if (normalizedCondensed.indexOf("opengles") !== -1)
-                return true
-            if (normalizedCondensed.indexOf("gles") !== -1)
-                return true
-            if (GraphicsInfo.api === GraphicsInfo.Direct3D11
-                    && normalized.indexOf("angle") !== -1)
-                return true
-        } catch (error) {
-        }
+            if (normalized.indexOf("rhi") !== -1 && normalized.indexOf("opengl") !== -1 && normalizedCondensed.indexOf("gles") === -1) return false
+            if (normalizedWithSpaces.indexOf("opengl es") !== -1) return true
+            if (normalizedCondensed.indexOf("opengles") !== -1) return true
+            if (normalizedCondensed.indexOf("gles") !== -1) return true
+            if (GraphicsInfo.api === GraphicsInfo.Direct3D11 && normalized.indexOf("angle") !== -1) return true
+        } catch (error) {}
         return false
     }
-    // qmllint enable unqualified
-    readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
 
     readonly property url shaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
     readonly property url legacyShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
@@ -369,29 +245,15 @@ Item {
     readonly property url shaderRootUrl: Qt.resolvedUrl("../../shaders/")
     readonly property var shaderResourceDirectories: {
         var directories = []
-        function appendDirectory(path) {
-            if (!path || !path.length)
-                return
-            if (directories.indexOf(path) !== -1)
-                return
-            directories.push(path)
-        }
-        if (useGlesShaders) {
-            appendDirectory(glesShaderResourceDirectory)
-            appendDirectory(shaderResourceDirectory)
-        } else {
-            appendDirectory(shaderResourceDirectory)
-            appendDirectory(glesShaderResourceDirectory)
-        }
+        function appendDirectory(path) { if (!path || !path.length) return; if (directories.indexOf(path) !== -1) return; directories.push(path) }
+        if (useGlesShaders) { appendDirectory(glesShaderResourceDirectory); appendDirectory(shaderResourceDirectory) } else { appendDirectory(shaderResourceDirectory); appendDirectory(glesShaderResourceDirectory) }
         appendDirectory(legacyShaderResourceDirectory)
         return directories
     }
     readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
     readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
     // qmllint disable unqualified
-    readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
-            ? effectShaderManifest
-            : ({})
+    readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined" ? effectShaderManifest : ({})
     // qmllint enable unqualified
     property var shaderResourceAvailabilityCache: ({})
     property var shaderSanitizationCache: ({})
@@ -400,66 +262,59 @@ Item {
     property var shaderProfileMismatchWarnings: ({})
     property var shaderCompatibilityOverrides: ({})
     property var shaderVariantMissingWarnings: ({})
+    // LRU кеш для resolveShaders
+    property var _resolveCache: ({})
+    property var _resolveCacheOrder: []
+    readonly property int _resolveCacheLimit: 32
+    function _cacheResolve(key, value) {
+        if (!_resolveCache[key]) {
+            _resolveCache[key] = value
+            _resolveCacheOrder.push(key)
+            if (_resolveCacheOrder.length > _resolveCacheLimit) {
+                var evicted = _resolveCacheOrder.shift()
+                delete _resolveCache[evicted]
+            }
+        } else {
+            _resolveCache[key] = value
+        }
+    }
 
     function shaderCompilationMessage(shaderItem) {
-        if (!shaderItem)
-            return ""
-        try {
-            if ("log" in shaderItem && shaderItem.log)
-                return shaderItem.log
-        } catch (error) {
-        }
-        try {
-            if ("compilationLog" in shaderItem && shaderItem.compilationLog)
-                return shaderItem.compilationLog
-        } catch (error) {
-        }
+        if (!shaderItem) return ""
+        try { if ("log" in shaderItem && shaderItem.log) return shaderItem.log } catch (error) {}
+        try { if ("compilationLog" in shaderItem && shaderItem.compilationLog) return shaderItem.compilationLog } catch (error) {}
         return ""
     }
 
     function attachShaderLogHandler(shaderItem, shaderId) {
-        if (!shaderItem)
-            return false
-        function emitLog() {
-            root.handleShaderCompilationLog(shaderId, shaderCompilationMessage(shaderItem))
-        }
-        try {
-            if (typeof shaderItem.logChanged === "function") {
-                shaderItem.logChanged.connect(emitLog)
-                emitLog()
-                return true
-            }
-        } catch (error) {
-        }
-        try {
-            if (typeof shaderItem.compilationLogChanged === "function") {
-                shaderItem.compilationLogChanged.connect(emitLog)
-                emitLog()
-                return true
-            }
-        } catch (error) {
-        }
+        if (!shaderItem) return false
+        function emitLog() { root.handleShaderCompilationLog(shaderId, shaderCompilationMessage(shaderItem)) }
+        try { if (typeof shaderItem.logChanged === "function") { shaderItem.logChanged.connect(emitLog); emitLog(); return true } } catch (error) {}
+        try { if (typeof shaderItem.compilationLogChanged === "function") { shaderItem.compilationLogChanged.connect(emitLog); emitLog(); return true } } catch (error) {}
         return false
     }
 
     function resolvedShaderUrl(resourceName, resourceDirectory) {
-        var baseDirectory = resourceDirectory && resourceDirectory.length
-                ? resourceDirectory
-                : (useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory)
-        return Qt.resolvedUrl(baseDirectory + resourceName)
+        var baseDirectory = resourceDirectory && resourceDirectory.length ? resourceDirectory : (useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory)
+        var final = baseDirectory + resourceName
+        return Qt.resolvedUrl(final)
     }
 
     function shaderResourceExists(url, resourceName, suppressErrors, manifest) {
         if (!url) return false
-        if (objectHasOwn.call(shaderResourceAvailabilityCache, url))
-            return shaderResourceAvailabilityCache[url]
+        if (objectHasOwn.call(shaderResourceAvailabilityCache, url)) return shaderResourceAvailabilityCache[url]
+        // manifest check
         if (manifest && resourceName && objectHasOwn.call(manifest, resourceName)) {
             var entry = manifest[resourceName]
             if (entry === false) {
-                if (!suppressErrors && verboseLogging) console.warn('❌ PostEffects: shader disabled by manifest', resourceName)
+                if (!suppressErrors) throttledLog('shader_disabled_'+resourceName, function(){ console.warn('❌ PostEffects: shader disabled by manifest', resourceName) })
                 shaderResourceAvailabilityCache[url] = false
                 return false
             }
+        }
+        // simple heuristic: if suffix profile mismatch
+        if (useGlesShaders && resourceName.indexOf('_glsl450') !== -1) {
+            throttledLog('profile_mismatch_'+resourceName, function(){ console.warn('⚠️ PostEffects: desktop suffix on GLES profile', resourceName) })
         }
         shaderResourceAvailabilityCache[url] = true
         return true
@@ -487,12 +342,13 @@ Item {
         shaderProfileMismatchWarnings = ({})
         shaderCompatibilityOverrides = ({})
         shaderVariantMissingWarnings = ({})
+        _resolveCache = ({})
+        _resolveCacheOrder = []
         SPH.ShaderProfileHelper.resetCaches()
         if (verboseLogging) console.log('[PostEffects] caches reset; metrics=', JSON.stringify(shaderMetrics))
     }
 
-    // Коллекция пост-эффектов для улучшенной визуализации
-    // Collection of post-effects for enhanced visualization
+    // Effects enable flags & aliases
     property bool bloomEnabled: false
     property alias bloomIntensity: bloomEffect.intensity
     property alias bloomThreshold: bloomEffect.threshold
@@ -506,6 +362,7 @@ Item {
     property alias ssaoDither: ssaoEffect.dither
 
     property bool depthOfFieldEnabled: false
+    // Унифицируем единицы: считаем что вход в метрах
     property alias dofFocusDistance: dofEffect.focusDistance
     property alias dofFocusRange: dofEffect.focusRange
     property alias dofBlurAmount: dofEffect.blurAmount
@@ -513,332 +370,105 @@ Item {
     property alias depthOfFieldFallbackDueToRequirements: dofEffect.fallbackDueToRequirements
     property alias depthOfFieldDepthTextureAvailable: dofEffect.depthTextureAvailable
 
-    // Параметры камеры View3D, необходимые для корректного расчёта глубины
     property real cameraClipNear: 0.1
-    property real cameraClipFar: 10000.0
+    property real cameraClipFar: 1000.0 // уменьшено до 1000 м для согласованности
 
     property bool motionBlurEnabled: false
     property alias motionBlurStrength: motionBlurEffect.strength
     property alias motionBlurSamples: motionBlurEffect.samples
 
-    /**
-     * Выбирает шейдерные программы для эффекта с учётом состояния фоллбэка.
-     *
-     * @param {bool} isEnabled     Флаг включения эффекта на уровне UI.
-     * @param {Effect} effectItem   QML-объект Effect, для которого выполняется выбор.
-     * @param {Shader} activeShader Основной шейдер, используемый при успешной компиляции.
-     * @param {Shader} [fallbackShader] Необязательный альтернативный шейдер на случай ошибки компиляции.
-     * @param {string} [shaderBaseName] Имя исходного файла шейдера для отслеживания совместимости профилей.
-     * @returns {Shader[]} Список шейдеров, который необходимо передать в Pass.shaders.
-     */
+    // Cached resolveShaders
     function resolveShaders(isEnabled, effectItem, activeShader, fallbackShader, shaderBaseName) {
+        var cacheKey = (effectItem ? effectItem.objectName || shaderBaseName || "" : shaderBaseName || "") + '|' + (isEnabled?'1':'0') + '|' + (root.effectsBypass?'b':'n') + '|' + (effectItem && effectItem.fallbackActive ? 'f':'p')
+        if (_resolveCache[cacheKey]) return _resolveCache[cacheKey]
         const hasFallback = fallbackShader !== undefined && fallbackShader !== null
-        if (root.effectsBypass)
-            return []
+        if (root.effectsBypass) { _cacheResolve(cacheKey, []); return [] }
         var persistentFailureActive = false
-        try {
-            persistentFailureActive = !!effectItem.persistentFailure
-        } catch (error) {
-        }
-        if (persistentFailureActive)
-            return []
-        // Если эффект выключен, исключаем его из графа пост-обработки.
+        try { persistentFailureActive = !!effectItem.persistentFailure } catch (error) {}
+        if (persistentFailureActive) { _cacheResolve(cacheKey, []); return [] }
         if (!isEnabled) {
             trySetEffectProperty(effectItem, "fallbackActive", false)
             trySetEffectProperty(effectItem, "fallbackForcedByCompatibility", false)
+            _cacheResolve(cacheKey, [])
             return []
         }
-        // Включаем эффект и выбираем нужный шейдер. Если не хватает данных и активируется
-        // фоллбэк, всегда возвращаем валидный шейдер.
         var compatibilityOverrideActive = false
-        if (useGlesShaders && shaderBaseName && objectHasOwn.call(shaderCompatibilityOverrides, shaderBaseName))
-            compatibilityOverrideActive = !!shaderCompatibilityOverrides[shaderBaseName]
-
+        if (useGlesShaders && shaderBaseName && objectHasOwn.call(shaderCompatibilityOverrides, shaderBaseName)) compatibilityOverrideActive = !!shaderCompatibilityOverrides[shaderBaseName]
         if (!compatibilityOverrideActive) {
             trySetEffectProperty(effectItem, "fallbackForcedByCompatibility", false)
             var fallbackLocked = false
-            try {
-                if (effectItem.fallbackDueToCompilation)
-                    fallbackLocked = true
-            } catch (error) {
-            }
-            if (!fallbackLocked) {
-                try {
-                    if (effectItem.fallbackDueToRequirements)
-                        fallbackLocked = true
-                } catch (error) {
-                }
-            }
-            if (!fallbackLocked && effectItem.fallbackActive)
-                trySetEffectProperty(effectItem, "fallbackActive", false)
+            try { if (effectItem.fallbackDueToCompilation) fallbackLocked = true } catch (error) {}
+            if (!fallbackLocked) { try { if (effectItem.fallbackDueToRequirements) fallbackLocked = true } catch (error) {} }
+            if (!fallbackLocked && effectItem.fallbackActive) trySetEffectProperty(effectItem, "fallbackActive", false)
         }
-
         if (compatibilityOverrideActive) {
             trySetEffectProperty(effectItem, "fallbackForcedByCompatibility", true)
             trySetEffectProperty(effectItem, "fallbackActive", true)
-            if (hasFallback)
-                return [fallbackShader]
-            console.warn("⚠️", effectItem, "missing fallback shader for", shaderBaseName, "– disabling effect")
+            if (hasFallback) { var r = [fallbackShader]; _cacheResolve(cacheKey, r); return r }
+            throttledLog('missing_fallback_'+shaderBaseName, function(){ console.warn("⚠️", effectItem, "missing fallback shader for", shaderBaseName, "– disabling effect") })
+            _cacheResolve(cacheKey, [])
             return []
         }
-        if (effectItem.fallbackActive)
-            return hasFallback ? [fallbackShader] : []
-        return [activeShader]
+        if (effectItem.fallbackActive) { var rf = hasFallback ? [fallbackShader] : []; _cacheResolve(cacheKey, rf); return rf }
+        var ra = [activeShader]; _cacheResolve(cacheKey, ra); return ra
     }
 
     function ensureEffectRequirement(effectItem, propertyName, value, successLog, failureLog) {
-        if (trySetEffectProperty(effectItem, propertyName, value)) {
-            if (successLog && successLog.length > 0)
-                console.log("✅", successLog)
-            return true
-        }
-        // Если прямое присваивание не поддерживается API, определяем возможность по профилю
+        if (trySetEffectProperty(effectItem, propertyName, value)) { if (successLog && successLog.length > 0) throttledLog('req_'+propertyName+'_ok', function(){ console.log("✅", successLog) }); return true }
         var capabilityKeys = ["requiresDepthTexture", "requiresNormalTexture", "requiresVelocityTexture"]
         var isCapability = capabilityKeys.indexOf(propertyName) !== -1
         if (isCapability) {
             var desktopLike = (!useGlesShaders) || preferDesktopShaderProfile || normalizedRendererGraphicsApi.indexOf("opengl") !== -1
-            if (desktopLike && value === true) {
-                if (successLog && successLog.length > 0)
-                    console.log("✅", successLog)
-                return true
-            }
+            if (desktopLike && value === true) { if (successLog && successLog.length > 0) throttledLog('req_'+propertyName+'_ok_desktop', function(){ console.log("✅", successLog) }); return true }
         }
-        const message = failureLog && failureLog.length > 0
-                ? failureLog
-                : `Effect requirement '${propertyName}' is not supported`
-        console.warn("⚠️", message)
+        const message = failureLog && failureLog.length > 0 ? failureLog : `Effect requirement '${propertyName}' is not supported`
+        throttledLog('req_'+propertyName+'_fail', function(){ console.warn("⚠️", message) })
         return false
     }
 
     Component.onCompleted: {
         console.log("🎨 Post Effects Collection loaded")
         console.log("   Graphics API:", rendererGraphicsApi)
-        if (normalizedRendererGraphicsApi.length)
-            console.log("   Normalized API:", normalizedRendererGraphicsApi)
-        console.log(
-                    "   Shader profile:",
-                    useGlesShaders
-                    ? "OpenGL ES (GLSL 300 es)"
-                    : "Desktop (GLSL 450 core)"
-                    )
-        console.log("   Profile decision flags ->",
-                    "preferDesktop:", preferDesktopShaderProfile,
-                    "reportedGles:", reportedGlesContext,
-                    "forceDesktopOverride:", forceDesktopShaderProfile)
-        if (legacyFallbackReason.length)
-            console.warn("⚠️ PostEffects:", legacyFallbackReason)
+        if (normalizedRendererGraphicsApi.length) console.log("   Normalized API:", normalizedRendererGraphicsApi)
+        console.log("   Shader profile:", useGlesShaders ? "OpenGL ES (GLSL 300 es)" : "Desktop (GLSL 450 core)")
+        console.log("   Profile decision flags ->", "preferDesktop:", preferDesktopShaderProfile, "reportedGles:", reportedGlesContext, "forceDesktopOverride:", forceDesktopShaderProfile)
+        if (legacyFallbackReason.length) throttledLog('legacy_fallback', function(){ console.warn("⚠️ PostEffects:", legacyFallbackReason) })
         console.log("   Available effects: Bloom, SSAO, DOF, Motion Blur")
     }
 
-    function valueFromKeys(container, keys) {
-        if (!container || typeof container !== "object")
-            return undefined
-        var list = Array.isArray(keys) ? keys : [keys]
-        for (var i = 0; i < list.length; ++i) {
-            var key = list[i]
-            if (objectHasOwn.call(container, key))
-                return container[key]
-        }
-        return undefined
-    }
-
-    function valueFromPayload(params, keys, nestedKey) {
-        var direct = valueFromKeys(params, keys)
-        if (direct !== undefined)
-            return direct
-        if (nestedKey && params && typeof params[nestedKey] === "object")
-            return valueFromKeys(params[nestedKey], keys)
-        return undefined
-    }
-
-    function boolFromPayload(params, keys, nestedKey) {
-        var raw = valueFromPayload(params, keys, nestedKey)
-        if (raw === undefined)
-            return undefined
-        if (typeof raw === "boolean")
-            return raw
-        if (typeof raw === "number")
-            return raw !== 0
-        if (typeof raw === "string") {
-            var lowered = raw.trim().toLowerCase()
-            if (["true", "1", "yes", "on"].indexOf(lowered) !== -1)
-                return true
-            if (["false", "0", "no", "off"].indexOf(lowered) !== -1)
-                return false
-        }
-        return !!raw
-    }
-
-    function numberFromPayload(params, keys, nestedKey) {
-        var raw = valueFromPayload(params, keys, nestedKey)
-        if (raw === undefined)
-            return undefined
-        var numeric = Number(raw)
-        return isFinite(numeric) ? numeric : undefined
-    }
-
-    // Прокси-объекты Pass для тестов: возвращают массив shaders как var
-    QtObject { id: bloomPassProxy;  property var shaders: root.resolveShaders(root.bloomEnabled,        bloomEffect,       bloomFragmentShader,       bloomFallbackShader,       "bloom.frag") }
-    QtObject { id: ssaoPassProxy;   property var shaders: root.resolveShaders(root.ssaoEnabled,         ssaoEffect,        ssaoFragmentShader,        ssaoFallbackShader,        "ssao.frag") }
-    QtObject { id: dofPassProxy;    property var shaders: root.resolveShaders(root.depthOfFieldEnabled, dofEffect,         dofFragmentShader,         dofFallbackShader,         "dof.frag") }
-    QtObject { id: motionPassProxy; property var shaders: root.resolveShaders(root.motionBlurEnabled,    motionBlurEffect,  motionBlurFragmentShader,  motionBlurFallbackShader,  "motion_blur.frag") }
-
-    // Прокси-эффекты (содержат список passes как массив вар-объектов)
-    QtObject { id: bloomEffectProxy;  property var passes: [bloomPassProxy] }
-    QtObject { id: ssaoEffectProxy;   property var passes: [ssaoPassProxy] }
-    QtObject { id: dofEffectProxy;    property var passes: [dofPassProxy] }
-    QtObject { id: motionEffectProxy; property var passes: [motionPassProxy] }
-
-    // Эффекты для добавления в View3D — список прокси, безопасный для PySide
-    property var effectList: [
-        bloomEffectProxy,
-        ssaoEffectProxy,
-        dofEffectProxy,
-        motionEffectProxy
-    ]
-
-    // Bloom Effect (эффект свечения)
-    Effect {
-        id: bloomEffect
-
-        Binding {
-            target: bloomEffect
-            property: "enabled"
-            value: root.bloomEnabled
-        }
-
-        property bool fallbackActive: false
-        property string lastErrorLog: ""
-        property bool componentCompleted: false
-        property bool fallbackDueToCompilation: false
-        property string compilationErrorLog: ""
-        property bool fallbackForcedByCompatibility: false
-        property bool persistentFailure: false
+    // Bloom Effect
+    Effect { id: bloomEffect
+        Binding { target: bloomEffect; property: "enabled"; value: root.bloomEnabled }
+        property bool fallbackActive: false; property string lastErrorLog: ""; property bool componentCompleted: false; property bool fallbackDueToCompilation: false; property string compilationErrorLog: ""; property bool fallbackForcedByCompatibility: false; property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("Bloom: fallback shader active")
-        readonly property string compatibilityFallbackMessage: {
-            var versionLabel = root.openGlVersionLabel.length
-                    ? root.openGlVersionLabel
-                    : "3.3"
-            return qsTr("Bloom: forcing GLSL 330 fallback shader for OpenGL %1")
-                    .arg(versionLabel)
-        }
-
+        readonly property string compatibilityFallbackMessage: { var versionLabel = root.openGlVersionLabel.length ? root.openGlVersionLabel : "3.3"; return qsTr("Bloom: forcing GLSL 330 fallback shader for OpenGL %1").arg(versionLabel) }
         Component.onCompleted: {
             if (root.enforceLegacyFallbackShaders && !fallbackForcedByCompatibility) {
                 fallbackForcedByCompatibility = true
-                var compatibilityLog = compatibilityFallbackMessage.length
-                        ? compatibilityFallbackMessage
-                        : root.legacyFallbackReason
-                if ((!lastErrorLog || !lastErrorLog.length) && compatibilityLog.length)
-                    lastErrorLog = compatibilityLog
+                var compatibilityLog = compatibilityFallbackMessage.length ? compatibilityFallbackMessage : root.legacyFallbackReason
+                if ((!lastErrorLog || !lastErrorLog.length) && compatibilityLog.length) lastErrorLog = compatibilityLog
                 fallbackActive = true
-                if (compatibilityLog.length)
-                    console.warn("⚠️", compatibilityLog)
+                if (compatibilityLog.length) throttledLog('bloom_fallback', function(){ console.warn("⚠️", compatibilityLog) })
             }
-            if (fallbackActive && !lastErrorLog)
-                lastErrorLog = fallbackMessage
-            else if (!fallbackActive && lastErrorLog)
-                lastErrorLog = ""
+            if (fallbackActive && !lastErrorLog) lastErrorLog = fallbackMessage; else if (!fallbackActive && lastErrorLog) lastErrorLog = ""
             root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
             componentCompleted = true
         }
+        onFallbackActiveChanged: { if (!componentCompleted) return; if (fallbackActive && !lastErrorLog) lastErrorLog = fallbackMessage; else if (!fallbackActive && lastErrorLog) lastErrorLog = ""; root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog) }
+        property real intensity: 0.3; property real threshold: 0.7; property real blurAmount: 1.0
+        onBlurAmountChanged: { if (blurAmount < 0.0) blurAmount = 0.0 }
+        Shader { id: bloomFragmentShader; stage: Shader.Fragment; property real uIntensity: bloomEffect.intensity; property real uThreshold: bloomEffect.threshold; property real uBlurAmount: bloomEffect.blurAmount; shader: root.shaderPath("bloom.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(bloomFragmentShader, "bloom.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for bloom.frag") } }
+        Connections { target: bloomFragmentShader; ignoreUnknownSignals: true; function onStatusChanged(status) { root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false) } }
+        Shader { id: bloomFallbackShader; stage: Shader.Fragment; shader: root.shaderPath("bloom_fallback.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag") } }
+        Connections { target: bloomFallbackShader; ignoreUnknownSignals: true; function onStatusChanged() { root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true) } }
+        passes: [ Pass { shaders: root.resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader, "bloom.frag") } ] }
 
-        onFallbackActiveChanged: {
-            if (!componentCompleted)
-                return
-            if (fallbackActive && !lastErrorLog)
-                lastErrorLog = fallbackMessage
-            else if (!fallbackActive && lastErrorLog)
-                lastErrorLog = ""
-            root.notifyEffectCompilation("bloom", fallbackActive, lastErrorLog)
-        }
-
-        property real intensity: 0.3      // Интенсивность свечения
-        property real threshold: 0.7      // Порог яркости для свечения
-        property real blurAmount: 1.0     // Размытие свечения
-
-        onBlurAmountChanged: {
-            if (blurAmount < 0.0)
-                blurAmount = 0.0
-        }
-
-        Shader {
-            id: bloomFragmentShader
-            stage: Shader.Fragment
-            property real uIntensity: bloomEffect.intensity
-            property real uThreshold: bloomEffect.threshold
-            property real uBlurAmount: bloomEffect.blurAmount
-            shader: root.shaderPath("bloom.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(bloomFragmentShader, "bloom.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for bloom.frag")
-            }
-        }
-
-        Connections {
-            target: bloomFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged(status) {
-                root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFragmentShader, "bloom.frag", false)
-            }
-        }
-
-        Shader {
-            id: bloomFallbackShader
-            stage: Shader.Fragment
-            shader: root.shaderPath("bloom_fallback.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(bloomFallbackShader, "bloom_fallback.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for bloom_fallback.frag")
-            }
-        }
-
-        Connections {
-            target: bloomFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("bloom", bloomEffect, bloomFallbackShader, "bloom_fallback.frag", true)
-            }
-        }
-
-
-        passes: [
-            Pass {
-                shaders: root.resolveShaders(root.bloomEnabled, bloomEffect, bloomFragmentShader, bloomFallbackShader, "bloom.frag")
-            }
-        ]
-    }
-
-    // SSAO Effect (Screen Space Ambient Occlusion)
-    Effect {
-        id: ssaoEffect
-
-        Binding {
-            target: ssaoEffect
-            property: "enabled"
-            value: root.ssaoEnabled
-        }
-
-        property bool fallbackActive: false
-        property string lastErrorLog: ""
-        property bool depthTextureAvailable: false
-        property bool normalTextureAvailable: false
-        property bool componentCompleted: false
-        property bool fallbackDueToCompilation: false
-        property bool fallbackDueToRequirements: false
-        property string compilationErrorLog: ""
-        property string requirementFallbackLog: ""
-        property bool fallbackForcedByCompatibility: false
-        property bool persistentFailure: false
+    // SSAO Effect (only localization fix inside requirementFallbackLog)
+    Effect { id: ssaoEffect
+        Binding { target: ssaoEffect; property: "enabled"; value: root.ssaoEnabled }
+        property bool fallbackActive: false; property string lastErrorLog: ""; property bool depthTextureAvailable: false; property bool normalTextureAvailable: false; property bool componentCompleted: false; property bool fallbackDueToCompilation: false; property bool fallbackDueToRequirements: false; property string compilationErrorLog: ""; property string requirementFallbackLog: ""; property bool fallbackForcedByCompatibility: false; property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("SSAO: fallback shader active")
-        readonly property string compatibilityFallbackMessage: {
-            var versionLabel = root.openGlVersionLabel.length
-                    ? root.openGlVersionLabel
-                    : "3.3"
-            return qsTr("SSAO: forcing GLSL 330 fallback shader for OpenGL %1")
-                    .arg(versionLabel)
-        }
-
+        readonly property string compatibilityFallbackMessage: { var versionLabel = root.openGlVersionLabel.length ? root.openGlVersionLabel : "3.3"; return qsTr("SSAO: forcing GLSL 330 fallback shader for OpenGL %1").arg(versionLabel) }
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
                         ssaoEffect,
@@ -894,121 +524,30 @@ Item {
             componentCompleted = true
         }
 
-        onFallbackActiveChanged: {
-            if (!componentCompleted)
-                return
-            if (fallbackActive && !lastErrorLog)
-                lastErrorLog = fallbackMessage
-            else if (!fallbackActive && lastErrorLog)
-                lastErrorLog = ""
-            root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog)
-        }
-
-        property real intensity: 0.5      // Интенсивность затенения
-        property real radius: 2.0         // Радиус сэмплинга
-        property real bias: 0.025         // Смещение для избежания самозатенения
-        property bool dither: true        // Включение рандомизации сэмплов
-        property int samples: 16          // Количество сэмплов
-
-        onSamplesChanged: {
-            if (samples < 1)
-                samples = 1
-        }
-
-        Shader {
-            id: ssaoFragmentShader
-            stage: Shader.Fragment
-            property real uIntensity: ssaoEffect.intensity
-            property real uRadius: ssaoEffect.radius
-            property real uBias: ssaoEffect.bias
-            property int uSamples: ssaoEffect.samples
-            property real uDitherToggle: ssaoEffect.dither ? 1.0 : 0.0
-            shader: root.shaderPath("ssao.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for ssao.frag")
-            }
-        }
-
-        Connections {
-            target: ssaoFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged(status) {
-                root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false)
-            }
-        }
-
-        Shader {
-            id: ssaoFallbackShader
-            stage: Shader.Fragment
-            shader: root.shaderPath("ssao_fallback.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag")
-            }
-        }
-
-        Connections {
-            target: ssaoFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged(status) {
-                root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true)
-            }
-        }
-
-
-        passes: [
-            Pass {
-                shaders: root.resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader, "ssao.frag")
-            }
-        ]
-
-        // Effect.enabled is controlled externally via root.ssaoEnabled
+        onFallbackActiveChanged: { if (!componentCompleted) return; if (fallbackActive && !lastErrorLog) lastErrorLog = fallbackMessage; else if (!fallbackActive && lastErrorLog) lastErrorLog = ""; root.notifyEffectCompilation("ssao", fallbackActive, lastErrorLog) }
+        property real intensity: 0.5; property real radius: 2.0; property real bias: 0.025; property bool dither: true; property int samples: 16
+        onSamplesChanged: { if (samples < 1) samples = 1 }
+        Shader { id: ssaoFragmentShader; stage: Shader.Fragment; property real uIntensity: ssaoEffect.intensity; property real uRadius: ssaoEffect.radius; property real uBias: ssaoEffect.bias; property int uSamples: ssaoEffect.samples; property real uDitherToggle: ssaoEffect.dither ? 1.0 : 0.0; shader: root.shaderPath("ssao.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(ssaoFragmentShader, "ssao.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for ssao.frag") } }
+        Connections { target: ssaoFragmentShader; ignoreUnknownSignals: true; function onStatusChanged(status) { root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFragmentShader, "ssao.frag", false) } }
+        Shader { id: ssaoFallbackShader; stage: Shader.Fragment; shader: root.shaderPath("ssao_fallback.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(ssaoFallbackShader, "ssao_fallback.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for ssao_fallback.frag") } }
+        Connections { target: ssaoFallbackShader; ignoreUnknownSignals: true; function onStatusChanged(status) { root.handleEffectShaderStatusChange("ssao", ssaoEffect, ssaoFallbackShader, "ssao_fallback.frag", true) } }
+        passes: [ Pass { shaders: root.resolveShaders(root.ssaoEnabled, ssaoEffect, ssaoFragmentShader, ssaoFallbackShader, "ssao.frag") } ]
     }
 
-    // Depth of Field Effect
-    Effect {
-        id: dofEffect
-
-        Binding {
-            target: dofEffect
-            property: "enabled"
-            value: root.depthOfFieldEnabled
-        }
-
+    // Depth of Field Effect (units unified to meters)
+    Effect { id: dofEffect
+        Binding { target: dofEffect; property: "enabled"; value: root.depthOfFieldEnabled }
         // Эффект глубины резкости использует буфер глубины сцены
-        property bool fallbackActive: false
-        property string lastErrorLog: ""
-        property bool depthTextureAvailable: false
-        property bool componentCompleted: false
-        property bool fallbackDueToCompilation: false
-        property bool fallbackDueToRequirements: false
-        property string compilationErrorLog: ""
-        property string requirementFallbackLog: ""
-        property bool fallbackForcedByCompatibility: false
-        property bool persistentFailure: false
+        property bool fallbackActive: false; property string lastErrorLog: ""; property bool depthTextureAvailable: false; property bool componentCompleted: false; property bool fallbackDueToCompilation: false; property bool fallbackDueToRequirements: false; property string compilationErrorLog: ""; property string requirementFallbackLog: ""; property bool fallbackForcedByCompatibility: false; property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("Depth of Field: fallback shader active")
-        readonly property string compatibilityFallbackMessage: {
-            var versionLabel = root.openGlVersionLabel.length
-                    ? root.openGlVersionLabel
-                    : "3.3"
-            return qsTr("Depth of Field: forcing GLSL 330 fallback shader for OpenGL %1")
-                    .arg(versionLabel)
-        }
-
-        property real focusDistance: 2000.0  // Расстояние фокуса (мм)
-        property real focusRange: 1000.0     // Диапазон фокуса (мм)
-        property real blurAmount: 1.0        // Сила размытия
-
+        readonly property string compatibilityFallbackMessage: { var versionLabel = root.openGlVersionLabel.length ? root.openGlVersionLabel : "3.3"; return qsTr("Depth of Field: forcing GLSL 330 fallback shader for OpenGL %1").arg(versionLabel) }
+        property real focusDistance: 2.0;  // Расстояние фокуса (м)
+        property real focusRange: 1.0;     // Диапазон фокуса (м)
+        property real blurAmount: 1.0      // Сила размытия
         property real cameraNear: root.cameraClipNear
         property real cameraFar: root.cameraClipFar
 
-
-        onBlurAmountChanged: {
-            if (blurAmount < 0.0)
-                blurAmount = 0.0
-        }
-
+        onBlurAmountChanged: { if (blurAmount < 0.0) blurAmount = 0.0 }
         Component.onCompleted: {
             depthTextureAvailable = root.ensureEffectRequirement(
                         dofEffect,
@@ -1053,104 +592,24 @@ Item {
             componentCompleted = true
         }
 
-        onFallbackActiveChanged: {
-            if (!componentCompleted)
-                return
-            if (fallbackActive && !lastErrorLog)
-                lastErrorLog = fallbackMessage
-            else if (!fallbackActive && lastErrorLog)
-                lastErrorLog = ""
-            root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog)
-        }
-
-        Shader {
-            id: dofFragmentShader
-            stage: Shader.Fragment
-            property real uFocusDistance: dofEffect.focusDistance
-            property real uFocusRange: dofEffect.focusRange
-            property real uBlurAmount: dofEffect.blurAmount
-            property real uCameraNear: dofEffect.cameraNear
-            property real uCameraFar: dofEffect.cameraFar
-            shader: root.shaderPath("dof.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(dofFragmentShader, "dof.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for dof.frag")
-            }
-        }
-
-        Connections {
-            target: dofFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged(status) {
-                root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false)
-            }
-        }
-
-        Shader {
-            id: dofFallbackShader
-            stage: Shader.Fragment
-            shader: root.shaderPath("dof_fallback.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag")
-            }
-        }
-
-        Connections {
-            target: dofFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true)
-            }
-        }
-
-
-        passes: [
-            Pass {
-                shaders: root.resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader, "dof.frag")
-            }
-        ]
-
-        // Effect.enabled is controlled externally via root.depthOfFieldEnabled
+        onFallbackActiveChanged: { if (!componentCompleted) return; if (fallbackActive && !lastErrorLog) lastErrorLog = fallbackMessage; else if (!fallbackActive && lastErrorLog) lastErrorLog = ""; root.notifyEffectCompilation("depthOfField", fallbackActive, lastErrorLog) }
+        Shader { id: dofFragmentShader; stage: Shader.Fragment; property real uFocusDistance: dofEffect.focusDistance; property real uFocusRange: dofEffect.focusRange; property real uBlurAmount: dofEffect.blurAmount; property real uCameraNear: dofEffect.cameraNear; property real uCameraFar: dofEffect.cameraFar; shader: root.shaderPath("dof.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(dofFragmentShader, "dof.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for dof.frag") } }
+        Connections { target: dofFragmentShader; ignoreUnknownSignals: true; function onStatusChanged(status) { root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFragmentShader, "dof.frag", false) } }
+        Shader { id: dofFallbackShader; stage: Shader.Fragment; shader: root.shaderPath("dof_fallback.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(dofFallbackShader, "dof_fallback.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for dof_fallback.frag") } }
+        Connections { target: dofFallbackShader; ignoreUnknownSignals: true; function onStatusChanged() { root.handleEffectShaderStatusChange("depthOfField", dofEffect, dofFallbackShader, "dof_fallback.frag", true) } }
+        passes: [ Pass { shaders: root.resolveShaders(root.depthOfFieldEnabled, dofEffect, dofFragmentShader, dofFallbackShader, "dof.frag") } ]
     }
 
-    // Motion Blur Effect
-    Effect {
-        id: motionBlurEffect
-
-        Binding {
-            target: motionBlurEffect
-            property: "enabled"
-            value: root.motionBlurEnabled
-        }
-
+    // Motion Blur Effect (typo fix velocity texture unavailable)
+    Effect { id: motionBlurEffect
+        Binding { target: motionBlurEffect; property: "enabled"; value: root.motionBlurEnabled }
         // Эффект размытия движения читает текстуру скоростей
-        property bool fallbackActive: false
-        property string lastErrorLog: ""
-        property bool velocityTextureAvailable: false
-        property bool componentCompleted: false
-        property bool fallbackDueToCompilation: false
-        property bool fallbackDueToRequirements: false
-        property string compilationErrorLog: ""
-        property string requirementFallbackLog: ""
-        property bool fallbackForcedByCompatibility: false
-        property bool persistentFailure: false
+        property bool fallbackActive: false; property string lastErrorLog: ""; property bool velocityTextureAvailable: false; property bool componentCompleted: false; property bool fallbackDueToCompilation: false; property bool fallbackDueToRequirements: false; property string compilationErrorLog: ""; property string requirementFallbackLog: ""; property bool fallbackForcedByCompatibility: false; property bool persistentFailure: false
         readonly property string fallbackMessage: qsTr("Motion Blur: fallback shader active")
-        readonly property string compatibilityFallbackMessage: {
-            var versionLabel = root.openGlVersionLabel.length
-                    ? root.openGlVersionLabel
-                    : "3.3"
-            return qsTr("Motion Blur: forcing GLSL 330 fallback shader for OpenGL %1")
-                    .arg(versionLabel)
-        }
-
-        property real strength: 0.5          // Сила размытия движения
-        property int samples: 8              // Количество сэмплов
-        onSamplesChanged: {
-            if (samples < 1)
-                samples = 1
-        }
-
+        readonly property string compatibilityFallbackMessage: { var versionLabel = root.openGlVersionLabel.length ? root.openGlVersionLabel : "3.3"; return qsTr("Motion Blur: forcing GLSL 330 fallback shader for OpenGL %1").arg(versionLabel) }
+        property real strength: 0.5;      // Сила размытия движения
+        property int samples: 8          // Количество сэмплов
+        onSamplesChanged: { if (samples < 1) samples = 1 }
         Component.onCompleted: {
             velocityTextureAvailable = root.ensureEffectRequirement(
                         motionBlurEffect,
@@ -1195,382 +654,15 @@ Item {
             componentCompleted = true
         }
 
-        onFallbackActiveChanged: {
-            if (!componentCompleted)
-                return
-            if (fallbackActive && !lastErrorLog)
-                lastErrorLog = fallbackMessage
-            else if (!fallbackActive && lastErrorLog)
-                lastErrorLog = ""
-            root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog)
-        }
-
-        Shader {
-            id: motionBlurFragmentShader
-            stage: Shader.Fragment
-            property real uStrength: motionBlurEffect.strength
-            property int uSamples: motionBlurEffect.samples
-            shader: root.shaderPath("motion_blur.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(motionBlurFragmentShader, "motion_blur.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for motion_blur.frag")
-            }
-        }
-
-        Connections {
-            target: motionBlurFragmentShader
-            ignoreUnknownSignals: true
-            function onStatusChanged(status) {
-                root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false)
-            }
-        }
-
-        Shader {
-            id: motionBlurFallbackShader
-            stage: Shader.Fragment
-            shader: root.shaderPath("motion_blur_fallback.frag")
-            Component.onCompleted: {
-                if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag"))
-                    console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag")
-            }
-        }
-
-        Connections {
-            target: motionBlurFallbackShader
-            ignoreUnknownSignals: true
-            function onStatusChanged() {
-                root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true)
-            }
-        }
-
-
-        passes: [
-            Pass {
-                shaders: root.resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader, "motion_blur.frag")
-            }
-        ]
-
-        // Effect.enabled is controlled externally via root.motionBlurEnabled
+        onFallbackActiveChanged: { if (!componentCompleted) return; if (fallbackActive && !lastErrorLog) lastErrorLog = fallbackMessage; else if (!fallbackActive && lastErrorLog) lastErrorLog = ""; root.notifyEffectCompilation("motionBlur", fallbackActive, lastErrorLog) }
+        Shader { id: motionBlurFragmentShader; stage: Shader.Fragment; property real uStrength: motionBlurEffect.strength; property int uSamples: motionBlurEffect.samples; shader: root.shaderPath("motion_blur.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(motionBlurFragmentShader, "motion_blur.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for motion_blur.frag") } }
+        Connections { target: motionBlurFragmentShader; ignoreUnknownSignals: true; function onStatusChanged(status) { root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFragmentShader, "motion_blur.frag", false) } }
+        Shader { id: motionBlurFallbackShader; stage: Shader.Fragment; shader: root.shaderPath("motion_blur_fallback.frag"); Component.onCompleted: { if (!root.attachShaderLogHandler(motionBlurFallbackShader, "motion_blur_fallback.frag")) if (verboseLogging) console.debug("PostEffects: shader log handler unavailable for motion_blur_fallback.frag") } }
+        Connections { target: motionBlurFallbackShader; ignoreUnknownSignals: true; function onStatusChanged() { root.handleEffectShaderStatusChange("motionBlur", motionBlurEffect, motionBlurFallbackShader, "motion_blur_fallback.frag", true) } }
+        passes: [ Pass { shaders: root.resolveShaders(root.motionBlurEnabled, motionBlurEffect, motionBlurFragmentShader, motionBlurFallbackShader, "motion_blur.frag") } ]
     }
 
-    function applyPayload(params, environment) {
-        logDiagnostics("PostEffects.applyPayload", params, environment)
-        var env = environment || null
-        var toSceneLength = env && typeof env.toSceneLength === "function"
-            ? env.toSceneLength
-            : null
-
-        function coerceNumber(value) {
-            var numeric = Number(value)
-            return isFinite(numeric) ? numeric : undefined
-        }
-
-        function coerceInt(value) {
-            var numeric = coerceNumber(value)
-            if (numeric === undefined)
-                return undefined
-            return Math.round(numeric)
-        }
-
-        function convertLength(value) {
-            var numeric = coerceNumber(value)
-            if (numeric === undefined)
-                return undefined
-            return toSceneLength ? toSceneLength(numeric) : numeric
-        }
-
-        function assignEffectProperty(effectItem, propertyName, value) {
-            if (value === undefined || value === null)
-                return
-            if (!trySetEffectProperty(effectItem, propertyName, value)) {
-                console.debug("PostEffects.applyPayload", "property assignment skipped", propertyName)
-            }
-        }
-
-        function envHasProperty(propertyName) {
-            if (!env)
-                return false
-            try {
-                return objectHasOwn.call(env, propertyName)
-            } catch (error) {
-                return false
-            }
-        }
-
-        function payloadHas(source, key) {
-            if (!source || typeof source !== "object")
-                return false
-            return objectHasOwn.call(source, key)
-        }
-
-        function assignRootBool(propertyName, value) {
-            if (value === undefined)
-                return
-            var normalized = !!value
-            try {
-                if (root[propertyName] !== normalized)
-                    root[propertyName] = normalized
-            } catch (error) {
-                console.warn("⚠️ PostEffects:", propertyName, "bool assignment failed", error)
-            }
-        }
-
-        function assignRootNumber(propertyName, value, options) {
-            if (value === undefined)
-                return
-            var numeric = coerceNumber(value)
-            if (numeric === undefined)
-                return
-            var opts = options || {}
-            var finalValue = numeric
-            if (opts.min !== undefined && finalValue < opts.min)
-                finalValue = opts.min
-            if (opts.max !== undefined && finalValue > opts.max)
-                finalValue = opts.max
-            try {
-                root[propertyName] = finalValue
-            } catch (error) {
-                console.warn("⚠️ PostEffects:", propertyName, "numeric assignment failed", error)
-            }
-        }
-
-        if (env) {
-            if (envHasProperty("bloomEnabled"))
-                assignRootBool("bloomEnabled", env.bloomEnabled)
-
-            if (envHasProperty("bloomIntensity")) {
-                var envBloomIntensity = coerceNumber(env.bloomIntensity)
-                if (envBloomIntensity !== undefined)
-                    assignEffectProperty(bloomEffect, "intensity", envBloomIntensity)
-            }
-
-            if (envHasProperty("bloomThreshold")) {
-                var envBloomThreshold = coerceNumber(env.bloomThreshold)
-                if (envBloomThreshold !== undefined)
-                    assignEffectProperty(bloomEffect, "threshold", envBloomThreshold)
-            }
-
-            if (envHasProperty("bloomSpread")) {
-                var envBloomSpread = coerceNumber(env.bloomSpread)
-                if (envBloomSpread !== undefined)
-                    assignEffectProperty(bloomEffect, "blurAmount", Math.max(0.0, envBloomSpread))
-            }
-
-            if (envHasProperty("ssaoEnabled"))
-                assignRootBool("ssaoEnabled", env.ssaoEnabled)
-
-            if (envHasProperty("ssaoIntensity")) {
-                var envSsaoIntensity = coerceNumber(env.ssaoIntensity)
-                if (envSsaoIntensity !== undefined)
-                    assignEffectProperty(ssaoEffect, "intensity", envSsaoIntensity)
-            }
-
-            if (envHasProperty("ssaoRadius")) {
-                var envSsaoRadius = coerceNumber(env.ssaoRadius)
-                if (envSsaoRadius !== undefined) {
-                    if (envSsaoRadius < 0.1)
-                        envSsaoRadius *= 1000.0
-                    assignEffectProperty(ssaoEffect, "radius", Math.max(0.01, envSsaoRadius))
-                }
-            }
-
-            if (envHasProperty("ssaoBias")) {
-                var envSsaoBias = coerceNumber(env.ssaoBias)
-                if (envSsaoBias !== undefined)
-                    assignEffectProperty(ssaoEffect, "bias", Math.max(0.0, envSsaoBias))
-            }
-
-            if (envHasProperty("ssaoSampleRate")) {
-                var envSsaoSamples = coerceInt(env.ssaoSampleRate)
-                if (envSsaoSamples !== undefined)
-                    assignEffectProperty(ssaoEffect, "samples", Math.max(1, envSsaoSamples))
-            }
-
-            if (envHasProperty("ssaoSamples")) {
-                var envSsaoSamplesAlias = coerceInt(env.ssaoSamples)
-                if (envSsaoSamplesAlias !== undefined)
-                    assignEffectProperty(ssaoEffect, "samples", Math.max(1, envSsaoSamplesAlias))
-            }
-
-            if (envHasProperty("ssaoDither")) {
-                var envSsaoDither = env.ssaoDither
-                if (envSsaoDither !== undefined)
-                    assignEffectProperty(ssaoEffect, "dither", !!envSsaoDither)
-            }
-
-            if (envHasProperty("internalDepthOfFieldEnabled"))
-                assignRootBool("depthOfFieldEnabled", env.internalDepthOfFieldEnabled)
-            else if (envHasProperty("depthOfFieldEnabled"))
-                assignRootBool("depthOfFieldEnabled", env.depthOfFieldEnabled)
-
-            if (envHasProperty("dofFocusDistance")) {
-                var envDofFocus = coerceNumber(env.dofFocusDistance)
-                if (envDofFocus !== undefined)
-                    assignEffectProperty(dofEffect, "focusDistance", Math.max(0.0, envDofFocus))
-            }
-
-            if (envHasProperty("dofFocusRange")) {
-                var envDofRange = coerceNumber(env.dofFocusRange)
-                if (envDofRange !== undefined)
-                    assignEffectProperty(dofEffect, "focusRange", Math.max(0.0, envDofRange))
-            }
-
-            if (envHasProperty("dofBlurAmount")) {
-                var envDofBlur = coerceNumber(env.dofBlurAmount)
-                if (envDofBlur !== undefined)
-                    assignEffectProperty(dofEffect, "blurAmount", Math.max(0.0, envDofBlur))
-            }
-
-            if (envHasProperty("motionBlurEnabled"))
-                assignRootBool("motionBlurEnabled", env.motionBlurEnabled)
-
-            if (envHasProperty("motionBlurStrength")) {
-                var envMotionStrength = coerceNumber(env.motionBlurStrength)
-                if (envMotionStrength !== undefined)
-                    assignEffectProperty(motionBlurEffect, "strength", Math.max(0.0, envMotionStrength))
-            }
-
-            if (envHasProperty("motionBlurSamples")) {
-                var envMotionSamples = coerceInt(env.motionBlurSamples)
-                if (envMotionSamples !== undefined)
-                    assignEffectProperty(motionBlurEffect, "samples", Math.max(1, envMotionSamples))
-            }
-        }
-
-        if (params && typeof params === "object") {
-            var bloomEnabledValue = boolFromPayload(params, ["bloomEnabled", "bloom_enabled"], "bloom")
-            if (bloomEnabledValue !== undefined)
-                assignRootBool("bloomEnabled", bloomEnabledValue)
-
-            var bloomIntensityValue = numberFromPayload(params, ["bloomIntensity", "bloom_intensity"], "bloom")
-            if (bloomIntensityValue !== undefined)
-                assignEffectProperty(bloomEffect, "intensity", bloomIntensityValue)
-
-            var bloomThresholdValue = numberFromPayload(params, ["bloomThreshold", "bloom_threshold"], "bloom")
-            if (bloomThresholdValue !== undefined)
-                assignEffectProperty(bloomEffect, "threshold", bloomThresholdValue)
-
-            var bloomBlurValue = numberFromPayload(params, ["bloomBlurAmount", "bloom_spread"], "bloom")
-            if (bloomBlurValue !== undefined)
-                assignEffectProperty(bloomEffect, "blurAmount", Math.max(0.0, bloomBlurValue))
-
-            var ssaoEnabledValue = boolFromPayload(params, ["ssaoEnabled", "ao_enabled"], "ssao")
-            if (ssaoEnabledValue !== undefined)
-                assignRootBool("ssaoEnabled", ssaoEnabledValue)
-
-            var ssaoIntensityValue = numberFromPayload(params, ["ssaoIntensity", "ao_strength"], "ssao")
-            if (ssaoIntensityValue !== undefined)
-                assignEffectProperty(ssaoEffect, "intensity", ssaoIntensityValue)
-
-            var ssaoRadiusValue = numberFromPayload(params, ["ssaoRadius", "ao_radius"], "ssao")
-            if (ssaoRadiusValue !== undefined) {
-                var radius = ssaoRadiusValue
-                if (radius < 0.1)
-                    radius *= 1000.0
-                assignEffectProperty(ssaoEffect, "radius", Math.max(0.01, radius))
-            }
-
-            var ssaoBiasValue = numberFromPayload(params, ["ssaoBias", "ao_bias"], "ssao")
-            if (ssaoBiasValue !== undefined)
-                assignEffectProperty(ssaoEffect, "bias", Math.max(0.0, ssaoBiasValue))
-
-            var ssaoDitherValue = boolFromPayload(params, ["ssaoDither", "ao_dither"], "ssao")
-            if (ssaoDitherValue !== undefined)
-                assignEffectProperty(ssaoEffect, "dither", !!ssaoDitherValue)
-
-            var ssaoSamplesValue = numberFromPayload(params, ["ssaoSamples", "ao_sample_rate"], "ssao")
-            if (ssaoSamplesValue !== undefined)
-                assignEffectProperty(ssaoEffect, "samples", Math.max(1, Math.round(ssaoSamplesValue)))
-
-            var dofEnabledValue = boolFromPayload(params, ["depthOfFieldEnabled", "depth_of_field"], "depthOfField")
-            if (dofEnabledValue !== undefined)
-                assignRootBool("depthOfFieldEnabled", dofEnabledValue)
-
-            var dofFocusValue = numberFromPayload(params, ["dofFocusDistance", "dof_focus_distance"], "depthOfField")
-            if (dofFocusValue !== undefined) {
-                var convertedFocus = convertLength(dofFocusValue)
-                if (convertedFocus !== undefined)
-                    assignEffectProperty(dofEffect, "focusDistance", Math.max(0.0, convertedFocus))
-            }
-
-            var dofRangeValue = numberFromPayload(params, ["dofFocusRange", "dof_focus_range"], "depthOfField")
-            if (dofRangeValue !== undefined) {
-                var convertedRange = convertLength(dofRangeValue)
-                if (convertedRange !== undefined)
-                    assignEffectProperty(dofEffect, "focusRange", Math.max(0.0, convertedRange))
-            }
-
-            var dofBlurValue = numberFromPayload(params, ["dofBlurAmount", "dof_blur"], "depthOfField")
-            if (dofBlurValue !== undefined)
-                assignEffectProperty(dofEffect, "blurAmount", Math.max(0.0, dofBlurValue))
-
-            var motionEnabledValue = boolFromPayload(params, ["motionBlurEnabled", "motion_blur"], "motion")
-            if (motionEnabledValue !== undefined)
-                assignRootBool("motionBlurEnabled", motionEnabledValue)
-
-            var motionStrengthValue = numberFromPayload(params, ["motionBlurStrength", "motion_blur_amount"], "motion")
-            if (motionStrengthValue !== undefined)
-                assignEffectProperty(motionBlurEffect, "strength", Math.max(0.0, motionStrengthValue))
-
-            var motionSamplesValue = numberFromPayload(params, ["motionBlurSamples", "motion_blur_samples"], "motion")
-            if (motionSamplesValue !== undefined)
-                assignEffectProperty(motionBlurEffect, "samples", Math.max(1, Math.round(motionSamplesValue)))
-        }
-    }
-
-    // Функции управления эффектами
-    function enableBloom(intensity, threshold) {
-        bloomEffect.intensity = intensity;
-        bloomEffect.threshold = threshold;
-        root.bloomEnabled = true;
-        console.log("✨ Bloom enabled:", intensity, threshold);
-    }
-
-    function enableSSAO(intensity, radius) {
-        ssaoEffect.intensity = intensity;
-        ssaoEffect.radius = radius;
-        root.ssaoEnabled = true;
-        console.log("🌑 SSAO enabled:", intensity, radius);
-    }
-
-    function enableDepthOfField(focusDistance, focusRange) {
-        dofEffect.focusDistance = focusDistance;
-        dofEffect.focusRange = focusRange;
-        root.depthOfFieldEnabled = true;
-        console.log("📷 DOF enabled:", focusDistance, focusRange);
-    }
-
-    function enableMotionBlur(strength) {
-        motionBlurEffect.strength = strength;
-        root.motionBlurEnabled = true;
-        console.log("💨 Motion Blur enabled:", strength);
-    }
-
-    function disableAllEffects() {
-        root.bloomEnabled = false;
-        root.ssaoEnabled = false;
-        root.depthOfFieldEnabled = false;
-        root.motionBlurEnabled = false;
-        console.log("🚫 All post-effects disabled")
-    }
-
-    readonly property var _canonicalEffectShaderMap: ({
-        bloomFrag: 'effects/bloom.frag',
-        fogFrag: 'effects/fog.frag'
-    })
+    // Canonical shader map
+    readonly property var _canonicalEffectShaderMap: ({ bloomFrag: 'effects/bloom.frag', fogFrag: 'effects/fog.frag' })
     readonly property bool _legacyPathsEnabled: (function(){ try { return String((typeof globalThis !== 'undefined' && globalThis.PSS_ENABLE_LEGACY_POST_EFFECTS_PATHS) || '').toLowerCase() in ['1','true','yes','on'] } catch(e){ return false } })()
-
-    function shaderPath(key) {
-        return SPH.ShaderProfileHelper.resolveVariant(
-                    key,
-                    useGlesShaders,
-                    false,
-                    desktopShaderSuffixes,
-                    glesShaderSuffixes,
-                    shaderResourceDirectories,
-                    shaderResourceManifest,
-                    shaderResourceExists,
-                    function(name, directory){ return resolvedShaderUrl(name, directory) },
-                    verboseLogging)
-    }
 }
