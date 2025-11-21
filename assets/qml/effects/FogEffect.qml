@@ -407,9 +407,6 @@ Effect {
         } catch(e) {}
     }
 
-    onFallbackActiveChanged: refreshPassConfiguration()
-    onDepthTextureAvailableChanged: refreshPassConfiguration()
-
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
