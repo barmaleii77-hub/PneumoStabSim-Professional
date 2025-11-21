@@ -8,25 +8,12 @@ import QtQuick3D 6.4
 import QtQuick3D.Effects 6.4
 import QtQuick3D.Helpers 6.4
 // qmllint enable unused-imports
+import "../components/ShaderProfileHelper.js" as SPH
 
-// qmllint disable property
-
-/*
- * Коллекция пост-эффектов для улучшенной визуализации
- * Collection of post-effects for enhanced visualization
- */
 Item {
     id: root
-
-    readonly property var objectHasOwn: ({}).hasOwnProperty
-
-    signal effectCompilationError(var effectId, string errorLog)
-    signal effectCompilationRecovered(var effectId)
-    signal simplifiedRenderingRequested(string reason)
-    signal simplifiedRenderingRecovered()
-
-    // Structured diagnostics (opt-in from Python)
-    property bool diagnosticsLoggingEnabled: false
+    property bool verboseLogging: false
+    readonly property var shaderMetrics: SPH.ShaderProfileHelper.metricsSnapshot()
 
     // When true, the effect chain is bypassed to keep the scene visible even if shaders fail
     property bool effectsBypass: false
@@ -231,6 +218,12 @@ Item {
     function trySetEffectProperty(effectItem, propertyName, value) {
         if (!effectItem || !propertyName)
             return false
+        // ── Пропуск устаревших depth/velocity свойств (Qt 6.10 удалил их) ──
+        var legacy = ["explicitDepthTextureEnabled","explicitVelocityTextureEnabled","requiresDepthTexture","requiresVelocityTexture"]
+        if (legacy.indexOf(propertyName) !== -1) {
+            console.debug("PostEffects: legacy property skipped", propertyName)
+            return false
+        }
         // Прямое присваивание свойства; QML может не поддерживать оператор `in`
         try {
             effectItem[propertyName] = value
@@ -260,43 +253,22 @@ Item {
     //    overridden with forceDesktopShaderProfile.
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
+    readonly property bool preferDesktopShaderProfile: SPH.ShaderProfileHelper.preferDesktopProfile(forceDesktopShaderProfile, false, normalizedRendererGraphicsApi, reportedGlesContext, (function(){ try { return qtGraphicsApiRequiresDesktopShaders } catch(e){ return undefined } })(), GraphicsInfo)
+    readonly property bool useGlesShaders: reportedGlesContext && !preferDesktopShaderProfile
+
     onForceDesktopShaderProfileChanged: {
-        if (forceDesktopShaderProfile)
-            console.warn("⚠️ PostEffects: desktop shader profile override enabled (preferring GLSL 450 resources)")
-        else
-            console.log("ℹ️ PostEffects: desktop shader profile override cleared; reverting to auto detection")
         shaderVariantSelectionCache = ({})
         resetShaderCaches()
+        SPH.ShaderProfileHelper.markProfileSwitch()
+        if (verboseLogging) console.log('[PostEffects] profile override desktop=', forceDesktopShaderProfile)
+    }
+    onUseGlesShadersChanged: {
+        shaderVariantSelectionCache = ({})
+        resetShaderCaches()
+        SPH.ShaderProfileHelper.markProfileSwitch()
+        if (verboseLogging) console.log('[PostEffects] useGlesShaders ->', useGlesShaders)
     }
 
-    readonly property bool preferDesktopShaderProfile: {
-        if (forceDesktopShaderProfile)
-            return true
-        var normalized = normalizedRendererGraphicsApi
-        if (normalized.length) {
-            var normalizedCondensed = normalized.replace(/[\s_-]+/g, "")
-            var normalizedWithSpaces = normalized.replace(/[_-]+/g, " ")
-            if (normalized.indexOf("angle") !== -1)
-                return false
-            if (normalizedWithSpaces.indexOf("opengl es") !== -1
-                    || normalizedCondensed.indexOf("opengles") !== -1
-                    || normalizedCondensed.indexOf("gles") !== -1)
-                return false
-        }
-        try {
-            if (typeof qtGraphicsApiRequiresDesktopShaders === "boolean")
-                return qtGraphicsApiRequiresDesktopShaders
-        } catch (error) {
-        }
-        if (GraphicsInfo.api === GraphicsInfo.Direct3D11 && reportedGlesContext)
-            return false
-        if (!reportedGlesContext && GraphicsInfo.api === GraphicsInfo.OpenGL)
-            return true
-        return GraphicsInfo.api === GraphicsInfo.Direct3D11
-                || GraphicsInfo.api === GraphicsInfo.Vulkan
-                || GraphicsInfo.api === GraphicsInfo.Metal
-                || GraphicsInfo.api === GraphicsInfo.Null
-    }
     readonly property string rendererGraphicsApi: {
         try {
             if (typeof qtGraphicsApiName === "string")
@@ -429,14 +401,6 @@ Item {
     property var shaderCompatibilityOverrides: ({})
     property var shaderVariantMissingWarnings: ({})
 
-    onUseGlesShadersChanged: {
-        console.log("🎚️ PostEffects: shader profile toggled ->", useGlesShaders
-                ? "OpenGL ES (GLSL 300 es)"
-                : "Desktop (GLSL 450 core)")
-        shaderVariantSelectionCache = ({})
-        resetShaderCaches()
-    }
-
     function shaderCompilationMessage(shaderItem) {
         if (!shaderItem)
             return ""
@@ -485,535 +449,50 @@ Item {
         return Qt.resolvedUrl(baseDirectory + resourceName)
     }
 
-    function shaderResourceExists(url, resourceName, suppressErrors) {
-        if (!url)
-            return false
-
-        var normalizedUrl = url
-        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
-            try {
-                if (typeof normalizedUrl.toString === "function")
-                    normalizedUrl = normalizedUrl.toString()
-            } catch (error) {
-            }
-        }
-
-        if (!normalizedUrl || !normalizedUrl.length)
-            return false
-
-        if (objectHasOwn.call(shaderResourceAvailabilityCache, normalizedUrl))
-            return shaderResourceAvailabilityCache[normalizedUrl]
-
-        var available = false
-
-        var manifestEntry
-        var manifestHasEntry = false
-        var manifestEnabled = true
-        var manifestPaths = []
-        var normalizedUrlPath = ""
-        var matchesManifestPath = false
-        if (resourceName && objectHasOwn.call(shaderResourceManifest, resourceName)) {
-            manifestEntry = shaderResourceManifest[resourceName]
-            manifestHasEntry = true
-            if (typeof manifestEntry === "boolean") {
-                manifestEnabled = manifestEntry
-            } else if (manifestEntry === null || manifestEntry === undefined) {
-                manifestEnabled = false
-            } else if (typeof manifestEntry === "string") {
-                manifestPaths.push(manifestEntry)
-            } else if (typeof manifestEntry === "object") {
-                if (objectHasOwn.call(manifestEntry, "enabled"))
-                    manifestEnabled = manifestEntry.enabled !== false
-                if (objectHasOwn.call(manifestEntry, "path")) {
-                    var manifestPath = manifestEntry.path
-                    if (manifestPath && typeof manifestPath === "string")
-                        manifestPaths.push(manifestPath)
-                }
-                if (objectHasOwn.call(manifestEntry, "paths") && manifestEntry.paths) {
-                    var manifestPathList = manifestEntry.paths
-                    for (var mpIdx = 0; mpIdx < manifestPathList.length; ++mpIdx) {
-                        var manifestPathCandidate = manifestPathList[mpIdx]
-                        if (!manifestPathCandidate || typeof manifestPathCandidate !== "string")
-                            continue
-                        if (manifestPaths.indexOf(manifestPathCandidate) === -1)
-                            manifestPaths.push(manifestPathCandidate)
-                    }
-                }
-            }
-            if (!manifestEnabled) {
-                shaderResourceAvailabilityCache[normalizedUrl] = false
-                if (!suppressErrors)
-                    console.error("❌ PostEffects: shader resource disabled by manifest", resourceName, normalizedUrl)
+    function shaderResourceExists(url, resourceName, suppressErrors, manifest) {
+        if (!url) return false
+        if (objectHasOwn.call(shaderResourceAvailabilityCache, url))
+            return shaderResourceAvailabilityCache[url]
+        if (manifest && resourceName && objectHasOwn.call(manifest, resourceName)) {
+            var entry = manifest[resourceName]
+            if (entry === false) {
+                if (!suppressErrors && verboseLogging) console.warn('❌ PostEffects: shader disabled by manifest', resourceName)
+                shaderResourceAvailabilityCache[url] = false
                 return false
             }
-            normalizedUrlPath = String(normalizedUrl).replace(/\\/g, "/")
         }
-
-        if (manifestHasEntry && manifestEnabled) {
-            var shaderRootHint = shaderRootUrl
-
-            function manifestPathMatches(manifestPathEntry) {
-                if (!manifestPathEntry)
-                    return false
-
-                var normalizedEntry = String(manifestPathEntry).replace(/\\/g, "/")
-                if (!normalizedEntry.length)
-                    return false
-
-                if (normalizedUrlPath.endsWith(normalizedEntry))
-                    return true
-
-                var trimmedEntry = normalizedEntry.replace(/^\/+/, "")
-                if (!trimmedEntry.length)
-                    return false
-
-                if (normalizedUrlPath.endsWith("/" + trimmedEntry))
-                    return true
-
-                var shaderRootIndex = normalizedUrlPath.indexOf(shaderRootHint)
-                if (shaderRootIndex !== -1) {
-                    var relativeUrlPath = normalizedUrlPath.slice(shaderRootIndex + shaderRootHint.length)
-                    if (relativeUrlPath === trimmedEntry)
-                        return true
-                }
-
-                return false
-            }
-
-            matchesManifestPath = manifestPaths.length === 0
-            if (!matchesManifestPath) {
-                for (var pathIdx = 0; pathIdx < manifestPaths.length; ++pathIdx) {
-                    if (manifestPathMatches(manifestPaths[pathIdx])) {
-                        matchesManifestPath = true
-                        break
-                    }
-                }
-            }
-
-            if (matchesManifestPath && manifestPaths.length > 0) {
-                shaderResourceAvailabilityCache[normalizedUrl] = true
-                return true
-            }
-        }
-
-        function checkAvailability(method) {
-            try {
-                var xhr = new XMLHttpRequest()
-                xhr.open(method, normalizedUrl, false)
-                xhr.send()
-                if (xhr.status === 200 || xhr.status === 0) {
-                    available = true
-                    return true
-                }
-                if (xhr.status === 405 || xhr.status === 501)
-                    return false
-            } catch (error) {
-                console.debug("PostEffects: shader availability check failed", resourceName, method, error)
-            }
-            return false
-        }
-
-        if (!checkAvailability("HEAD"))
-            checkAvailability("GET")
-
-        if (available) {
-            shaderResourceAvailabilityCache[normalizedUrl] = true
-            return true
-        }
-
-        if (manifestHasEntry && manifestEnabled) {
-            if (matchesManifestPath) {
-                shaderResourceAvailabilityCache[normalizedUrl] = false
-                if (!suppressErrors)
-                    console.error("❌ PostEffects: shader manifest mismatch", resourceName, normalizedUrl)
-                return false
-            }
-            shaderResourceAvailabilityCache[normalizedUrl] = false
-            if (!suppressErrors)
-                console.error("❌ PostEffects: shader resource missing", resourceName, normalizedUrl)
-            return false
-        }
-
-        shaderResourceAvailabilityCache[normalizedUrl] = false
-        if (!suppressErrors)
-            console.error("❌ PostEffects: shader resource missing", resourceName, normalizedUrl)
-
-        return false
+        shaderResourceAvailabilityCache[url] = true
+        return true
     }
 
-    function shaderVariantCandidateNames(baseName, extension, suffixes, normalizedName) {
-        var candidates = []
-        var effectiveSuffixes = suffixes || []
-        for (var sIdx = 0; sIdx < effectiveSuffixes.length; ++sIdx) {
-            var suffix = effectiveSuffixes[sIdx]
-            if (!suffix || !suffix.length)
-                continue
-            var candidateName = baseName + suffix + extension
-            if (candidates.indexOf(candidateName) === -1)
-                candidates.push(candidateName)
-        }
-        var normalizedCandidate = normalizedName && normalizedName.length
-                ? normalizedName
-                : baseName + extension
-        if (candidates.indexOf(normalizedCandidate) === -1)
-            candidates.push(normalizedCandidate)
-        return candidates
-    }
-
-    function shaderPath(fileName) {
-        if (!fileName || typeof fileName !== "string")
-            return ""
-
-        var normalized = String(fileName)
-        var dotIndex = normalized.lastIndexOf(".")
-        var baseName = dotIndex >= 0 ? normalized.slice(0, dotIndex) : normalized
-        var extension = dotIndex >= 0 ? normalized.slice(dotIndex) : ""
-        var suffixes = useGlesShaders ? glesShaderSuffixes : desktopShaderSuffixes
-
-        var candidateNames = shaderVariantCandidateNames(baseName, extension, suffixes, normalized)
-
-        var directories = shaderResourceDirectories
-        if (!directories || !directories.length)
-            directories = [useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory]
-
-        var selectedName = normalized
-        var selectedUrl = resolvedShaderUrl(normalized, directories[0])
-        var found = false
-        for (var idx = 0; idx < candidateNames.length; ++idx) {
-            var candidateName = candidateNames[idx]
-            var suppressErrors = candidateName === normalized ? false : true
-            var candidateFound = false
-            for (var dirIdx = 0; dirIdx < directories.length; ++dirIdx) {
-                var directory = directories[dirIdx]
-                var candidateUrl = resolvedShaderUrl(candidateName, directory)
-                if (shaderResourceExists(candidateUrl, candidateName, suppressErrors)) {
-                    selectedName = candidateName
-                    selectedUrl = candidateUrl
-                    found = true
-                    candidateFound = true
-                    break
-                }
-            }
-            if (candidateFound) {
-                break
-            }
-            if (useGlesShaders && candidateName !== normalized) {
-                if (!objectHasOwn.call(shaderVariantMissingWarnings, candidateName)) {
-                    shaderVariantMissingWarnings[candidateName] = true
-                    console.warn(`⚠️ PostEffects: GLES shader variant '${candidateName}' not found; using compatibility fallback`)
-                }
-            }
-        }
-
-        var glesVariantList = []
-        if (useGlesShaders)
-            glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
-        var requireCompatibilityFallback = false
-        var fallbackCandidateNames = []
-        var fallbackSelectedName = ""
-        if (useGlesShaders && glesVariantList.length > 0) {
-            var baseRequiresFallback = selectedName === normalized || !found
-            if (baseRequiresFallback) {
-                var fallbackBaseName = baseName.endsWith("_fallback") ? baseName : baseName + "_fallback"
-                fallbackCandidateNames = shaderVariantCandidateNames(
-                            fallbackBaseName,
-                            extension,
-                            glesShaderSuffixes,
-                            fallbackBaseName + extension)
-            }
-
-            if (!found || selectedName === normalized) {
-                if (!found)
-                    console.warn("⚠️ PostEffects: GLES shader variants missing; trying fallback", glesVariantList)
-                else
-                    console.warn("⚠️ PostEffects: GLES shader variant not resolved; falling back", glesVariantList)
-
-                var fallbackResolved = false
-                for (var fbIdx = 0; fbIdx < fallbackCandidateNames.length && !fallbackResolved; ++fbIdx) {
-                    var fallbackName = fallbackCandidateNames[fbIdx]
-                    for (var fbDirIdx = 0; fbDirIdx < directories.length && !fallbackResolved; ++fbDirIdx) {
-                        var fallbackUrl = resolvedShaderUrl(fallbackName, directories[fbDirIdx])
-                        if (shaderResourceExists(fallbackUrl, fallbackName, false)) {
-                            selectedName = fallbackName
-                            selectedUrl = fallbackUrl
-                            fallbackSelectedName = fallbackName
-                            fallbackResolved = true
-                        }
-                    }
-                }
-
-                if (fallbackResolved && fallbackSelectedName.length > 0) {
-                    requireCompatibilityFallback = true
-                    found = true
-                    console.warn("⚠️ PostEffects: GLES fallback shader selected", fallbackSelectedName)
-                } else if (!found) {
-                    requestDesktopShaderProfile(`Shader ${normalized} lacks GLES variants (${glesVariantList.join(", ")}); enforcing desktop profile`)
-                }
-            }
-        }
-
-        if (requireCompatibilityFallback) {
-            if (!objectHasOwn.call(shaderCompatibilityOverrides, normalized))
-                console.warn("⚠️ PostEffects: forcing fallback shaders for", normalized, "due to missing GLES profile")
-            shaderCompatibilityOverrides[normalized] = true
-        } else if (objectHasOwn.call(shaderCompatibilityOverrides, normalized)) {
-            delete shaderCompatibilityOverrides[normalized]
-        }
-
-        var previousSelection = shaderVariantSelectionCache[normalized]
-        if (previousSelection !== selectedName) {
-            shaderVariantSelectionCache[normalized] = selectedName
-            var profileLabel = useGlesShaders ? "OpenGL ES" : "Desktop"
-            console.log(`🌐 PostEffects: resolved ${profileLabel} shader '${normalized}' -> '${selectedName}'`)
-        }
-
-        return sanitizedShaderUrl(selectedUrl, selectedName)
+    function shaderPath(key) {
+        return SPH.ShaderProfileHelper.resolveVariant(
+                    key,
+                    useGlesShaders,
+                    false,
+                    desktopShaderSuffixes,
+                    glesShaderSuffixes,
+                    shaderResourceDirectories,
+                    shaderResourceManifest,
+                    shaderResourceExists,
+                    function(name, directory){ return resolvedShaderUrl(name, directory) },
+                    verboseLogging)
     }
 
     function resetShaderCaches() {
         shaderResourceAvailabilityCache = ({})
         shaderSanitizationCache = ({})
+        shaderSanitizationWarnings = ({})
         shaderVariantSelectionCache = ({})
         shaderProfileMismatchWarnings = ({})
         shaderCompatibilityOverrides = ({})
         shaderVariantMissingWarnings = ({})
+        SPH.ShaderProfileHelper.resetCaches()
+        if (verboseLogging) console.log('[PostEffects] caches reset; metrics=', JSON.stringify(shaderMetrics))
     }
 
-    function requestDesktopShaderProfile(reason) {
-        if (forceDesktopShaderProfile)
-            return
-        if (reportedGlesContext) {
-            if (!objectHasOwn.call(shaderProfileMismatchWarnings, reason)) {
-                shaderProfileMismatchWarnings[reason] = true
-                console.warn(
-                            "⚠️ PostEffects:", reason,
-                            "– keeping OpenGL ES profile because desktop shaders are incompatible")
-            }
-            return
-        }
-        console.warn("⚠️ PostEffects:", reason, "– forcing desktop shader profile")
-        forceDesktopShaderProfile = true
-        resetShaderCaches()
-    }
-
-    function handleShaderCompilationLog(shaderId, message) {
-        if (!useGlesShaders)
-            return
-        if (!message || !message.length)
-            return
-        var normalized = String(message).toLowerCase()
-        if (normalized.indexOf("#version") === -1)
-            return
-        if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
-            return
-
-        var reason = `Shader ${shaderId} reported #version incompatibility`
-        if (!objectHasOwn.call(shaderProfileMismatchWarnings, reason)) {
-            shaderProfileMismatchWarnings[reason] = true
-            console.warn(
-                        "⚠️ PostEffects:", reason,
-                        "– activating fallback shaders without switching to desktop profile")
-        }
-        requestDesktopShaderProfile(reason)
-    }
-
-    function handleEffectShaderStatusChange(effectId, effectItem, shaderItem, shaderId, isFallback) {
-        if (!shaderItem || !effectItem)
-            return
-        var status
-        try {
-            status = shaderItem.status
-        } catch (error) {
-            console.debug("PostEffects: unable to read shader status", effectId, shaderId, error)
-            return
-        }
-        var cacheKey = effectId + "::" + shaderId
-        var cachedStatuses = shaderStatusCache
-        if (cachedStatuses && cachedStatuses[cacheKey] === status)
-            return
-        if (!cachedStatuses || typeof cachedStatuses !== "object")
-            cachedStatuses = ({})
-        cachedStatuses[cacheKey] = status
-        shaderStatusCache = cachedStatuses
-        // qmllint disable property
-        if (status === Shader.Error) {
-            var message = shaderCompilationMessage(shaderItem)
-            if (!message.length) {
-                message = isFallback
-                        ? qsTr("%1 fallback shader %2 compilation failed").arg(effectId).arg(shaderId)
-                        : qsTr("%1 shader %2 compilation failed").arg(effectId).arg(shaderId)
-            }
-            console.error(`❌ PostEffects (${effectId}):`, message)
-            if (isFallback) {
-                try {
-                    effectItem.lastErrorLog = message
-                } catch (error) {
-                }
-                try {
-                    effectItem.persistentFailure = true
-                } catch (error) {
-                }
-                root.setEffectPersistentFailure(effectId, true, message)
-                root.notifyEffectCompilation(effectId, true, message)
-                return
-            }
-            try {
-                effectItem.compilationErrorLog = message
-            } catch (error) {
-            }
-            try {
-                if ("fallbackDueToCompilation" in effectItem)
-                    effectItem.fallbackDueToCompilation = true
-            } catch (error) {
-            }
-            if (!effectItem.fallbackActive)
-                effectItem.fallbackActive = true
-            if (effectItem.lastErrorLog !== message)
-                effectItem.lastErrorLog = message
-            root.notifyEffectCompilation(effectId, effectItem.fallbackActive, effectItem.lastErrorLog)
-            return
-        }
-        if (status === Shader.Ready && isFallback) {
-            var hadPersistentFailure = false
-            try {
-                hadPersistentFailure = !!effectItem.persistentFailure
-            } catch (error) {
-            }
-            if (hadPersistentFailure) {
-                try {
-                    effectItem.persistentFailure = false
-                } catch (error) {
-                }
-                root.setEffectPersistentFailure(effectId, false, "")
-            }
-        }
-        if (status === Shader.Ready && !isFallback) {
-            var dueToCompilation = false
-            try {
-                dueToCompilation = !!effectItem.fallbackDueToCompilation
-            } catch (error) {
-            }
-            if (!dueToCompilation)
-                return
-            try {
-                effectItem.fallbackDueToCompilation = false
-            } catch (error) {
-            }
-            try {
-                effectItem.compilationErrorLog = ""
-            } catch (error) {
-            }
-            var requirementActive = false
-            try {
-                requirementActive = !!effectItem.fallbackDueToRequirements
-            } catch (error) {
-            }
-            if (!requirementActive) {
-                if (effectItem.fallbackActive)
-                    effectItem.fallbackActive = false
-                if (effectItem.lastErrorLog.length)
-                    effectItem.lastErrorLog = ""
-            } else {
-                var requirementLog = ""
-                try {
-                    if (effectItem.requirementFallbackLog && effectItem.requirementFallbackLog.length)
-                        requirementLog = effectItem.requirementFallbackLog
-                } catch (error) {
-                }
-                if (!requirementLog.length) {
-                    try {
-                        if (effectItem.fallbackMessage)
-                            requirementLog = effectItem.fallbackMessage
-                    } catch (error) {
-                    }
-                }
-                if (requirementLog.length && effectItem.lastErrorLog !== requirementLog)
-                    effectItem.lastErrorLog = requirementLog
-            }
-            root.notifyEffectCompilation(effectId, effectItem.fallbackActive, effectItem.lastErrorLog)
-        }
-        // qmllint enable property
-    }
-
-    // qmllint disable unqualified
-    function sanitizedShaderUrl(url, resourceName) {
-        if (!url)
-            return url
-
-        var normalizedUrl = url
-        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
-            try {
-                if (typeof normalizedUrl.toString === "function")
-                    normalizedUrl = normalizedUrl.toString()
-            } catch (error) {
-            }
-        }
-
-        if (!normalizedUrl || !normalizedUrl.length)
-            return normalizedUrl
-
-        if (objectHasOwn.call(shaderSanitizationCache, normalizedUrl))
-            return shaderSanitizationCache[normalizedUrl]
-
-        var sanitizedUrl = normalizedUrl
-        var sanitizationApplied = false
-
-        try {
-            var xhr = new XMLHttpRequest()
-            xhr.open("GET", normalizedUrl, false)
-            xhr.responseType = "text"
-            xhr.send()
-            if (xhr.status === 200 || xhr.status === 0) {
-                var shaderSource = xhr.responseText
-                if (shaderSource) {
-                    var normalized = shaderSource
-                    var mutated = false
-
-                    if (normalized.indexOf("\r") !== -1) {
-                        normalized = normalized.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
-                        mutated = true
-                    }
-
-                    if (normalized.length && normalized.charCodeAt(0) === 0xFEFF) {
-                        normalized = normalized.slice(1)
-                        mutated = true
-                    }
-
-                    var leadingWhitespaceMatch = normalized.match(/^[\s]+/)
-                    if (leadingWhitespaceMatch && leadingWhitespaceMatch[0].length) {
-                        normalized = normalized.slice(leadingWhitespaceMatch[0].length)
-                        mutated = true
-                    }
-
-                    if (mutated && normalized !== shaderSource) {
-                        var cacheKey = resourceName || normalizedUrl
-                        if (!objectHasOwn.call(shaderSanitizationWarnings, cacheKey)) {
-                            console.warn(
-                                        "⚠️ PostEffects: shader", resourceName,
-                                        "contains leading BOM/whitespace incompatible with Qt RHI; please clean the source file")
-                            shaderSanitizationWarnings[cacheKey] = true
-                        }
-                        sanitizationApplied = true
-                    }
-                }
-            }
-        } catch (error) {
-            console.debug("PostEffects: shader normalization skipped", resourceName, error)
-        }
-
-        shaderSanitizationCache[normalizedUrl] = sanitizedUrl
-        if (sanitizationApplied)
-            shaderSanitizationCache[normalizedUrl] = normalizedUrl
-        return sanitizedUrl
-    }
-    // qmllint enable unqualified
-
-    // Примечание по совместимости: для профиля OpenGL ES теперь поставляются
-    // отдельные GLSL-файлы с суффиксом _es и корректной директивой #version 300 es.
-    // При отсутствии GLES-варианта компонент автоматически переключается на
-    // десктопный профиль, чтобы не оставлять эффект без шейдера.
-
-    // Свойства управления эффектами
+    // Коллекция пост-эффектов для улучшенной визуализации
+    // Collection of post-effects for enhanced visualization
     property bool bloomEnabled: false
     property alias bloomIntensity: bloomEffect.intensity
     property alias bloomThreshold: bloomEffect.threshold
@@ -1678,7 +1157,7 @@ Item {
                         "requiresVelocityTexture",
                         true,
                         "Motion Blur: velocity texture support enabled",
-                        "Motion Blur: velocity texture unavailable; using fallback shader")
+                        "Motion Blur: velocity textureUnavailable; using fallback shader")
 
             fallbackDueToCompilation = false
             compilationErrorLog = ""
@@ -2075,4 +1554,23 @@ Item {
         console.log("🚫 All post-effects disabled")
     }
 
+    readonly property var _canonicalEffectShaderMap: ({
+        bloomFrag: 'effects/bloom.frag',
+        fogFrag: 'effects/fog.frag'
+    })
+    readonly property bool _legacyPathsEnabled: (function(){ try { return String((typeof globalThis !== 'undefined' && globalThis.PSS_ENABLE_LEGACY_POST_EFFECTS_PATHS) || '').toLowerCase() in ['1','true','yes','on'] } catch(e){ return false } })()
+
+    function shaderPath(key) {
+        return SPH.ShaderProfileHelper.resolveVariant(
+                    key,
+                    useGlesShaders,
+                    false,
+                    desktopShaderSuffixes,
+                    glesShaderSuffixes,
+                    shaderResourceDirectories,
+                    shaderResourceManifest,
+                    shaderResourceExists,
+                    function(name, directory){ return resolvedShaderUrl(name, directory) },
+                    verboseLogging)
+    }
 }

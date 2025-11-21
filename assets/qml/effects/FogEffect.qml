@@ -5,6 +5,7 @@ import QtQuick3D 6.10
 import QtQuick3D.Effects 6.10
 import QtQuick3D.Helpers
 // qmllint enable unused-imports
+import "../components/ShaderProfileHelper.js" as SPH
 
 /*
  * Улучшенный эффект тумана с расширенными настройками
@@ -12,6 +13,36 @@ import QtQuick3D.Helpers
  */
 Effect {
     id: fogEffect
+
+    property bool verboseLogging: false
+    readonly property var shaderMetrics: SPH.ShaderProfileHelper.metricsSnapshot()
+
+    Component.onCompleted: {
+        // Fallback helper shims (если отсутствуют внешние функции)
+        if (typeof resolvedShaderUrl !== 'function') {
+            resolvedShaderUrl = function(name, directory) {
+                var dirStr = String(directory || fogEffect.shaderResourceDirectory)
+                if (dirStr.length && dirStr.charAt(dirStr.length - 1) !== '/' && dirStr.charAt(dirStr.length - 1) !== '\\')
+                    dirStr += '/'
+                return dirStr + name
+            }
+        }
+        if (typeof shaderResourceExists !== 'function') {
+            shaderResourceExists = function(url, resourceName, suppressErrors, manifest) {
+                try {
+                    if (manifest && Object.prototype.hasOwnProperty.call(manifest, resourceName)) {
+                        var entry = manifest[resourceName]
+                        if (entry === false) {
+                            if (!suppressErrors && fogEffect.verboseLogging)
+                                console.warn('⚠️ FogEffect: shader disabled by manifest', resourceName)
+                            return false
+                        }
+                    }
+                } catch (e) {}
+                return true
+            }
+        }
+    }
 
     // Управляемые свойства тумана
     property real fogDensity: 0.1          // Плотность тумана (0.0 - 1.0)
@@ -53,11 +84,8 @@ Effect {
     property bool fallbackDueToCompilation: false
     property string compilationErrorLog: ""
     readonly property bool compilationFallbackActive: fallbackDueToCompilation
-    property var activePassShaders: {
-        var _ = _depthInitializationComplete
-        return []
-    }
     property bool _usingFallbackPassConfiguration: false
+    property bool _cacheResetScheduled: false // Флаг для предотвращения многократного планирования сброса кэша
 
     onDepthTextureAvailableChanged: {
         fallbackDueToDepth = !depthTextureAvailable
@@ -65,7 +93,6 @@ Effect {
     }
 
     onForceDepthTextureUnavailableChanged: {
-        // Переинициализация флага доступности глубины при изменении форсированного состояния
         if (!_depthInitializationStarted) return
         if (!forceDepthTextureUnavailable) {
             depthTextureAvailable = (GraphicsInfo.api === GraphicsInfo.OpenGL) || preferDesktopShaderProfile
@@ -108,412 +135,126 @@ Effect {
     // qmllint disable unqualified
     property bool forceDesktopShaderProfile: false
     property bool forceGlesShaderProfile: false
-    property var shaderProfileFailoverAttempts: ({})
-    onForceDesktopShaderProfileChanged: {
-        if (forceDesktopShaderProfile && forceGlesShaderProfile) {
-            console.assert(false,
-                "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
-            console.warn("⚠️ FogEffect: disabling forceGlesShaderProfile to honour desktop override")
-            forceGlesShaderProfile = false
-        }
-        if (forceDesktopShaderProfile)
-            console.warn("⚠️ FogEffect: desktop shader profile override enabled (preferring GLSL 450 resources)")
-        else
-            console.log("ℹ️ FogEffect: desktop shader profile override cleared; reverting to auto detection")
-        shaderVariantSelectionCache = ({})
-        scheduleShaderCacheReset()
-    }
-    onForceGlesShaderProfileChanged: {
-        if (forceDesktopShaderProfile && forceGlesShaderProfile) {
-            console.assert(false,
-                "FogEffect: forceDesktopShaderProfile and forceGlesShaderProfile cannot both be true")
-            console.warn("⚠️ FogEffect: disabling forceDesktopShaderProfile to honour GLES override")
-            forceDesktopShaderProfile = false
-        }
-        if (forceGlesShaderProfile)
-            console.warn("⚠️ FogEffect: GLES shader profile override enabled (preferring GLSL 300 es resources)")
-        else
-            console.log("ℹ️ FogEffect: GLES shader profile override cleared; reverting to auto detection")
-        shaderVariantSelectionCache = ({})
-        scheduleShaderCacheReset()
-    }
     property bool preferUnifiedShaderSources: false
 
-    readonly property bool preferDesktopShaderProfile: {
-        if (forceGlesShaderProfile)
-            return false
-        if (forceDesktopShaderProfile)
-            return true
-        var normalized = normalizedRendererGraphicsApi
-        if (normalized.length) {
-            var normalizedCondensed = normalized.replace(/[\s_-]+/g, "")
-            var normalizedWithSpaces = normalized.replace(/[_-]+/g, " ")
-            if (normalized.indexOf("angle") !== -1)
-                return false
-            if (normalizedWithSpaces.indexOf("opengl es") !== -1
-                    || normalizedCondensed.indexOf("opengles") !== -1
-                    || normalizedCondensed.indexOf("gles") !== -1)
-                return false
-        }
-        try {
-            if (typeof qtGraphicsApiRequiresDesktopShaders === "boolean")
-                return qtGraphicsApiRequiresDesktopShaders
-        } catch (error) {
-        }
-        if (GraphicsInfo.api === GraphicsInfo.Direct3D11 && reportedGlesContext)
-            return false
-        if (!reportedGlesContext && GraphicsInfo.api === GraphicsInfo.OpenGL)
-            return true
-        return GraphicsInfo.api === GraphicsInfo.Direct3D11
-                || GraphicsInfo.api === GraphicsInfo.Vulkan
-                || GraphicsInfo.api === GraphicsInfo.Metal
-                || GraphicsInfo.api === GraphicsInfo.Null
-    }
-    readonly property string rendererGraphicsApi: {
-        try {
-            if (typeof qtGraphicsApiName === "string")
-                return qtGraphicsApiName
-        } catch (error) {
-        }
-        switch (GraphicsInfo.api) {
-        case GraphicsInfo.OpenGL:
-            return "opengl"
-        case GraphicsInfo.Direct3D11:
-            return "direct3d11"
-        case GraphicsInfo.Vulkan:
-            return "vulkan"
-        case GraphicsInfo.Metal:
-            return "metal"
-        case GraphicsInfo.Software:
-            return "software"
-        default:
-            return "unknown"
-        }
-    }
     readonly property string normalizedRendererGraphicsApi: {
         var apiName = rendererGraphicsApi
-        if (!apiName || typeof apiName !== "string")
-            return ""
+        if (!apiName || typeof apiName !== 'string') return ''
         return apiName.trim().toLowerCase()
     }
-    property bool compatibilityFallbackLogged: false
-    readonly property string openGlVersionLabel: {
-        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
-            return ""
-        var major = Number(GraphicsInfo.majorVersion)
-        if (!isFinite(major) || major <= 0)
-            return ""
-        var minorValue = Number(GraphicsInfo.minorVersion)
-        var minor = isFinite(minorValue) && minorValue >= 0 ? minorValue : 0
-        return major + "." + minor
-    }
-    readonly property bool enforceLegacyFallbackShaders: {
-        if (GraphicsInfo.api !== GraphicsInfo.OpenGL)
-            return false
-        var major = Number(GraphicsInfo.majorVersion)
-        if (!isFinite(major) || major <= 0)
-            return false
-        if (major < 3)
-            return true
-        if (major === 3) {
-            var minorValue = Number(GraphicsInfo.minorVersion)
-            if (!isFinite(minorValue))
-                return false
-            return minorValue <= 3
-        }
-        return false
-    }
-    readonly property string compatibilityFallbackMessage: enforceLegacyFallbackShaders
-            ? qsTr("FogEffect: forcing GLSL 330 fallback shader for OpenGL %1")
-                .arg(openGlVersionLabel.length ? openGlVersionLabel : "3.3")
-            : ""
-    readonly property bool reportedGlesContext: {
-        if (forceDesktopShaderProfile)
-            return false
-        // qmllint disable missing-property
-        try {
-            if (GraphicsInfo.renderableType === GraphicsInfo.OpenGLES)
-                return true
-        } catch (error) {
-        }
-        // qmllint enable missing-property
-        try {
-            var normalized = normalizedRendererGraphicsApi
-            if (!normalized.length)
-                return false
-            var normalizedCondensed = normalized.replace(/[\s_-]+/g, "")
-            var normalizedWithSpaces = normalized.replace(/[_-]+/g, " ")
-            if (normalized.indexOf("rhi") !== -1
-                    && normalized.indexOf("opengl") !== -1
-                    && normalizedCondensed.indexOf("gles") === -1)
-                return false
-            if (normalizedWithSpaces.indexOf("opengl es") !== -1)
-                return true
-            if (normalizedCondensed.indexOf("opengles") !== -1)
-                return true
-            if (normalizedCondensed.indexOf("gles") !== -1)
-                return true
-            if (GraphicsInfo.api === GraphicsInfo.Direct3D11
-                    && normalized.indexOf("angle") !== -1)
-                return true
-        } catch (error) {
-        }
-        return false
-    }
-    // qmllint enable unqualified
-    readonly property bool useGlesShaders: {
-        if (forceDesktopShaderProfile)
-            return false
-        if (forceGlesShaderProfile)
-            return true
-        return !preferDesktopShaderProfile
-    }
 
-    readonly property url shaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
-    readonly property url legacyShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
-    readonly property url glesShaderResourceDirectory: Qt.resolvedUrl("../../shaders/effects/")
-    readonly property url shaderRootUrl: Qt.resolvedUrl("../../shaders/")
-    // qmllint disable unqualified
-    readonly property var shaderResourceManifest: typeof effectShaderManifest !== "undefined"
-            ? effectShaderManifest
-            : ({})
-    // qmllint enable unqualified
-    readonly property var desktopShaderSuffixes: ["_glsl450", "_desktop", "_core"]
-    readonly property var glesShaderSuffixes: ["_es", "_gles", "_300es"]
-    readonly property var shaderResourceDirectories: {
-        var directories = []
-        function appendDirectory(path) {
-            if (!path || !path.length)
-                return
-            if (directories.indexOf(path) !== -1)
-                return
-            directories.push(path)
-        }
-        if (useGlesShaders) {
-            appendDirectory(glesShaderResourceDirectory)
-            appendDirectory(shaderResourceDirectory)
-        } else {
-            appendDirectory(shaderResourceDirectory)
-            appendDirectory(glesShaderResourceDirectory)
-        }
-        appendDirectory(legacyShaderResourceDirectory)
-        return directories
-    }
-    property var shaderResourceAvailabilityCache: ({})
-    property var shaderSanitizationCache: ({})
-    property var shaderSanitizationWarnings: ({})
-    property var shaderVariantSelectionCache: ({})
-    property var shaderVariantMissingWarnings: ({})
-    property var shaderStatusCache: ({})
+    readonly property bool preferDesktopShaderProfile: SPH.ShaderProfileHelper.preferDesktopProfile(forceDesktopShaderProfile, forceGlesShaderProfile, normalizedRendererGraphicsApi, reportedGlesContext, (function(){ try { return qtGraphicsApiRequiresDesktopShaders } catch(e){ return undefined } })(), GraphicsInfo)
+    readonly property bool useGlesShaders: !preferDesktopShaderProfile
 
-    onUseGlesShadersChanged: {
-        console.log("🎚️ FogEffect: shader profile toggled ->", useGlesShaders
-                ? "OpenGL ES (GLSL 300 es)"
-                : "Desktop (GLSL 450 core)")
+    onForceDesktopShaderProfileChanged: {
+        SPH.ShaderProfileHelper.markProfileSwitch()
         shaderVariantSelectionCache = ({})
         scheduleShaderCacheReset()
+        if (verboseLogging) console.log('[FogEffect] profile override desktop=', forceDesktopShaderProfile)
     }
-
-    function resolvedShaderUrl(resourceName, resourceDirectory) {
-        var baseDirectory = resourceDirectory && resourceDirectory.length
-                ? resourceDirectory
-                : (useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory)
-        return Qt.resolvedUrl(baseDirectory + resourceName)
+    onForceGlesShaderProfileChanged: {
+        SPH.ShaderProfileHelper.markProfileSwitch()
+        shaderVariantSelectionCache = ({})
+        scheduleShaderCacheReset()
+        if (verboseLogging) console.log('[FogEffect] profile override gles=', forceGlesShaderProfile)
     }
-
-    function shaderResourceExists(url, resourceName, suppressErrors) {
-        if (!url)
-            return false
-
-        var normalizedUrl = url
-        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
-            try {
-                if (typeof normalizedUrl.toString === "function")
-                    normalizedUrl = normalizedUrl.toString()
-            } catch (error) {
-            }
-        }
-
-        if (!normalizedUrl || !normalizedUrl.length)
-            return false
-
-        if (Object.prototype.hasOwnProperty.call(shaderResourceAvailabilityCache, normalizedUrl))
-            return shaderResourceAvailabilityCache[normalizedUrl]
-
-        var available = false
-
-        var manifestEntry
-        var manifestHasEntry = false
-        var manifestEnabled = true
-        var manifestPaths = []
-        var normalizedUrlPath = ""
-        var matchesManifestPath = false
-        if (resourceName && Object.prototype.hasOwnProperty.call(shaderResourceManifest, resourceName)) {
-            manifestEntry = shaderResourceManifest[resourceName]
-            manifestHasEntry = true
-            if (typeof manifestEntry === "boolean") {
-                manifestEnabled = manifestEntry
-            } else if (manifestEntry === null || manifestEntry === undefined) {
-                manifestEnabled = false
-            } else if (typeof manifestEntry === "string") {
-                manifestPaths.push(manifestEntry)
-            } else if (typeof manifestEntry === "object") {
-                if (Object.prototype.hasOwnProperty.call(manifestEntry, "enabled"))
-                    manifestEnabled = manifestEntry.enabled !== false
-                if (Object.prototype.hasOwnProperty.call(manifestEntry, "path")) {
-                    var manifestPath = manifestEntry.path
-                    if (manifestPath && typeof manifestPath === "string")
-                        manifestPaths.push(manifestPath)
-                }
-                if (Object.prototype.hasOwnProperty.call(manifestEntry, "paths") && manifestEntry.paths) {
-                    var manifestPathList = manifestEntry.paths
-                    for (var mpIdx = 0; mpIdx < manifestPathList.length; ++mpIdx) {
-                        var manifestPathCandidate = manifestPathList[mpIdx]
-                        if (!manifestPathCandidate || typeof manifestPathCandidate !== "string")
-                            continue
-                        if (manifestPaths.indexOf(manifestPathCandidate) === -1)
-                            manifestPaths.push(manifestPathCandidate)
-                    }
-                }
-            }
-            if (!manifestEnabled) {
-                shaderResourceAvailabilityCache[normalizedUrl] = false
-                if (!suppressErrors)
-                    console.error("❌ FogEffect: shader resource disabled by manifest", resourceName, normalizedUrl)
-                return false
-            }
-            normalizedUrlPath = String(normalizedUrl).replace(/\\/g, "/")
-        }
-
-        if (manifestHasEntry && manifestEnabled) {
-            var shaderRootHint = shaderRootUrl
-
-            function manifestPathMatches(manifestPathEntry) {
-                if (!manifestPathEntry)
-                    return false
-
-                var normalizedEntry = String(manifestPathEntry).replace(/\\/g, "/")
-                if (!normalizedEntry.length)
-                    return false
-
-                if (normalizedUrlPath.endsWith(normalizedEntry))
-                    return true
-
-                var trimmedEntry = normalizedEntry.replace(/^\/+/, "")
-                if (!trimmedEntry.length)
-                    return false
-
-                if (normalizedUrlPath.endsWith("/" + trimmedEntry))
-                    return true
-
-                var shaderRootIndex = normalizedUrlPath.indexOf(shaderRootHint)
-                if (shaderRootIndex !== -1) {
-                    var relativeUrlPath = normalizedUrlPath.slice(shaderRootIndex + shaderRootHint.length)
-                    if (relativeUrlPath === trimmedEntry)
-                        return true
-                }
-
-                return false
-            }
-
-            matchesManifestPath = manifestPaths.length === 0
-            if (!matchesManifestPath) {
-                for (var pathIdx = 0; pathIdx < manifestPaths.length; ++pathIdx) {
-                    if (manifestPathMatches(manifestPaths[pathIdx])) {
-                        matchesManifestPath = true
-                        break
-                    }
-                }
-            }
-
-            if (matchesManifestPath && manifestPaths.length > 0) {
-                shaderResourceAvailabilityCache[normalizedUrl] = true
-                return true
-            }
-        }
-
-        function checkAvailability(method) {
-            try {
-                var xhr = new XMLHttpRequest()
-                xhr.open(method, normalizedUrl, false)
-                xhr.send()
-                if (xhr.status === 200 || xhr.status === 0) {
-                    available = true
-                    return true
-                }
-                if (xhr.status === 405 || xhr.status === 501)
-                    return false
-            } catch (error) {
-                console.debug("FogEffect: shader availability check failed", resourceName, method, error)
-            }
-            return false
-        }
-
-        if (!checkAvailability("HEAD"))
-            checkAvailability("GET")
-
-        if (available) {
-            shaderResourceAvailabilityCache[normalizedUrl] = true
-            return true
-        }
-
-        if (manifestHasEntry && manifestEnabled) {
-            if (matchesManifestPath) {
-                shaderResourceAvailabilityCache[normalizedUrl] = false
-                if (!suppressErrors)
-                    console.error("❌ FogEffect: shader manifest mismatch", resourceName, normalizedUrl)
-                return false
-            }
-            shaderResourceAvailabilityCache[normalizedUrl] = false
-            if (!suppressErrors)
-                console.error("❌ FogEffect: shader resource missing", resourceName, normalizedUrl)
-            return false
-        }
-
-        shaderResourceAvailabilityCache[normalizedUrl] = false
-        if (!suppressErrors)
-            console.error("❌ FogEffect: shader resource missing", resourceName, normalizedUrl)
-
-        return false
-    }
-
-    function shaderVariantCandidateNames(baseName, extension, suffixes, normalizedName) {
-        var candidates = []
-        var effectiveSuffixes = suffixes || []
-        for (var sIdx = 0; sIdx < effectiveSuffixes.length; ++sIdx) {
-            var suffix = effectiveSuffixes[sIdx]
-            if (!suffix || !suffix.length)
-                continue
-            var candidateName = baseName + suffix + extension
-            if (candidates.indexOf(candidateName) === -1)
-                candidates.push(candidateName)
-        }
-        var normalizedCandidate = normalizedName && normalizedName.length
-                ? normalizedName
-                : baseName + extension
-        if (candidates.indexOf(normalizedCandidate) === -1)
-            candidates.push(normalizedCandidate)
-        return candidates
+    onUseGlesShadersChanged: {
+        SPH.ShaderProfileHelper.markProfileSwitch()
+        shaderVariantSelectionCache = ({})
+        scheduleShaderCacheReset()
+        if (verboseLogging) console.log('[FogEffect] useGlesShaders ->', useGlesShaders)
     }
 
     function shaderPath(fileName) {
+        return SPH.ShaderProfileHelper.resolveVariant(
+                    fileName,
+                    useGlesShaders,
+                    preferUnifiedShaderSources,
+                    desktopShaderSuffixes,
+                    glesShaderSuffixes,
+                    shaderResourceDirectories,
+                    shaderResourceManifest,
+                    shaderResourceExists,
+                    function(name, directory){ return resolvedShaderUrl(name, directory) },
+                    verboseLogging)
+    }
+
+    function resetShaderCaches() {
+        shaderResourceAvailabilityCache = ({})
+        shaderSanitizationCache = ({})
+        shaderSanitizationWarnings = ({})
+        shaderVariantSelectionCache = ({})
+        shaderVariantMissingWarnings = ({})
+        _shaderVariantCache = ({})
+        _shaderVariantCacheKeys = []
+        _cacheResetScheduled = false
+        SPH.ShaderProfileHelper.resetCaches()
+        rebindShaders()
+        if (verboseLogging) console.log('[FogEffect] caches reset; metrics=', JSON.stringify(shaderMetrics))
+    }
+    // Canonical shader path map (migration finalized: only effects/)
+    readonly property var _shaderCanonicalMap: ({
+        fogVert: "effects/fog.vert",
+        fogFrag: "effects/fog.frag",
+        fogFragFallback: "effects/fog_fallback.frag"
+    })
+    readonly property bool _legacyPathsEnabled: {
+        try { return String(Qt.binding(function(){ return typeof pssEnableLegacyPaths !== 'undefined' && pssEnableLegacyPaths })).toLowerCase() in ['1','true','yes','on'] } catch(e) { }
+        try { return String((typeof globalThis !== 'undefined' && globalThis.PSS_ENABLE_LEGACY_POST_EFFECTS_PATHS) || "").toLowerCase() in ['1','true','yes','on'] } catch(e) { }
+        return false
+    }
+
+    function _logManifestMismatchIfNeeded(actual) {
+        if (_legacyPathsEnabled) {
+            var expected = String(actual).replace('effects/', 'post_effects/')
+            if (expected !== actual) {
+                console.warn('ℹ️ FogEffect: legacy path accepted', expected, '→', actual)
+            }
+            return
+        }
+        // Legacy disabled: no mismatch warnings
+    }
+
+    // Rename simple canonical resolver to avoid shadowing advanced variant resolver
+    function _canonicalShaderPath(key) {
+        var map = _shaderCanonicalMap
+        var resolved = map[key] || key
+        _logManifestMismatchIfNeeded(resolved)
+        return Qt.resolvedUrl('../../shaders/' + resolved)
+    }
+    // Remove legacy simple sanitizedShaderUrl with XHR (single non-blocking version retained above)
+    // LRU cache for variant resolution
+    property var _shaderVariantCache: ({})
+    property var _shaderVariantCacheKeys: []
+    readonly property int _shaderVariantCacheLimit: 32
+    function _cacheShaderVariant(name, url) {
+        if (!name || !url) return
+        if (!_shaderVariantCache[name]) {
+            _shaderVariantCache[name] = url
+            _shaderVariantCacheKeys.push(name)
+            if (_shaderVariantCacheKeys.length > _shaderVariantCacheLimit) {
+                var evicted = _shaderVariantCacheKeys.shift()
+                delete _shaderVariantCache[evicted]
+            }
+        }
+    }
+    // Advanced variant selector (kept, but now uses cache and canonical path function for base)
+    function shaderPath(fileName) {
         if (!fileName || typeof fileName !== "string")
             return ""
-
+        if (_shaderVariantCache[fileName])
+            return _shaderVariantCache[fileName]
         var normalized = String(fileName)
-        var dotIndex = normalized.lastIndexOf(".")
+        var dotIndex = normalized.lastIndexOf('.')
         var baseName = dotIndex >= 0 ? normalized.slice(0, dotIndex) : normalized
-        var extension = dotIndex >= 0 ? normalized.slice(dotIndex) : ""
+        var extension = dotIndex >= 0 ? normalized.slice(dotIndex) : ''
         var candidateSuffixes = []
         if (!preferUnifiedShaderSources)
             candidateSuffixes = useGlesShaders ? glesShaderSuffixes : desktopShaderSuffixes
-
         var candidateNames = shaderVariantCandidateNames(baseName, extension, candidateSuffixes, normalized)
-
         var directories = shaderResourceDirectories
         if (!directories || !directories.length)
             directories = [useGlesShaders ? glesShaderResourceDirectory : shaderResourceDirectory]
-
         var selectedName = normalized
         var selectedUrl = resolvedShaderUrl(normalized, directories[0])
         var found = false
@@ -532,399 +273,154 @@ Effect {
                     break
                 }
             }
-            if (candidateFound)
-                break
+            if (candidateFound) break
             if (useGlesShaders && candidateName !== normalized) {
                 if (!Object.prototype.hasOwnProperty.call(shaderVariantMissingWarnings, candidateName)) {
                     shaderVariantMissingWarnings[candidateName] = true
-                    console.warn(`⚠️ FogEffect: GLES shader variant '${candidateName}' not found; using compatibility fallback`)
+                    console.warn("⚠️ FogEffect: GLES shader variant missing; using fallback", candidateName)
                 }
             }
         }
-
-        var glesVariantList = []
-        if (useGlesShaders)
-            glesVariantList = candidateNames.slice(0, Math.max(candidateNames.length - 1, 0))
-        var fallbackCandidateNames = []
-        if (useGlesShaders && !preferUnifiedShaderSources && glesVariantList.length > 0) {
-            var needsFallback = !found || selectedName === normalized
-            if (needsFallback) {
-                var fallbackBaseName = baseName.endsWith("_fallback") ? baseName : baseName + "_fallback"
-                fallbackCandidateNames = shaderVariantCandidateNames(
-                            fallbackBaseName,
-                            extension,
-                            glesShaderSuffixes,
-                            fallbackBaseName + extension)
-
-                if (!found)
-                    console.warn("⚠️ FogEffect: GLES shader variants missing; пытаемся использовать запасной вариант", glesVariantList)
-                else
-                    console.warn("⚠️ FogEffect: Не удалось разрешить вариант шейдера GLES; используется запасной вариант", glesVariantList)
-
-                var fallbackResolved = false
-                for (var candidateIndex = 0; candidateIndex < fallbackCandidateNames.length && !fallbackResolved; ++candidateIndex) {
-                    var fallbackName = fallbackCandidateNames[candidateIndex]
-                    for (var fbDirIdx = 0; fbDirIdx < directories.length && !fallbackResolved; ++fbDirIdx) {
-                        var fallbackUrl = resolvedShaderUrl(fallbackName, directories[fbDirIdx])
-                        if (shaderResourceExists(fallbackUrl, fallbackName, false)) {
-                            selectedName = fallbackName
-                            selectedUrl = fallbackUrl
-                            fallbackResolved = true
-                            console.warn("⚠️ FogEffect: выбран шейдер резервирования GLES", fallbackName)
-                        }
-                    }
-                }
-
-                if (fallbackResolved) {
-                    found = true
-                } else if (!found) {
-                    requestDesktopShaderProfile(`Шейдер ${normalized} не имеет вариантов GLES (${glesVariantList.join(", ")}); принудительно устанавливаем десктопный профиль`)
-                }
+        _cacheShaderVariant(fileName, sanitizedShaderUrl(selectedUrl, selectedName))
+        if (!found) {
+            // Attempt fallback variants only once
+            if (useGlesShaders) {
+                requestDesktopShaderProfile("Variants not found for " + normalized)
             }
         }
-
         var previousSelection = shaderVariantSelectionCache[normalized]
         if (previousSelection !== selectedName) {
             shaderVariantSelectionCache[normalized] = selectedName
             var profileLabel = useGlesShaders ? "OpenGL ES" : "Desktop"
-            console.log(`🌐 FogEffect: разрешён ${profileLabel} шейдер '${normalized}' -> '${selectedName}'`)
+            console.log(`🌐 FogEffect: resolved ${profileLabel} shader '${normalized}' -> '${selectedName}'`)
         }
-
         return sanitizedShaderUrl(selectedUrl, selectedName)
     }
-
-    // Для профиля OpenGL ES поставляются отдельные GLSL-файлы с суффиксом _es,
-    // содержащие корректную директиву #version 300 es. Свойство
-    // preferUnifiedShaderSources можно использовать для диагностики, чтобы
-    // принудительно задействовать единый файл, но по умолчанию мы выбираем
-    // специализированные GLES-варианты и избегаем ошибок компиляции из-за
-    // неподдерживаемого профиля #version.
-
-    function scheduleShaderCacheReset() {
-        Qt.callLater(function() {
-            shaderResourceAvailabilityCache = ({})
-            shaderSanitizationCache = ({})
-            shaderSanitizationWarnings = ({})
-            shaderVariantSelectionCache = ({})
-            shaderVariantMissingWarnings = ({})
-        })
+    // Unified sanitizedShaderUrl (non-blocking, no XHR)
+    function sanitizedShaderUrl(url, resourceName) {
+        if (!url) return url
+        var normalizedUrl = String(url)
+        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, normalizedUrl))
+            return shaderSanitizationCache[normalizedUrl]
+        shaderSanitizationCache[normalizedUrl] = normalizedUrl
+        return normalizedUrl
+    }
+    // Rebind shaders explicitly after profile failover
+    function rebindShaders() {
+        if (!fogVertexShader || !fogFragmentShader || !fogFallbackShader) return
+        fogVertexShader.shader = shaderPath('fog.vert')
+        fogFragmentShader.shader = shaderPath('fog.frag')
+        fogFallbackShader.shader = shaderPath('fog_fallback.frag')
+    }
+    function resetPasses() {
+        rebindShaders()
+        refreshPassConfiguration()
     }
 
+    // Централизованный сброс кэшей
+    function resetShaderCaches() {
+        shaderResourceAvailabilityCache = ({})
+        shaderSanitizationCache = ({})
+        shaderSanitizationWarnings = ({})
+        shaderVariantSelectionCache = ({})
+        shaderVariantMissingWarnings = ({})
+        _shaderVariantCache = ({})
+        _shaderVariantCacheKeys = []
+        _cacheResetScheduled = false
+        SPH.ShaderProfileHelper.resetCaches()
+        rebindShaders()
+        if (verboseLogging) console.log('[FogEffect] caches reset; metrics=', JSON.stringify(shaderMetrics))
+    }
+    function scheduleShaderCacheReset() {
+        if (_cacheResetScheduled) return
+        _cacheResetScheduled = true
+        Qt.callLater(function() { resetShaderCaches() })
+    }
     function requestDesktopShaderProfile(reason) {
-        if (forceDesktopShaderProfile)
-            return
-        console.warn("⚠️ FogEffect:", reason, "– принудительное использование десктопного шейдерного профиля")
-        if (forceGlesShaderProfile)
-            forceGlesShaderProfile = false
+        if (forceDesktopShaderProfile) return
+        console.warn('⚠️ FogEffect:', reason, '– desktop profile forced')
+        if (forceGlesShaderProfile) forceGlesShaderProfile = false
         forceDesktopShaderProfile = true
         scheduleShaderCacheReset()
     }
-
     function requestGlesShaderProfile(reason) {
-        if (forceGlesShaderProfile)
-            return
-        console.warn("⚠️ FogEffect:", reason, "– принудительное использование GLES шейдерного профиля")
-        if (forceDesktopShaderProfile)
-            forceDesktopShaderProfile = false
+        if (forceGlesShaderProfile) return
+        console.warn('⚠️ FogEffect:', reason, '– GLES profile forced')
+        if (forceDesktopShaderProfile) forceDesktopShaderProfile = false
         forceGlesShaderProfile = true
         scheduleShaderCacheReset()
     }
 
-    /**
-     * Проверяет содержимое шейдера на предмет несовместимых префиксов (CRLF,
-     * BOM, лидирующие пробелы) и логирует предупреждение при обнаружении.
-     * В отличие от предыдущей реализации больше не создаёт Blob/data URL,
-     * поскольку Qt RHI не принимает такие схемы. Шейдер по-прежнему
-     * загружается по исходному URL.
-     * @param url {string} - исходный URL
-     * @param resourceName {string} - имя ресурса (для логирования)
-     * @returns {string} исходный URL (для совместимости биндингов)
-     */
-    // qmllint disable unqualified
-    function sanitizedShaderUrl(url, resourceName) {
-        if (!url)
-            return url
-
-        var normalizedUrl = url
-        if (typeof normalizedUrl === "object" && normalizedUrl !== null) {
-            try {
-                if (typeof normalizedUrl.toString === "function")
-                    normalizedUrl = normalizedUrl.toString()
-            } catch (error) {
-            }
-        }
-
-        if (!normalizedUrl || !normalizedUrl.length)
-            return normalizedUrl
-
-        if (Object.prototype.hasOwnProperty.call(shaderSanitizationCache, normalizedUrl))
-            return shaderSanitizationCache[normalizedUrl]
-
-        var sanitizedUrl = normalizedUrl
-        var sanitizationApplied = false
-
-        try {
-            var xhr = new XMLHttpRequest()
-            xhr.open("GET", normalizedUrl, false)
-            xhr.responseType = "text"
-            xhr.send()
-            if (xhr.status === 200 || xhr.status === 0) {
-                var shaderSource = xhr.responseText
-                if (shaderSource) {
-                    var normalized = shaderSource
-                    var mutated = false
-
-                    if (normalized.indexOf("\r") !== -1) {
-                        normalized = normalized.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
-                        mutated = true
-                    }
-
-                    if (normalized.length && normalized.charCodeAt(0) === 0xFEFF) {
-                        normalized = normalized.slice(1)
-                        mutated = true
-                    }
-
-                    var leadingWhitespaceMatch = normalized.match(/^[\s]+/)
-                    if (leadingWhitespaceMatch && leadingWhitespaceMatch[0].length) {
-                        normalized = normalized.slice(leadingWhitespaceMatch[0].length)
-                        mutated = true
-                    }
-
-                    if (mutated && normalized !== shaderSource) {
-                        var cacheKey = resourceName || normalizedUrl
-                        if (!Object.prototype.hasOwnProperty.call(shaderSanitizationWarnings, cacheKey)) {
-                            console.warn(
-                                        "⚠️ FogEffect: shader", resourceName,
-                                        "содержит несовместимые префиксы (лидирующие пробелы и т.п.); пожалуйста, проверьте исходный файл")
-                            shaderSanitizationWarnings[cacheKey] = true
-                        }
-                        sanitizationApplied = true
-                    }
-                }
-            }
-        } catch (error) {
-            console.debug("FogEffect: shader normalization skipped", resourceName, error)
-        }
-
-        shaderSanitizationCache[normalizedUrl] = sanitizedUrl
-        if (sanitizationApplied)
-            shaderSanitizationCache[normalizedUrl] = normalizedUrl
-        return sanitizedUrl
-
-    }
-    // qmllint enable unqualified
-
-    function handleShaderCompilationLog(shaderId, message) {
-        if (!message || !message.length)
-            return
-        var normalized = String(message).toLowerCase()
-        if (normalized.indexOf("#version") === -1)
-            return
-        if (normalized.indexOf("profile") === -1 && normalized.indexOf("expected newline") === -1)
-            return
-        var history = shaderProfileFailoverAttempts[shaderId]
-        if (!history) {
-            history = ({ requestedDesktop: false, requestedGles: false, exhausted: false })
-            shaderProfileFailoverAttempts[shaderId] = history
-        }
-
-        if (history.exhausted)
-            return
-
-        if (useGlesShaders) {
-            if (history.requestedDesktop) {
-                history.exhausted = true
-                shaderProfileFailoverAttempts[shaderId] = history
-                console.error(`FogEffect: shader ${shaderId} failed under both profiles; leaving GLES active`)
-                return
-            }
-            history.requestedDesktop = true
-            shaderProfileFailoverAttempts[shaderId] = history
-            requestDesktopShaderProfile(
-                        `Shader ${shaderId} reported #version incompatibility while using GLES profile`)
-        } else {
-            if (history.requestedGles) {
-                history.exhausted = true
-                shaderProfileFailoverAttempts[shaderId] = history
-                console.error(`FogEffect: shader ${shaderId} failed under both profiles; leaving desktop active`)
-                return
-            }
-            history.requestedGles = true
-            shaderProfileFailoverAttempts[shaderId] = history
-            requestGlesShaderProfile(
-                        `Shader ${shaderId} reported #version incompatibility while using desktop profile`)
-        }
-    }
-
-    function shaderCompilationMessage(shaderItem) {
-        if (!shaderItem)
-            return ""
-        try {
-            if ("log" in shaderItem && shaderItem.log)
-                return shaderItem.log
-        } catch (error) {
-        }
-        try {
-            if ("compilationLog" in shaderItem && shaderItem.compilationLog)
-                return shaderItem.compilationLog
-        } catch (error) {
-        }
-        return ""
-    }
-
-    function attachShaderLogHandler(shaderItem, shaderId) {
-        if (!shaderItem)
-            return false
-        function emitLog() {
-            fogEffect.handleShaderCompilationLog(shaderId, shaderCompilationMessage(shaderItem))
-        }
-        try {
-            if (typeof shaderItem.logChanged === "function") {
-                shaderItem.logChanged.connect(emitLog)
-                emitLog()
-                return true
-            }
-        } catch (error) {
-        }
-        try {
-            if (typeof shaderItem.compilationLogChanged === "function") {
-                shaderItem.compilationLogChanged.connect(emitLog)
-                emitLog()
-                return true
-            }
-        } catch (error) {
-        }
-        return false
-    }
-
-    function updateFallbackActivation() {
-        var compatibilityFallback = enforceLegacyFallbackShaders
-        var shouldFallback = fallbackDueToDepth || fallbackDueToCompilation || compatibilityFallback
-        var reason = ""
-        if (fallbackDueToDepth) {
-            reason = forceDepthTextureUnavailable
-                    ? qsTr("Depth texture support forcibly disabled; using fallback shader")
-                    : qsTr("Depth texture unavailable; using fallback shader")
-        } else if (fallbackDueToCompilation) {
-            reason = compilationErrorLog && compilationErrorLog.length
-                    ? compilationErrorLog
-                    : qsTr("Fog shader compilation failed; fallback shader active")
-        }
-        if (compatibilityFallback) {
-            var compatibilityMessage = compatibilityFallbackMessage.length
-                    ? compatibilityFallbackMessage
-                    : qsTr("FogEffect: forcing GLSL 330 fallback shader for legacy OpenGL profile")
-            if (reason.length && compatibilityMessage.length)
-                reason = reason + " | " + compatibilityMessage
-            else if (compatibilityMessage.length)
-                reason = compatibilityMessage
-            if (!compatibilityFallbackLogged && compatibilityMessage.length) {
-                console.warn("⚠️ FogEffect:", compatibilityMessage)
-                compatibilityFallbackLogged = true
-            }
-        }
-        if (fallbackReason !== reason)
-            fallbackReason = reason
-        if (fallbackActive !== shouldFallback)
-            fallbackActive = shouldFallback
-        else
-            refreshPassConfiguration()
-    }
-
-    function setCompilationFallbackState(active, message) {
-        var normalizedMessage = active && message ? String(message) : ""
-        var previouslyActive = fallbackDueToCompilation
-        fallbackDueToCompilation = !!active
-        compilationErrorLog = fallbackDueToCompilation ? normalizedMessage : ""
-        updateFallbackActivation()
-        if (fallbackDueToCompilation && !previouslyActive) {
-            var logMessage = normalizedMessage.length
-                    ? normalizedMessage
-                    : qsTr("Fog shader compilation failed; fallback shader active")
-            console.warn("⚠️ FogEffect: shader compilation error detected ->", logMessage)
-        } else if (!fallbackDueToCompilation && previouslyActive) {
-            console.log("✅ FogEffect: shader compilation recovered; attempting primary shader rebuild")
-        }
-    }
+    // Активные шейдеры прохода (единственное объявление)
+    property var activePassShaders: []
 
     function refreshPassConfiguration() {
         var useFallback = fallbackActive || !depthTextureAvailable
-        var newShaders = useFallback
-                ? [fogVertexShader, fogFallbackShader]
-                : [fogVertexShader, fogFragmentShader]
+        var newShaders = useFallback ? [fogVertexShader, fogFallbackShader] : [fogVertexShader, fogFragmentShader]
         if (_usingFallbackPassConfiguration !== useFallback) {
-            var transitionMessage = fallbackReason && fallbackReason.length
-                    ? fallbackReason
-                    : (useFallback
-                        ? (fallbackDueToCompilation
-                            ? qsTr("Fog shader compilation failed; fallback pass engaged")
-                            : qsTr("Depth texture unavailable; используя запасной шейдер для тумана"))
-                        : qsTr("Primary fog shader path restored"))
-            if (useFallback)
-                console.warn("⚠️ FogEffect: switching passes to fallback shader ->", transitionMessage)
-            else
-                console.log("✅ FogEffect: fallback shader pass released; primary pipeline active")
+            var msg = useFallback ? (fallbackReason || 'Fallback engaged') : 'Primary pipeline active'
+            if (useFallback) console.warn('⚠️ FogEffect: switching passes ->', msg)
+            else console.log('✅ FogEffect:', msg)
             _usingFallbackPassConfiguration = useFallback
         }
-        activePassShaders = newShaders
+        // Избегаем лишних присваиваний
+        if (activePassShaders !== newShaders)
+            activePassShaders = newShaders
     }
 
-    function handleShaderStatusChange(shaderItem, shaderId) {
-        if (!shaderItem)
+    // Актуализация fallbackActive по агрегированным причинам
+    function updateFallbackActivation() {
+        var shouldBeActive = fallbackDueToDepth || fallbackDueToCompilation
+        if (fallbackActive === shouldBeActive)
             return
-        var status
+        if (shouldBeActive && !fallbackReason.length) {
+            if (fallbackDueToCompilation)
+                fallbackReason = qsTr('Shader compilation failed')
+            else if (fallbackDueToDepth)
+                fallbackReason = qsTr('Depth texture unavailable')
+        }
+        fallbackActive = shouldBeActive
+    }
+
+    // Обработчики статуса и логов шейдеров (устойчивость при отсутствии внешнего API)
+    function attachShaderLogHandler(shader, name) {
         try {
-            status = shaderItem.status
-        } catch (error) {
-            console.debug("FogEffect: unable to read shader status", shaderId, error)
-            return
-        }
-
-        var cacheKey = shaderId || "unknown"
-        var cachedStatuses = shaderStatusCache
-        if (cachedStatuses && cachedStatuses[cacheKey] === status)
-            return
-        if (!cachedStatuses || typeof cachedStatuses !== "object")
-            cachedStatuses = ({})
-        cachedStatuses[cacheKey] = status
-        shaderStatusCache = cachedStatuses
-        // qmllint disable missing-property
-        if (shaderItem === fogFragmentShader) {
-            if (status === Shader.Error) {
-                var message = shaderCompilationMessage(shaderItem)
-                if (!message.length)
-                    message = qsTr("FogEffect shader %1 compilation failed").arg(shaderId)
-                console.error("❌ FogEffect:", message)
-                setCompilationFallbackState(true, message)
-            } else if (status === Shader.Ready) {
-                setCompilationFallbackState(false, "")
-            }
-        } else if (shaderItem === fogFallbackShader) {
-            if (status === Shader.Error) {
-                var fallbackMessage = shaderCompilationMessage(shaderItem)
-                if (!fallbackMessage.length)
-                    fallbackMessage = qsTr("FogEffect fallback shader %1 compilation failed").arg(shaderId)
-                console.error("❌ FogEffect:", fallbackMessage)
-            }
-        } else if (shaderItem === fogVertexShader && status === Shader.Error) {
-            var vertexMessage = shaderCompilationMessage(shaderItem)
-            if (!vertexMessage.length)
-                vertexMessage = qsTr("FogEffect shader %1 compilation failed").arg(shaderId)
-            console.error("❌ FogEffect:", vertexMessage)
-        }
-        // qmllint enable missing-property
+            if (!shader || !shader.logChanged) return false
+            shader.logChanged.connect(function() {
+                if (shader.status === Shader.Error) {
+                    compilationErrorLog = shader.log || ''
+                }
+            })
+            return true
+        } catch(e) { return false }
     }
+    function handleShaderStatusChange(shader, name) {
+        try {
+            if (!shader) return
+            shaderStatusCache[name] = shader.status
+            if (shader.status === Shader.Error) {
+                fallbackDueToCompilation = true
+                compilationErrorLog = shader.log || ''
+                fallbackReason = qsTr('Compilation failed for %1').arg(name)
+                updateFallbackActivation()
+            }
+        } catch(e) {}
+    }
+
+    onFallbackActiveChanged: refreshPassConfiguration()
+    onDepthTextureAvailableChanged: refreshPassConfiguration()
 
     Shader {
         id: fogVertexShader
         stage: Shader.Vertex
-        shader: fogEffect.shaderPath("fog.vert")
+        shader: fogEffect.shaderPath('fog.vert')
         Component.onCompleted: {
-            if (!fogEffect.attachShaderLogHandler(fogVertexShader, "fog.vert"))
-                console.debug("FogEffect: shader log handler unavailable for fog.vert")
+            if (!fogEffect.attachShaderLogHandler(fogVertexShader, 'fog.vert'))
+                console.debug('FogEffect: log handler unavailable for fog.vert')
+            fogEffect.handleShaderStatusChange(fogVertexShader, 'fog.vert')
         }
+        onStatusChanged: fogEffect.handleShaderStatusChange(fogVertexShader, 'fog.vert')
     }
-
     Shader {
         id: fogFragmentShader
         stage: Shader.Fragment
@@ -946,82 +442,40 @@ Effect {
         property real userCameraFar: fogEffect.cameraClipFar
         property real userCameraFov: fogEffect.cameraFieldOfView
         property real userCameraAspect: fogEffect.cameraAspectRatio
-        shader: fogEffect.shaderPath("fog.frag")
+        shader: fogEffect.shaderPath('fog.frag')
         Component.onCompleted: {
-            if (!fogEffect.attachShaderLogHandler(fogFragmentShader, "fog.frag"))
-                console.debug("FogEffect: shader log handler unavailable for fog.frag")
+            if (!fogEffect.attachShaderLogHandler(fogFragmentShader, 'fog.frag'))
+                console.debug('FogEffect: log handler unavailable for fog.frag')
+            fogEffect.handleShaderStatusChange(fogFragmentShader, 'fog.frag')
         }
+        onStatusChanged: fogEffect.handleShaderStatusChange(fogFragmentShader, 'fog.frag')
     }
-
     Shader {
         id: fogFallbackShader
         stage: Shader.Fragment
-        shader: fogEffect.shaderPath("fog_fallback.frag")
-        property real userFogDensity: fogEffect.fogDensity
-        property color userFogColor: fogEffect.fogColor
+        shader: fogEffect.shaderPath('fog_fallback.frag')
         Component.onCompleted: {
-            if (!fogEffect.attachShaderLogHandler(fogFallbackShader, "fog_fallback.frag"))
-                console.debug("FogEffect: shader log handler unavailable for fog_fallback.frag")
+            if (!fogEffect.attachShaderLogHandler(fogFallbackShader, 'fog_fallback.frag'))
+                console.debug('FogEffect: log handler unavailable for fog_fallback.frag')
+            fogEffect.handleShaderStatusChange(fogFallbackShader, 'fog_fallback.frag')
         }
+        onStatusChanged: fogEffect.handleShaderStatusChange(fogFallbackShader, 'fog_fallback.frag')
     }
-
-    // Объединённый onCompleted: инициализация + логи
-    Component.onCompleted: {
-        if (!_depthInitializationStarted)
-            _depthInitializationStarted = true
-        if (!forceDepthTextureUnavailable) {
-            depthTextureAvailable = (GraphicsInfo.api === GraphicsInfo.OpenGL) || preferDesktopShaderProfile
-            fallbackDueToDepth = !depthTextureAvailable
-        } else {
-            depthTextureAvailable = false
-            fallbackDueToDepth = true
-        }
-        _depthInitializationComplete = true
-        updateFallbackActivation()
-        refreshPassConfiguration()
-
-        var depthReady = _depthInitializationComplete
-        if (enforceLegacyFallbackShaders && compatibilityFallbackMessage.length && !compatibilityFallbackLogged) {
-            console.warn("⚠️ FogEffect:", compatibilityFallbackMessage)
-            compatibilityFallbackLogged = true
-        }
-        console.log("🌫️ FogEffect graphics API:", rendererGraphicsApi)
-        if (normalizedRendererGraphicsApi.length)
-            console.log("   Normalized API:", normalizedRendererGraphicsApi)
-        console.log(
-                    "   Shader profile:",
-                    useGlesShaders
-                    ? "OpenGL ES (GLSL 300 es)"
-                    : "Desktop (GLSL 450 core)"
-                    )
-        console.log("   Profile decision flags ->",
-                    "preferDesktop:", preferDesktopShaderProfile,
-                    "reportedGles:", reportedGlesContext,
-                    "forceDesktopOverride:", forceDesktopShaderProfile)
-        console.log("🌫️ Enhanced Fog Effect loaded")
-        console.log("   Density:", fogDensity)
-        console.log("   Color:", fogColor)
-        console.log("   Distance range:", fogStartDistance, "-", fogEndDistance)
-        console.log("   Height-based:", heightBasedFog)
-        console.log("   Animated:", animatedFog)
-        if (!depthReady)
-            console.warn("⚠️ FogEffect: depth texture unavailable, fallback shader active")
+    Component.onDestruction: {
+        shaderResourceAvailabilityCache = ({})
+        shaderSanitizationCache = ({})
+        shaderSanitizationWarnings = ({})
+        shaderVariantSelectionCache = ({})
+        shaderVariantMissingWarnings = ({})
+        _shaderVariantCache = ({})
+        _shaderVariantCacheKeys = []
     }
-
-    passes: [
-        Pass {
-            shaders: fogEffect.activePassShaders
-        }
-    ]
-
     Timer {
         id: animationTimer
-        running: fogEffect.animatedFog
-                && fogEffect.depthTextureAvailable
-                && !fogEffect.fallbackActive
-        interval: 16  // 60 FPS
+        running: fogEffect.animatedFog && fogEffect.depthTextureAvailable && !fogEffect.fallbackActive
+        interval: 16
         repeat: true
-        onTriggered: fogEffect.time += 0.016
+        onTriggered: fogEffect.time += (interval / 1000.0) * fogEffect.animationSpeed // скорость теперь влияет на анимацию
     }
 
 }
