@@ -109,3 +109,84 @@ def test_visualization_service_dispatch_is_lightweight(settings_manager) -> None
 
     assert latest["quality"]["msaa"] == 4
     assert average_ms < 4.0, "Visualization dispatch path exceeds latency budget"
+
+
+@pytest.mark.performance
+@pytest.mark.usefixtures("settings_manager")
+def test_prepare_for_qml_handles_interaction_payloads_fast(settings_manager) -> None:
+    payload = {
+        "three_d": {
+            "interaction": {
+                "enabled": True,
+                "pan_speed": 0.02,
+                "orbit_target": {"x": 0.1, "y": -0.2, "z": 1.5},
+                "lock_axis": "z",
+            },
+            "flow_network": {
+                "lines": {line.value: {"pressure": 110_000} for line in Line}
+            },
+        },
+        "render": {
+            "samples": [1, 2, 4, 8],
+            "output": {"path": Path("./reports/render/output.exr"), "bit_depth": 16},
+        },
+    }
+
+    iterations = 120
+    start = time.perf_counter()
+    prepared = None
+    for _ in range(iterations):
+        prepared = QMLBridge._prepare_for_qml(payload)
+    elapsed = time.perf_counter() - start
+    assert prepared is not None
+
+    average_ms = (elapsed / iterations) * 1000.0
+    _persist_metric(
+        "prepare_for_qml_interaction_payload",
+        {
+            "iterations": iterations,
+            "total_seconds": elapsed,
+            "average_ms": average_ms,
+            "budget_ms": 3.0,
+        },
+    )
+
+    assert average_ms < 3.0, "QML payload preparation exceeds interaction budget"
+
+
+@pytest.mark.performance
+@pytest.mark.usefixtures("settings_manager")
+def test_batched_dispatch_merges_without_allocation_spikes(settings_manager) -> None:
+    service = VisualizationService(settings_manager=settings_manager)
+    updates = {
+        "scene": {
+            "scale_factor": 1.25,
+            "ambient_occlusion": {"enabled": True, "radius": 0.4},
+        },
+        "lighting": {"exposure": 1.15, "contrast_curve": [0.1, 0.5, 1.0]},
+        "materials": {"brdf": {"name": "ggx", "roughness": 0.32}},
+    }
+
+    service.dispatch_updates(updates)
+    iterations = 180
+    start = time.perf_counter()
+    snapshot = None
+    for _ in range(iterations):
+        snapshot = service.dispatch_updates(updates)
+        merged: dict[str, dict[str, object]] = {}
+        QMLBridge._deep_merge_dicts(merged, snapshot)  # type: ignore[arg-type]
+    elapsed = time.perf_counter() - start
+
+    assert snapshot is not None
+    average_ms = (elapsed / iterations) * 1000.0
+    _persist_metric(
+        "render_state_merge",
+        {
+            "iterations": iterations,
+            "total_seconds": elapsed,
+            "average_ms": average_ms,
+            "budget_ms": 3.5,
+        },
+    )
+
+    assert average_ms < 3.5, "State merge routine exceeds render sync budget"

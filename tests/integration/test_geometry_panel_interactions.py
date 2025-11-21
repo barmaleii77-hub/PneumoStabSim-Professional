@@ -8,6 +8,8 @@ import os
 
 import pytest
 
+from src.ui.panels.geometry.defaults import DEFAULT_GEOMETRY
+
 pytest.importorskip(
     "PySide6.QtWidgets",
     reason="PySide6 widgets require OpenGL libraries that are unavailable",
