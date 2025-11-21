@@ -1,0 +1,29 @@
+{
+  "env": {
+    "python_executable": "C:\\Users\\Алексей\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "python_version": "3.13.7",
+    "py_side_version": "6.10.0",
+    "qt_version": null,
+    "platform": "nt",
+    "qt_qpa_platform": null,
+    "qt_quick_backend": null,
+    "qsg_rhi_backend": null,
+    "quick_controls_style": null
+  },
+  "state": {
+    "post_effects_bypassed": null,
+    "post_effects_bypass_reason": null,
+    "reflection_enabled": null,
+    "reflection_quality": null,
+    "reflection_refresh_mode": null,
+    "reflection_time_slicing": null,
+    "reflection_padding_m": null,
+    "ssao": {},
+    "fog": {},
+    "render_scale": null,
+    "frame_rate_limit": null,
+    "render_policy_key": null,
+    "shader_warnings": {}
+  },
+  "snapshot": null
+}

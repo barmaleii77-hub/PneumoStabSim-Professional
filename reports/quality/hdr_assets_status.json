@@ -1,7 +1,23 @@
 {
-  "manifest": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\assets\\hdr\\hdr_manifest.json",
-  "directory": "C:\\Users\\CADuser\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\assets\\hdr",
-  "files_total": 0,
-  "manifest_entries": 0,
-  "statuses": []
+  "assets_dir": "C:\\Users\\Алексей\\source\\repos\\barmaleii77-hub\\PneumoStabSim-Professional\\assets\\hdr",
+  "required": [
+    {
+      "name": "studio.hdr",
+      "exists": false,
+      "size_bytes": 0,
+      "mismatch": false
+    },
+    {
+      "name": "factory.hdr",
+      "exists": false,
+      "size_bytes": 0,
+      "mismatch": false
+    },
+    {
+      "name": "warehouse.hdr",
+      "exists": false,
+      "size_bytes": 0,
+      "mismatch": false
+    }
+  ]
 }
