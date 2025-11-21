@@ -1,0 +1,154 @@
+name: Default CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Run daily at 04:00 UTC
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build and Test (${{ matrix.runtime }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Node.js matrix
+          - runtime: 'node-18'
+            node-version: '18.x'
+            python-version: ''
+          - runtime: 'node-20'
+            node-version: '20.x'
+            python-version: ''
+          # Python matrix
+          - runtime: 'python-3.10'
+            node-version: ''
+            python-version: '3.10'
+          - runtime: 'python-3.11'
+            node-version: ''
+            python-version: '3.11'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Node.js if needed
+      - name: Setup Node.js ${{ matrix.node-version }}
+        if: matrix.node-version != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Setup Python if needed
+      - name: Setup Python ${{ matrix.python-version }}
+        if: matrix.python-version != ''
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Install Node.js dependencies
+      - name: Install Node.js dependencies (npm)
+        if: matrix.node-version != ''
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          elif [ -f "package.json" ]; then
+            npm install
+          else
+            echo "No package.json found, skipping npm install"
+          fi
+
+      - name: Install Node.js dependencies (yarn)
+        if: matrix.node-version != '' && hashFiles('yarn.lock') != ''
+        run: yarn install
+
+      # Install Python dependencies
+      - name: Install Python dependencies
+        if: matrix.python-version != ''
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping pip install"
+          fi
+          if [ -f "requirements-dev.txt" ]; then
+            pip install -r requirements-dev.txt
+          elif [ -f "dev-requirements.txt" ]; then
+            pip install -r dev-requirements.txt
+          fi
+
+      # Lint - Node.js
+      - name: Lint (Node.js)
+        if: matrix.node-version != '' && hashFiles('package.json') != ''
+        continue-on-error: true
+        run: |
+          if npm run | grep -q "lint"; then
+            npm run lint
+          elif command -v eslint &> /dev/null && [ -f ".eslintrc.*" ] || [ -f "eslint.config.*" ]; then
+            npx eslint .
+          else
+            echo "No lint script or eslint config found, skipping"
+          fi
+
+      # Lint - Python
+      - name: Lint (Python)
+        if: matrix.python-version != ''
+        continue-on-error: true
+        run: |
+          if command -v flake8 &> /dev/null || python -m flake8 --version &> /dev/null; then
+            python -m flake8 . || flake8 .
+          else
+            echo "flake8 not found, skipping Python lint"
+          fi
+
+      # Type check - Node.js
+      - name: Type check (Node.js)
+        if: matrix.node-version != ''
+        continue-on-error: true
+        run: |
+          if npm run | grep -q "typecheck"; then
+            npm run typecheck
+          elif command -v tsc &> /dev/null && [ -f "tsconfig.json" ]; then
+            npx tsc --noEmit
+          else
+            echo "No typecheck script or TypeScript config found, skipping"
+          fi
+
+      # Type check - Python
+      - name: Type check (Python)
+        if: matrix.python-version != ''
+        continue-on-error: true
+        run: |
+          if command -v mypy &> /dev/null || python -m mypy --version &> /dev/null; then
+            python -m mypy . || mypy .
+          else
+            echo "mypy not found, skipping type check"
+          fi
+
+      # Test - Node.js
+      - name: Test (Node.js)
+        if: matrix.node-version != ''
+        run: |
+          if npm run | grep -q "test"; then
+            npm test
+          else
+            echo "No test script found in package.json"
+            exit 0
+          fi
+
+      # Test - Python
+      - name: Test (Python)
+        if: matrix.python-version != ''
+        run: |
+          if command -v pytest &> /dev/null || python -m pytest --version &> /dev/null; then
+            python -m pytest || pytest
+          else
+            echo "pytest not found, skipping tests"
+            exit 0
+          fi
